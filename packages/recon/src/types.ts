@@ -74,6 +74,8 @@ export const RemoteAccessCandidate = z.object({
   kind: RemoteAccessKind,
   /** 当たったパターンの名前（patterns.ts） */
   pattern: z.string(),
+  /** 今も使われている形跡があるか：DNS で名前が解決できる、または有効期限内の証明書がある。false は過去の痕跡 */
+  current: z.boolean(),
   reasonJa: z.string(),
   evidence: z.array(Evidence),
   /** IPA 事例集の脆弱性事例の番号 */
@@ -180,8 +182,45 @@ export const ReconResult = z.object({
 });
 export type ReconResult = z.infer<typeof ReconResult>;
 
-/** ドメインの正規化：小文字、末尾のドットを除く。不正なら例外 */
+export class InvalidDomainError extends Error {
+  readonly input: string;
+  constructor(input: string, reason: string) {
+    super(`ドメイン名として扱えない（${reason}）: ${input}`);
+    this.name = "InvalidDomainError";
+    this.input = input;
+  }
+}
+
+/** 名前解決の対象にしてはいけない名前：IP アドレス、localhost、逆引き用の名前空間 */
+function rejectedReason(name: string): string | undefined {
+  const labels = name.split(".");
+  const tld = labels[labels.length - 1] ?? "";
+  if (labels.every((l) => /^\d+$/.test(l))) return "IP アドレスは対象外。ドメイン名を入力する";
+  if (/^\d+$/.test(tld)) return "最後のラベルが数字だけ";
+  if (tld === "localhost" || tld === "local") return "ローカル用の名前は対象外";
+  if (tld === "arpa") return "逆引き用の名前空間は対象外";
+  return undefined;
+}
+
+/**
+ * ドメインの正規化：前後の空白と末尾のドットを除き、小文字にする。
+ * ホスト名として不正、IP アドレス、localhost などは InvalidDomainError（日本語の理由つき）。
+ * 国際化ドメイン名は Punycode（xn--）で渡す
+ */
 export function normalizeDomain(input: string): Hostname {
   const lowered = input.trim().toLowerCase().replace(/\.$/, "");
-  return Hostname.parse(lowered);
+  if (!Hostname.safeParse(lowered).success) {
+    throw new InvalidDomainError(
+      input,
+      "英数字とハイフンの 2 ラベル以上のホスト名ではない（国際化ドメイン名は xn-- の形で）",
+    );
+  }
+  const reason = rejectedReason(lowered);
+  if (reason) throw new InvalidDomainError(input, reason);
+  return lowered;
+}
+
+/** DNS に問い合わせてよい名前か（CT など第三者が書けるデータから来た名前に使う）。ワイルドカードは不可 */
+export function isLookupSafeName(name: string): boolean {
+  return Hostname.safeParse(name).success && rejectedReason(name) === undefined;
 }

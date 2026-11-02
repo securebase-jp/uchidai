@@ -6,6 +6,7 @@ import {
   ForbiddenDestinationError,
   restrictedFetch,
 } from "./safe-fetch.ts";
+import { InvalidDomainError, isLookupSafeName, normalizeDomain } from "./types.ts";
 
 describe("crtshUrl", () => {
   it("crt.sh のサブドメイン検索 URL だけを作る", () => {
@@ -58,5 +59,32 @@ describe("restrictedFetch", () => {
     ).rejects.toBeInstanceOf(ForbiddenDestinationError);
     await expect(restrictedFetch("https://demo-seiko.example/", { fetch: fake })).rejects.toThrow();
     expect(fake).not.toHaveBeenCalled();
+  });
+});
+
+describe("ドメインの正規化（normalizeDomain）", () => {
+  it("IP アドレス、localhost、逆引きの名前空間、国際化ドメイン名の生文字は拒否し、理由は日本語", () => {
+    for (const bad of [
+      "203.0.113.10",
+      "localhost",
+      "foo.localhost",
+      "printer.local",
+      "1.0.113.203.in-addr.arpa",
+      "例.jp",
+      "a..jp",
+      "-a.jp",
+      "a\n.jp",
+    ]) {
+      expect(() => normalizeDomain(bad), bad).toThrow(InvalidDomainError);
+      expect(() => normalizeDomain(bad), bad).toThrow(/ドメイン名として扱えない/);
+    }
+    expect(normalizeDomain(" Example.JP. ")).toBe("example.jp");
+    expect(normalizeDomain("xn--r8jz45g.jp")).toBe("xn--r8jz45g.jp");
+  });
+  it("isLookupSafeName はワイルドカードと不正な名前を通さない", () => {
+    expect(isLookupSafeName("*.example.jp")).toBe(false);
+    expect(isLookupSafeName("evil.com\u0000.example.jp")).toBe(false);
+    expect(isLookupSafeName(".example.jp")).toBe(false);
+    expect(isLookupSafeName("vpn.example.jp")).toBe(true);
   });
 });
