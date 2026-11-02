@@ -2,7 +2,6 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "noEmit": true,
     "allowImportingTsExtensions": true
   },

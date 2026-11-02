@@ -17,11 +17,14 @@ export const CaseStepSchema = z.object({
   techniques: z.array(TechniqueId),
   source: StepSource,
   quote: z.string().optional(),
+  summaryJa: z.string().optional(),
 });
 export const CaseOutputSchema = z.object({
+  title: z.string().optional(),
   damageType: DamageType,
   clarity: Clarity,
   steps: z.array(CaseStepSchema),
+  suspiciousInstructions: z.array(z.string()).optional(),
 });
 export type CaseOutput = z.infer<typeof CaseOutputSchema>;
 export type CaseStep = z.infer<typeof CaseStepSchema>;
@@ -42,6 +45,7 @@ export const GoldCaseSchema = z.object({
   source: z.object({
     citation: z.string(),
     url: z.string().url(),
+    /** PDF のとき、該当事例のページ（1 始まり、PDF のページ順。"27" や "27-28"） */
     pages: z.string().optional(),
     summary: z.string(),
   }),
@@ -58,6 +62,20 @@ export const GoldCaseSchema = z.object({
 export type GoldCase = z.infer<typeof GoldCaseSchema>;
 export type GoldStep = z.infer<typeof GoldStepSchema>;
 
+/** 検証（verifyCase）で何を何件破棄したか。形は packages/llm の VerifyReport.counts に従う */
+export const VerificationSummarySchema = z.object({
+  stepsIn: z.number(),
+  stepsOut: z.number(),
+  techniquesIn: z.number(),
+  techniquesOut: z.number(),
+  quotesIn: z.number(),
+  quotesOut: z.number(),
+  replaced: z.array(z.string()).optional(),
+  droppedTechniques: z.array(z.string()).optional(),
+  droppedQuotes: z.number().optional(),
+  suspiciousInstructions: z.number().optional(),
+});
+
 /** 記録した Claude の応答。リクエストヘッダは絶対に保存しない */
 export const RecordingSchema = z.object({
   caseId: z.string(),
@@ -65,7 +83,13 @@ export const RecordingSchema = z.object({
   model: z.string(),
   recordedAt: z.string(),
   note: z.string().optional(),
+  /** 取り込んだ ATT&CK のバージョン */
+  attackVersion: z.string().optional(),
+  /** 検証後の出力（採点対象） */
   output: CaseOutputSchema,
+  /** 検証前の生の出力（検証で何が落ちたかを見るため。採点には使わない） */
+  raw: z.unknown().optional(),
+  verification: VerificationSummarySchema.optional(),
   /** engine で判定した結論（記録時点）。未実装なら省略 */
   verdict: VerdictResult.optional(),
 });

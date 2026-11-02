@@ -3,6 +3,7 @@
  * 出力は構造化出力（JSON スキーマ強制）で受け、呼び出し側が zod で検証する。
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { proxyFetch } from "./proxy.ts";
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
 
@@ -41,7 +42,10 @@ export type StructuredResult<T> = {
 let shared: Anthropic | undefined;
 export function getClient(opts: LlmOptions): Anthropic {
   if (opts.client) return opts.client;
-  shared ??= new Anthropic();
+  if (!shared) {
+    const viaProxy = proxyFetch();
+    shared = viaProxy ? new Anthropic({ fetch: viaProxy }) : new Anthropic();
+  }
   return shared;
 }
 

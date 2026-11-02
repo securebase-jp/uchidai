@@ -5,6 +5,8 @@ status: draft
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
+  pages: "27"
   summary: >-
     製造業（80名、兼務情シス2名）。更新されていないVPN装置の脆弱性から侵入され、
     社内のサーバとクラウド同期していたバックアップまで暗号化された。想定被害額4,600万円。

@@ -22,11 +22,26 @@
 ## 実行
 
 ```bash
-pnpm eval                 # 記録データで採点し、結果を記録する
+pnpm eval                 # 記録データで採点し、結果を記録する（API キー不要、CI で実行）
 EVAL_NOTE="読解プロンプト v2" pnpm eval   # RESULTS.md のメモ欄に残す
+pnpm eval --live          # Claude を呼んで 5 事例 × 2 モードの記録を更新してから採点する
+pnpm eval --live --case ipa-case-1 --mode with-knowledge   # 事例・モードを絞る
+pnpm eval --no-knowledge  # 知見なし（without-knowledge）の記録だけを採点する
 ```
 
-Claude を呼んで記録を更新するコマンド（`--live`）と、知見ファイルなしで読ませる比較（`--no-knowledge`）は、読解（packages/llm）の実装と同時に足す。
+`--live` は `ANTHROPIC_API_KEY`（と任意で `ANTHROPIC_MODEL`）を使う。リポジトリ直下の `.env` があれば読む（`--env-file-if-exists`）。
+記事の原文は `source.url`（PDF なら `source.pages` のページ）から取り込み、`.cache/<caseId>.txt` に置く。既にあれば取得しない。
+
+2 つのモードの違い：
+
+| モード            | Claude に渡すもの                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| with-knowledge    | 読解の指示、ATT&CK の手法一覧（戦術ごとの ID と名前）、日本語ラベル、型紙（あれば）         |
+| without-knowledge | 読解の指示と出力の形だけ。手法一覧・ラベル・型紙は渡さない（Claude の記憶だけで ID を出す） |
+
+どちらの出力も `verifyCase`（ID の実在確認と廃止 ID の置き換え、根拠文の原文照合、指示文の検知）を通してから記録する。
+検証前の出力は記録の `raw` に、何を何件落としたかは `verification` に残る。
+`--live` はあわせて、知見なしの Claude に「この事例への対策」を緩和策 ID つきで列挙させた結果を `recordings/mitigations/<caseId>.json` に残す（採点対象外。効く／効かない／経路の外の振り分けは判定エンジン側）。
 
 ## 出典
 

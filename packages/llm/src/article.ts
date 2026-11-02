@@ -5,6 +5,7 @@
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { extractText, getDocumentProxy } from "unpdf";
+import { type FetchLike, resolveFetch } from "./proxy.ts";
 
 export type ArticleInput =
   | { kind: "url"; url: string; pages?: string; caseNumber?: number; mustInclude?: string }
@@ -31,7 +32,7 @@ export type Article = {
 };
 
 export type FetchOptions = {
-  fetch?: typeof fetch;
+  fetch?: FetchLike;
   /** 取得する最大バイト数（既定 20MB） */
   maxBytes?: number;
   /** タイムアウト（ms、既定 30 秒） */
@@ -46,7 +47,7 @@ export async function downloadBytes(
   url: string,
   opts: FetchOptions = {},
 ): Promise<{ data: Uint8Array; contentType: string; finalUrl: string }> {
-  const doFetch = opts.fetch ?? fetch;
+  const doFetch = resolveFetch(opts.fetch);
   const res = await doFetch(url, {
     headers: { "user-agent": USER_AGENT, accept: "text/html,application/pdf,*/*;q=0.8" },
     signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
@@ -82,15 +83,24 @@ export function tidyText(text: string): string {
     .trim();
 }
 
+/** linkedom の DOM のうち使う部分だけ（DOM の型定義に依存しないため） */
+type MinimalElement = { textContent: string | null; remove(): void };
+type MinimalDocument = {
+  querySelectorAll(selector: string): Iterable<MinimalElement>;
+  querySelector(selector: string): MinimalElement | null;
+  body: MinimalElement | null;
+  documentElement: MinimalElement | null;
+};
+
 /** HTML から本文を取り出す（Readability。失敗したら body のテキスト） */
 export function extractHtml(html: string, sourceUrl?: string): Article {
-  const { document } = parseHTML(html);
+  const { document } = parseHTML(html) as unknown as { document: MinimalDocument };
   for (const el of Array.from(document.querySelectorAll("script,style,noscript,template")))
     el.remove();
   let title = document.querySelector("title")?.textContent?.trim() ?? "";
   let text = "";
   try {
-    const result = new Readability(document as unknown as Document).parse();
+    const result = new Readability(document as never).parse();
     if (result?.textContent && result.textContent.trim().length > 0) {
       text = result.textContent;
       if (result.title) title = result.title;

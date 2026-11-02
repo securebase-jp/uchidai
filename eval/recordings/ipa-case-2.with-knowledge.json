@@ -1,0 +1,89 @@
+{
+  "caseId": "ipa-case-2",
+  "mode": "with-knowledge",
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T06:19:14.809Z",
+  "note": "ATT&CK の手法一覧と日本語ラベルを渡して読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
+  "attackVersion": "20.0",
+  "output": {
+    "title": "クラウドストレージの設定ミスで顧客リストが流出した事例",
+    "damageType": "data_breach",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190"
+        ],
+        "source": "stated",
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "アクセス権限の誤設定でインターネットから誰でも見られる状態になっていたクラウドストレージに、外部の者が入り込んだ"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1530"
+        ],
+        "source": "stated",
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "クラウドストレージ上の顧客リストなどのデータが外部から取得された"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567.002"
+        ],
+        "source": "inferred",
+        "summaryJa": "取得された顧客リストや取引条件などのデータが社外へ持ち出された"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "raw": {
+    "title": "クラウドストレージの設定ミスで顧客リストが流出した事例",
+    "damageType": "data_breach",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190"
+        ],
+        "source": "stated",
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "アクセス権限の誤設定でインターネットから誰でも見られる状態になっていたクラウドストレージに、外部の者が入り込んだ"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1530"
+        ],
+        "source": "stated",
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "クラウドストレージ上の顧客リストなどのデータが外部から取得された"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567.002"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "取得された顧客リストや取引条件などのデータが社外へ持ち出された"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "verification": {
+    "stepsIn": 3,
+    "stepsOut": 3,
+    "techniquesIn": 3,
+    "techniquesOut": 3,
+    "quotesIn": 2,
+    "quotesOut": 2,
+    "replaced": [],
+    "droppedTechniques": [],
+    "droppedQuotes": 0,
+    "suspiciousInstructions": 0
+  }
+}

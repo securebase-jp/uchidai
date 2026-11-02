@@ -1,0 +1,89 @@
+{
+  "caseId": "ipa-case-5",
+  "mode": "without-knowledge",
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T06:20:26.370Z",
+  "note": "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
+  "attackVersion": "20.0",
+  "output": {
+    "title": "社長のメールアカウント乗っ取りによる送金詐欺（約500万円流出）",
+    "damageType": "bec",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1078.004"
+        ],
+        "source": "stated",
+        "quote": "流出したパスワードは社長のクラウドメールのものと同一で\nあり、攻撃者は社長アカウントへのログインに成功した",
+        "summaryJa": "外部サービスから流出した社長のパスワードが社長のクラウドメールと同じだったため、攻撃者が正規アカウントでログインした"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1114"
+        ],
+        "source": "inferred",
+        "summaryJa": "攻撃者が社長のメールを閲覧し、取引や社内の状況を把握したと考えられる"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "stated",
+        "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
+        "summaryJa": "社長を装ったメールに経理担当が騙され、攻撃者の口座へ約500万円を送金した"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "raw": {
+    "title": "社長のメールアカウント乗っ取りによる送金詐欺（約500万円流出）",
+    "damageType": "bec",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1078.004"
+        ],
+        "source": "stated",
+        "quote": "流出したパスワードは社長のクラウドメールのものと同一で\nあり、攻撃者は社長アカウントへのログインに成功した",
+        "summaryJa": "外部サービスから流出した社長のパスワードが社長のクラウドメールと同じだったため、攻撃者が正規アカウントでログインした"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1114"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "攻撃者が社長のメールを閲覧し、取引や社内の状況を把握したと考えられる"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "stated",
+        "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
+        "summaryJa": "社長を装ったメールに経理担当が騙され、攻撃者の口座へ約500万円を送金した"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "verification": {
+    "stepsIn": 3,
+    "stepsOut": 3,
+    "techniquesIn": 3,
+    "techniquesOut": 3,
+    "quotesIn": 2,
+    "quotesOut": 2,
+    "replaced": [],
+    "droppedTechniques": [],
+    "droppedQuotes": 0,
+    "suspiciousInstructions": 0
+  }
+}

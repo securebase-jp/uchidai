@@ -4,6 +4,8 @@ status: draft
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
+  pages: "31"
   summary: >-
     製造業（30名）。外部サービスから流出したパスワードの使い回しで社長のクラウドメールに入られ、
     社長になりすました送金指示で経理担当が500万円を送金した。
@@ -27,4 +29,4 @@ expected:
       tactic: TA0005
       techniques: [T1684.001, T1656]
       source: stated
-      quoteHint: なりすま
+      quoteHint: 騙

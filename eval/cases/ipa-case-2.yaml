@@ -4,6 +4,8 @@ status: draft
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
+  pages: "28"
   summary: >-
     情報通信業（100名）。クラウドストレージの共有設定の誤りで顧客リストが誰でも閲覧できる状態になり、
     流出が判明して一部の取引が停止した。侵入ではなく設定ミスが入口。
@@ -17,4 +19,4 @@ expected:
       tactic: TA0009
       techniques: [T1530]
       source: stated
-      quoteHint: 設定
+      quoteHint: ダウンロード

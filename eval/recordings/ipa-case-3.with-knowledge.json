@@ -1,0 +1,107 @@
+{
+  "caseId": "ipa-case-3",
+  "mode": "with-knowledge",
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T06:19:30.143Z",
+  "note": "ATT&CK の手法一覧と日本語ラベルを渡して読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
+  "attackVersion": "20.0",
+  "output": {
+    "title": "Webサイト改ざんによるフィッシング誘導とクレジットカード情報の漏えい",
+    "damageType": "data_breach",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190"
+        ],
+        "source": "stated",
+        "quote": "ウェブサイト更新管理システムの追加機能未更新",
+        "summaryJa": "ウェブサイト更新管理システムの追加機能が更新されておらず、その弱点を突かれて侵入された。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1491.002"
+        ],
+        "source": "stated",
+        "quote": "自社ウェブサイトがフィッシ\nングサイトに改ざんされた",
+        "summaryJa": "自社のウェブサイトがフィッシングサイトに改ざんされた。"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1056.003"
+        ],
+        "source": "inferred",
+        "summaryJa": "改ざんされたページに顧客が入力したクレジットカード情報が攻撃者に取得された。"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1041"
+        ],
+        "source": "stated",
+        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された\n顧客のクレジットカード情報が外部に漏えいした",
+        "summaryJa": "顧客が入力したクレジットカード情報が外部に送られ、漏えいした。"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "raw": {
+    "title": "Webサイト改ざんによるフィッシング誘導とクレジットカード情報の漏えい",
+    "damageType": "data_breach",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190"
+        ],
+        "source": "stated",
+        "quote": "ウェブサイト更新管理システムの追加機能未更新",
+        "summaryJa": "ウェブサイト更新管理システムの追加機能が更新されておらず、その弱点を突かれて侵入された。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1491.002"
+        ],
+        "source": "stated",
+        "quote": "自社ウェブサイトがフィッシ\nングサイトに改ざんされた",
+        "summaryJa": "自社のウェブサイトがフィッシングサイトに改ざんされた。"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1056.003"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "改ざんされたページに顧客が入力したクレジットカード情報が攻撃者に取得された。"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1041"
+        ],
+        "source": "stated",
+        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された\n顧客のクレジットカード情報が外部に漏えいした",
+        "summaryJa": "顧客が入力したクレジットカード情報が外部に送られ、漏えいした。"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "verification": {
+    "stepsIn": 4,
+    "stepsOut": 4,
+    "techniquesIn": 4,
+    "techniquesOut": 4,
+    "quotesIn": 3,
+    "quotesOut": 3,
+    "replaced": [],
+    "droppedTechniques": [],
+    "droppedQuotes": 0,
+    "suspiciousInstructions": 0
+  }
+}
