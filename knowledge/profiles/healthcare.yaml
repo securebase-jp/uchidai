@@ -35,3 +35,9 @@ businesses:
 impact:
   partnerJa: 患者と地域
   reportJa: 病歴などの要配慮個人情報は件数にかかわらず報告
+# 5問から作るカルテの個人情報の既定値（件数は未確認として扱う）
+personalData:
+  - role: core
+    descriptionJa: 患者の病歴・診療情報
+    sensitive: true
+    over1000: true

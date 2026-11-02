@@ -219,7 +219,7 @@ function asset(
 export function profileFromAnswers(
   answers: ProfileAnswers,
   patterns: Pattern[],
-  companyName = "（会社名未設定）",
+  companyName = "うちの会社",
 ): CompanyProfile {
   const patternId =
     answers.industry === "manufacturing"
@@ -370,6 +370,15 @@ export function profileFromAnswers(
     answers,
     assets,
     businesses,
-    personalData: [],
+    personalData: pattern.personalData.flatMap((pd) =>
+      assets
+        .filter((a) => a.role === pd.role)
+        .map((a) => ({
+          assetId: a.id,
+          descriptionJa: pd.descriptionJa,
+          over1000: pd.over1000,
+          sensitive: pd.sensitive,
+        })),
+    ),
   };
 }

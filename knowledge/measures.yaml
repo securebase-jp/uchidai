@@ -67,8 +67,7 @@ measures:
       - role: pc
         mitigation: M1040
         status: present
-    costJpyPerDevicePerYear: 13200
-    costSourceJa: IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」別紙 想定被害額計算明細（被害事例1）「EDR導入 13,200円／台／年契約」（2026-11-02 確認）
+    # 費用の目安は knowledge/costs.yaml（measureId: edr）
     requestToJa: 保守ベンダー
   - id: admin-separate
     labelJa: 管理者パスワードを PC ごとに個別化

@@ -85,6 +85,35 @@
         "reportJa"
       ],
       "additionalProperties": false
+    },
+    "personalData": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+          },
+          "descriptionJa": {
+            "type": "string"
+          },
+          "sensitive": {
+            "type": "boolean"
+          },
+          "over1000": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "role",
+          "descriptionJa",
+          "sensitive",
+          "over1000"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [
@@ -92,7 +121,8 @@
     "labelJa",
     "core",
     "businesses",
-    "impact"
+    "impact",
+    "personalData"
   ],
   "additionalProperties": false
 }

@@ -163,6 +163,17 @@ export const Pattern = z.object({
   core: z.object({ labelJa: z.string() }),
   businesses: z.array(PatternBusiness).max(5),
   impact: z.object({ partnerJa: z.string(), reportJa: z.string() }),
+  /** 5問から作るカルテに入れる個人情報の既定値 */
+  personalData: z
+    .array(
+      z.object({
+        role: Role,
+        descriptionJa: z.string(),
+        sensitive: z.boolean(),
+        over1000: z.boolean(),
+      }),
+    )
+    .default([]),
 });
 export type Pattern = z.infer<typeof Pattern>;
 

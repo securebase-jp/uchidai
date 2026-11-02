@@ -11,12 +11,23 @@
   "answers": {
     "industry": "manufacturing",
     "site": "factory",
-    "hosting": { "mail": "cloud", "files": "onprem", "core": "onprem", "web": "provider" },
+    "hosting": {
+      "mail": "cloud",
+      "files": "onprem",
+      "core": "onprem",
+      "web": "provider"
+    },
     "remoteAccess": ["vpn", "vendor_remote"],
     "backup": "cloud_sync"
   },
-  "vendor": { "name": "地域の保守ベンダー（架空）", "email": "vendor@example.com" },
-  "cyberInsurance": { "enrolled": true, "notifyWithinDays": 30 },
+  "vendor": {
+    "name": "地域の保守ベンダー（架空）",
+    "email": "vendor@example.com"
+  },
+  "cyberInsurance": {
+    "enrolled": true,
+    "notifyWithinDays": 30
+  },
   "typicalTransferJpy": 5000000,
   "assets": [
     {
@@ -30,13 +41,15 @@
         "exposed": true,
         "knownExploited": true,
         "authBypass": true,
-        "cve": "CVE-2024-55591"
+        "cve": "CVE-2024-55591",
+        "hostname": "vpn.demo-seiko.example"
       },
       "attrEvidence": {
         "exposed": "external",
         "knownExploited": "vendor",
         "authBypass": "vendor",
-        "cve": "vendor"
+        "cve": "vendor",
+        "hostname": "external"
       },
       "controls": [
         {
@@ -65,8 +78,12 @@
       "id": "vendor-remote",
       "kind": "device",
       "role": "entry.vendor_remote",
-      "label": "保守ベンダーのリモート保守ツール",
-      "attrs": { "alwaysOn": true, "sharedPassword": true, "connectsTo": "core" },
+      "label": "保守用リモート接続",
+      "attrs": {
+        "alwaysOn": true,
+        "sharedPassword": true,
+        "connectsTo": "core"
+      },
       "attrEvidence": {
         "alwaysOn": "registered",
         "sharedPassword": "registered",
@@ -136,8 +153,12 @@
       "kind": "system",
       "role": "server",
       "label": "業務サーバ区画",
-      "attrs": { "segmented": false },
-      "attrEvidence": { "segmented": "registered" },
+      "attrs": {
+        "segmented": false
+      },
+      "attrEvidence": {
+        "segmented": "registered"
+      },
       "controls": [
         {
           "mitigation": "M1030",
@@ -176,7 +197,11 @@
       "kind": "system",
       "role": "backup",
       "label": "バックアップ（クラウド同期）",
-      "attrs": { "method": "cloud_sync", "isolated": false, "restoreTested": false },
+      "attrs": {
+        "method": "cloud_sync",
+        "isolated": false,
+        "restoreTested": false
+      },
       "attrEvidence": {
         "method": "registered",
         "isolated": "registered",
@@ -196,8 +221,16 @@
       "kind": "system",
       "role": "cloud.mail",
       "label": "クラウドメール",
-      "attrs": { "spf": true, "dmarc": false, "mfaMethod": "app" },
-      "attrEvidence": { "spf": "external", "dmarc": "external", "mfaMethod": "registered" },
+      "attrs": {
+        "spf": true,
+        "dmarc": false,
+        "mfaMethod": "app"
+      },
+      "attrEvidence": {
+        "spf": "external",
+        "dmarc": "external",
+        "mfaMethod": "registered"
+      },
       "controls": [
         {
           "mitigation": "M1032",
@@ -212,8 +245,12 @@
       "kind": "account",
       "role": "cloud.mail_account.exec",
       "label": "社長のメールアカウント",
-      "attrs": { "mfaException": true },
-      "attrEvidence": { "mfaException": "registered" },
+      "attrs": {
+        "mfaException": true
+      },
+      "attrEvidence": {
+        "mfaException": "registered"
+      },
       "controls": [
         {
           "mitigation": "M1032",
@@ -236,15 +273,27 @@
       "label": "会計（クラウド）",
       "attrs": {},
       "attrEvidence": {},
-      "controls": [{ "mitigation": "M1032", "status": "present", "evidence": "registered" }]
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered"
+        }
+      ]
     },
     {
       "id": "cloud-storage",
       "kind": "system",
       "role": "cloud.storage",
       "label": "クラウドストレージ（取引先とのデータ共有）",
-      "attrs": { "publicLinksDisabled": true, "reviewCadence": "quarterly" },
-      "attrEvidence": { "publicLinksDisabled": "registered", "reviewCadence": "registered" },
+      "attrs": {
+        "publicLinksDisabled": true,
+        "reviewCadence": "quarterly"
+      },
+      "attrEvidence": {
+        "publicLinksDisabled": "registered",
+        "reviewCadence": "registered"
+      },
       "controls": [
         {
           "mitigation": "M1022",
@@ -288,6 +337,29 @@
           "status": "absent",
           "evidence": "registered",
           "noteJa": "振込先変更や急な送金指示を折り返し確認するルールなし"
+        }
+      ]
+    },
+    {
+      "id": "campaign-site",
+      "kind": "system",
+      "role": "entry.web",
+      "label": "旧キャンペーンサイト（廃止済み）",
+      "side": "external",
+      "attrs": {
+        "decommissioned": true,
+        "hostname": "campaign2019.demo-seiko.example"
+      },
+      "attrEvidence": {
+        "decommissioned": "registered",
+        "hostname": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1051",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "廃止済みと登録されているが、ホスト名が DNS に残っていれば矛盾として表示する"
         }
       ]
     }

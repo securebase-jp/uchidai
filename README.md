@@ -12,10 +12,11 @@
 - [x] ATT&CK Enterprise v20.0 の取り込み（`knowledge/attack/`）、役割の枠（`knowledge/roles.yaml`）、日本語ラベル、共通の型（`packages/engine/src/types.ts`）、デモ用の架空企業（`examples/demo-seiko.json`）
 - [x] 記事の読解と手法IDの照合（`packages/llm`：URL・PDF・テキストの取り込み、構造化出力、ID・根拠文・型紙外・指示文の検証）。評価は 5 事例 × 知見あり／なしで実測を記録
 - [x] 構成グラフ、型紙 3 つ、判定ルール表（条件式 DSL）、経路探索、対策ボタンの再判定、AI 経路の検証、知見なし比較の振り分け（`packages/engine`、`knowledge/`）
-- [ ] 経路図とアニメーション
-- [ ] 確認依頼と判定の更新、対策ボタン
+- [x] 経路図とアニメーション、最初の5問、自動レイアウト、担当者画面・社長画面、黒背景と攻撃者ログ（`apps/web`）
+- [ ] 確認依頼と判定の更新（対策ボタンは実装済み）
 - [ ] AI攻撃者と知見なしAIとの比較
-- [ ] 経営への影響、社長向けの一枚
+- [x] 経営への影響（業務波及、時間軸、法令・実務上の期限、費用の目安）と社長向けの一枚のデータ（`packages/engine`）。一枚の描画は未実装
+- [x] 外部確認（所有確認、DNS、CT ログ、fixture、矛盾検出。`packages/recon`）。画面との接続は未実装
 - [ ] デモモード
 
 計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code での進め方の記録は `docs/claude-code-log.md`（作成予定）。
@@ -25,6 +26,7 @@
 ```bash
 pnpm install
 cp .env.example .env   # ANTHROPIC_API_KEY を自分のキーで埋める
+pnpm dev               # 画面（5173）と API（8787）。?profile=demo-seiko で架空企業
 pnpm eval              # 評価（API キー不要）
 pnpm knowledge:check   # 知識ファイルとカルテの検証
 pnpm attack:import     # ATT&CK の再取り込み（最新版）
@@ -40,8 +42,12 @@ pnpm attack:import     # ATT&CK の再取り込み（最新版）
 
 ## 出典
 
-- MITRE ATT&CK®: https://attack.mitre.org/ （利用規約と帰属表示は `NOTICE` に記載予定）
-- IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの抜粋と開発者自身の言葉での要約だけを置く
+- MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は `NOTICE` に記載。日本語ラベルは本プロジェクト独自の訳）
+- IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）
+- 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）
+- 警察庁「サイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）
+- crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（`packages/recon/README.md`）
+- CISA Known Exploited Vulnerabilities Catalog：悪用確認済み脆弱性の突き合わせ
 
 ## ライセンス
 

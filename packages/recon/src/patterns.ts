@@ -14,9 +14,9 @@ export const IPA_VULN_CASES = {
   /** VPN 装置がインターネットに公開され、更新されていなかった事例 */
   vpnExposed: [8, 9],
   /** リモートデスクトップの公開 */
-  rdpExposed: [] as number[],
-  /** なりすましメール対策（SPF／DMARC）。該当番号は S0 が事例集で確認して記入する */
-  mailAuth: [] as number[],
+  rdpExposed: [12, 13],
+  /** なりすましメール対策（SPF／DMARC） */
+  mailAuth: [19, 20],
 } as const;
 
 export const IPA_SOURCE_JA =

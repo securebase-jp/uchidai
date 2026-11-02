@@ -34,3 +34,9 @@ businesses:
 impact:
   partnerJa: 取引先（出荷）
   reportJa: 不正アクセスによる漏えいのおそれは件数にかかわらず報告
+# 5問から作るカルテの個人情報の既定値（件数は未確認として扱う）
+personalData:
+  - role: core
+    descriptionJa: 顧客情報
+    sensitive: false
+    over1000: true

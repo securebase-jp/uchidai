@@ -25,3 +25,4 @@ eval/.cache/
 
 # サンドボックス内で pnpm がプロジェクト内に作るストア
 .pnpm-store/
+.claude/launch.json

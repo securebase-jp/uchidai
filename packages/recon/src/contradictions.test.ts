@@ -37,13 +37,23 @@ const campaign: Asset = {
   controls: [],
 };
 
+/** デモ用カルテには廃止済みサイト（campaign-site）が入っているので、矛盾の単体テストでは外して使う */
+const baseProfile = {
+  ...demoProfile,
+  assets: demoProfile.assets.filter((a) => a.id !== "campaign-site"),
+};
+
 function withAssets(...extra: Asset[]) {
-  return { ...demoProfile, assets: [...demoProfile.assets, ...extra] };
+  return { ...baseProfile, assets: [...baseProfile.assets, ...extra] };
 }
 
 describe("findContradictions", () => {
+  it("デモ用カルテの廃止済みサイトは、fixture の DNS に残っているので矛盾として出る", async () => {
+    const out = findContradictions(await result(), demoProfile);
+    expect(out.map((c) => c.assetId)).toEqual(["campaign-site"]);
+  });
   it("デモ用カルテそのままでは矛盾なし（外部確認と整合）", async () => {
-    expect(findContradictions(await result(), demoProfile)).toEqual([]);
+    expect(findContradictions(await result(), baseProfile)).toEqual([]);
   });
 
   it("廃止済みのホスト名が DNS に残っていれば矛盾", async () => {
@@ -67,8 +77,8 @@ describe("findContradictions", () => {
 
   it("「非公開」（M1042 present、登録由来）なのに VPN 用ホスト名があれば矛盾", async () => {
     const profile = {
-      ...demoProfile,
-      assets: demoProfile.assets.map((a) =>
+      ...baseProfile,
+      assets: baseProfile.assets.map((a) =>
         a.id === "vpn"
           ? {
               ...a,
@@ -90,8 +100,8 @@ describe("findContradictions", () => {
 
   it("exposed = false（登録由来）も矛盾になる。external 由来なら矛盾にしない", async () => {
     const make = (evidence: "registered" | "external") => ({
-      ...demoProfile,
-      assets: demoProfile.assets.map((a) =>
+      ...baseProfile,
+      assets: baseProfile.assets.map((a) =>
         a.id === "vpn"
           ? {
               ...a,
@@ -107,8 +117,8 @@ describe("findContradictions", () => {
 
   it("カルテの SPF/DMARC（登録由来）が DNS と食い違えば矛盾", async () => {
     const profile = {
-      ...demoProfile,
-      assets: demoProfile.assets.map((a) =>
+      ...baseProfile,
+      assets: baseProfile.assets.map((a) =>
         a.id === "cloud-mail"
           ? {
               ...a,
