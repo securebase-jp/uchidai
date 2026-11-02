@@ -1,10 +1,16 @@
 /**
- * 共有リンクの読み書き：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update,edr
- * URL だけで一枚を再現できる（カルテは examples/ か、このブラウザの localStorage）。
+ * 共有リンクの読み書き。2 つの形がある：
+ * - 内容を載せた形（主）：#/onepager?d=<base64url(deflate(JSON))>。一枚の内容そのものが URL に入る（lib/onepager-share.ts）。
+ *   カルテが無いスマホでも開ける
+ * - ID で指す形（架空の会社の記録向け）：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update,edr。
+ *   カルテは examples/ か、このブラウザの localStorage に無いと再現できない
  */
 import { useEffect, useState } from "react";
+import { BASE64URL } from "../lib/onepager-share.ts";
 
 export type OnePagerParams = {
+  /** 内容を載せた共有リンクの本体（base64url）。あるときは他の指定より優先する */
+  d?: string;
   profile?: string;
   case?: string;
   /** undefined は「画面の状態に従う」、[] は「対策なし」 */
@@ -15,9 +21,11 @@ export type OnePagerParams = {
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
 export function parseOnePagerHash(hash: string = location.hash): OnePagerParams {
-  const q = hash.split("?")[1] ?? "";
+  const q = hash.slice(hash.indexOf("?") + 1 || hash.length);
   const p = new URLSearchParams(q);
   const out: OnePagerParams = { rewrite: p.get("rewrite") !== "0" };
+  const d = p.get("d");
+  if (d && BASE64URL.test(d)) out.d = d;
   const profile = p.get("profile");
   if (profile && SAFE_ID.test(profile)) out.profile = profile;
   const c = p.get("case");
