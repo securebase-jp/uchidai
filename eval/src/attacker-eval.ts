@@ -26,7 +26,6 @@ import {
   loadKnowledge,
   loadProfile,
   repoRoot,
-  terminalRoles,
 } from "@uchidai/engine";
 import {
   type AbstractedProfile,
@@ -99,14 +98,16 @@ function parseOptions(argv: string[]): Options {
   };
 }
 
+/** AI攻撃者の目標の役割。到達の判定（validateAiPath）もこの役割だけを終点とする（ホームページで終わる経路を到達にしない） */
+const AI_GOALS: readonly string[] = ["core"];
+
 export async function runAttackerLive(profileId: string, runs: number): Promise<AttackerRecording> {
   const k = loadKnowledge();
   const profile = loadProfile(join(repoRoot, "examples", `${profileId}.json`));
   const graph = buildGraph(profile, k.roles);
-  const goals = [...terminalRoles(k)].filter((r) => r === "core");
   const abstracted: AbstractedProfile = abstractProfile(profile, graph, k.roles, {
     labels: k.labels,
-    goals: goals.length > 0 ? goals : ["core"],
+    goals: [...AI_GOALS],
   });
   const rendered = renderAbstracted(abstracted);
   const leaked = leakedTerms(profile, rendered);
@@ -140,7 +141,9 @@ export async function runAttackerLive(profileId: string, runs: number): Promise<
       rules: k.rules,
       extraBannedTerms,
     });
-    const validated = validateCandidates(r.candidates, graph, profile, k);
+    const validated = validateCandidates(r.candidates, graph, profile, k, "ai", {
+      terminalRoles: new Set(AI_GOALS),
+    });
     const log = buildReconLog({
       abstracted,
       attackVersion: k.attack.version,
@@ -240,7 +243,9 @@ export function scoreAttacker(profileId: string) {
   const graph = buildGraph(profile, k.roles);
   // 記録の候補も再生前に安全検査・スキーマ検証をやり直し、engine の 4 点検証に通す（改ざんされた記録を通さない）
   const { candidates, screened } = screenRecording(rec, profileBannedTerms(profile));
-  const validated = validateCandidates(candidates, graph, profile, k);
+  const validated = validateCandidates(candidates, graph, profile, k, "ai", {
+    terminalRoles: new Set(AI_GOALS),
+  });
   const leaked = leakedTerms(profile, rec.input.rendered);
   return {
     profileId,

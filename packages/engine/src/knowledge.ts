@@ -476,10 +476,12 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   for (const r of rules) {
     const last = r.outcomes[r.outcomes.length - 1];
     if (last?.when) problems.push(`rules/${r.id}: 最後の outcome は条件なし（既定値）にする`);
-    if (r.outcomes.some((o) => o.state === "blocked" && !o.when))
-      problems.push(
-        `rules/${r.id}: 条件なしで blocked にしてはいけない（未確認は止まる扱いにしない）`,
-      );
+    // 止まる状態（blocked、recoverable、human）は確定した対策か属性を条件にする。評価関数も未確認に落とすが、ルールの書き方で守る
+    for (const o of r.outcomes)
+      if (!o.when && (o.state === "blocked" || o.state === "recoverable" || o.state === "human"))
+        problems.push(
+          `rules/${r.id}: 条件なしで ${o.state} にしてはいけない（未確認は止まる扱いにしない）`,
+        );
     if (!isKnownRole(r.role, roles))
       problems.push(`rules/${r.id}: 役割 ${r.role} は roles.yaml にない`);
     for (const tech of r.techniques)

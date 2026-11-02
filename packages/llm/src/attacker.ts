@@ -19,6 +19,7 @@ import {
   type LabelsFile,
   type Rule,
   type Template,
+  type ValidateAiPathOptions,
   validateAiPath,
 } from "@uchidai/engine";
 import { z } from "zod";
@@ -321,12 +322,13 @@ export function validateCandidates(
   profile: CompanyProfile,
   knowledge: Knowledge,
   idPrefix = "ai",
+  options: ValidateAiPathOptions = {},
 ): ValidatedRecon {
   const paths: AttackPath[] = [];
   const discarded: DiscardedCandidate[] = [];
   const validations: ValidatedRecon["validations"] = [];
   candidates.forEach((c, i) => {
-    const result = validateAiPath(c, graph, profile, knowledge, `${idPrefix}-${i + 1}`);
+    const result = validateAiPath(c, graph, profile, knowledge, `${idPrefix}-${i + 1}`, options);
     validations.push({ ...(c.titleJa ? { titleJa: c.titleJa } : {}), result });
     if (result.ok) {
       paths.push(result.path);
