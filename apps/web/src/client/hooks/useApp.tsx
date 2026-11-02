@@ -58,13 +58,16 @@ const Ctx = createContext<AppState | undefined>(undefined);
 
 export const DEFAULT_CASE_ID = "ipa-case-1";
 
+/** URL の ?profile=（架空企業のカルテ）。あるときは保存済みのカルテで先に判定しない（二重の判定と巻き戻しを避ける） */
+const urlProfileId = () => new URLSearchParams(location.search).get("profile");
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [knowledge, setKnowledge] = useState<KnowledgeView>();
   const [profile, setProfileState] = useState<CompanyProfile | undefined>(() =>
-    storage.loadProfile(),
+    urlProfileId() ? undefined : storage.loadProfile(),
   );
   const [profileSource, setProfileSource] = useState<ProfileSource | undefined>(() =>
-    storage.loadProfile() ? "saved" : undefined,
+    profile ? "saved" : undefined,
   );
   const [theCase, setCaseState] = useState<Case>();
   const [caseMeta, setCaseMeta] = useState<CaseMeta>();
@@ -134,7 +137,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // URL の ?profile=demo-seiko で架空企業のカルテを読む
   useEffect(() => {
-    const id = new URLSearchParams(location.search).get("profile");
+    const id = urlProfileId();
     if (id) void loadExample(id);
   }, [loadExample]);
 
