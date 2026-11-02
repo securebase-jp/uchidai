@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "type": "string"
+    },
+    "sources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nameJa": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "checkedAt": {
+            "type": "string"
+          },
+          "noteJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nameJa",
+          "checkedAt"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "reportTriggers": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ruleJa": {
+            "type": "string"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "when": {
+            "type": "string",
+            "enum": [
+              "sensitive",
+              "unauthorizedAccess",
+              "over1000"
+            ]
+          },
+          "sourceId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "ruleJa",
+          "labelJa",
+          "when",
+          "sourceId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "deadlines": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "business_stop",
+              "partner",
+              "legal",
+              "insurance",
+              "police",
+              "recovery",
+              "money"
+            ]
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number",
+            "minimum": 0
+          },
+          "daysFrom": {
+            "type": "number",
+            "minimum": 0
+          },
+          "daysIfUnauthorized": {
+            "type": "number",
+            "minimum": 0
+          },
+          "daysFromProfile": {
+            "type": "string",
+            "enum": [
+              "cyberInsurance.notifyWithinDays"
+            ]
+          },
+          "placement": {
+            "type": "string",
+            "enum": [
+              "before_partner_impact"
+            ]
+          },
+          "appliesTo": {
+            "type": "string",
+            "enum": [
+              "report",
+              "insurance",
+              "partner",
+              "police",
+              "bec",
+              "all"
+            ]
+          },
+          "basisJa": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "unverified"
+            ]
+          },
+          "noteJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "labelJa",
+          "appliesTo",
+          "basisJa",
+          "sourceId",
+          "status"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "checkedAt",
+    "sources",
+    "reportTriggers",
+    "deadlines"
+  ],
+  "additionalProperties": false
+}

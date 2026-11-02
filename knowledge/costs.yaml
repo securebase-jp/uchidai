@@ -1,0 +1,61 @@
+# 対策費用の目安。IPA 事例集の別紙「想定被害額計算明細」で確認できた単価だけを、出典ページつきで持つ
+# measures.yaml の対策 ID に対応づける（measures.yaml 自体は編集しない）。単価が確認できない対策は「ベンダーの見積もり待ち」
+sourceJa: IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）別紙 想定被害額計算明細
+sourceUrl: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+checkedAt: "2026-11-02"
+# PDF のページ番号は閲覧ソフトの通し番号。紙面に印字された番号はその 1 つ前（PDF 45 ページ = 紙面 44）
+unitPrices:
+  - id: edr
+    labelJa: EDR 導入
+    unitJpy: 13200
+    per: device_year
+    pageJa: PDF 45 ページ（紙面 44）想定被害額計算明細（被害事例1）「セキュリティサービス導入 EDR導入 13,200 円 ／ 台 ／ 1 年契約」
+  - id: elearning
+    labelJa: eラーニングによる研修
+    unitJpy: 5280
+    per: person
+    pageJa: PDF 45 ページ（紙面 44）想定被害額計算明細（被害事例1）「従業員教育 eラーニングによる研修 5,280 円 ／ 人」
+  - id: policy-review
+    labelJa: 情報セキュリティ規程の見直し（コンサルティング）
+    unitJpy: 3000000
+    per: company
+    pageJa: PDF 45 ページ（紙面 44）想定被害額計算明細（被害事例1）「セキュリティ規程見直し 3,000,000 円 ／ 社」
+  - id: incident-manual
+    labelJa: インシデント対応マニュアルの策定（コンサルティング）
+    unitJpy: 3000000
+    per: company
+    pageJa: PDF 45 ページ（紙面 44）想定被害額計算明細（被害事例1）「インシデントマニュアル策定 3,000,000 円 ／ 社」
+  - id: webapp-assessment
+    labelJa: ウェブアプリケーション診断
+    unitJpy: 1000000
+    per: service
+    pageJa: PDF 47 ページ（紙面 46）想定被害額計算明細（被害事例3）「ウェブアプリケーション診断 1,000,000 円 ／ サービス」
+
+# basis: ipa = 上の単価で計算できる、quote = ベンダーの見積もり待ち（出典に単価がない）、internal = 社内ルールで外部費用なし
+measures:
+  - measureId: edr
+    basis: ipa
+    unitPriceId: edr
+    quantity: devices
+    noteJa: 台数はカルテの従業員数で仮置き（PC 1 人 1 台と仮定。サーバは含めない）
+  - measureId: vpn-mfa
+    basis: quote
+    noteJa: IPA 事例集の明細に VPN の多要素認証の単価はない
+  - measureId: vpn-update
+    basis: quote
+    noteJa: IPA 事例集の明細に VPN 装置の更新・入れ替えの単価はない
+  - measureId: backup-isolated
+    basis: quote
+    noteJa: IPA 事例集の明細に切り離したバックアップの単価はない
+  - measureId: exec-mfa
+    basis: quote
+    noteJa: クラウドメールの設定変更。IPA 事例集の明細に単価はない
+  - measureId: transfer-callback
+    basis: internal
+    noteJa: 送金前の折り返し確認は社内ルール。外部費用は見込まない（研修を行う場合は eラーニング 5,280 円 ／ 人 が参考）
+  - measureId: vendor-remote-harden
+    basis: quote
+    noteJa: IPA 事例集の明細に保守接続の多要素認証・必要時のみ有効化の単価はない
+  - measureId: admin-separate
+    basis: quote
+    noteJa: IPA 事例集の明細に管理者パスワードの個別化（LAPS など）の単価はない

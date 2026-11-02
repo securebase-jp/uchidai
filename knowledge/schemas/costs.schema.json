@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceJa": {
+      "type": "string"
+    },
+    "sourceUrl": {
+      "type": "string"
+    },
+    "checkedAt": {
+      "type": "string"
+    },
+    "unitPrices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "unitJpy": {
+            "type": "number",
+            "minimum": 0
+          },
+          "per": {
+            "type": "string",
+            "enum": [
+              "device_year",
+              "person",
+              "company",
+              "service"
+            ]
+          },
+          "pageJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "unitJpy",
+          "per",
+          "pageJa"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "measures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "measureId": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "ipa",
+              "quote",
+              "internal"
+            ]
+          },
+          "unitPriceId": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "string",
+            "enum": [
+              "devices",
+              "people",
+              "company"
+            ]
+          },
+          "noteJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "measureId",
+          "basis"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "sourceJa",
+    "sourceUrl",
+    "checkedAt",
+    "unitPrices",
+    "measures"
+  ],
+  "additionalProperties": false
+}
