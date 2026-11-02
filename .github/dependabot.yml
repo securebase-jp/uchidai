@@ -1,0 +1,29 @@
+# 依存と GitHub Actions の更新を Dependabot に任せる。
+# セキュリティ更新（アラート起点）はリポジトリ設定で有効。ここでは定期の版上げを設定する。
+version: 2
+updates:
+  - package-ecosystem: npm # pnpm のワークスペース。ルートの pnpm-lock.yaml を見る
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: "build(deps)"
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    commit-message:
+      prefix: "ci(deps)"
+    labels: [dependencies]
