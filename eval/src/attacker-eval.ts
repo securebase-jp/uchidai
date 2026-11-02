@@ -40,12 +40,12 @@ import {
   CompareRecording as CompareRecordingSchema,
   compareGenericMitigations,
   compareRecordingPath,
-  type DiscardedCandidate,
   leakedTerms,
   listGenericMitigations,
   profileBannedTerms,
   reconnoiter,
   renderAbstracted,
+  screenRecording,
   toGenericMitigations,
   validateCandidates,
 } from "@uchidai/llm";
@@ -238,8 +238,9 @@ export function scoreAttacker(profileId: string) {
   const k = loadKnowledge();
   const profile = loadProfile(join(repoRoot, "examples", `${profileId}.json`));
   const graph = buildGraph(profile, k.roles);
-  const validated = validateCandidates(rec.candidates as never, graph, profile, k);
-  const screened = rec.screened as DiscardedCandidate[];
+  // 記録の候補も再生前に安全検査・スキーマ検証をやり直し、engine の 4 点検証に通す（改ざんされた記録を通さない）
+  const { candidates, screened } = screenRecording(rec, profileBannedTerms(profile));
+  const validated = validateCandidates(candidates, graph, profile, k);
   const leaked = leakedTerms(profile, rec.input.rendered);
   return {
     profileId,
@@ -252,7 +253,7 @@ export function scoreAttacker(profileId: string) {
     discardedBySafety: screened.length,
     discardedByValidation: validated.discarded.length,
     leakedTerms: leaked,
-    candidates: rec.candidates.length + screened.length,
+    candidates: candidates.length + screened.length,
   };
 }
 

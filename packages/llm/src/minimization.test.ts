@@ -5,7 +5,7 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildGraph, evaluate, loadKnowledge, loadProfile, repoRoot } from "@uchidai/engine";
+import { buildGraph, Case, evaluate, loadKnowledge, loadProfile, repoRoot } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { profileBannedTerms } from "./attacker.ts";
 import { abstractProfile, leakedTerms, renderAbstracted } from "./attacker-abstract.ts";
@@ -128,9 +128,7 @@ describe("社長向けの一枚の言い換え（Claude に渡す入力）", () 
   const rec = JSON.parse(
     readFileSync(join(repoRoot, "eval", "recordings", "ipa-case-1.with-knowledge.json"), "utf8"),
   ) as { output: unknown };
-  const theCase = { ...(rec.output as object), suspiciousInstructions: [] } as Parameters<
-    typeof evaluate
-  >[0];
+  const theCase = Case.parse({ ...(rec.output as object), suspiciousInstructions: [] });
   const verdict = evaluate(theCase, profile, { knowledge: k, graph });
   const input = writerInputFrom(verdict, k);
   const rendered = JSON.stringify(input);
