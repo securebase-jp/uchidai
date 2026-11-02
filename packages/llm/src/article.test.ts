@@ -3,12 +3,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  dropMenuRuns,
   extractHtml,
   extractPdf,
   fetchArticle,
   findCasePages,
+  findNextPageUrl,
   parsePageRange,
   tidyText,
+  trimTrailer,
 } from "./article.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -77,5 +80,75 @@ describe.skipIf(!existsSync(ipaPdf))("extractPdf（IPA 事例集がキャッシ�
     expect(byCase.pages).toEqual([27]);
     expect(byPage.text).toContain("VPN装置の脆弱性");
     expect(byPage.totalPages).toBe(55);
+  });
+});
+
+describe("trimTrailer / extractHtml（本文の後ろの関連記事などを落とす）", () => {
+  it("本文のあとの「関連記事」以降を落とし、冒頭の PR や本文中の「PR 担当者」では切らない", () => {
+    const body = `PR\n${"攻撃者にVPN装置の脆弱性を悪用され、業務データが暗号化された。".repeat(8)}\nPR 担当者も確認した。\n${"バックアップも暗号化された。".repeat(8)}`;
+    const text = `${body}\n（Security NEXT - 2025/01/27 ）\n\nPR\n\n関連記事GMOに身代金要求 - ランサム攻撃や情報公開を行うと脅迫\n「銀のさら」にサイバー攻撃、影響など調査`;
+    const trimmed = trimTrailer(text);
+    expect(trimmed).toContain("PR 担当者も確認した");
+    expect(trimmed).toContain("（Security NEXT - 2025/01/27 ）");
+    expect(trimmed).not.toContain("GMOに身代金要求");
+    expect(trimmed).not.toContain("銀のさら");
+    expect(trimmed.startsWith("PR\n攻撃者")).toBe(true);
+  });
+  it("続きのページのように本文が短く関連記事の一覧が長くても、本文だけ残す", () => {
+    const text = `${"二次被害は確認されていないとしている。同社は委員会へ報告した。".repeat(5)}\n\n（Security NEXT - 2025/01/27 ）\n\n関連リンク\n\n日本海建設電気\n\nPR\n\n関連記事\n\n${"別の会社にランサム攻撃 - 影響など調査\n\n".repeat(20)}ピックアップ\n\n${"製品に脆弱性 - すでに悪用も\n\n".repeat(20)}`;
+    const trimmed = trimTrailer(text);
+    expect(trimmed).toContain("二次被害は確認されていない");
+    expect(trimmed).toContain("（Security NEXT - 2025/01/27 ）");
+    expect(trimmed).not.toContain("関連リンク");
+    expect(trimmed).not.toContain("別の会社にランサム攻撃");
+  });
+  it("dropMenuRuns はメニューらしい短い行の連なりを落とし、本文の短い行は残す", () => {
+    const text =
+      "本文の段落。\n\nニュース\n政府・業界動向\n脆弱性\n製品・サービス\nコラム\n\n次の段落。\n被害額\n4,600万円。";
+    const out = dropMenuRuns(text);
+    expect(out).toContain("本文の段落。");
+    expect(out).toContain("次の段落。");
+    expect(out).toContain("被害額");
+    expect(out).not.toContain("政府・業界動向");
+  });
+  it("extractHtml は関連記事の見出し一覧を本文に含めない", () => {
+    const html = `<html><head><title>t</title></head><body><div class="main"><p>${"攻撃者にVPN装置の脆弱性を悪用され、業務データが暗号化された。".repeat(10)}</p><p>（Security NEXT - 2025/01/27 ）</p><p>関連記事<br>別の会社にランサム攻撃<br>さらに別の会社で情報流出</p></div></body></html>`;
+    const a = extractHtml(html);
+    expect(a.text).toContain("業務データが暗号化された");
+    expect(a.text).not.toContain("別の会社にランサム攻撃");
+    expect(a.htmlPages).toBe(1);
+  });
+});
+
+describe("findNextPageUrl（記事の続きのページだけを辿る）", () => {
+  const current = "https://www.security-next.com/166531";
+  it("現在の URL にページ番号を足したリンクを見つける", () => {
+    const html = `<div class="pnavi"><a href="https://www.security-next.com/166531/2"><img src="/x.gif"></a></div><a href="https://www.security-next.com/166999">別の記事</a>`;
+    expect(findNextPageUrl(html, current)).toBe("https://www.security-next.com/166531/2");
+    expect(findNextPageUrl(html, "https://www.security-next.com/166531/2")).toBeUndefined();
+    expect(
+      findNextPageUrl(`<a href="/166531/3">3</a>`, "https://www.security-next.com/166531/2"),
+    ).toBe("https://www.security-next.com/166531/3");
+  });
+  it("rel=next もページ番号の形のときだけ辿り、別ホスト・別の記事・ブログの前後の記事は辿らない", () => {
+    expect(findNextPageUrl(`<link rel="next" href="/166531?page=2">`, current)).toBe(
+      "https://www.security-next.com/166531?page=2",
+    );
+    expect(
+      findNextPageUrl(`<a rel="next" href="https://evil.example/166531/2">`, current),
+    ).toBeUndefined();
+    expect(
+      findNextPageUrl(`<a href="https://www.security-next.com/166532">次の記事</a>`, current),
+    ).toBeUndefined();
+    expect(
+      findNextPageUrl(`<a href="https://www.security-next.com/">トップ</a>`, current),
+    ).toBeUndefined();
+    // はてなブログの rel=next は別の日の記事を指す
+    expect(
+      findNextPageUrl(
+        `<link rel="next" href="https://piyolog.hatenadiary.jp/entry/2026/08/01/010000">`,
+        "https://piyolog.hatenadiary.jp/entry/2026/07/30/075612",
+      ),
+    ).toBeUndefined();
   });
 });

@@ -1,0 +1,60 @@
+{
+  "id": "breach-miyazaki",
+  "source": {
+    "url": "https://www.security-next.com/177147",
+    "media": "Security NEXT",
+    "date": "2025-11-19"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:22:58.044Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】クラウドサービスが侵害、顧客従業員情報が流出か - ITサービス事業者（1ページ目",
+    "chars": 672,
+    "truncated": false
+  },
+  "raw": {
+    "title": "宮崎通信のクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
+    "damageType": "data_breach",
+    "clarity": "unknown",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [],
+        "source": "unknown",
+        "quote": null,
+        "summaryJa": "外部の攻撃者がクラウドサービスに侵入したが、入口となった手法は記事に書かれていない"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1530",
+          "T1213",
+          "T1005"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "侵入後、クラウドサービス上の顧客従業員の情報が取得されたと考えられる"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567",
+          "T1041"
+        ],
+        "source": "stated",
+        "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
+        "summaryJa": "顧客従業員の氏名や会社メールアドレスなどが外部に流出した可能性がある"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 724,
+    "outputTokens": 364,
+    "cacheReadInputTokens": 18894,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 3197
+}

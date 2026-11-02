@@ -1,0 +1,74 @@
+{
+  "id": "ransom-mitsui",
+  "source": {
+    "url": "https://www.security-next.com/168949",
+    "media": "Security NEXT",
+    "date": "2025-04-07"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:22:34.890Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】基幹システムがランサム被害、リモートデスクトップ経由か - 美容関連商社（1ページ目",
+    "chars": 524,
+    "truncated": false
+  },
+  "raw": {
+    "title": "美容関連商社の基幹システムがリモートデスクトップ経由でランサム被害",
+    "damageType": "ransomware",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1133",
+          "T1078"
+        ],
+        "source": "stated",
+        "quote": "リモートデスクトップが悪用され、侵害されたのが原因と見られている。",
+        "summaryJa": "外部から使えるリモートデスクトップが悪用され、社内に侵入された。"
+      },
+      {
+        "tactic": "TA0006",
+        "techniques": [
+          "T1003",
+          "T1078",
+          "T1110"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "基幹システムのサーバを操作できる管理者権限の認証情報が奪われたと考えられる。"
+      },
+      {
+        "tactic": "TA0008",
+        "techniques": [
+          "T1021.001",
+          "T1021.002",
+          "T1210"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "侵入した端末から基幹システムのサーバへ接続を広げたと考えられる。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486",
+          "T1489"
+        ],
+        "source": "stated",
+        "quote": "1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
+        "summaryJa": "基幹システムのサーバがランサムウェアにより暗号化され、業務に影響が出た。"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 588,
+    "outputTokens": 483,
+    "cacheReadInputTokens": 18894,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 3676
+}

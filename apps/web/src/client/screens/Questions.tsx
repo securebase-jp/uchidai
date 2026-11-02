@@ -7,6 +7,8 @@ import { Diagram } from "../components/Diagram.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { layoutGraph } from "../lib/layout.ts";
+import { reconHints } from "../lib/reconHints.ts";
+import { hintLabel } from "../lib/reconView.ts";
 import type { Graph, ProfileAnswers, Question } from "../lib/types.ts";
 
 type Partial5 = {
@@ -42,8 +44,18 @@ export function Questions({ reduced }: { reduced: boolean }) {
   const [graph, setGraph] = useState<Graph>(EMPTY_GRAPH);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [appearing, setAppearing] = useState<Set<string>>(new Set());
-  const [remote, setRemote] = useState<ProfileAnswers["remoteAccess"]>([]);
-  const [hosting, setHosting] = useState<Partial<ProfileAnswers["hosting"]>>({});
+  // 外部確認（#/domain）の初期値。該当の質問で初期選択し「外部から推定」と出す（担当者は確かめるだけ）
+  const [hints] = useState(() => reconHints.load()?.answersHints);
+  const hinted = (key: "hosting.mail" | "hosting.web" | "remoteAccess") =>
+    hints?.inferred.includes(key) ? hints : undefined;
+  const [remote, setRemote] = useState<ProfileAnswers["remoteAccess"]>(
+    () => hinted("remoteAccess")?.answers.remoteAccess ?? [],
+  );
+  const [hosting, setHosting] = useState<Partial<ProfileAnswers["hosting"]>>(() => {
+    const mail = hinted("hosting.mail")?.answers.hosting.mail;
+    const web = hinted("hosting.web")?.answers.hosting.web;
+    return { ...(mail ? { mail } : {}), ...(web ? { web } : {}) };
+  });
   const [error, setError] = useState<string>();
   const timers = useRef<number[]>([]);
   const layout = useMemo(() => layoutGraph(graph), [graph]);
@@ -107,11 +119,32 @@ export function Questions({ reduced }: { reduced: boolean }) {
             </p>
             <h2>{q.textJa}</h2>
             {q.hintJa && <p className="hint">{q.hintJa}</p>}
+            {hints &&
+              ((q.id === "hosting" && (hinted("hosting.mail") || hinted("hosting.web"))) ||
+                (q.id === "remoteAccess" && hinted("remoteAccess"))) && (
+                <p className="hint">
+                  <span className="chip">外部から推定</span>{" "}
+                  と付いた項目は、ドメインの外部確認（DNS・証明書の公開ログ）から推定した初期値です。合っているかを確かめるだけで進めます。
+                </p>
+              )}
             {q.id === "hosting" ? (
               <>
                 {q.rows.map((r) => (
                   <div className="hosting-row" key={r.key}>
-                    <span className="k">{r.labelJa}</span>
+                    <span className="k">
+                      {r.labelJa}
+                      {(r.key === "mail" || r.key === "web") &&
+                        hinted(`hosting.${r.key}`) &&
+                        hosting[r.key] === hints?.answers.hosting[r.key] && (
+                          <span
+                            className="chip"
+                            style={{ marginLeft: 6 }}
+                            title={hints?.reasonsJa[`hosting.${r.key}`]}
+                          >
+                            外部から推定：{hintLabel(`hosting.${r.key}`, hosting[r.key] ?? "")}
+                          </span>
+                        )}
+                    </span>
                     <div className="opts-inline">
                       {q.options.map((o) => (
                         <button
@@ -158,7 +191,18 @@ export function Questions({ reduced }: { reduced: boolean }) {
                         }
                       >
                         {o.labelJa}
-                        <span className="muted">{on ? "✓" : ""}</span>
+                        <span className="muted">
+                          {on && hinted("remoteAccess")?.answers.remoteAccess?.includes(v) && (
+                            <span
+                              className="chip"
+                              style={{ marginRight: 6 }}
+                              title={hints?.reasonsJa.remoteAccess}
+                            >
+                              外部から推定
+                            </span>
+                          )}
+                          {on ? "✓" : ""}
+                        </span>
                       </button>
                     );
                   })}

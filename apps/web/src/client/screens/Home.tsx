@@ -57,6 +57,19 @@ export function Home() {
       </section>
       <div className="cards">
         <div className="card">
+          <h2>0. 自社のドメイン（任意）</h2>
+          <p className="muted small">
+            所有を確認したドメインについて、DNS の公開レコードと証明書の公開ログだけを参照し、VPN
+            用と推定されるホスト名や SPF・DMARC
+            を確かめます。結果は5問の初期値とカルテに反映できます。対象ホストにはアクセスしません。
+          </p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <a className="btn primary" href="#/domain">
+              外部確認を始める
+            </a>
+          </div>
+        </div>
+        <div className="card">
           <h2>1. 会社カルテ</h2>
           {app.profile ? (
             <p className="small">

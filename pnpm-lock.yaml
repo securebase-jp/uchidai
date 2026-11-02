@@ -38,6 +38,9 @@ importers:
       '@uchidai/llm':
         specifier: workspace:*
         version: link:../../packages/llm
+      '@uchidai/recon':
+        specifier: workspace:*
+        version: link:../../packages/recon
       hono:
         specifier: ^4.10.0
         version: 4.13.16

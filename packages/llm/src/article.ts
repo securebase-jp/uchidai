@@ -39,6 +39,8 @@ export type Article = {
   totalPages?: number;
   /** 本文が長すぎて MAX_TEXT_CHARS で切ったとき true */
   truncated?: boolean;
+  /** HTML のとき、取り込んだページ数（記事サイトの「次のページ」を辿った数。1 なら分割なし） */
+  htmlPages?: number;
 };
 
 export type FetchOptions = {
@@ -60,6 +62,8 @@ export const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
 export const MAX_TEXT_CHARS = 100_000;
 /** PDF のページ数の上限 */
 export const MAX_PDF_PAGES = 500;
+/** 記事サイトの「次のページ」を辿る上限（1 本の記事を複数ページに分ける媒体向け） */
+export const MAX_HTML_PAGES = 5;
 const USER_AGENT = "uchidai/0.0 (+https://github.com/securebase-jp/uchidai)";
 
 // ---------------------------------------------------------------------------
@@ -377,7 +381,69 @@ function finishText(article: Article): Article {
 }
 
 /** linkedom の DOM のうち使う部分だけ（DOM の型定義に依存しないため） */
-type MinimalElement = { textContent: string | null; remove(): void };
+type MinimalNode = {
+  nodeType: number;
+  nodeName: string;
+  nodeValue: string | null;
+  childNodes: ArrayLike<MinimalNode>;
+};
+type MinimalElement = MinimalNode & {
+  textContent: string | null;
+  remove(): void;
+  getAttribute(name: string): string | null;
+};
+
+/** 改行として扱う要素（段落や見出しが 1 行にくっつかないように） */
+const BLOCK_TAGS = new Set([
+  "P",
+  "DIV",
+  "BR",
+  "LI",
+  "UL",
+  "OL",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "TR",
+  "TD",
+  "TH",
+  "TABLE",
+  "SECTION",
+  "ARTICLE",
+  "HEADER",
+  "FOOTER",
+  "BLOCKQUOTE",
+  "PRE",
+  "DL",
+  "DT",
+  "DD",
+  "FIGCAPTION",
+  "HR",
+]);
+
+/** DOM の木を、ブロック要素の境で改行しながらテキストにする（textContent は段落の境を落とすため） */
+export function nodeToText(node: MinimalNode): string {
+  const parts: string[] = [];
+  const walk = (n: MinimalNode) => {
+    if (n.nodeType === 3) {
+      parts.push(n.nodeValue ?? "");
+      return;
+    }
+    if (n.nodeType !== 1 && n.nodeType !== 9 && n.nodeType !== 11) return;
+    const block = BLOCK_TAGS.has(n.nodeName.toUpperCase());
+    if (block) parts.push("\n");
+    for (let i = 0; i < n.childNodes.length; i++) {
+      const c = n.childNodes[i];
+      if (c) walk(c);
+    }
+    if (block) parts.push("\n");
+  };
+  walk(node);
+  return parts.join("");
+}
 type MinimalDocument = {
   querySelectorAll(selector: string): Iterable<MinimalElement>;
   querySelector(selector: string): MinimalElement | null;
@@ -385,27 +451,238 @@ type MinimalDocument = {
   documentElement: MinimalElement | null;
 };
 
-/** HTML から本文を取り出す（Readability。失敗したら body のテキスト） */
-export function extractHtml(html: string, sourceUrl?: string): Article {
+/**
+ * 本文の後ろに付く「関連記事」「おすすめ記事」「著作権表示」などの見出しの行。
+ * 本文抽出（Readability）が記事本文と一緒に拾ってしまうことがあり、他社の事故の見出しが混ざると読解を惑わせる。
+ * 見出し語は行頭の一致（「関連記事GMOに…」のように見出しの直後に続くことがある）、短い語は行全体の一致で見る
+ */
+const TRAILER_HEAD =
+  /^(関連記事|関連リンク|関連する記事|あわせて読みたい|合わせて読みたい|おすすめ(の)?記事|人気(の)?記事|注目(の)?記事|新着記事|ピックアップ|この記事の著者|著者プロフィール|Copyright\s*[©(]|この記事をシェア)/i;
+const TRAILER_WORD = /^(PR|\[PR\]|広告|Sponsored|SpecialPR|シェアする|タグ|カテゴリ[ー]?)$/i;
+
+/** 本文とみなす最小の長さ。これより前に見出し語があっても（記事の冒頭の「PR」など）切らない */
+const MIN_BODY_CHARS = 120;
+
+/**
+ * 本文の末尾に付いた関連記事などの塊を落とす。
+ * 本文が MIN_BODY_CHARS 以上あったあと、最初に現れた見出し語の行から後ろを切る
+ * （続きのページでは本文が短く、関連記事やピックアップの一覧の方が長いので、位置の割合では決められない）
+ */
+export function trimTrailer(text: string): string {
+  const lines = text.split("\n");
+  let offset = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    const t = line.trim();
+    if (offset >= MIN_BODY_CHARS && (TRAILER_HEAD.test(t) || TRAILER_WORD.test(t)))
+      return lines.slice(0, i).join("\n");
+    offset += line.length + 1;
+  }
+  return text;
+}
+
+/**
+ * メニューらしい行の連なり（短い行が 4 行以上続き、句読点がない）を落とす。
+ * 記事サイトのヘッダのメニュー（「ニュース」「脆弱性」「コラム」…）が本文の前後に混ざるのを防ぐ
+ */
+export function dropMenuRuns(text: string): string {
+  const lines = text.split("\n");
+  const menuLike = (l: string) => {
+    const t = l.trim();
+    return t.length > 0 && t.length <= 10 && !/[。、.,：:]/.test(t);
+  };
+  const keep: string[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length < 4) keep.push(...run); // 4 行未満なら本文の短い行（見出しや金額）とみなして残す
+    run = [];
+  };
+  for (const line of lines) {
+    if (menuLike(line)) run.push(line);
+    else {
+      if (line.trim() === "" && run.length > 0) continue; // メニューの行間の空行
+      flush();
+      keep.push(line);
+    }
+  }
+  flush();
+  return keep.join("\n");
+}
+
+function parseDocument(html: string): MinimalDocument {
   const { document } = parseHTML(html) as unknown as { document: MinimalDocument };
   for (const el of Array.from(document.querySelectorAll("script,style,noscript,template")))
     el.remove();
+  return document;
+}
+
+/** 本文でない部分の目印（Readability が本文を見つけられなかったときの素朴な抽出で落とす要素） */
+const CHROME_SELECTOR =
+  "nav,header,footer,aside,form,iframe,[role=navigation],[role=banner],[role=contentinfo],[role=complementary]";
+const CHROME_CLASS =
+  /(^|[-_ ])(nav|navi|menu|sidebar|side|footer|header|banner|ad|ads|advert|pr|related|recommend|pickup|ranking|share|sns|social|comment|breadcrumb|pager|pagination|copyright|search|login|tag|tags)($|[-_ ]|\d)/i;
+
+/** ナビゲーションや広告らしい要素を落とす（class / id の名前で見る。本文らしい要素は残す） */
+function removeChrome(document: MinimalDocument): void {
+  for (const el of Array.from(document.querySelectorAll(CHROME_SELECTOR))) el.remove();
+  for (const el of Array.from(document.querySelectorAll("[class],[id]"))) {
+    const name = `${el.getAttribute("class") ?? ""} ${el.getAttribute("id") ?? ""}`;
+    if (CHROME_CLASS.test(name)) el.remove();
+  }
+}
+
+/** Readability が本文とみなす最小の文字数（既定の 500 では短い続きのページで本文を見つけられない） */
+const READABILITY_CHAR_THRESHOLD = 200;
+
+/** 1 ページ分の HTML から題と本文を取り出す（本文の整形はしない） */
+function extractHtmlPage(html: string): { title: string; text: string } {
+  const document = parseDocument(html);
   let title = document.querySelector("title")?.textContent?.trim() ?? "";
   let text = "";
   try {
-    const result = new Readability(document as never).parse();
-    if (result?.textContent && result.textContent.trim().length > 0) {
-      text = result.textContent;
+    const result = new Readability(document as never, {
+      charThreshold: READABILITY_CHAR_THRESHOLD,
+    }).parse();
+    if (result?.content && result.textContent && result.textContent.trim().length > 0) {
+      // content（本文の HTML）をブロック要素の境で改行しながらテキストにする
+      // linkedom は <html> で包まないと body の子要素を持たない
+      const { document: page } = parseHTML(
+        `<html><body>${result.content}</body></html>`,
+      ) as unknown as { document: MinimalDocument };
+      const pageBody = page.body ?? page.documentElement;
+      text = pageBody ? nodeToText(pageBody) : "";
+      if (!text.trim()) text = result.textContent;
       if (result.title) title = result.title;
     }
   } catch {
     // Readability が扱えない HTML は下の素朴な抽出に落とす
   }
-  if (!text) text = document.body?.textContent ?? document.documentElement?.textContent ?? "";
-  const article: Article = { kind: "html", text };
+  if (!text.trim()) {
+    // Readability が本文を見つけられなかった：ナビゲーションや広告らしい要素を落としてから全体を読む
+    removeChrome(document);
+    const rootNode = document.body ?? document.documentElement;
+    text = rootNode ? nodeToText(rootNode) : "";
+  }
+  // 関連記事などの見出し語で切ってから、メニューらしい行の連なりを落とす（先に落とすと見出し語ごと消えて切れなくなる）
+  return { title, text: tidyText(dropMenuRuns(trimTrailer(tidyText(text)))) };
+}
+
+/** HTML から本文を取り出す（Readability。失敗したら body のテキスト）。末尾の関連記事などは落とす */
+export function extractHtml(html: string, sourceUrl?: string): Article {
+  return extractHtmlPages([html], sourceUrl);
+}
+
+/** 複数ページに分かれた記事の HTML をまとめて 1 本の本文にする（題は最初のページから） */
+export function extractHtmlPages(htmls: string[], sourceUrl?: string): Article {
+  const pages = htmls.map(extractHtmlPage);
+  const title = pages.find((p) => p.title)?.title ?? "";
+  const article: Article = {
+    kind: "html",
+    text: pages.map((p) => p.text).join("\n\n"),
+    htmlPages: htmls.length,
+  };
   if (title) article.title = title.slice(0, 300);
   if (sourceUrl) article.sourceUrl = sourceUrl;
   return finishText(article);
+}
+
+/** 現在の URL から見て「次のページ」になり得る URL（同じ記事の続き）。/166531 → /166531/2、/166531/2 → /166531/3 */
+function nextPageCandidates(current: URL): string[] {
+  const out = new Set<string>();
+  const path = current.pathname.replace(/\/$/, "");
+  // 末尾の数字が 2〜MAX_HTML_PAGES のときだけページ番号とみなす（/166531 のような記事 ID と区別する）
+  const m = /^(.*)\/(\d+)$/.exec(path);
+  const n = m?.[2] !== undefined ? Number(m[2]) : Number.NaN;
+  const bases =
+    m?.[1] !== undefined && n >= 2 && n <= MAX_HTML_PAGES ? [`${m[1]}/${n + 1}`] : [`${path}/2`];
+  for (const b of bases) {
+    for (const suffix of ["", "/"]) {
+      const u = new URL(current.toString());
+      u.pathname = `${b}${suffix}`;
+      u.search = "";
+      u.hash = "";
+      out.add(u.toString());
+    }
+  }
+  const page = current.searchParams.get("page");
+  const u = new URL(current.toString());
+  u.hash = "";
+  u.searchParams.set("page", page && /^\d+$/.test(page) ? String(Number(page) + 1) : "2");
+  out.add(u.toString());
+  return [...out];
+}
+
+/**
+ * 記事の「次のページ」へのリンクを探す。見つからなければ undefined。
+ * 同じホストで、現在の URL にページ番号を足した形（/2、/3、?page=2）のリンクだけを「続き」とみなす。
+ * rel="next" は、ブログでは別の記事を指すことがあるので、それだけでは辿らない（ページ番号の形にも合うときだけ）
+ */
+export function findNextPageUrl(html: string, currentUrl: string): string | undefined {
+  let current: URL;
+  try {
+    current = new URL(currentUrl);
+  } catch {
+    return undefined;
+  }
+  const document = parseDocument(html);
+  const candidates = new Set(nextPageCandidates(current));
+  const asCandidate = (href: string | null): string | undefined => {
+    if (!href) return undefined;
+    try {
+      const u = new URL(href, current);
+      if (u.hostname !== current.hostname) return undefined;
+      u.hash = "";
+      const s = u.toString();
+      return candidates.has(s) ? s : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  for (const sel of ['link[rel="next"]', 'a[rel="next"]', "a[href]"]) {
+    for (const el of Array.from(document.querySelectorAll(sel))) {
+      const u = asCandidate(el.getAttribute("href"));
+      if (u) return u;
+    }
+  }
+  return undefined;
+}
+
+/** URL から取得した結果：PDF のバイト列か、記事の HTML（分割されていれば続きのページも） */
+export type DownloadedArticle =
+  | { kind: "pdf"; data: Uint8Array; finalUrl: string }
+  | { kind: "html"; htmls: string[]; finalUrl: string };
+
+/**
+ * 記事の URL を取得し、HTML なら「次のページ」を MAX_HTML_PAGES まで辿る。
+ * 続きのページも downloadBytes を通すので、URL の検査（SSRF 対策）とサイズ・時間の上限は 1 ページごとに効く
+ */
+export async function downloadArticle(
+  url: string,
+  opts: FetchOptions = {},
+): Promise<DownloadedArticle> {
+  const first = await downloadBytes(url, opts);
+  if (isPdf(first.contentType, first.finalUrl, first.data))
+    return { kind: "pdf", data: first.data, finalUrl: first.finalUrl };
+  const htmls = [decodeHtml(first.data, first.contentType)];
+  const seen = new Set([url, first.finalUrl]);
+  let current = first.finalUrl;
+  for (let page = 1; page < MAX_HTML_PAGES; page++) {
+    const html = htmls[htmls.length - 1] ?? "";
+    const next = findNextPageUrl(html, current);
+    if (!next || seen.has(next)) break;
+    seen.add(next);
+    let res: Awaited<ReturnType<typeof downloadBytes>>;
+    try {
+      res = await downloadBytes(next, opts);
+    } catch {
+      break; // 続きが取れなくても、取れたページまでで読む
+    }
+    if (isPdf(res.contentType, res.finalUrl, res.data)) break;
+    htmls.push(decodeHtml(res.data, res.contentType));
+    current = res.finalUrl;
+    seen.add(res.finalUrl);
+  }
+  return { kind: "html", htmls, finalUrl: first.finalUrl };
 }
 
 /** "27" / "27-29" / "27,29-30" のような指定を 1 始まりのページ番号の配列にする */
@@ -521,10 +798,10 @@ export async function fetchArticle(input: ArticleInput, opts: FetchOptions = {})
     case "pdf":
       return extractPdf(input.data, pdfOptions(input, input.sourceUrl, opts.maxBytes));
     case "url": {
-      const { data, contentType, finalUrl } = await downloadBytes(input.url, opts);
-      if (isPdf(contentType, finalUrl, data))
-        return extractPdf(data, pdfOptions(input, input.url, opts.maxBytes));
-      return extractHtml(decodeHtml(data, contentType), input.url);
+      const downloaded = await downloadArticle(input.url, opts);
+      if (downloaded.kind === "pdf")
+        return extractPdf(downloaded.data, pdfOptions(input, input.url, opts.maxBytes));
+      return extractHtmlPages(downloaded.htmls, input.url);
     }
   }
 }

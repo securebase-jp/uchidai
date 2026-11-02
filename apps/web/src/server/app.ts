@@ -36,9 +36,11 @@ import { ClientError, publicMessage } from "./errors.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { patchProfile } from "./profile-patch.ts";
 import { remoteGuard } from "./remote-guard.ts";
+import { allQuestions } from "./requests/questions.ts";
 import { attackerRoutes } from "./routes/attacker.ts";
 import { demoRoutes } from "./routes/demo.ts";
 import { onepagerRoutes } from "./routes/onepager.ts";
+import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
 import { assertPublicUrl, guardedFetch } from "./safe-url.ts";
 
@@ -90,6 +92,9 @@ app.onError((err, c) => {
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/attacker", attackerRoutes);
 
+// 外部確認（所有確認 → DNS・証明書の公開ログ → カルテへの反映）。P2：src/server/routes/recon.ts
+app.route("/api/recon", reconRoutes());
+
 // 確認依頼と回答（送信箱、回答ページ、SSE）。S7：src/server/routes/requests.ts
 app.route("/api/requests", requestRoutes());
 
@@ -97,7 +102,7 @@ app.route("/api/requests", requestRoutes());
 app.route("/", onepagerRoutes);
 app.route("/", demoRoutes);
 
-// 知識：ラベル、対策ボタン、5問、業種別パターン、役割、ATT&CK のバージョン
+// 知識：ラベル、対策ボタン、5問、緩和策ごとの確認の質問表（カルテ画面と確認依頼で共有）、業種別パターン、役割、ATT&CK のバージョン
 app.get("/api/knowledge", (c) => {
   const k = loadKnowledge();
   return c.json({
@@ -105,6 +110,7 @@ app.get("/api/knowledge", (c) => {
     labels: k.labels,
     measures: k.measures,
     questions: loadQuestions(),
+    controlQuestions: allQuestions(),
     patterns: k.patterns,
     roles: k.roles,
     entryCandidates: k.entryCandidates,

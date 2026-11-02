@@ -17,7 +17,8 @@ stages:
     tactics: [TA0001, TA0003]
     byRole:
       cloud.mail_account.exec: T1078.004
-    accepts: [T1078.004, T1078]
+    # 流出したパスワードの使い回し（T1110.004）、リンクによるフィッシング、多要素認証の要求の大量送信も乗っ取りとして受け入れる
+    accepts: [T1078.004, T1078, T1110.004, T1566.002, T1621]
   - id: impersonate
     labelJa: 社長になりすまして指示する
     tactics: [TA0005]
@@ -30,6 +31,8 @@ stages:
     human: true
     byRole:
       person.accounting: null
+    # 記事では「担当者が指示に従って操作した」が T1204 と読まれる
+    accepts: [T1204, T1204.002]
   - id: money
     labelJa: 資金が流出する
     tactics: [TA0040]
