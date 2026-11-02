@@ -39,6 +39,7 @@ import { remoteGuard } from "./remote-guard.ts";
 import { attackerRoutes } from "./routes/attacker.ts";
 import { demoRoutes } from "./routes/demo.ts";
 import { onepagerRoutes } from "./routes/onepager.ts";
+import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
 import { assertPublicUrl, guardedFetch } from "./safe-url.ts";
 
@@ -89,6 +90,9 @@ app.onError((err, c) => {
 
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/attacker", attackerRoutes);
+
+// 外部確認（所有確認 → DNS・証明書の公開ログ → カルテへの反映）。P2：src/server/routes/recon.ts
+app.route("/api/recon", reconRoutes());
 
 // 確認依頼と回答（送信箱、回答ページ、SSE）。S7：src/server/routes/requests.ts
 app.route("/api/requests", requestRoutes());
