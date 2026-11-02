@@ -91,6 +91,8 @@ export type ControlQuestion = {
   textJa: string;
   hintJa?: string;
   choices: ControlChoice[];
+  /** 役割ごとの文言（サーバの M1047 は監査、ホームページの M1047 は改ざん検知など）。画面は資産の役割で選ぶ */
+  byRole?: Record<string, { textJa: string; hintJa?: string; choices?: ControlChoice[] }>;
 };
 
 export type ApiError = { error: string; details?: unknown };
