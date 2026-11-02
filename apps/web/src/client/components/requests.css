@@ -1,0 +1,175 @@
+/* 確認依頼：担当者画面の依頼ボタンと送信箱、スマホ向けの回答ページ（S7） */
+.req-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--edge);
+}
+.req-row:last-child {
+  border-bottom: 0;
+}
+.req-row .what {
+  flex: 1;
+  min-width: 220px;
+}
+.req-row .what b {
+  display: block;
+}
+.outbox {
+  margin-top: 10px;
+}
+.mail {
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--panel-2);
+}
+.mail .hd {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.mail .subj {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.mail pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  color: var(--ink);
+}
+.mail .link {
+  font-family: var(--mono);
+  font-size: 12px;
+  word-break: break-all;
+}
+.mail .answered {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  border: 1px solid var(--red);
+  font-size: 13px;
+}
+.mail .answered.ok {
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: var(--green);
+}
+.mail details summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--steel);
+}
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.live i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.live.on i {
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+}
+.toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  max-width: min(420px, calc(100vw - 32px));
+  background: var(--panel-2);
+  border: 1px solid var(--red);
+  border-left-width: 6px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  font-size: 14px;
+  animation: appear 400ms ease-out 1 both;
+}
+
+/* 回答ページ（スマホ幅で読みやすい縦長） */
+.answer {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 16px 48px;
+}
+.answer .brand {
+  display: block;
+  margin-bottom: 14px;
+}
+.answer h1 {
+  font-size: 20px;
+  margin-bottom: 6px;
+}
+.answer .q {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 14px 0 6px;
+}
+.answer .hint {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.answer .choices {
+  display: grid;
+  gap: 10px;
+}
+.answer .choices .opt-btn {
+  font-size: 17px;
+  padding: 16px 16px;
+  min-height: 56px;
+}
+.answer label.name {
+  display: block;
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.answer input.in {
+  font-size: 17px;
+  padding: 12px 14px;
+  margin-top: 6px;
+}
+.answer .submit {
+  width: 100%;
+  justify-content: center;
+  font-size: 18px;
+  padding: 14px;
+  margin-top: 16px;
+}
+.answer .done {
+  text-align: center;
+  padding: 32px 0;
+}
+.answer .done .mark {
+  font-size: 48px;
+  color: var(--green);
+}
+.answer .bg {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.answer .bg code {
+  font-family: var(--mono);
+}

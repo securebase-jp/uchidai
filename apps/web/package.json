@@ -22,6 +22,7 @@
     "@uchidai/llm": "workspace:*",
     "hono": "^4.10.0",
     "motion": "^12.23.0",
+    "nodemailer": "^10.3.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "yaml": "^2.8.0",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^22",
+    "@types/nodemailer": "^8.0.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",

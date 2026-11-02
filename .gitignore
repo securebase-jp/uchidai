@@ -13,6 +13,9 @@ coverage/
 # 評価用のキャッシュ（記事本文はリポジトリに入れない）
 eval/.cache/
 
+# 確認依頼のトークンと回答（手元のサーバだけが持つ）
+apps/web/.data/
+
 # OS・エディタ
 .DS_Store
 *.log

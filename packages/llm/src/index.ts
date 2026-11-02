@@ -5,3 +5,4 @@ export * from "./proxy.ts";
 export * from "./reader.ts";
 export * from "./schema.ts";
 export * from "./verify.ts";
+export * from "./writer.ts";

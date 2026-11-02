@@ -7,6 +7,7 @@ import { EvidencePanel } from "../components/EvidencePanel.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
+import { RequestPanel } from "../components/RequestPanel.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
 import { useApp } from "../hooks/useApp.tsx";
@@ -173,6 +174,9 @@ export function Staff({ settings }: { settings: Settings }) {
               labels={knowledge.labels}
               graph={stage.input.graph}
             />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <RequestPanel />
           </div>
         </div>
         <AttackerLog
