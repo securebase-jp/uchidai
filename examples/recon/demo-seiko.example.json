@@ -1,0 +1,88 @@
+{
+  "$comment": "デモ用の架空ドメイン demo-seiko.example（.example は IANA の予約 TLD。実在しない）の DNS と証明書公開ログの応答を、記録した形で持つ fixture。examples/demo-seiko.json のカルテに合う結果（VPN 用ホスト名が公開、SPF あり、DMARC なし、Microsoft 365 の MX、レンタルサーバのホームページ、廃止済みの旧キャンペーンサイトが DNS に残る）が出るよう設計している。IP アドレスは文書用の予約範囲 203.0.113.0/24",
+  "domain": "demo-seiko.example",
+  "recordedAt": "2026-11-02T07:00:00Z",
+  "verificationToken": "demo-seiko-verification-token-0001",
+  "dns": {
+    "demo-seiko.example": {
+      "TXT": [
+        "v=spf1 include:spf.protection.outlook.com -all",
+        "uchidai-verify=demo-seiko-verification-token-0001",
+        "MS=ms00000000"
+      ],
+      "MX": [{ "exchange": "demo-seiko-example.mail.protection.outlook.com", "priority": 0 }],
+      "A": ["203.0.113.81"]
+    },
+    "www.demo-seiko.example": {
+      "CNAME": ["www0000.sakura.ne.jp"]
+    },
+    "www0000.sakura.ne.jp": {
+      "A": ["203.0.113.81"]
+    },
+    "vpn.demo-seiko.example": {
+      "A": ["203.0.113.10"]
+    },
+    "campaign2019.demo-seiko.example": {
+      "A": ["203.0.113.82"]
+    },
+    "autodiscover.demo-seiko.example": {
+      "CNAME": ["autodiscover.outlook.com"]
+    }
+  },
+  "ptr": {
+    "203.0.113.81": ["www0000.sakura.ne.jp"],
+    "203.0.113.10": [],
+    "203.0.113.82": ["www0000.sakura.ne.jp"]
+  },
+  "ct": [
+    {
+      "id": 1001,
+      "issuer": "C=US, O=Let's Encrypt, CN=R11",
+      "names": ["demo-seiko.example", "www.demo-seiko.example"],
+      "notBefore": "2026-09-01T00:00:00Z",
+      "notAfter": "2026-11-30T23:59:59Z"
+    },
+    {
+      "id": 1002,
+      "issuer": "C=US, O=Let's Encrypt, CN=R11",
+      "names": ["demo-seiko.example", "www.demo-seiko.example"],
+      "notBefore": "2026-06-01T00:00:00Z",
+      "notAfter": "2026-08-30T23:59:59Z"
+    },
+    {
+      "id": 1003,
+      "issuer": "C=US, O=DigiCert Inc, CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1",
+      "names": ["vpn.demo-seiko.example"],
+      "notBefore": "2025-03-01T00:00:00Z",
+      "notAfter": "2026-03-31T23:59:59Z"
+    },
+    {
+      "id": 1004,
+      "issuer": "C=US, O=DigiCert Inc, CN=DigiCert Global G2 TLS RSA SHA256 2020 CA1",
+      "names": ["vpn.demo-seiko.example"],
+      "notBefore": "2026-03-15T00:00:00Z",
+      "notAfter": "2027-03-31T23:59:59Z"
+    },
+    {
+      "id": 1005,
+      "issuer": "C=US, O=Let's Encrypt, CN=R3",
+      "names": ["campaign2019.demo-seiko.example"],
+      "notBefore": "2019-05-01T00:00:00Z",
+      "notAfter": "2019-07-30T23:59:59Z"
+    },
+    {
+      "id": 1006,
+      "issuer": "C=JP, O=Example CA, CN=Example Wildcard CA",
+      "names": ["*.demo-seiko.example", "demo-seiko.example"],
+      "notBefore": "2024-01-01T00:00:00Z",
+      "notAfter": "2025-01-01T23:59:59Z"
+    },
+    {
+      "id": 1007,
+      "issuer": "C=US, O=Let's Encrypt, CN=R11",
+      "names": ["autodiscover.demo-seiko.example"],
+      "notBefore": "2026-04-01T00:00:00Z",
+      "notAfter": "2026-06-30T23:59:59Z"
+    }
+  ]
+}
