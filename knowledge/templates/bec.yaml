@@ -35,4 +35,5 @@ stages:
     tactics: [TA0040]
     byRole:
       impact.money: null
+    accepts: [T1657]
     terminal: true

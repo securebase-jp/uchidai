@@ -158,7 +158,7 @@ export function buildGraph(profile: CompanyProfile, roles: RoleDef[]): Graph {
   }
   if (
     profile.dailyRevenue !== undefined &&
-    nodes.filter((n) => n.layer === "management").length < 3
+    nodes.filter((n) => n.layer === "management").length < 4
   ) {
     nodes.push({
       id: "impact.revenue",

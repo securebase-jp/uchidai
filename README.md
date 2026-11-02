@@ -10,7 +10,7 @@
 
 - [x] 評価の仕組みの骨組み（`eval/`）← 最初のコミット
 - [x] ATT&CK Enterprise v20.0 の取り込み（`knowledge/attack/`）、役割の枠（`knowledge/roles.yaml`）、日本語ラベル、共通の型（`packages/engine/src/types.ts`）、デモ用の架空企業（`examples/demo-seiko.json`）
-- [ ] 記事の読解と手法IDの照合
+- [x] 記事の読解と手法IDの照合（`packages/llm`：URL・PDF・テキストの取り込み、構造化出力、ID・根拠文・型紙外・指示文の検証）。評価は 5 事例 × 知見あり／なしで実測を記録
 - [x] 構成グラフ、型紙 3 つ、判定ルール表（条件式 DSL）、経路探索、対策ボタンの再判定、AI 経路の検証、知見なし比較の振り分け（`packages/engine`、`knowledge/`）
 - [ ] 経路図とアニメーション
 - [ ] 確認依頼と判定の更新、対策ボタン
