@@ -23,7 +23,7 @@ import {
   type GenericMitigationItem,
   type ReconMeta,
 } from "../lib/attackerApi.ts";
-import type { AttackPath, Verdict } from "../lib/types.ts";
+import type { AttackPath, Case, Verdict } from "../lib/types.ts";
 import { useApp } from "./useApp.tsx";
 
 export type AiAttackerState = {
@@ -101,6 +101,21 @@ export function AiAttackerProvider({ children }: { children: ReactNode }) {
     setCompareRecorded(undefined);
     setCompareMeta(undefined);
   }, [profileId, clear]);
+
+  // 事例を替えたら下見の経路も消す（下見はカルテに対する探索だが、前の事例の経路が経路図と根拠に混ざらないように）。
+  // 比較（知見なし）は事例ごとに取り寄せるので、こちらも消す。最初に事例が入ったときは消さない
+  const prevCase = useRef<Case | undefined>(theCase);
+  useEffect(() => {
+    const prev = prevCase.current;
+    prevCase.current = theCase;
+    if (!prev || !theCase || prev === theCase) return;
+    clear();
+    setComparison(undefined);
+    setItems(undefined);
+    setCompareError(undefined);
+    setCompareRecorded(undefined);
+    setCompareMeta(undefined);
+  }, [theCase, clear]);
 
   const run = useCallback(
     async (opts?: { replay?: boolean }) => {
