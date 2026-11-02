@@ -1,0 +1,28 @@
+/** engine の共通型を型だけ再輸出する（ブラウザでは engine の値を読み込まない） */
+export type {
+  AttackPath,
+  Case,
+  CaseStep,
+  CompanyProfile,
+  Contradiction,
+  EvidenceKind,
+  Graph,
+  GraphEdge,
+  GraphNode,
+  Impact,
+  LabelsFile,
+  Layer,
+  Measure,
+  MeasureDef,
+  PathSource,
+  PathStep,
+  Pattern,
+  ProfileAnswers,
+  RoleDef,
+  Side,
+  StepState,
+  TimelineEvent,
+  Verdict,
+  VerdictResult,
+} from "@uchidai/engine";
+export type { Question } from "../../shared/api.ts";

@@ -17,7 +17,9 @@
     "secrets": "gitleaks git --no-banner",
     "prepare": "lefthook install",
     "attack:import": "node --disable-warning=ExperimentalWarning scripts/import-attack.ts",
-    "knowledge:check": "pnpm --filter @uchidai/engine run knowledge:check"
+    "knowledge:check": "pnpm --filter @uchidai/engine run knowledge:check",
+    "dev": "pnpm --filter @uchidai/web run dev",
+    "build": "pnpm --filter @uchidai/web run build"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",

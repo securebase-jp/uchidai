@@ -1,0 +1,215 @@
+/** 担当者画面（操作型）：経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
+import { useMemo } from "react";
+import { AttackerLog } from "../components/AttackerLog.tsx";
+import { Controls } from "../components/Controls.tsx";
+import { Diagram } from "../components/Diagram.tsx";
+import { EvidencePanel } from "../components/EvidencePanel.tsx";
+import { MeasurePanel } from "../components/MeasurePanel.tsx";
+import { Meters, useDayCounter } from "../components/Meters.tsx";
+import { Particles } from "../components/Particles.tsx";
+import { TimelineBar } from "../components/TimelineBar.tsx";
+import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { useApp } from "../hooks/useApp.tsx";
+import type { Settings } from "../hooks/useSettings.ts";
+import { type StageInput, useStage } from "../hooks/useStage.ts";
+import { timelineOf } from "../lib/timeline.ts";
+
+export function Legend() {
+  return (
+    <div className="legend" aria-hidden="true">
+      <span>
+        <i /> 記事に記載
+      </span>
+      <span>
+        <i className="dash" /> 推定・入口候補
+      </span>
+      <span>
+        <i className="dot" /> AIが見つけた経路
+      </span>
+      <span>
+        <b style={{ background: "var(--red)" }} /> 突破
+      </span>
+      <span>
+        <b style={{ background: "var(--amber)" }} /> 未確認・人次第・法律上の義務
+      </span>
+      <span>
+        <b style={{ background: "var(--green)" }} /> 止まる・復旧できる
+      </span>
+      <span>
+        <b style={{ background: "var(--cyan)" }} /> 平時の通信
+      </span>
+      <span>
+        <b style={{ background: "var(--cash)" }} /> お金の流れ
+      </span>
+    </div>
+  );
+}
+
+export function Staff({ settings }: { settings: Settings }) {
+  const app = useApp();
+  const { knowledge, profile, theCase, caseMeta, measureIds, evaluation, busy, error } = app;
+  const input = useMemo<StageInput | undefined>(
+    () =>
+      evaluation && knowledge
+        ? {
+            graph: evaluation.graph,
+            verdict: evaluation.verdict,
+            profile: evaluation.profile,
+            applied: evaluation.measures,
+            labels: knowledge.labels,
+          }
+        : undefined,
+    [evaluation, knowledge],
+  );
+  const stage = useStage(input, { reduced: settings.reduced, autoplay: true });
+  const day = useDayCounter(stage?.clock ?? dummyClock, stage?.scene ?? dummyScene);
+  const tl = useMemo(
+    () => (stage ? timelineOf(stage.input.verdict, stage.input.profile) : undefined),
+    [stage],
+  );
+
+  if (!profile) {
+    return (
+      <div className="panel" style={{ marginTop: 16 }}>
+        <h2>会社カルテがありません</h2>
+        <p className="row" style={{ marginTop: 8 }}>
+          <a className="btn primary" href="#/questions">
+            最初の5問に答える
+          </a>
+          <button type="button" className="btn" onClick={() => void app.loadExample("demo-seiko")}>
+            架空の会社（デモ精工）で試す
+          </button>
+        </p>
+      </div>
+    );
+  }
+  if (!stage || !knowledge || !theCase || !tl) {
+    return (
+      <p className="muted" style={{ marginTop: 16 }}>
+        {error ? <span className="err">{error}</span> : "判定しています…"}
+      </p>
+    );
+  }
+  const { layout, scene, script, clock } = stage;
+  const measureLabel = (m: string) =>
+    knowledge.labels.mitigations[m] ?? knowledge.labels.custom[m]?.labelJa ?? m;
+
+  return (
+    <div>
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <p className="muted">{caseMeta?.sourceJa}</p>
+          <h1 style={{ fontSize: 20 }}>{theCase.title}</h1>
+        </div>
+        <Meters
+          clock={clock}
+          scene={scene}
+          verdict={stage.input.verdict}
+          profile={stage.input.profile}
+        />
+      </div>
+      <div style={{ marginTop: 10 }}>
+        <VerdictBanner
+          verdict={stage.input.verdict}
+          scene={scene}
+          script={script}
+          graph={stage.input.graph}
+          fired={clock.fired}
+          caseTitle={theCase.title}
+          swapping={stage.swapping || busy}
+        />
+      </div>
+      {error && (
+        <p className="err small" style={{ marginTop: 6 }}>
+          {error}
+        </p>
+      )}
+      <div className="layout-main">
+        <div>
+          <div className="stage">
+            <Diagram
+              layout={layout}
+              graph={stage.input.graph}
+              scene={scene}
+              script={script}
+              profile={stage.input.profile}
+              showIds
+              measureLabel={measureLabel}
+            />
+            <Particles
+              layout={layout}
+              scene={scene}
+              script={script}
+              clock={clock}
+              reduced={settings.reduced}
+            />
+            <Legend />
+          </div>
+          <Controls clock={clock} reduced={settings.reduced} onReduced={settings.setReduced} />
+          <TimelineBar
+            view={tl}
+            verdict={stage.input.verdict}
+            profile={stage.input.profile}
+            day={day}
+            concluded={scene.concluded}
+            reduced={settings.reduced}
+          />
+          <div style={{ marginTop: 12 }}>
+            <MeasurePanel
+              measures={knowledge.measures}
+              selected={measureIds}
+              verdict={evaluation?.verdict}
+              onToggle={app.toggleMeasure}
+              onClear={app.clearMeasures}
+              disabled={busy}
+            />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <EvidencePanel
+              verdict={stage.input.verdict}
+              theCase={theCase}
+              profile={stage.input.profile}
+              labels={knowledge.labels}
+              graph={stage.input.graph}
+            />
+          </div>
+        </div>
+        <AttackerLog
+          scene={scene}
+          reduced={settings.reduced}
+          attackVersion={stage.input.verdict.attackVersion}
+        />
+      </div>
+    </div>
+  );
+}
+
+const dummyClock = {
+  timeRef: { current: 0 },
+  fired: 0,
+  playing: false,
+  speed: 1,
+  ended: false,
+  rewinding: false,
+  play() {},
+  pause() {},
+  toggle() {},
+  restart() {},
+  toEnd() {},
+  setSpeed() {},
+  rewindThen(cb: () => void) {
+    cb();
+  },
+  subscribe() {
+    return () => {};
+  },
+};
+const dummyScene = {
+  nodes: {},
+  edges: {},
+  flashes: [],
+  concluded: false,
+  walls: [],
+  logs: [],
+  daysTo: 0,
+};
