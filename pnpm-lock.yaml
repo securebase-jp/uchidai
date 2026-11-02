@@ -87,6 +87,25 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(vite@7.3.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1))
 
+  packages/recon:
+    dependencies:
+      '@uchidai/engine':
+        specifier: workspace:*
+        version: link:../engine
+      undici:
+        specifier: ^8.12.3
+        version: 8.12.3
+      zod:
+        specifier: ^4.1.0
+        version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: ^22
+        version: 22.20.5
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@opentelemetry/api@1.10.0)(@types/node@22.20.5)(vite@7.3.7(@types/node@22.20.5)(tsx@4.23.15)(yaml@2.9.1))
+
 packages:
 
   '@anthropic-ai/sdk@1.3.0':
