@@ -1,7 +1,7 @@
 /**
  * 経路の組み立てと判定：型紙 × 構成グラフ × 判定ルール表 → Verdict
  */
-import { ATTACKER_NODE_ID, adjacent, buildGraph } from "./graph.ts";
+import { ATTACKER_NODE_ID, adjacent, buildGraph, connected } from "./graph.ts";
 import {
   canonicalTechnique,
   type Knowledge,
@@ -82,26 +82,42 @@ function matchCaseSteps(
 
 type StageNode = { stage: TemplateStage; node: GraphNode };
 
-/** 入口ノードから型紙の段階を順にたどり、各段階に当たるノードを決める */
-function walkStages(template: Template, graph: Graph, entry: GraphNode): StageNode[] {
-  const out: StageNode[] = [];
-  let prev = entry;
-  for (const stage of template.stages) {
+/** 一つの入口から列挙する経路の上限（同じ役割の資産が複数あるときの組み合わせ爆発を防ぐ） */
+const MAX_SEQUENCES_PER_ENTRY = 8;
+
+/**
+ * 入口ノードから型紙の段階を順にたどり、各段階に当たるノードの列を列挙する。
+ * - 線（通信エッジ。終点は impacts のエッジも可）に沿ってだけ進む。線のない役割へは飛ばない
+ * - 直前のノードから線がつながる段階がなければその段階を飛ばし、後の段階へ線がつながればそこへ進む
+ *   （保守ベンダーの遠隔接続のように入口が中核へ直接つながる場合）
+ * - 終点（terminal）の段階に到達できない列は返さない（構成上その入口からは進めない）
+ * - 同じ役割の資産が複数あれば、それぞれを別の列にする
+ */
+export function walkStages(template: Template, graph: Graph, entry: GraphNode): StageNode[][] {
+  const out: StageNode[][] = [];
+  const stages = template.stages;
+  const walk = (prev: GraphNode, index: number, acc: StageNode[]): void => {
+    if (out.length >= MAX_SEQUENCES_PER_ENTRY) return;
+    if (index >= stages.length) {
+      if (acc[acc.length - 1]?.stage.terminal) out.push(acc);
+      return;
+    }
+    const stage = stages[index] as TemplateStage;
     if (stage.entry) {
-      out.push({ stage, node: entry });
-      continue;
+      walk(entry, index + 1, [...acc, { stage, node: entry }]);
+      return;
     }
     const roles = Object.keys(stage.byRole);
-    const node =
-      graph.nodes.find((n) => roles.includes(n.role) && adjacent(graph, prev.id, n.id)) ??
-      graph.nodes.find((n) => roles.includes(n.role));
-    if (!node) {
-      if (stage.optional) continue;
-      break;
+    const nexts = graph.nodes.filter(
+      (n) => roles.includes(n.role) && n.role !== "attacker" && connected(graph, prev.id, n.id),
+    );
+    if (nexts.length === 0) {
+      walk(prev, index + 1, acc);
+      return;
     }
-    out.push({ stage, node });
-    prev = node;
-  }
+    for (const node of nexts) walk(node, index + 1, [...acc, { stage, node }]);
+  };
+  walk(entry, 0, []);
   return out;
 }
 
@@ -279,67 +295,74 @@ export function evaluate(
     .sort((a, b) => entryOrder(a.role, knowledge) - entryOrder(b.role, knowledge));
   if (entryNodes.length === 0) return empty("no_entry");
 
+  // 構成上、終点まで線がつながらない入口（事業者側のホームページなど）は、この攻撃の入口にならない
+  const walkable = entryNodes.filter((n) => walkStages(template, graph, n).length > 0);
+  if (walkable.length === 0) return empty("no_entry");
+
   const entryStep = matched.get(entryStage.id);
   const entryKnown =
     entryStep !== undefined && entryStep.source !== "unknown" && theCase.clarity !== "unknown";
+  const tech = entryKnown ? entryStep.technique : undefined;
+  const fits = entryKnown
+    ? walkable.filter((n) => {
+        const typical = entryStage.byRole[n.role];
+        return (
+          tech === undefined ||
+          typical === tech ||
+          (typical !== null && typical !== undefined && parentOf(typical) === parentOf(tech))
+        );
+      })
+    : [];
   let chosen: { node: GraphNode; source: PathSource; technique?: string }[];
-  if (entryKnown) {
-    const tech = entryStep.technique;
-    const fits = entryNodes.filter((n) => {
-      const typical = entryStage.byRole[n.role];
-      return (
-        tech === undefined ||
-        typical === tech ||
-        (typical !== null && typical !== undefined && parentOf(typical) === parentOf(tech))
-      );
-    });
-    const list = fits.length > 0 ? fits : entryNodes;
-    chosen = list.map((node, i) => ({
+  if (entryKnown && fits.length > 0) {
+    chosen = fits.map((node, i) => ({
       node,
       source: i === 0 ? (entryStep.source === "stated" ? "stated" : "inferred") : "candidate",
       ...(tech ? { technique: tech } : {}),
     }));
   } else {
-    chosen = entryNodes.map((node) => ({ node, source: "candidate" }));
+    // 入口が不明、または記事の手法がどの入口の役割にも当たらない：入口候補をすべて展開する
+    chosen = walkable.map((node) => ({ node, source: "candidate" }));
   }
 
-  const paths: AttackPath[] = chosen.map(({ node, source, technique }) => {
-    const stageNodes = walkStages(template, graph, node);
-    const techniques = stageNodes.map((sn, i) => {
-      if (i === 0) return technique ?? entryStage.byRole[node.role] ?? undefined;
-      const m = matched.get(sn.stage.id);
-      return m?.technique ?? sn.stage.byRole[sn.node.role] ?? undefined;
-    });
-    const sources: PathSource[] = stageNodes.map((sn, i) => {
-      if (i === 0) return source;
-      const m = matched.get(sn.stage.id);
-      return m && m.source === "stated" ? "stated" : "inferred";
-    });
-    const matchedSteps = stageNodes.map((sn, i) =>
-      i === 0 ? entryStep : matched.get(sn.stage.id),
-    );
-    const { steps, reachedCore } = evaluateSequence(
-      stageNodes,
-      techniques,
-      sources,
-      matchedSteps as (CaseStep & { technique?: string })[],
-      profile,
-      knowledge,
-      contradictions,
-    );
-    const reachedAssetIds = steps
-      .filter((s) => s.state !== "blocked")
-      .map((s) => graph.nodes.find((n) => n.id === s.nodeId)?.assetId)
-      .filter((id): id is string => id !== undefined);
-    return {
-      id: `${template.id}:${node.id}`,
-      templateId: template.id,
-      source,
-      steps,
-      reachedCore,
-      reachedAssetIds,
-    };
-  });
+  const paths: AttackPath[] = chosen.flatMap(({ node, source, technique }) =>
+    walkStages(template, graph, node).map((stageNodes, k) => {
+      const techniques = stageNodes.map((sn, i) => {
+        if (i === 0) return technique ?? entryStage.byRole[node.role] ?? undefined;
+        const m = matched.get(sn.stage.id);
+        return m?.technique ?? sn.stage.byRole[sn.node.role] ?? undefined;
+      });
+      const sources: PathSource[] = stageNodes.map((sn, i) => {
+        if (i === 0) return source;
+        const m = matched.get(sn.stage.id);
+        return m && m.source === "stated" ? "stated" : "inferred";
+      });
+      const matchedSteps = stageNodes.map((sn, i) =>
+        i === 0 ? (source === "candidate" ? undefined : entryStep) : matched.get(sn.stage.id),
+      );
+      const { steps, reachedCore } = evaluateSequence(
+        stageNodes,
+        techniques,
+        sources,
+        matchedSteps as (CaseStep & { technique?: string })[],
+        profile,
+        knowledge,
+        contradictions,
+      );
+      const reachedAssetIds = steps
+        .filter((s) => s.state !== "blocked")
+        .map((s) => graph.nodes.find((n) => n.id === s.nodeId)?.assetId)
+        .filter((id): id is string => id !== undefined);
+      return {
+        id: `${template.id}:${node.id}${k > 0 ? `#${k + 1}` : ""}`,
+        templateId: template.id,
+        source,
+        steps,
+        reachedCore,
+        reachedAssetIds,
+      };
+    }),
+  );
 
   const result = decideResult(paths);
   return {

@@ -91,6 +91,11 @@ export function buildGraph(profile: CompanyProfile, roles: RoleDef[]): Graph {
     for (const n1 of byRole(r1))
       for (const n2 of byRole(r2)) addEdge(edge(n1.id, n2.id, "network"));
   }
+  // 社内に置いたホームページだけが社内のサーバ区画・管理者権限につながる（事業者側のホームページは社内へつながらない）
+  for (const web of byRole("entry.web").filter((n) => n.side === "internal")) {
+    for (const s of byRole("server")) addEdge(edge(web.id, s.id, "network"));
+    for (const a of byRole("admin")) addEdge(edge(web.id, a.id, "network"));
+  }
   // 保守ベンダーの遠隔接続は、属性 connectsTo の資産（既定は中核システム）に直接つながる
   for (const a of profile.assets.filter((x) => x.role === "entry.vendor_remote")) {
     const target = String(a.attrs.connectsTo ?? "");
@@ -174,6 +179,14 @@ export function adjacent(graph: Graph, a: string, b: string): boolean {
   if (a === b) return true;
   return graph.edges.some(
     (e) => e.kind === "network" && ((e.from === a && e.to === b) || (e.from === b && e.to === a)),
+  );
+}
+
+/** 経路が進める隣接：通信エッジ、または経営への影響（impacts）のエッジ（資金の流出など終点の段階に使う） */
+export function connected(graph: Graph, a: string, b: string): boolean {
+  if (adjacent(graph, a, b)) return true;
+  return graph.edges.some(
+    (e) => e.kind === "impacts" && ((e.from === a && e.to === b) || (e.from === b && e.to === a)),
   );
 }
 
