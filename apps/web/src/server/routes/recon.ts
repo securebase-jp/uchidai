@@ -310,7 +310,9 @@ export function reconRoutes(deps: ReconDeps = {}): Hono {
       ...(result.sources.ct === "unavailable" ? { ctUnavailableJa: CT_UNAVAILABLE_JA } : {}),
       ...(body.profile ? { applied: applyToProfile(result, body.profile) } : {}),
     };
-    store.setLastRun(domain, view);
+    // サーバに会社カルテを残さない：記憶するのは外部確認の結果だけ（反映後のカルテは応答にだけ含める）
+    const { applied: _applied, ...remembered } = view;
+    store.setLastRun(domain, remembered);
     return c.json(view);
   });
 

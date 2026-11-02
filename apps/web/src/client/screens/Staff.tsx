@@ -111,7 +111,7 @@ export function Staff({ settings }: { settings: Settings }) {
         <div className="panel warn" style={{ marginBottom: 10 }}>
           <p className="small">
             <b>未確認の項目が {pending} 件あります。</b>
-            未確認は「止まる」とは扱わないので、結論が「確認中」のままになることがあります。詳細を登録すると判定が確定します。
+            未確認は「止まる」とは扱わないので、いまの結論は最悪の想定（または「確認中」）です。詳細を登録するか、ベンダーに確認すると判定が確定します。
             <a className="btn sm" href="#/profile" style={{ marginLeft: 10 }}>
               カルテに詳細を登録する
             </a>
