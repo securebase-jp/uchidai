@@ -1,0 +1,8 @@
+{
+  "domain": "enterprise-attack",
+  "version": "20.0",
+  "modified": "2026-10-13T17:53:10.145Z",
+  "importedAt": "2026-11-02T05:43:00.729Z",
+  "source": "https://github.com/mitre-attack/attack-stix-data",
+  "notice": "© 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation. See NOTICE."
+}

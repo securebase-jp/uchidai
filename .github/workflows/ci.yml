@@ -20,6 +20,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm typecheck
+      - name: 知識ファイルとカルテの検証
+        run: pnpm knowledge:check
       - run: pnpm lint
       - run: pnpm test
       - name: 評価（記録データ、API キー不要）

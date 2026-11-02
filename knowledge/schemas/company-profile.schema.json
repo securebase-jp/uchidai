@@ -1,0 +1,276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "companyName": {
+      "type": "string"
+    },
+    "fictional": {
+      "default": false,
+      "type": "boolean"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "domainVerified": {
+      "default": false,
+      "type": "boolean"
+    },
+    "pattern": {
+      "type": "string",
+      "enum": ["manufacturing", "office", "healthcare"]
+    },
+    "answers": {
+      "type": "object",
+      "properties": {
+        "industry": {
+          "type": "string",
+          "enum": ["manufacturing", "wholesale_service", "healthcare", "it", "finance", "other"]
+        },
+        "site": {
+          "type": "string",
+          "enum": ["factory", "store", "clinic", "office_only"]
+        },
+        "hosting": {
+          "type": "object",
+          "properties": {
+            "mail": {
+              "type": "string",
+              "enum": ["onprem", "cloud", "provider", "unknown"]
+            },
+            "files": {
+              "type": "string",
+              "enum": ["onprem", "cloud", "provider", "unknown"]
+            },
+            "core": {
+              "type": "string",
+              "enum": ["onprem", "cloud", "provider", "unknown"]
+            },
+            "web": {
+              "type": "string",
+              "enum": ["onprem", "cloud", "provider", "unknown"]
+            }
+          },
+          "required": ["mail", "files", "core", "web"],
+          "additionalProperties": false
+        },
+        "remoteAccess": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["vpn", "rdp", "vendor_remote", "cloud_only", "unknown"]
+          }
+        },
+        "backup": {
+          "type": "string",
+          "enum": ["same_network", "cloud_sync", "isolated", "none", "unknown"]
+        }
+      },
+      "required": ["industry", "site", "hosting", "remoteAccess", "backup"],
+      "additionalProperties": false
+    },
+    "employees": {
+      "type": "integer",
+      "exclusiveMinimum": 0,
+      "maximum": 9007199254740991
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["device", "system", "person", "account"]
+          },
+          "role": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": ["internal", "external", "person"]
+          },
+          "product": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "controls": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mitigation": {
+                  "type": "string",
+                  "pattern": "^(M\\d{4}|UD-\\d{2})$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": ["present", "absent", "unknown"]
+                },
+                "evidence": {
+                  "type": "string",
+                  "enum": ["external", "vendor", "registered", "none"]
+                },
+                "noteJa": {
+                  "type": "string"
+                },
+                "answeredBy": {
+                  "type": "string"
+                },
+                "answeredAt": {
+                  "type": "string"
+                }
+              },
+              "required": ["mitigation", "status", "evidence"],
+              "additionalProperties": false
+            }
+          },
+          "attrs": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": ["string", "number", "boolean"]
+            }
+          },
+          "attrEvidence": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "string",
+              "enum": ["external", "vendor", "registered", "none"]
+            }
+          }
+        },
+        "required": ["id", "kind", "role", "label", "controls", "attrs", "attrEvidence"],
+        "additionalProperties": false
+      }
+    },
+    "businesses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "assetIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "manualDays": {
+            "type": "number",
+            "minimum": 0
+          },
+          "recoveryDays": {
+            "type": "number",
+            "minimum": 0
+          },
+          "recoveryDaysWithBackup": {
+            "type": "number",
+            "minimum": 0
+          },
+          "affectsJa": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "name", "assetIds", "manualDays", "recoveryDays"],
+        "additionalProperties": false
+      }
+    },
+    "dailyRevenue": {
+      "type": "number",
+      "minimum": 0
+    },
+    "personalData": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "assetId": {
+            "type": "string"
+          },
+          "descriptionJa": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "over1000": {
+            "type": "boolean"
+          },
+          "sensitive": {
+            "type": "boolean"
+          }
+        },
+        "required": ["assetId", "descriptionJa", "over1000", "sensitive"],
+        "additionalProperties": false
+      }
+    },
+    "cyberInsurance": {
+      "type": "object",
+      "properties": {
+        "enrolled": {
+          "type": "boolean"
+        },
+        "notifyWithinDays": {
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": ["enrolled"],
+      "additionalProperties": false
+    },
+    "vendor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "companyName",
+    "fictional",
+    "domainVerified",
+    "pattern",
+    "assets",
+    "businesses",
+    "personalData"
+  ],
+  "additionalProperties": false
+}

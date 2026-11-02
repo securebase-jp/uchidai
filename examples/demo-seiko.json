@@ -1,0 +1,353 @@
+{
+  "$comment": "デモ用の架空企業。会社名、人物、数値はすべて架空。判定ルール表から逆算して、3事例の結論が三者三様になるよう設計している",
+  "id": "demo-seiko",
+  "companyName": "デモ精工株式会社",
+  "fictional": true,
+  "domain": "demo-seiko.example",
+  "domainVerified": false,
+  "pattern": "manufacturing",
+  "employees": 120,
+  "dailyRevenue": 10000000,
+  "answers": {
+    "industry": "manufacturing",
+    "site": "factory",
+    "hosting": { "mail": "cloud", "files": "onprem", "core": "onprem", "web": "provider" },
+    "remoteAccess": ["vpn", "vendor_remote"],
+    "backup": "cloud_sync"
+  },
+  "vendor": { "name": "地域の保守ベンダー（架空）", "email": "vendor@example.com" },
+  "cyberInsurance": { "enrolled": true, "notifyWithinDays": 30 },
+  "assets": [
+    {
+      "id": "vpn",
+      "kind": "device",
+      "role": "entry.vpn",
+      "label": "VPN装置",
+      "product": "Fortinet FortiOS",
+      "version": "7.0.14",
+      "attrs": {
+        "exposed": true,
+        "knownExploited": true,
+        "authBypass": true,
+        "cve": "CVE-2024-55591"
+      },
+      "attrEvidence": {
+        "exposed": "external",
+        "knownExploited": "vendor",
+        "authBypass": "vendor",
+        "cve": "vendor"
+      },
+      "controls": [
+        {
+          "mitigation": "M1051",
+          "status": "absent",
+          "evidence": "vendor",
+          "noteJa": "ベンダー回答：ファームウェアは 7.0.14 のまま。悪用確認済みの脆弱性（CVE-2024-55591）に該当",
+          "answeredBy": "保守ベンダー",
+          "answeredAt": "2026-10-20T09:00:00+09:00"
+        },
+        {
+          "mitigation": "M1032",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "VPN 接続に多要素認証なし"
+        },
+        {
+          "mitigation": "M1042",
+          "status": "absent",
+          "evidence": "external",
+          "noteJa": "外部確認：VPN 用と推定されるホスト名が公開されている"
+        }
+      ]
+    },
+    {
+      "id": "vendor-remote",
+      "kind": "device",
+      "role": "entry.vendor_remote",
+      "label": "保守ベンダーのリモート保守ツール",
+      "attrs": { "alwaysOn": true, "sharedPassword": true, "connectsTo": "core" },
+      "attrEvidence": {
+        "alwaysOn": "registered",
+        "sharedPassword": "registered",
+        "connectsTo": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "保守ツールのログインはパスワードのみ（ベンダー共通）"
+        },
+        {
+          "mitigation": "UD-02",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "常時接続。作業時だけ有効にする運用はない"
+        },
+        {
+          "mitigation": "M1035",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "接続元の限定なし"
+        }
+      ]
+    },
+    {
+      "id": "pc",
+      "kind": "device",
+      "role": "pc",
+      "label": "社員PC（約120台）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1049",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "ウイルス対策ソフトあり"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "kind": "account",
+      "role": "admin",
+      "label": "管理者アカウント",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1026",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "管理者パスワードが PC ごとに個別か共通か未登録（デモ中にベンダーへ確認）"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "EDR の有無と監視体制が未登録（デモ中にベンダーへ確認）"
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "kind": "system",
+      "role": "server",
+      "label": "業務サーバ区画",
+      "attrs": { "segmented": false },
+      "attrEvidence": { "segmented": "registered" },
+      "controls": [
+        {
+          "mitigation": "M1030",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "業務サーバと社員 PC が同じネットワーク"
+        },
+        {
+          "mitigation": "M1035",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "管理用通信の制限なし"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "kind": "system",
+      "role": "core",
+      "label": "生産管理システム（社内サーバ）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "file-server",
+      "kind": "system",
+      "role": "file_server",
+      "label": "ファイルサーバ（設計データ）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "backup",
+      "kind": "system",
+      "role": "backup",
+      "label": "バックアップ（クラウド同期）",
+      "attrs": { "method": "cloud_sync", "isolated": false, "restoreTested": false },
+      "attrEvidence": {
+        "method": "registered",
+        "isolated": "registered",
+        "restoreTested": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1053",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "クラウド同期型のみ。切り離した保管先はなく、復旧テストは未実施"
+        }
+      ]
+    },
+    {
+      "id": "cloud-mail",
+      "kind": "system",
+      "role": "cloud.mail",
+      "label": "クラウドメール",
+      "attrs": { "spf": true, "dmarc": false, "mfaMethod": "app" },
+      "attrEvidence": { "spf": "external", "dmarc": "external", "mfaMethod": "registered" },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "全社員に多要素認証を適用。ただし社長だけ「面倒だから」と例外"
+        }
+      ]
+    },
+    {
+      "id": "exec-mail-account",
+      "kind": "account",
+      "role": "cloud.mail_account.exec",
+      "label": "社長のメールアカウント",
+      "attrs": { "mfaException": true },
+      "attrEvidence": { "mfaException": "registered" },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "社長のアカウントは多要素認証の例外"
+        },
+        {
+          "mitigation": "M1027",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "パスワードの使い回し防止策は未登録"
+        }
+      ]
+    },
+    {
+      "id": "cloud-accounting",
+      "kind": "system",
+      "role": "cloud.accounting",
+      "label": "会計（クラウド）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [{ "mitigation": "M1032", "status": "present", "evidence": "registered" }]
+    },
+    {
+      "id": "cloud-storage",
+      "kind": "system",
+      "role": "cloud.storage",
+      "label": "クラウドストレージ（取引先とのデータ共有）",
+      "attrs": { "publicLinksDisabled": true, "reviewCadence": "quarterly" },
+      "attrEvidence": { "publicLinksDisabled": "registered", "reviewCadence": "registered" },
+      "controls": [
+        {
+          "mitigation": "M1022",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "「リンクを知っている全員」の公開共有を設定で禁止"
+        },
+        {
+          "mitigation": "M1047",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "四半期ごとに共有設定を棚卸し"
+        }
+      ]
+    },
+    {
+      "id": "exec",
+      "kind": "person",
+      "role": "person.exec",
+      "label": "社長",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "accounting-staff",
+      "kind": "person",
+      "role": "person.accounting",
+      "label": "経理担当",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1017",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "年1回の情報セキュリティ研修のみ"
+        },
+        {
+          "mitigation": "UD-01",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "振込先変更や急な送金指示を折り返し確認するルールなし"
+        }
+      ]
+    }
+  ],
+  "businesses": [
+    {
+      "id": "biz-order",
+      "name": "受注・生産管理",
+      "assetIds": ["core"],
+      "manualDays": 2,
+      "recoveryDays": 10,
+      "recoveryDaysWithBackup": 2,
+      "affectsJa": "取引先の納期"
+    },
+    {
+      "id": "biz-design",
+      "name": "設計",
+      "assetIds": ["file-server"],
+      "manualDays": 3,
+      "recoveryDays": 10,
+      "recoveryDaysWithBackup": 2,
+      "affectsJa": "新規案件の見積・図面"
+    },
+    {
+      "id": "biz-accounting",
+      "name": "経理・支払",
+      "assetIds": ["cloud-accounting", "cloud-mail"],
+      "manualDays": 5,
+      "recoveryDays": 0,
+      "affectsJa": "支払・請求"
+    },
+    {
+      "id": "biz-sharing",
+      "name": "取引先とのデータ共有",
+      "assetIds": ["cloud-storage"],
+      "manualDays": 0,
+      "recoveryDays": 0,
+      "affectsJa": "取引先との信頼"
+    }
+  ],
+  "personalData": [
+    {
+      "assetId": "core",
+      "descriptionJa": "取引先担当者の連絡先",
+      "count": 3000,
+      "over1000": true,
+      "sensitive": false
+    },
+    {
+      "assetId": "cloud-mail",
+      "descriptionJa": "従業員情報",
+      "count": 120,
+      "over1000": false,
+      "sensitive": false
+    },
+    {
+      "assetId": "cloud-storage",
+      "descriptionJa": "取引先リスト",
+      "count": 400,
+      "over1000": false,
+      "sensitive": false
+    }
+  ]
+}

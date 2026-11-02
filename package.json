@@ -15,11 +15,14 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "secrets": "gitleaks git --no-banner",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "attack:import": "node --disable-warning=ExperimentalWarning scripts/import-attack.ts",
+    "knowledge:check": "pnpm --filter @uchidai/engine run knowledge:check"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
     "lefthook": "^1.12.0",
     "typescript": "^5.9.0"
-  }
+  },
+  "type": "module"
 }

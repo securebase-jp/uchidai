@@ -25,6 +25,6 @@ expected:
       quoteHint: アカウント
     - label: 社長になりすまして指示する
       tactic: TA0005
-      techniques: [T1656]
+      techniques: [T1684.001, T1656]
       source: stated
       quoteHint: なりすま

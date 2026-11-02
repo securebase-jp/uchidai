@@ -1,0 +1,111 @@
+# 役割の枠（Role）
+# 型紙と判定ルールはこの枠に対して書き、会社ごとの具体名は会社カルテの label に持つ。
+# layer: system / business / management、side: internal / external / person
+roles:
+  - id: attacker
+    labelJa: 攻撃者
+    layer: system
+    side: external
+    descriptionJa: 経路の起点。会社カルテには現れない仮想ノード
+  - id: entry.vpn
+    labelJa: VPN装置
+    layer: system
+    side: internal
+    descriptionJa: 社外から社内ネットワークへの入口。T1190 の対象
+  - id: entry.rdp
+    labelJa: 公開されたリモートデスクトップ
+    layer: system
+    side: internal
+  - id: entry.vendor_remote
+    labelJa: 保守ベンダーの遠隔接続
+    layer: system
+    side: external
+    descriptionJa: 保守ツールによる常時接続など。T1133・T1199 の対象
+  - id: entry.web
+    labelJa: 公開ホームページ
+    layer: system
+    side: external
+  - id: pc
+    labelJa: 社員PC
+    layer: system
+    side: internal
+  - id: admin
+    labelJa: 管理者アカウント
+    layer: system
+    side: internal
+    descriptionJa: 管理者権限。T1003 の対象
+  - id: server
+    labelJa: 業務サーバ区画
+    layer: system
+    side: internal
+    descriptionJa: 横展開（T1021）の対象。区画の分離と管理用通信の制限を判定する
+  - id: file_server
+    labelJa: ファイルサーバ
+    layer: system
+    side: internal
+  - id: core
+    labelJa: 中核システム
+    layer: system
+    side: internal
+    descriptionJa: 生産管理、販売管理、電子カルテなど。T1486 の対象
+  - id: backup
+    labelJa: バックアップ
+    layer: system
+    side: internal
+    descriptionJa: T1490 の対象。方式（同一ネットワーク／クラウド同期／切り離し）を属性で持つ
+  - id: cloud.mail
+    labelJa: クラウドメール
+    layer: system
+    side: external
+  - id: cloud.mail_account.exec
+    labelJa: 社長のメールアカウント
+    layer: system
+    side: external
+    descriptionJa: T1078.004 の対象
+  - id: cloud.storage
+    labelJa: クラウドストレージ
+    layer: system
+    side: external
+    descriptionJa: T1530 の対象
+  - id: cloud.accounting
+    labelJa: 会計クラウド
+    layer: system
+    side: external
+  - id: person.exec
+    labelJa: 社長
+    layer: system
+    side: person
+  - id: person.accounting
+    labelJa: 経理担当
+    layer: system
+    side: person
+    descriptionJa: 人のノード。送金・振込先変更の手順（UD-01）を判定する
+  - id: person.staff
+    labelJa: 社員
+    layer: system
+    side: person
+  - id: person.helpdesk
+    labelJa: ヘルプデスク
+    layer: system
+    side: person
+  - id: business
+    labelJa: 業務
+    layer: business
+    side: internal
+    descriptionJa: 受注、設計、生産、出荷など。会社カルテの businesses から作る
+  - id: impact.partner
+    labelJa: 取引先への影響
+    layer: management
+    side: external
+  - id: impact.legal
+    labelJa: 法律上の報告
+    layer: management
+    side: external
+  - id: impact.revenue
+    labelJa: 売上影響
+    layer: management
+    side: internal
+  - id: impact.money
+    labelJa: 資金の流出
+    layer: management
+    side: internal

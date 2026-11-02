@@ -1,0 +1,23 @@
+{
+  "name": "@uchidai/engine",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "構成グラフ、経路探索、判定ルールの評価、業務影響の計算。LLM を使わない純粋なロジック",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "knowledge:check": "node --disable-warning=ExperimentalWarning scripts/check-knowledge.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "vitest": "^5.0.5"
+  }
+}

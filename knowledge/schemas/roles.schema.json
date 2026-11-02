@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "layer": {
+            "type": "string",
+            "enum": ["system", "business", "management"]
+          },
+          "side": {
+            "type": "string",
+            "enum": ["internal", "external", "person"]
+          },
+          "descriptionJa": {
+            "type": "string"
+          }
+        },
+        "required": ["id", "labelJa", "layer", "side"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["roles"],
+  "additionalProperties": false
+}

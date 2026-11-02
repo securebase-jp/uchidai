@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "tactics": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^TA\\d{4}$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "techniques": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^T\\d{4}(\\.\\d{3})?$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "mitigations": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^M\\d{4}$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "custom": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^UD-\\d{2}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "labelJa": {
+            "type": "string"
+          },
+          "descriptionJa": {
+            "type": "string"
+          }
+        },
+        "required": ["labelJa"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["tactics", "techniques", "mitigations", "custom"],
+  "additionalProperties": false
+}

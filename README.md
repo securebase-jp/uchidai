@@ -9,7 +9,7 @@
 ## 状態
 
 - [x] 評価の仕組みの骨組み（`eval/`）← 最初のコミット
-- [ ] ATT&CK データの取り込みと日本語ラベル
+- [x] ATT&CK Enterprise v20.0 の取り込み（`knowledge/attack/`）、役割の枠（`knowledge/roles.yaml`）、日本語ラベル、共通の型（`packages/engine/src/types.ts`）、デモ用の架空企業（`examples/demo-seiko.json`）
 - [ ] 記事の読解と手法IDの照合
 - [ ] 構成グラフ、経路探索、判定ルール
 - [ ] 経路図とアニメーション
@@ -26,6 +26,8 @@
 pnpm install
 cp .env.example .env   # ANTHROPIC_API_KEY を自分のキーで埋める
 pnpm eval              # 評価（API キー不要）
+pnpm knowledge:check   # 知識ファイルとカルテの検証
+pnpm attack:import     # ATT&CK の再取り込み（最新版）
 ```
 
 ## 責任ある利用

@@ -1,0 +1,32 @@
+# NOTICE
+
+ウチダイのコードは MIT License（LICENSE）で提供する。以下の外部データとフォントは、それぞれの提供元の規約に従い、コードのライセンスとは別に扱う。
+
+## MITRE ATT&CK®
+
+`knowledge/attack/` に含まれるデータは MITRE ATT&CK® Enterprise（バージョンは `knowledge/attack/version.json` に記載）から抽出したものである。
+
+© 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation.
+
+LICENSE: The MITRE Corporation (MITRE) hereby grants you a non-exclusive, royalty-free license to use ATT&CK® for research, development, and commercial purposes. Any copy you make for such purposes is authorized provided that you reproduce MITRE's copyright designation and this license in any such copy.
+
+出典：https://attack.mitre.org/resources/legal-and-branding/terms-of-use/ （2026-11-02 確認）
+データ：https://github.com/mitre-attack/attack-stix-data
+
+ATT&CK の手法・戦術・緩和策の日本語ラベル（`knowledge/labels.ja.yaml`）は本プロジェクトが独自に付けたものであり、MITRE による公式訳ではない。
+
+## IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」
+
+評価データ（`eval/cases/`）と記録（`eval/recordings/`）に含まれる根拠文は、以下からの短い抜粋である。本文全体は含めない。
+
+出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
+https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+
+## CISA Known Exploited Vulnerabilities Catalog
+
+悪用確認済み脆弱性の突き合わせに使う。https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+
+## フォント
+
+- BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1）
+- JetBrains Mono（SIL Open Font License 1.1）
