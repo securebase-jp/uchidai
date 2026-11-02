@@ -53,6 +53,18 @@ describe("matchSteps", () => {
     expect(m[1]).toBeUndefined();
     expect(m[2]?.techniques).toEqual(["T1486"]);
   });
+  it("同じ戦術の段階が複数あるときは、手法が一致するものを優先して割り当てる", () => {
+    const g: GoldStep[] = [
+      { label: "バックアップ", tactic: "TA0040", techniques: ["T1490"], source: "stated" },
+      { label: "暗号化", tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ];
+    const m = matchSteps(g, [
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      { tactic: "TA0040", techniques: ["T1490"], source: "stated" },
+    ]);
+    expect(m[0]?.techniques).toEqual(["T1490"]);
+    expect(m[1]?.techniques).toEqual(["T1486"]);
+  });
 });
 
 describe("quoteSupports", () => {

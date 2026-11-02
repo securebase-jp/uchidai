@@ -9,6 +9,8 @@ source:
   summary: >-
     製造業（30名）。外部サービスから流出したパスワードの使い回しで社長のクラウドメールに入られ、
     社長になりすました送金指示で経理担当が500万円を送金した。
+    2026-11-02 S1：流出パスワードの使い回しは「偵察（T1589.001）」より「認証情報アクセス：流出パスワードの使い回し（T1110.004）」が
+    ATT&CK の標準的な対応づけなので戦術を TA0006 に変更。被害の段階として送金（T1657）を追加した。
 expected:
   damageType: bec
   clarity: clear
@@ -16,8 +18,8 @@ expected:
   verdict: breached
   steps:
     - label: 流出したパスワードの使い回し
-      tactic: TA0043
-      techniques: [T1589.001, T1589]
+      tactic: TA0006
+      techniques: [T1110.004, T1110]
       source: stated
       quoteHint: パスワード
     - label: 社長のメールに入られる
@@ -30,3 +32,8 @@ expected:
       techniques: [T1684.001, T1656]
       source: stated
       quoteHint: 騙
+    - label: 攻撃者の口座へ送金
+      tactic: TA0040
+      techniques: [T1657]
+      source: stated
+      quoteHint: 送金

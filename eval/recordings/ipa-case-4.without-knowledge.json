@@ -2,13 +2,13 @@
   "caseId": "ipa-case-4",
   "mode": "without-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:20:09.719Z",
+  "recordedAt": "2026-11-02T06:24:13.380Z",
   "note": "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "取引先を装う標的型メールによるマルウェア感染と情報漏えい・業務停止",
+    "title": "取引先を装う標的型メールでマルウェアに感染し、情報漏えいと業務停止に至った事例",
     "damageType": "data_breach",
-    "clarity": "clear",
+    "clarity": "partial",
     "steps": [
       {
         "tactic": "TA0001",
@@ -17,7 +17,7 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送り付けられた"
+        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送り付けられ、これが侵入の入口になった"
       },
       {
         "tactic": "TA0002",
@@ -26,51 +26,66 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "従業員が添付ファイルを開いて端末がマルウェアに感染した"
+        "summaryJa": "従業員が添付ファイルを開いたことでマルウェアが実行され、端末が感染した"
       },
       {
         "tactic": "TA0005",
-        "techniques": [],
+        "techniques": [
+          "T1027",
+          "T1036"
+        ],
         "source": "stated",
         "quote": "導入していたマルウェア対策ソフトでは検知できない新型\nのマルウェアが使用されていた",
-        "summaryJa": "ウイルス対策ソフトで検知できない新型のマルウェアが使われた"
+        "summaryJa": "対策ソフトでは検知できない新型のマルウェアが使われ、発見を免れた"
       },
       {
         "tactic": "TA0008",
-        "techniques": [],
+        "techniques": [
+          "T1021.002",
+          "T1210",
+          "T1570"
+        ],
         "source": "stated",
         "quote": "社内ネットワークに感染が広がった",
-        "summaryJa": "感染が社内ネットワークの他の機器へ広がった"
+        "summaryJa": "感染した端末から社内ネットワークの他の機器へ感染が広がった"
       },
       {
         "tactic": "TA0009",
         "techniques": [
-          "T1005"
+          "T1005",
+          "T1039"
         ],
         "source": "inferred",
-        "summaryJa": "顧客(契約者)の情報が端末やサーバから集められたと推定される"
+        "summaryJa": "流出させる顧客情報が、感染した端末や社内の保管場所から集められたと考えられる"
       },
       {
         "tactic": "TA0010",
-        "techniques": [],
+        "techniques": [
+          "T1041",
+          "T1567",
+          "T1048"
+        ],
         "source": "stated",
-        "quote": "マルウェアの影響により、顧客(契約者)の情報が外\n部へ流出した",
-        "summaryJa": "顧客(契約者)の情報が外部へ流出した"
+        "quote": "マルウェアの影響により、顧\n客(契約者)の情報が外\n部へ流出した",
+        "summaryJa": "顧客（契約者）の情報が外部へ流出した"
       },
       {
         "tactic": "TA0040",
-        "techniques": [],
+        "techniques": [
+          "T1489",
+          "T1485"
+        ],
         "source": "stated",
         "quote": "基幹システムが停止し、業\n務を継続することが困難と\nなった",
-        "summaryJa": "基幹システムが停止し、数週間にわたり業務の継続が困難になった"
+        "summaryJa": "基幹システムが停止し、業務の継続が困難になり、復旧・調査のため数週間の業務遅延が生じた"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "取引先を装う標的型メールによるマルウェア感染と情報漏えい・業務停止",
+    "title": "取引先を装う標的型メールでマルウェアに感染し、情報漏えいと業務停止に至った事例",
     "damageType": "data_breach",
-    "clarity": "clear",
+    "clarity": "partial",
     "steps": [
       {
         "tactic": "TA0001",
@@ -79,7 +94,7 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送り付けられた"
+        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送り付けられ、これが侵入の入口になった"
       },
       {
         "tactic": "TA0002",
@@ -88,44 +103,59 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "従業員が添付ファイルを開いて端末がマルウェアに感染した"
+        "summaryJa": "従業員が添付ファイルを開いたことでマルウェアが実行され、端末が感染した"
       },
       {
         "tactic": "TA0005",
-        "techniques": [],
+        "techniques": [
+          "T1027",
+          "T1036"
+        ],
         "source": "stated",
         "quote": "導入していたマルウェア対策ソフトでは検知できない新型\nのマルウェアが使用されていた",
-        "summaryJa": "ウイルス対策ソフトで検知できない新型のマルウェアが使われた"
+        "summaryJa": "対策ソフトでは検知できない新型のマルウェアが使われ、発見を免れた"
       },
       {
         "tactic": "TA0008",
-        "techniques": [],
+        "techniques": [
+          "T1021.002",
+          "T1210",
+          "T1570"
+        ],
         "source": "stated",
         "quote": "社内ネットワークに感染が広がった",
-        "summaryJa": "感染が社内ネットワークの他の機器へ広がった"
+        "summaryJa": "感染した端末から社内ネットワークの他の機器へ感染が広がった"
       },
       {
         "tactic": "TA0009",
         "techniques": [
-          "T1005"
+          "T1005",
+          "T1039"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "顧客(契約者)の情報が端末やサーバから集められたと推定される"
+        "summaryJa": "流出させる顧客情報が、感染した端末や社内の保管場所から集められたと考えられる"
       },
       {
         "tactic": "TA0010",
-        "techniques": [],
+        "techniques": [
+          "T1041",
+          "T1567",
+          "T1048"
+        ],
         "source": "stated",
-        "quote": "マルウェアの影響により、顧客(契約者)の情報が外\n部へ流出した",
-        "summaryJa": "顧客(契約者)の情報が外部へ流出した"
+        "quote": "マルウェアの影響により、顧\n客(契約者)の情報が外\n部へ流出した",
+        "summaryJa": "顧客（契約者）の情報が外部へ流出した"
       },
       {
         "tactic": "TA0040",
-        "techniques": [],
+        "techniques": [
+          "T1489",
+          "T1485"
+        ],
         "source": "stated",
         "quote": "基幹システムが停止し、業\n務を継続することが困難と\nなった",
-        "summaryJa": "基幹システムが停止し、数週間にわたり業務の継続が困難になった"
+        "summaryJa": "基幹システムが停止し、業務の継続が困難になり、復旧・調査のため数週間の業務遅延が生じた"
       }
     ],
     "suspiciousInstructions": []
@@ -133,8 +163,8 @@
   "verification": {
     "stepsIn": 7,
     "stepsOut": 7,
-    "techniquesIn": 3,
-    "techniquesOut": 3,
+    "techniquesIn": 14,
+    "techniquesOut": 14,
     "quotesIn": 6,
     "quotesOut": 6,
     "replaced": [],

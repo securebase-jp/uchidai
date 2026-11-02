@@ -2,22 +2,23 @@
   "caseId": "ipa-case-2",
   "mode": "without-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:19:17.717Z",
+  "recordedAt": "2026-11-02T06:23:38.856Z",
   "note": "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "クラウドストレージの設定ミスによる顧客リスト等の情報漏えい",
+    "title": "クラウドストレージの設定ミスで顧客リストが外部からダウンロードされた事例",
     "damageType": "data_breach",
-    "clarity": "clear",
+    "clarity": "partial",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1190"
+          "T1190",
+          "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "アクセス権限の誤設定でクラウドストレージが誰でも閲覧できる状態になり、外部から到達された"
+        "quote": "• クラウドストレージのアクセス権限誤設定",
+        "summaryJa": "クラウドストレージのアクセス権限を誤って設定していたため、外部の人が入り込める状態になっていた"
       },
       {
         "tactic": "TA0009",
@@ -25,33 +26,43 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "クラウドストレージ上の顧客リストや取引条件のデータが外部から取得された"
+        "quote": "• クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "誰でも閲覧できる状態のストレージから、顧客リストなどが外部からダウンロードされた"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567"
+          "T1567",
+          "T1537"
         ],
         "source": "inferred",
-        "summaryJa": "取得されたデータが外部へダウンロードされ、持ち出された"
+        "summaryJa": "収集された顧客リストなどのデータが組織の外に持ち出された"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "unknown",
+        "summaryJa": "流出した情報が悪用されたかは記事に書かれていないが、顧客リストや取引条件が外部に渡り信頼低下と取引停止につながった"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "クラウドストレージの設定ミスによる顧客リスト等の情報漏えい",
+    "title": "クラウドストレージの設定ミスで顧客リストが外部からダウンロードされた事例",
     "damageType": "data_breach",
-    "clarity": "clear",
+    "clarity": "partial",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1190"
+          "T1190",
+          "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "アクセス権限の誤設定でクラウドストレージが誰でも閲覧できる状態になり、外部から到達された"
+        "quote": "• クラウドストレージのアクセス権限誤設定",
+        "summaryJa": "クラウドストレージのアクセス権限を誤って設定していたため、外部の人が入り込める状態になっていた"
       },
       {
         "tactic": "TA0009",
@@ -59,26 +70,36 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "クラウドストレージ上の顧客リストや取引条件のデータが外部から取得された"
+        "quote": "• クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "誰でも閲覧できる状態のストレージから、顧客リストなどが外部からダウンロードされた"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567"
+          "T1567",
+          "T1537"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "取得されたデータが外部へダウンロードされ、持ち出された"
+        "summaryJa": "収集された顧客リストなどのデータが組織の外に持ち出された"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "unknown",
+        "quote": null,
+        "summaryJa": "流出した情報が悪用されたかは記事に書かれていないが、顧客リストや取引条件が外部に渡り信頼低下と取引停止につながった"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
-    "stepsIn": 3,
-    "stepsOut": 3,
-    "techniquesIn": 3,
-    "techniquesOut": 3,
+    "stepsIn": 4,
+    "stepsOut": 4,
+    "techniquesIn": 6,
+    "techniquesOut": 6,
     "quotesIn": 2,
     "quotesOut": 2,
     "replaced": [],
