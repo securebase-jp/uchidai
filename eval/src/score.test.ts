@@ -169,3 +169,55 @@ describe("scoreCase", () => {
     expect(s.techniqueScore).toBe(0.75);
   });
 });
+
+describe("matchSteps（割り当ての最適化）", () => {
+  it("貪欲だと損をする並びでも、手法の点の合計が最大になる対応を選ぶ", () => {
+    // 正解 A は T1021 と T1021.002 の両方を認め、B は T1021.002 だけ。
+    // 貪欲に A へ T1021.002 を渡すと B は親一致（0.75）になるが、A←T1021、B←T1021.002 なら両方 1.0
+    const g: GoldStep[] = [
+      { label: "A", tactic: "TA0008", techniques: ["T1021", "T1021.002"], source: "inferred" },
+      { label: "B", tactic: "TA0008", techniques: ["T1021.002"], source: "stated" },
+    ];
+    const m = matchSteps(g, [
+      { tactic: "TA0008", techniques: ["T1021.002"], source: "stated" },
+      { tactic: "TA0008", techniques: ["T1021"], source: "inferred" },
+    ]);
+    expect(m[0]?.techniques).toEqual(["T1021"]);
+    expect(m[1]?.techniques).toEqual(["T1021.002"]);
+  });
+  it("手法の点が同じなら、記載／推定の区別が合う対応を選ぶ", () => {
+    const g: GoldStep[] = [
+      { label: "A", tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      { label: "B", tactic: "TA0040", techniques: ["T1486"], source: "inferred" },
+    ];
+    const m = matchSteps(g, [
+      { tactic: "TA0040", techniques: ["T1486"], source: "inferred" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ]);
+    expect(m[0]?.source).toBe("stated");
+    expect(m[1]?.source).toBe("inferred");
+  });
+  it("出力が足りないときは、点の高い正解の段階に割り当てる", () => {
+    const g: GoldStep[] = [
+      { label: "A", tactic: "TA0040", techniques: ["T1490"], source: "stated" },
+      { label: "B", tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      { label: "C", tactic: "TA0040", techniques: ["T1485"], source: "stated" },
+    ];
+    const m = matchSteps(g, [{ tactic: "TA0040", techniques: ["T1485"], source: "stated" }]);
+    expect(m[0]).toBeUndefined();
+    expect(m[1]).toBeUndefined();
+    expect(m[2]?.techniques).toEqual(["T1485"]);
+  });
+  it("出力が多いときは、使わない出力段階があってよい", () => {
+    const g: GoldStep[] = [
+      { label: "A", tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ];
+    const m = matchSteps(g, [
+      { tactic: "TA0040", techniques: ["T1490"], source: "stated" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+    ]);
+    expect(m).toHaveLength(1);
+    expect(m[0]?.techniques).toEqual(["T1486"]);
+  });
+});

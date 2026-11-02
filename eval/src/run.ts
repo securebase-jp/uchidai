@@ -59,6 +59,11 @@ function loadArticle(caseId: string): string | undefined {
   return existsSync(p) ? readFileSync(p, "utf8") : undefined;
 }
 
+/** 結果ファイル名の日時（秒まで。同じ分に 2 回実行しても上書きしない） */
+export function resultStamp(now: Date): string {
+  return now.toISOString().replace(/[-:]/g, "").slice(0, 15).replace("T", "-");
+}
+
 const pct = (v: number | null) =>
   v === null ? "  -  " : `${`${Math.round(v * 100)}`.padStart(4)}%`;
 
@@ -94,7 +99,13 @@ function parseOptions(argv: string[]): Options {
   const opts: Options = {
     live: values.live,
     noKnowledge: values["no-knowledge"],
-    modes: modes.length > 0 ? modes : ["with-knowledge", "without-knowledge"],
+    // --no-knowledge は採点対象を知見なしに絞る。--live のときは記録も知見なしだけ作る（--mode で明示すればそちら）
+    modes:
+      modes.length > 0
+        ? modes
+        : values["no-knowledge"]
+          ? ["without-knowledge"]
+          : ["with-knowledge", "without-knowledge"],
     mitigations: !values["no-mitigations"],
   };
   if (values.case && values.case.length > 0) opts.caseIds = values.case;
@@ -106,7 +117,7 @@ function score(cases: GoldCase[], opts: Options, note: string) {
   if (opts.noKnowledge) recordings = recordings.filter((r) => r.mode === "without-knowledge");
   if (opts.caseIds) recordings = recordings.filter((r) => opts.caseIds?.includes(r.caseId));
   const now = new Date();
-  const stamp = now.toISOString().replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+  const stamp = resultStamp(now);
 
   const scores: CaseScore[] = [];
   for (const rec of recordings) {
@@ -154,6 +165,8 @@ function score(cases: GoldCase[], opts: Options, note: string) {
 async function main() {
   const opts = parseOptions(process.argv.slice(2));
   const cases = loadCases();
+  for (const id of opts.caseIds ?? [])
+    if (!cases.some((c) => c.id === id)) console.warn(`正解データにない事例です: ${id}`);
   const notes: string[] = [];
   if (opts.live) {
     // 読解の実装（packages/llm）は --live のときだけ読み込む。記録データでの採点に API キーは要らない

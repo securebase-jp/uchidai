@@ -292,7 +292,7 @@ async function main() {
     );
 
   const now = new Date();
-  const stamp = now.toISOString().replace(/[-:]/g, "").slice(0, 13).replace("T", "-");
+  const stamp = now.toISOString().replace(/[-:]/g, "").slice(0, 15).replace("T", "-");
   mkdirSync(dirs.results, { recursive: true });
   writeFileSync(
     join(dirs.results, `attacker-${stamp}.json`),
