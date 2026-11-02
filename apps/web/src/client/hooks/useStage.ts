@@ -54,7 +54,7 @@ export function useStage(
     }),
     [opts.reduced, opts.autoplay, opts.speed],
   );
-  const clock = useClock(beatTimes, script?.duration ?? 0, clockOpts);
+  const clock = useClock(beatTimes, script?.duration ?? 0, clockOpts, script);
   const { rewindThen } = clock;
 
   // 新しい判定結果：初回はそのまま、2 回目以降は巻き戻してから切り替える

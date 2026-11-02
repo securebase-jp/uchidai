@@ -78,7 +78,7 @@ function Shield({ p, ng, label }: { p: Placed; ng: boolean; label: string }) {
       <text className={`shield-label${ng ? " ng" : ""}`} x={x} y={y + 30} textAnchor="middle">
         {ng ? "効かない" : "効く"}
       </text>
-      <text className="shield-label" x={x} y={y - 20} textAnchor="middle">
+      <text className="shield-label" x={x - 16} y={y + 4} textAnchor="end">
         {label}
       </text>
     </g>

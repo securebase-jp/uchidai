@@ -27,6 +27,8 @@ export function useClock(
   beatTimes: number[],
   duration: number,
   options: { reduced: boolean; autoplay: boolean; speed?: number },
+  /** 台本の識別子。変わると最初から再生する（同じ時刻列の台本でも区別する） */
+  resetKey: unknown = undefined,
 ): Clock {
   const timeRef = useRef(0);
   const [fired, setFired] = useState(0);
@@ -53,23 +55,24 @@ export function useClock(
   }, []);
 
   // 台本が変わったら最初から
-  const key = beatTimes.join(",");
+  const key = resetKey ?? beatTimes.join(",");
   // biome-ignore lint/correctness/useExhaustiveDependencies: key は台本の識別子
   useEffect(() => {
     if (rewindRef.current) return;
     timeRef.current = options.reduced ? duration : 0;
+    anchor.current = undefined;
     setPlaying(options.autoplay && !options.reduced);
     emit();
   }, [key, options.reduced]);
 
+  // 壁時計に固定して進める（フレームが落ちても再生時刻がずれない）
+  const anchor = useRef<{ wall: number; time: number; speed: number } | undefined>(undefined);
   useEffect(() => {
     let raf = 0;
-    let last = performance.now();
     const loop = (ts: number) => {
-      const dt = Math.min(64, ts - last);
-      last = ts;
       const rw = rewindRef.current;
       if (rw) {
+        anchor.current = undefined;
         const k = Math.min(1, (ts - rw.start) / 700);
         timeRef.current = rw.from * (1 - k * k);
         if (k >= 1) {
@@ -81,10 +84,16 @@ export function useClock(
         emit();
       } else if (playingRef.current) {
         const d = beatsRef.current.duration;
-        timeRef.current = Math.min(d, timeRef.current + dt * speedRef.current);
+        const a = anchor.current;
+        if (!a || a.speed !== speedRef.current) {
+          anchor.current = { wall: ts, time: timeRef.current, speed: speedRef.current };
+        } else {
+          timeRef.current = Math.min(d, a.time + (ts - a.wall) * a.speed);
+        }
         if (timeRef.current >= d) setPlaying(false);
         emit();
       } else {
+        anchor.current = undefined;
         for (const fn of listeners.current) fn(timeRef.current);
       }
       raf = requestAnimationFrame(loop);
@@ -95,12 +104,14 @@ export function useClock(
 
   const play = useCallback(() => {
     if (timeRef.current >= beatsRef.current.duration) timeRef.current = 0;
+    anchor.current = undefined;
     setPlaying(true);
   }, []);
   const pause = useCallback(() => setPlaying(false), []);
   const toggle = useCallback(() => (playingRef.current ? pause() : play()), [pause, play]);
   const restart = useCallback(() => {
     timeRef.current = 0;
+    anchor.current = undefined;
     setPlaying(true);
     emit();
   }, [emit]);
