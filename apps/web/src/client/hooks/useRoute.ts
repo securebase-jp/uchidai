@@ -1,11 +1,11 @@
-/** ハッシュによる画面の切り替え：#/ #/questions #/staff #/exec */
+/** ハッシュによる画面の切り替え：#/ #/questions #/staff #/exec #/onepager */
 import { useEffect, useState } from "react";
 
-export type Route = "home" | "questions" | "staff" | "exec";
+export type Route = "home" | "questions" | "staff" | "exec" | "onepager";
 
 function parse(): Route {
   const h = location.hash.replace(/^#\/?/, "").split("?")[0];
-  if (h === "questions" || h === "staff" || h === "exec") return h;
+  if (h === "questions" || h === "staff" || h === "exec" || h === "onepager") return h;
   return "home";
 }
 

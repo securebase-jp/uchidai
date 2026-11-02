@@ -1,0 +1,116 @@
+/**
+ * 社長向けの一枚：POST /api/onepager {case, profile, measureIds, answers?, rewrite?}
+ * → {onePager, graph, verdict, measures, profile, text}
+ *
+ * データは engine の buildOnePager（決定的）。「何が起きるか」の文だけ、キーがあれば Claude に言い換えさせる。
+ * Claude には役割名と数値だけを渡し、出力は検証して、落ちればテンプレート文のまま返す。
+ */
+import {
+  applyAnswer,
+  applyMeasures,
+  buildGraph,
+  buildOnePager,
+  Case,
+  CompanyProfile,
+  evaluate,
+  loadKnowledge,
+  type MeasureDef,
+  type OnePager,
+} from "@uchidai/engine";
+import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/llm";
+import { Hono } from "hono";
+import { z } from "zod";
+import { AnswerInput } from "../../shared/api.ts";
+
+export const OnePagerRequest = z.object({
+  case: Case,
+  profile: CompanyProfile,
+  measureIds: z.array(z.string()).default([]),
+  answers: z.array(AnswerInput).default([]),
+  /** Claude の言い換えを使うか（キーが無ければ常にテンプレート） */
+  rewrite: z.boolean().default(true),
+});
+export type OnePagerTextSource = { source: "claude" | "template"; model?: string; noteJa?: string };
+
+/** 言い換えの結果は同じ入力なら使い回す（サーバの寿命の間だけ） */
+const cache = new Map<string, { text: string[]; model: string }>();
+const WRITER_TIMEOUT_MS = 20_000;
+
+async function rewrite(
+  onePager: OnePager,
+  verdict: Parameters<typeof writerInputFrom>[0],
+  knowledge: Parameters<typeof writerInputFrom>[1],
+): Promise<{ onePager: OnePager; text: OnePagerTextSource }> {
+  const input = writerInputFrom(verdict, knowledge);
+  const key = JSON.stringify(input);
+  const hit = cache.get(key);
+  if (hit)
+    return {
+      onePager: { ...onePager, whatHappensJa: hit.text },
+      text: { source: "claude", model: hit.model },
+    };
+  try {
+    const result = await Promise.race([
+      writeOnePagerText(input),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), WRITER_TIMEOUT_MS),
+      ),
+    ]);
+    if (result.rejectedReason)
+      return {
+        onePager,
+        text: {
+          source: "template",
+          noteJa: `Claude の文を検証で捨てました：${result.rejectedReason}`,
+        },
+      };
+    cache.set(key, { text: result.value.whatHappensJa, model: result.model });
+    return {
+      onePager: applyWriterOutput(onePager, result),
+      text: { source: "claude", model: result.model },
+    };
+  } catch (e) {
+    return {
+      onePager,
+      text: {
+        source: "template",
+        noteJa: `Claude を呼べなかったためテンプレート文です（${e instanceof Error ? e.message : String(e)}）`,
+      },
+    };
+  }
+}
+
+export const onepagerRoutes = new Hono();
+
+onepagerRoutes.post("/api/onepager", async (c) => {
+  const body = OnePagerRequest.parse(await c.req.json());
+  const k = loadKnowledge();
+  const measures: MeasureDef[] = body.measureIds
+    .map((id) => k.measures.find((m) => m.id === id))
+    .filter((m): m is MeasureDef => m !== undefined);
+  let profile = applyMeasures(body.profile, measures);
+  for (const a of body.answers) {
+    if (!profile.assets.some((x) => x.id === a.assetId)) continue;
+    const { answeredAt, noteJa, attrs, ...rest } = a;
+    profile = applyAnswer(profile, {
+      ...rest,
+      ...(answeredAt !== undefined ? { answeredAt } : {}),
+      ...(noteJa !== undefined ? { noteJa } : {}),
+      ...(attrs !== undefined ? { attrs } : {}),
+    });
+  }
+  const graph = buildGraph(profile, k.roles);
+  const verdict = evaluate(body.case, profile, { knowledge: k, graph });
+  const base = buildOnePager(verdict, profile, k, { caseTitle: body.case.title });
+  const { onePager, text } =
+    body.rewrite && process.env.ANTHROPIC_API_KEY
+      ? await rewrite(base, verdict, k)
+      : {
+          onePager: base,
+          text: {
+            source: "template" as const,
+            ...(body.rewrite ? { noteJa: "API キーが無いためテンプレート文です" } : {}),
+          },
+        };
+  return c.json({ onePager, graph, verdict, measures, profile, text });
+});

@@ -16,6 +16,7 @@ const NAV: [Route, string][] = [
   ["questions", "最初の5問"],
   ["staff", "担当者画面"],
   ["exec", "社長画面"],
+  ["onepager", "社長向けの一枚"],
 ];
 
 export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, caseLabel }: Props) {

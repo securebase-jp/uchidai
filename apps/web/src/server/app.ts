@@ -30,6 +30,8 @@ import { cors } from "hono/cors";
 import { z } from "zod";
 import { AnswerInput, ReadRequest } from "../shared/api.ts";
 import { loadQuestions } from "./knowledge-view.ts";
+import { demoRoutes } from "./routes/demo.ts";
+import { onepagerRoutes } from "./routes/onepager.ts";
 
 const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
@@ -48,6 +50,9 @@ app.onError((err, c) => {
 });
 
 app.get("/api/health", (c) => c.json({ ok: true }));
+// 社長向けの一枚（S8）とデモ用の音声（S8）
+app.route("/", onepagerRoutes);
+app.route("/", demoRoutes);
 
 // 知識：ラベル、対策ボタン、5問、業種別パターン、役割、ATT&CK のバージョン
 app.get("/api/knowledge", (c) => {
