@@ -77,6 +77,12 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                     <td>
                       {s.labelJa ?? s.stageId ?? ""}
                       {s.precondition ? "（前提）" : ""}
+                      {s.branch && (
+                        <>
+                          <br />
+                          <span className="muted">（枝：止まっても本線は進む）</span>
+                        </>
+                      )}
                     </td>
                     <td>{nodeLabel(s.nodeId)}</td>
                     <td>

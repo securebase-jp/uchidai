@@ -298,6 +298,7 @@ export function Diagram({
             "seg",
             s.source,
             st === "attack" || st === "fallen" || st === "blocked" ? st : "",
+            s.branch ? "branch" : "",
           ]
             .filter(Boolean)
             .join(" ");
