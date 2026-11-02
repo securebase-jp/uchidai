@@ -67,7 +67,7 @@ export function OnePagerView({ data, measureLabel, generatedAt = new Date() }: P
         <h2 className="op-h">結論</h2>
         <p className="op-headline">{op.headlineJa}</p>
         <p className="op-sub">
-          報道と同じ攻撃が、いまの会社の構成に来たら ——
+          報道と同じ攻撃が、いまの会社の構成に来たら：
           <b className="op-word">{RESULT_WORD[op.result]}</b>
         </p>
       </section>

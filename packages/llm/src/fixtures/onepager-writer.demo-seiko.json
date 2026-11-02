@@ -1,0 +1,68 @@
+{
+  "recordedAt": "2026-11-02T08:39:49.712Z",
+  "model": "claude-sonnet-5-5",
+  "usage": {
+    "input_tokens": 1185,
+    "output_tokens": 167
+  },
+  "profileId": "demo-seiko",
+  "caseId": "ipa-case-1",
+  "input": {
+    "result": "breached",
+    "stages": [
+      {
+        "labelJa": "入口から侵入",
+        "roleJa": "VPN装置",
+        "state": "breached"
+      },
+      {
+        "labelJa": "管理者権限を奪う",
+        "roleJa": "管理者アカウント",
+        "state": "unknown"
+      },
+      {
+        "labelJa": "サーバへ広がる",
+        "roleJa": "業務サーバ区画",
+        "state": "breached"
+      },
+      {
+        "labelJa": "バックアップを消す",
+        "roleJa": "バックアップ",
+        "state": "breached"
+      },
+      {
+        "labelJa": "暗号化・業務停止",
+        "roleJa": "中核システム",
+        "state": "breached"
+      }
+    ],
+    "stopped": [
+      {
+        "name": "受注・生産管理",
+        "days": 10,
+        "manualDays": 2,
+        "affectsJa": "取引先の納期"
+      }
+    ],
+    "downtimeDays": 10,
+    "partnerImpactDay": 3,
+    "revenueImpactJpy": 100000000,
+    "reportRequired": true,
+    "personalDataJa": ["取引先担当者の連絡先"]
+  },
+  "output": {
+    "whatHappensJa": [
+      "VPN装置から入られ、業務サーバ区画へ広がり、バックアップも消され、中核システムが暗号化されます。",
+      "管理者アカウントを奪われたかどうかは、確認が取れていません。",
+      "受注・生産管理が止まり、復旧まで10日かかります。",
+      "取引先の納期への影響は3日目から出て、売上への影響は1億円です。取引先担当者の連絡先があるため、個人情報の報告が必要です。"
+    ]
+  },
+  "check": "ok",
+  "templateJa": [
+    "攻撃は次の順に進みます：入口から侵入（VPN装置） → 管理者権限を奪う（管理者アカウント） → サーバへ広がる（業務サーバ区画） → バックアップを消す（バックアップ（クラウド同期）） → 暗号化・業務停止（生産管理システム（社内サーバ））。",
+    "「受注・生産管理」が止まり、復旧まで最長 10 日かかります。",
+    "3 日目から取引先の納期に影響が出ます（手作業で回せるのは 2 日まで）。",
+    "取引先担当者の連絡先が漏えいしたおそれがあり、個人情報保護委員会への報告と本人への通知が必要になります。"
+  ]
+}

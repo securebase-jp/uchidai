@@ -487,22 +487,56 @@
     width: 4mm;
   }
   .op-sec {
-    padding: 5mm 0 4mm;
+    padding: 4mm 0 3mm;
   }
   .op-headline {
-    font-size: 24pt;
+    font-size: 22pt;
   }
   .op-figure {
-    max-height: 95mm;
+    max-height: 70mm;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3mm;
   }
   .op-figure svg.diagram {
-    max-height: 95mm;
+    width: auto;
+    max-height: 70mm;
+  }
+  .op-lines {
+    font-size: 10.5pt;
+  }
+  .op-spine {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 6mm;
+  }
+  .op-spine li {
+    padding: 2px 0 2px 12px;
+  }
+  .op-day b {
+    font-size: 15pt;
   }
   .op-cards {
     grid-template-columns: 1fr 1fr;
+    gap: 3mm;
+  }
+  .op-card {
+    padding: 2.5mm 3mm;
+  }
+  .op-card-cost b {
+    font-size: 15pt;
+  }
+  .op-figures {
+    grid-template-columns: 1fr 1fr;
   }
   .op-foot {
-    font-size: 8pt;
+    font-size: 7.5pt;
+    line-height: 1.45;
+    padding-top: 3mm;
+  }
+  .op-sources {
+    columns: 2;
+    column-gap: 6mm;
   }
   a {
     color: inherit;

@@ -97,11 +97,12 @@ export function useDemoPlayer(scenes: DemoScene[], handlers: DemoHandlers): Demo
     [stopAudio],
   );
 
-  // 壁時計で進める
+  // 壁時計で進める（requestAnimationFrame ではなく setInterval：隠れたタブでも場面が進む）
   useEffect(() => {
     if (index < 0) return;
-    let raf = 0;
-    const loop = (ts: number) => {
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const loop = () => {
+      const ts = performance.now();
       if (!pausedRef.current) {
         const a = anchor.current;
         if (!a) anchor.current = { wall: ts, elapsed: elapsedRef.current };
@@ -118,16 +119,19 @@ export function useDemoPlayer(scenes: DemoScene[], handlers: DemoHandlers): Demo
         const rounded = Math.floor(elapsedRef.current * 10) / 10;
         setElapsed((prev) => (prev === rounded ? prev : rounded));
         if (elapsedRef.current >= secondsRef.current) {
+          if (timer) clearInterval(timer);
+          timer = undefined;
           enter(indexRef.current + 1);
           return;
         }
       } else {
         anchor.current = undefined;
       }
-      raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    timer = setInterval(loop, 50);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [index, enter]);
 
   useEffect(() => () => stopAudio(), [stopAudio]);
