@@ -1,6 +1,7 @@
 # 実際の報道記事での読解・対応づけの評価に使う記事の一覧（P3、2026-11-02 収集）
 # 本文はリポジトリに入れない。取得した本文は eval/.cache/articles/（git 管理外）に置く。
 # expectedDamageType：想定する被害の型。expectedEntry：想定する入口の手法 ID（記事から分かる範囲。分からなければ空）
+# expectedTemplate：想定する型紙（knowledge/templates の id）。入口不明で候補展開になる記事、対象外の記事、型紙のどれにも当たらない手口（偽警察の電話＋遠隔操作）は省略
 # pages：媒体側のページ分割数（Security NEXT は長い記事を /2 に分ける。取り込みの確認用）
 articles:
   # --- ランサムウェアによる業務停止（4 本） ---
@@ -11,6 +12,7 @@ articles:
     title: VPN経由でランサム被害 - 産業機械開発設計会社
     expectedDamageType: ransomware
     expectedEntry: [T1133, T1190]
+    expectedTemplate: ransomware
     summaryJa: 産業機械の設計・製図会社（オートメ技研）。VPN 機器経由で侵害され、サーバ内のデータが暗号化。再発防止に VPN のパスワード見直しと 2 段階認証
     pages: 1
   - id: ransom-nihonkai
@@ -20,6 +22,7 @@ articles:
     title: VPN経由でランサム被害、闇サイト上に取引情報 - 日本海建設電気
     expectedDamageType: ransomware
     expectedEntry: [T1190]
+    expectedTemplate: ransomware
     summaryJa: 日本海建設電気。UTM が最新版に更新されておらず VPN 経由で侵害。サーバの一部データが暗号化され、取引情報がリークサイトに公開（二重恐喝）
     pages: 2
   - id: ransom-shinhokoku
@@ -29,6 +32,7 @@ articles:
     title: 一部サーバでランサム被害、バックアップ削除も - 新報国マテリアル
     expectedDamageType: ransomware
     expectedEntry: [T1190, T1133]
+    expectedTemplate: ransomware
     summaryJa: 特殊合金の製造・販売（新報国マテリアル）。ネットワーク機器経由で外部から侵入され、社内サーバの一部ファイルが暗号化、一部バックアップが削除
     pages: 2
   - id: ransom-mitsui
@@ -38,6 +42,7 @@ articles:
     title: 基幹システムがランサム被害、リモートデスクトップ経由か - 美容関連商社
     expectedDamageType: ransomware
     expectedEntry: [T1133, T1021.001]
+    expectedTemplate: ransomware
     summaryJa: 美容商材の商社（ミツイコーポレーション）。リモートデスクトップが悪用されて基幹システムのサーバがランサムウェア被害。顧客氏名などが流出した可能性
     pages: 1
   # --- なりすまし送金（ビジネスメール詐欺）（2 本） ---
@@ -48,6 +53,7 @@ articles:
     title: ニセ代表取締役「5000万円送金して」──上場企業の子会社が詐欺被害 虚偽のメールに社員がだまされる
     expectedDamageType: bec
     expectedEntry: [T1684.001, T1566.002]
+    expectedTemplate: bec-invoice
     summaryJa: ベルトラ子会社（リンクティビティ）。代表者を装ったメールで社外 SNS に誘導され、経理担当者が虚偽の送金指示に従い約 5,000 万円を窓口で送金
     pages: 1
   - id: bec-hatena
@@ -57,6 +63,7 @@ articles:
     title: はてな、11億円の資金流出 振り込め詐欺か
     expectedDamageType: bec
     expectedEntry: []
+    expectedTemplate: bec-invoice
     summaryJa: はてな。第三者からの虚偽の送金指示により、従業員のアカウントから最大約 11 億円が外部口座へ送金。取引先銀行からの連絡で発覚。手口の詳細は未公表
     pages: 1
   # --- 不正アクセス・設定ミスによる情報漏えい（3 本） ---
@@ -67,6 +74,7 @@ articles:
     title: クラウドのファイル権限に設定ミス、URL指定でアクセス可能 - コスモ石油マーケ
     expectedDamageType: data_breach
     expectedEntry: [T1530]
+    expectedTemplate: data_breach
     summaryJa: コスモ石油マーケティング。クラウド上のファイルの閲覧制限の設定ミスで、URL を直接指定すると顧客情報を含むファイルが外部から閲覧できる状態だった
     pages: 1
   - id: breach-miyazaki
@@ -85,6 +93,7 @@ articles:
     title: カーテン通販サイトで決済アプリ改ざん - 個人情報流出の可能性
     expectedDamageType: data_breach
     expectedEntry: [T1190]
+    expectedTemplate: data-breach-web
     summaryJa: インテリックス（ジャストカーテンオンラインショップ）。システムの脆弱性を突いた不正アクセスで決済アプリケーションが改ざんされ、カード情報 1 万件超が流出した可能性
     pages: 2
   # --- 対象外になるべき事故（2 本） ---

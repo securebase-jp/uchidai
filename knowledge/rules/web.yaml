@@ -1,0 +1,72 @@
+# 判定ルール表：公開ホームページ（entry.web）
+# 型紙 data-breach-web（Web サイトへの侵入・改ざん）の全段階と、ransomware / data-breach-intrusion の入口（社内に置いたホームページ）で使う。
+# レンタルサーバや事業者のサービスなら、サーバ OS の更新は事業者側の責任で対象外。会社側で管理する CMS・追加機能の更新と、
+# 会社側の管理アカウント（CMS の管理画面、FTP、事業者の管理コンソール）の多要素認証だけを判定する
+rules:
+  - id: web.entry.exploit
+    role: entry.web
+    # 脆弱性の悪用と、その足場として置かれる Web シェル
+    techniques: [T1190, T1505.003]
+    materialsJa: カルテ：CMS・追加機能（プラグイン）の更新管理（レンタルサーバなら会社側で管理する範囲だけ）
+    mitigations: [M1051]
+    ineffective:
+      - mitigation: M1032
+        reasonJa: 脆弱性を突く侵入は管理画面のログインを通らないため、管理画面の多要素認証では止まりません
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1051, status: present } }
+        reasonJa: ホームページのソフトウェア（CMS・追加機能）が更新されている
+      - state: unknown
+        when: { control: { mitigation: M1051, status: unknown } }
+        reasonJa: ホームページの更新管理が未確認
+      - state: breached
+        reasonJa: ホームページのソフトウェアが更新されておらず、脆弱性から入られる
+  - id: web.entry.credentials
+    role: entry.web
+    # 流出・推測したパスワードで管理画面に正規ログインする侵入
+    techniques: [T1078]
+    materialsJa: カルテ：ホームページの管理アカウント（CMS 管理画面、FTP、事業者コンソール）の多要素認証とパスワードの使い回し防止策
+    mitigations: [M1032, M1027]
+    ineffective:
+      - mitigation: M1051
+        reasonJa: 正規の管理アカウントでログインされるため、ソフトウェアを更新していても止まりません
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1032, status: present } }
+        reasonJa: 会社側の管理アカウントに多要素認証がある
+      - state: unknown
+        when: { control: { mitigation: M1032, status: unknown } }
+        reasonJa: 管理アカウントの多要素認証の有無が未確認
+      - state: breached
+        reasonJa: 管理画面がパスワードだけで、漏れればそのままログインされる
+  - id: web.capture
+    role: entry.web
+    # ページ・決済フォームの改ざんと、利用者が入力した情報の窃取
+    techniques: [T1056.003, T1491.002]
+    materialsJa: カルテ：ホームページの改ざん検知（ファイルの定期的な照合や改ざん検知サービス）
+    mitigations: [M1047]
+    outcomes:
+      - state: recoverable
+        when: { control: { mitigation: M1047, status: present } }
+        reasonJa: 改ざんを検知して早く戻せるので、窃取される期間と件数を抑えられる（侵入そのものは止まらない）
+      - state: unknown
+        when: { control: { mitigation: M1047, status: unknown } }
+        reasonJa: 改ざん検知の有無が未確認
+      - state: breached
+        reasonJa: 改ざんに気づく仕組みがなく、利用者の入力が長期間窃取され続ける
+  - id: web.exfil
+    role: entry.web
+    techniques: [T1567, T1048, T1041]
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 改ざんされたページから入力された情報は、サイトの外へそのまま送られる（この段階で止める対策は会社側にない）
+  - id: web.leak
+    role: entry.web
+    techniques: []
+    materialsJa: カルテ：ホームページで預かる個人情報（問い合わせ、会員、決済）の所在と件数
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 利用者の個人情報が漏えいする。報告と本人通知の期限を表示する

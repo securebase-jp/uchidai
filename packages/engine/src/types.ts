@@ -301,6 +301,9 @@ export const VerdictResult = z.enum([
 export const Verdict = z.object({
   result: VerdictResult,
   headlineJa: z.string(),
+  /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
+  templateId: z.string().optional(),
+  templateLabelJa: z.string().optional(),
   paths: z.array(AttackPath),
   contradictions: z.array(Contradiction),
   timeline: z.array(TimelineEvent),

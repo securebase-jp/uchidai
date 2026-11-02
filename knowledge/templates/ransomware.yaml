@@ -30,6 +30,15 @@ stages:
     byRole:
       server: T1021
     accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
+  - id: exfil
+    labelJa: データを持ち出す（二重恐喝）
+    tactics: [TA0010]
+    byRole:
+      server: T1048
+    accepts: [T1048, T1041, T1567]
+    # 記事に持ち出し（リークサイトでの公開など）があるときだけ経路に入れる枝。止まっても暗号化の本線は進む
+    optional: true
+    branch: true
   - id: recovery
     labelJa: バックアップを消す
     tactics: [TA0040]
