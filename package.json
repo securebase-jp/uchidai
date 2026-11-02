@@ -11,6 +11,7 @@
   "scripts": {
     "eval": "pnpm --filter @uchidai/eval run eval",
     "eval:attacker": "pnpm --filter @uchidai/eval run eval:attacker",
+    "eval:articles": "pnpm --filter @uchidai/eval run eval:articles",
     "test": "pnpm -r --if-present run test",
     "typecheck": "pnpm -r --if-present run typecheck",
     "lint": "biome check .",

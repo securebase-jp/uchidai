@@ -51,7 +51,7 @@ function parentOf(id: string): string {
 }
 
 /** 型紙の段階に、記事から読み取った段階を割り当てる */
-function matchCaseSteps(
+export function matchCaseSteps(
   template: Template,
   steps: CaseStep[],
   knowledge: Knowledge,
