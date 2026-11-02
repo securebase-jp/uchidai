@@ -4,7 +4,12 @@
  */
 import { useRef, useState } from "react";
 import { pendingCount } from "../lib/profile.ts";
-import { exportFileName, exportText, parseProfileFile } from "../lib/profile-file.ts";
+import {
+  exportFileName,
+  exportText,
+  MAX_FILE_CHARS,
+  parseProfileFile,
+} from "../lib/profile-file.ts";
 import type { CompanyProfile } from "../lib/types.ts";
 
 type Props = {
@@ -28,19 +33,30 @@ export function download(name: string, text: string): void {
 export function ProfileFile({ profile, onReplace }: Props) {
   const file = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>();
-  const [loaded, setLoaded] = useState<{ name: string; profile: CompanyProfile }>();
+  const [loaded, setLoaded] = useState<{
+    name: string;
+    profile: CompanyProfile;
+    notesJa: string[];
+  }>();
+  /** 置き換えた後も残す注記（外部確認の結果を持ち込んだ、所有確認はやり直す、など） */
+  const [replacedNotes, setReplacedNotes] = useState<string[]>([]);
   const [exported, setExported] = useState<string>();
 
   async function pick(f: File | undefined) {
     setError(undefined);
     setLoaded(undefined);
     if (!f) return;
+    // 読む前に大きさで弾く（2MB 超のファイルを文字列にしない）
+    if (f.size > MAX_FILE_CHARS) {
+      setError("読み込めませんでした：ファイルが大きすぎます（2MB まで）");
+      return;
+    }
     const r = parseProfileFile(await f.text());
     if (!r.ok) {
       setError(`読み込めませんでした：${r.reasonJa}`);
       return;
     }
-    setLoaded({ name: f.name, profile: r.profile });
+    setLoaded({ name: f.name, profile: r.profile, notesJa: r.notesJa });
   }
 
   return (
@@ -85,6 +101,13 @@ export function ProfileFile({ profile, onReplace }: Props) {
           {error}
         </p>
       )}
+      {replacedNotes.length > 0 && !loaded && (
+        <div className="note-warn" style={{ marginTop: 8 }} role="status">
+          {replacedNotes.map((n) => (
+            <p key={n}>{n}</p>
+          ))}
+        </div>
+      )}
       {loaded && (
         <section className="import-confirm" aria-label="読み込んだカルテの確認">
           <p>
@@ -93,12 +116,18 @@ export function ProfileFile({ profile, onReplace }: Props) {
             {pendingCount(loaded.profile)} 件{loaded.profile.fictional ? "（架空の会社）" : ""}。
             {profile ? "いまのカルテを置き換えますか。" : "このカルテを使いますか。"}
           </p>
+          {loaded.notesJa.map((n) => (
+            <p key={n} className="note-warn small" style={{ marginTop: 6 }}>
+              {n}
+            </p>
+          ))}
           <p className="row" style={{ marginTop: 8 }}>
             <button
               type="button"
               className="btn sm primary"
               onClick={() => {
                 onReplace(loaded.profile);
+                setReplacedNotes(loaded.notesJa);
                 setLoaded(undefined);
               }}
             >

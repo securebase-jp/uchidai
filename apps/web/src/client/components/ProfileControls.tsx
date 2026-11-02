@@ -12,7 +12,7 @@ import {
   effectiveControl,
   isStale,
   overwritePolicy,
-  plainQuestion,
+  questionForRole,
   type StaffAnswer,
 } from "../lib/profile.ts";
 import type { CompanyProfile, LabelsFile, RoleDef } from "../lib/types.ts";
@@ -78,8 +78,8 @@ export function ProfileControls(p: Props) {
   const mit = (id: string) =>
     p.labels.mitigations[id] ?? p.labels.custom[id]?.labelJa ?? "（名称なし）";
   const roleLabel = (role: string) => p.roles.find((r) => r.id === role)?.labelJa ?? role;
-  const questionFor = (id: string) =>
-    p.questions.find((q) => q.mitigation === id) ?? plainQuestion(id, mit(id));
+  // 質問は資産の役割に合わせる（ホームページの M1047 は「改ざん検知」、サーバの M1047 は「アクセスログの監査」）
+  const questionFor = (id: string, role: string) => questionForRole(p.questions, id, role, mit(id));
   const onPath = p.onPath ?? [];
   const pathStage = (assetId: string, mitigation: string) =>
     onPath.find((x) => x.assetId === assetId && x.mitigation === mitigation);
@@ -108,7 +108,7 @@ type CardProps = {
   asset: Asset;
   roleLabel: string;
   mit(id: string): string;
-  questionFor(id: string): ControlQuestion;
+  questionFor(id: string, role: string): ControlQuestion;
   outboxAnswers: AnswerInput[];
   pathStage(assetId: string, mitigation: string): PendingItem | undefined;
   staff: string;
@@ -174,7 +174,7 @@ function AssetCard(p: CardProps) {
             asset={asset}
             mitigation={c.mitigation}
             label={p.mit(c.mitigation)}
-            question={p.questionFor(c.mitigation)}
+            question={p.questionFor(c.mitigation, asset.role)}
             outboxAnswer={p.outboxAnswers.find(
               (x) => x.assetId === asset.id && x.mitigation === c.mitigation,
             )}

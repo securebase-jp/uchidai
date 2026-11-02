@@ -2,7 +2,7 @@
  * 外部確認：自社のドメインについて、所有確認（DNS の TXT）→ DNS と証明書の公開ログの参照 → カルテへの反映。
  * 手順 1 トークン発行、2 所有確認、3 実行、4 反映。対象ホストにはアクセスしない（公開情報だけ）。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReconApplyPanel } from "../components/ReconApplyPanel.tsx";
 import { ReconResultView } from "../components/ReconResultView.tsx";
 import { useApp } from "../hooks/useApp.tsx";
@@ -55,6 +55,8 @@ export function Domain() {
   const [appliedDone, setAppliedDone] = useState(false);
   const [busy, setBusy] = useState<"token" | "verify" | "run" | "apply">();
   const [error, setError] = useState<string>();
+  /** 実行の結果（手順 3 の下）。実行が終わったらここへスクロールする（結果が画面の外に出て気づかないことがある） */
+  const resultRef = useRef<HTMLDivElement>(null);
   const profile = app.profile;
 
   const fail = useCallback(
@@ -147,6 +149,11 @@ export function Domain() {
       setBusy(undefined);
     }
   }
+  // 実行の結果が描かれたら、そこへスクロールする（描く前に動かすと、まだ短いページの端で止まる）
+  useEffect(() => {
+    if (run) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [run]);
+
   // 実行の後でカルテが変わった（読み込まれた）ときは、直前の結果で反映の一覧を作り直す
   useEffect(() => {
     if (!run || !profile || applied?.profile.id === profile.id) return;
@@ -355,7 +362,9 @@ export function Domain() {
 
       {error && <p className="err">{error}</p>}
 
-      {run && <ReconResultView result={run.result} fixture={run.fixture} />}
+      <div ref={resultRef}>
+        {run && <ReconResultView result={run.result} fixture={run.fixture} />}
+      </div>
 
       {run && (
         <div className="panel">

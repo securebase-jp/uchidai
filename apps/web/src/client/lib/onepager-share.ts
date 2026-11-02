@@ -9,12 +9,33 @@
  * - 圧縮はブラウザ標準の CompressionStream（deflate）。ライブラリは足さない
  * - 開くときは zod で検証し、壊れていれば日本語の理由を返す（画面が落ちない）
  * - 内容が URL に含まれるので、社外に送るときは中身に注意する（画面に注記を出す）
+ * - 守り：d= の長さ（64 KB）、展開後の大きさ（1 MB。展開しながら数えて途中で打ち切る）、
+ *   文字列と配列の長さに上限を置く。deflate は数百倍に膨らむので、長さの検査だけでは足りない
  */
 import { z } from "zod";
 import type { OnePagerResponse } from "./api.ts";
 import type { OnePager } from "./types.ts";
 
 export const SHARE_VERSION = 1;
+
+/** URL の d= の長さの上限（文字）。一枚は数 KB なので十分 */
+export const MAX_SHARE_CHARS = 64 * 1024;
+/** 展開後の JSON の上限（バイト）。これを超えたら展開を途中で止める */
+export const MAX_INFLATED_BYTES = 1024 * 1024;
+/** 文字列と配列の上限（見出し、文、配列の件数） */
+export const LIMITS = { title: 300, sentence: 2_000, items: 50 } as const;
+
+const title = (what: string) =>
+  z.string().max(LIMITS.title, `${what}が長すぎます（${LIMITS.title} 文字まで）`);
+const sentence = (what: string) =>
+  z
+    .string()
+    .max(
+      LIMITS.sentence,
+      `${what}が長すぎます（${LIMITS.sentence.toLocaleString("ja-JP")} 文字まで）`,
+    );
+const list = <T extends z.ZodType>(item: T, what: string) =>
+  z.array(item).max(LIMITS.items, `${what}が多すぎます（${LIMITS.items} 件まで）`);
 
 // engine の OnePager（packages/engine/src/onepager.ts）と同じ形をブラウザ側で検証する。
 // engine の zod はブラウザに持ち込まない（engine は fs を読む）ので、ここに写しを置く。
@@ -28,48 +49,48 @@ const VerdictResult = z.enum([
   "out_of_scope",
 ]);
 const SharedStopped = z.object({
-  name: z.string(),
+  name: title("業務名"),
   days: z.number(),
   manualDays: z.number(),
   partnerDay: z.number().optional(),
-  affectsJa: z.string().optional(),
+  affectsJa: sentence("影響先").optional(),
 });
 const SharedDeadline = z.object({
   day: z.number(),
   kind: z.enum(["legal", "insurance", "partner", "police", "money"]),
-  labelJa: z.string(),
-  sourceJa: z.string().optional(),
-  deadlineId: z.string().optional(),
+  labelJa: title("期限の名前"),
+  sourceJa: sentence("期限の出典").optional(),
+  deadlineId: title("期限の ID").optional(),
 });
 const SharedMeasure = z.object({
-  id: z.string(),
-  labelJa: z.string(),
-  stageJa: z.string().optional(),
-  requestToJa: z.string().optional(),
+  id: title("対策の ID"),
+  labelJa: title("対策の名前"),
+  stageJa: title("効く段階").optional(),
+  requestToJa: title("依頼先").optional(),
   basis: z.enum(["ipa", "quote", "internal"]),
-  costJa: z.string(),
+  costJa: sentence("費用の目安"),
   costJpy: z.number().optional(),
-  costSourceJa: z.string().optional(),
+  costSourceJa: sentence("費用の出典").optional(),
 });
 export const SharedOnePager = z.object({
-  companyName: z.string(),
+  companyName: title("会社名"),
   fictional: z.boolean(),
-  caseTitle: z.string(),
+  caseTitle: title("事例名"),
   result: VerdictResult,
-  headlineJa: z.string(),
-  whatHappensJa: z.array(z.string()),
-  stopped: z.array(SharedStopped),
+  headlineJa: title("見出し"),
+  whatHappensJa: list(sentence("「何が起きるか」の文"), "「何が起きるか」の文"),
+  stopped: list(SharedStopped, "止まる業務"),
   downtimeDays: z.number(),
   partnerImpactDay: z.number().optional(),
-  partnerImpactJa: z.string().optional(),
+  partnerImpactJa: sentence("取引先への影響").optional(),
   revenueImpactJpy: z.number().optional(),
-  revenueImpactJa: z.string().optional(),
+  revenueImpactJa: sentence("売上への影響").optional(),
   moneyLossJpy: z.number().optional(),
-  moneyLossJa: z.string().optional(),
-  deadlines: z.array(SharedDeadline),
-  measures: z.array(SharedMeasure),
-  sources: z.array(z.string()),
-  notesJa: z.array(z.string()),
+  moneyLossJa: sentence("流出する資金").optional(),
+  deadlines: list(SharedDeadline, "期限"),
+  measures: list(SharedMeasure, "対策"),
+  sources: list(sentence("出典"), "出典"),
+  notesJa: list(sentence("注記"), "注記"),
 });
 export type SharedOnePager = z.infer<typeof SharedOnePager>;
 
@@ -82,14 +103,14 @@ export const SharePayload = z.object({
   onePager: SharedOnePager,
   text: z.object({
     source: z.enum(["claude", "template"]),
-    model: z.string().optional(),
-    noteJa: z.string().optional(),
+    model: title("モデル名").optional(),
+    noteJa: sentence("文の注記").optional(),
   }),
   /** 入れた対策（ボタン）の名前。一枚の見出しに出す */
-  appliedJa: z.array(z.string()),
-  attackVersion: z.string(),
+  appliedJa: list(title("入れた対策の名前"), "入れた対策"),
+  attackVersion: title("ATT&CK の版"),
   /** 一枚を作った日時（ISO 8601） */
-  generatedAt: z.string(),
+  generatedAt: title("作成日時"),
   /** 記事に入口が書かれておらず、型紙の入口候補で判定した一枚（省略時は false。古いリンクも開ける） */
   entryUnknown: z.boolean().optional(),
 });
@@ -126,7 +147,46 @@ async function pump(bytes: Uint8Array, stream: CompressionStream | Decompression
   return new Uint8Array(await new Response(piped).arrayBuffer());
 }
 const deflate = (bytes: Uint8Array) => pump(bytes, new CompressionStream("deflate"));
-const inflate = (bytes: Uint8Array) => pump(bytes, new DecompressionStream("deflate"));
+
+export class InflateTooLargeError extends Error {
+  constructor(max: number) {
+    super(`展開後の大きさが上限（${max} バイト）を超えた`);
+    this.name = "InflateTooLargeError";
+  }
+}
+
+/**
+ * 展開しながら大きさを数え、上限を超えたら途中で止める（deflate は小さな入力が数百倍に膨らむ）。
+ * 上限を超えたら InflateTooLargeError
+ */
+export async function inflateLimited(bytes: Uint8Array, max: number): Promise<Uint8Array> {
+  const reader = new Blob([bytes as BlobPart])
+    .stream()
+    .pipeThrough(new DecompressionStream("deflate"))
+    .getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > max) throw new InflateTooLargeError(max);
+      chunks.push(value);
+    }
+  } finally {
+    // 途中で止めたときは残りを捨てる（すでに閉じていれば何もしない）
+    reader.cancel().catch(() => {});
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.length;
+  }
+  return out;
+}
+const inflate = (bytes: Uint8Array) => inflateLimited(bytes, MAX_INFLATED_BYTES);
 
 export function toBase64Url(bytes: Uint8Array): string {
   let bin = "";
@@ -164,6 +224,11 @@ export type ShareDecodeResult =
 
 /** URL の d= を一枚の内容に戻す。壊れていれば日本語の理由 */
 export async function decodeShare(d: string): Promise<ShareDecodeResult> {
+  if (d.length > MAX_SHARE_CHARS)
+    return {
+      ok: false,
+      reasonJa: `共有リンクが長すぎます（${Math.round(MAX_SHARE_CHARS / 1024)} KB まで。ウチダイが作る一枚のリンクは数 KB です）。`,
+    };
   const bytes = fromBase64Url(d);
   if (!bytes || bytes.length === 0)
     return {
@@ -173,7 +238,12 @@ export async function decodeShare(d: string): Promise<ShareDecodeResult> {
   let json: string;
   try {
     json = new TextDecoder("utf-8", { fatal: true }).decode(await inflate(bytes));
-  } catch {
+  } catch (e) {
+    if (e instanceof InflateTooLargeError)
+      return {
+        ok: false,
+        reasonJa: `共有リンクの内容が大きすぎます（展開後 ${Math.round(MAX_INFLATED_BYTES / 1024 / 1024)} MB まで。ウチダイが作る一枚ではありません）。`,
+      };
     return {
       ok: false,
       reasonJa:

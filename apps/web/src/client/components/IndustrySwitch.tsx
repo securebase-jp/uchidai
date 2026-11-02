@@ -8,14 +8,31 @@ import { useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api, type Evaluation } from "../lib/api.ts";
 import { RESULT_SHORT, RESULT_TONE, yen } from "../lib/labels.ts";
-import type { ProfileAnswers } from "../lib/types.ts";
+import type { Pattern, ProfileAnswers } from "../lib/types.ts";
 
-type Industry = { id: ProfileAnswers["industry"]; site: ProfileAnswers["site"]; labelJa: string };
+type Industry = {
+  id: ProfileAnswers["industry"];
+  site: ProfileAnswers["site"];
+  /** 対応する構成パターン（knowledge/profiles）の id。名前は /api/knowledge の patterns[].labelJa から引く */
+  pattern: Pattern["id"];
+  /** patterns が読めていないときの名前 */
+  labelJa: string;
+};
 const INDUSTRIES: Industry[] = [
-  { id: "manufacturing", site: "factory", labelJa: "製造業（工場あり）" },
-  { id: "wholesale_service", site: "office_only", labelJa: "事務所型（卸売・サービス）" },
-  { id: "healthcare", site: "clinic", labelJa: "医療・福祉（診療所）" },
+  { id: "manufacturing", site: "factory", pattern: "manufacturing", labelJa: "製造業（工場あり）" },
+  {
+    id: "wholesale_service",
+    site: "office_only",
+    pattern: "office",
+    labelJa: "事務所型（卸売・サービス）",
+  },
+  { id: "healthcare", site: "clinic", pattern: "healthcare", labelJa: "医療・福祉（診療所）" },
 ];
+
+/** 業種の表示名：構成パターンの labelJa（knowledge/profiles）。無ければ固定の名前 */
+export function industryLabel(ind: Industry, patterns: Pattern[] | undefined): string {
+  return patterns?.find((p) => p.id === ind.pattern)?.labelJa ?? ind.labelJa;
+}
 
 /** 業種以外は同じ構成（対策は未登録のまま）。差が業種の構成パターンだけから来るようにする */
 const BASE: Omit<ProfileAnswers, "industry" | "site"> = {
@@ -34,6 +51,8 @@ export function IndustrySwitch() {
   const [error, setError] = useState<string>();
   const [picked, setPicked] = useState(0);
 
+  const label = (ind: Industry) => industryLabel(ind, knowledge?.patterns);
+
   async function run() {
     if (!theCase) return;
     setBusy(true);
@@ -43,14 +62,14 @@ export function IndustrySwitch() {
         INDUSTRIES.map(async (ind) => {
           const { profile: p } = await api.fromAnswers(
             { industry: ind.id, site: ind.site, ...BASE },
-            `${ind.labelJa}の会社`,
+            `${label(ind)}の会社`,
           );
           // 金額の目安は自社のカルテの数値を借りる（業種だけを変えた比較にする）
           if (profile?.dailyRevenue) p.dailyRevenue = profile.dailyRevenue;
           if (profile?.employees) p.employees = profile.employees;
           if (profile?.typicalTransferJpy) p.typicalTransferJpy = profile.typicalTransferJpy;
           const evaluation = await api.evaluate({ case: theCase, profile: p, measureIds });
-          return { labelJa: ind.labelJa, evaluation };
+          return { labelJa: label(ind), evaluation };
         }),
       );
       setResults(out);
@@ -83,7 +102,7 @@ export function IndustrySwitch() {
               aria-pressed={picked === i}
               onClick={() => setPicked(i)}
             >
-              {ind.labelJa}
+              {label(ind)}
             </button>
           ))
         ) : (

@@ -586,6 +586,11 @@ p {
   stroke-dasharray: 10 4 2 4;
   stroke: var(--violet);
 }
+/* 枝の段階（持ち出しなど）へ向かう区間：止まっても本線は進むので、本線より細い破線 */
+.seg.branch {
+  stroke-dasharray: 4 4;
+  stroke-width: 1.8;
+}
 .seg.attack {
   stroke: var(--red);
   opacity: 1;
