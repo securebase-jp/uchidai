@@ -17,7 +17,7 @@
 - [ ] AI攻撃者と知見なしAIとの比較
 - [x] 経営への影響（業務波及、時間軸、法令・実務上の期限、費用の目安）と社長向けの一枚のデータ（`packages/engine`）。一枚の描画は未実装
 - [x] 外部確認（所有確認、DNS、CT ログ、fixture、矛盾検出。`packages/recon`）。画面との接続は未実装
-- [ ] デモモード
+- [x] デモモード（`?demo=1`）、社長向けの一枚（`#/onepager`）、ナレーション原稿と字幕・音声・結合のスクリプト。作り方は [demo/README.md](demo/README.md)
 
 計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code での進め方の記録は `docs/claude-code-log.md`（作成予定）。
 

@@ -1,0 +1,559 @@
+/* デモモード：黒背景、1920×1080 で収まる。上部バーは隠し、演出画面は全面に重ねる */
+:root[data-demo="1"] .topbar {
+  display: none;
+}
+:root[data-demo="1"] .wrap {
+  max-width: 1760px;
+  padding-top: 18px;
+}
+:root[data-demo="1"] body {
+  overflow-x: hidden;
+}
+.mono {
+  font-family: var(--mono);
+}
+
+/* 開始前 */
+.demo-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+  display: grid;
+  place-items: center;
+}
+.demo-gate-card {
+  width: min(760px, 92vw);
+  border: 1px solid var(--edge);
+  border-radius: 18px;
+  padding: 36px 40px;
+  background: var(--panel);
+}
+.demo-kicker {
+  font-family: var(--mono);
+  color: var(--cyan);
+  letter-spacing: 0.2em;
+  font-size: 12px;
+}
+.demo-gate-card h1 {
+  font-family: var(--serif);
+  font-size: 40px;
+  margin: 6px 0 8px;
+}
+.demo-scenes {
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.demo-scenes .btn {
+  width: 100%;
+  justify-content: space-between;
+}
+.demo-scenes .mono {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.demo-start {
+  font-size: 18px;
+  padding: 12px 22px;
+  margin: 6px 0 12px;
+}
+
+/* 重ねる演出画面 */
+.demo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, var(--bg-glow), transparent 60%),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    32px 32px,
+    32px 32px;
+}
+.demo-fine {
+  position: absolute;
+  bottom: 16px;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+/* 字幕と右上の表示 */
+.demo-caption {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 56px;
+  z-index: 70;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.demo-caption span {
+  background: rgba(0, 0, 0, 0.82);
+  color: #fff;
+  font-size: 30px;
+  line-height: 1.5;
+  padding: 6px 22px;
+  border-radius: 8px;
+  max-width: 1500px;
+  text-shadow: 0 1px 2px #000;
+}
+.demo-hud {
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  z-index: 70;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 4px 10px;
+  pointer-events: none;
+}
+
+/* 差し込み口（右下の枠） */
+.demo-slot {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 45;
+  width: 460px;
+  background: var(--panel-2);
+  border: 1px dashed var(--violet);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+.demo-slot.full {
+  inset: 40px;
+  width: auto;
+}
+.demo-slot .hd {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  color: var(--violet);
+  margin-bottom: 6px;
+}
+.demo-slot .hd .mono {
+  font-weight: 400;
+  color: var(--ink-3);
+  font-size: 12px;
+}
+.demo-slot .bar {
+  height: 3px;
+  background: var(--edge);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.demo-slot .bar .fill {
+  display: block;
+  height: 100%;
+  background: var(--violet);
+}
+
+/* チャット */
+.chat-window {
+  width: min(900px, 92vw);
+  height: min(760px, 86vh);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.chat-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--edge);
+  font-weight: 700;
+}
+.chat-log {
+  flex: 1;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+.chat-msg {
+  display: flex;
+  gap: 12px;
+  animation: chat-in 0.35s ease-out both;
+}
+@keyframes chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.chat-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--edge);
+  color: var(--ink);
+  flex: none;
+}
+.chat-msg.boss .chat-avatar {
+  background: #3a2f12;
+  color: var(--amber);
+}
+.chat-msg.staff .chat-avatar {
+  background: #0f2a3a;
+  color: var(--cyan);
+}
+.chat-name {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 4px;
+}
+.chat-time {
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.chat-bubble {
+  font-size: 26px;
+  line-height: 1.5;
+  padding: 8px 14px;
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  display: inline-block;
+  min-height: 1.5em;
+}
+.chat-card {
+  background: var(--panel-2);
+  border: 1px solid var(--edge-strong);
+  border-left: 4px solid var(--steel);
+  border-radius: 10px;
+  padding: 10px 14px;
+  max-width: 640px;
+  margin-bottom: 8px;
+}
+.chat-card.onepager {
+  border-left-color: var(--red);
+}
+.chat-card-host {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.chat-card-title {
+  font-weight: 700;
+  font-size: 19px;
+  margin: 2px 0;
+}
+.chat-card.onepager .chat-card-title {
+  font-family: var(--serif);
+  color: var(--red);
+  font-size: 22px;
+}
+.chat-card-sub {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.chat-card-list {
+  margin: 6px 0;
+  padding-left: 1.2em;
+  font-size: 15px;
+}
+.chat-typing {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  height: 1.5em;
+}
+.chat-typing > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink-2);
+  animation: chat-dot 1s infinite;
+}
+.chat-typing > i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.chat-typing > i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes chat-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+.chat-compose {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--edge);
+}
+.chat-input {
+  flex: 1;
+  min-height: 48px;
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 22px;
+  background: var(--btn);
+}
+.chat-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: var(--ink);
+  vertical-align: -4px;
+  margin-left: 2px;
+  animation: blink 1s steps(1) infinite;
+}
+
+/* 記事の読解 */
+.reading-window {
+  width: min(1200px, 94vw);
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 18px;
+  padding: 22px 28px;
+}
+.reading-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.reading-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.reading-input {
+  flex: 1;
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 18px;
+  background: var(--btn);
+  min-height: 50px;
+  word-break: break-all;
+}
+.reading-input.on {
+  border-color: var(--cyan);
+}
+.btn.pressed {
+  transform: translateY(1px);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 40%, transparent);
+}
+.reading-wait {
+  margin-top: 14px;
+  color: var(--ink-2);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.reading-result {
+  margin-top: 16px;
+  animation: chat-in 0.4s ease-out both;
+}
+.reading-result h2 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+.reading-steps {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.reading-steps li {
+  display: grid;
+  grid-template-columns: 56px 150px 190px 220px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: var(--panel-2);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition:
+    opacity 0.35s,
+    transform 0.35s;
+}
+.reading-steps li.show {
+  opacity: 1;
+  transform: none;
+}
+.reading-tactic {
+  font-weight: 700;
+}
+.reading-tech b {
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--cyan);
+  font-weight: 700;
+}
+.reading-tname {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.reading-quote {
+  font-size: 13px;
+  color: var(--ink-2);
+  border-left: 2px solid var(--edge-strong);
+  padding-left: 8px;
+  quotes: "「" "」";
+}
+
+/* エンドカード */
+.endcard {
+  justify-content: flex-start;
+  padding: 48px 72px;
+  overflow: hidden;
+}
+.end-wrap {
+  width: min(1700px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.end-head,
+.end-flow,
+.end-col,
+.end-foot {
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
+}
+.end-head.in,
+.end-flow.in,
+.end-col.in,
+.end-foot.in {
+  opacity: 1;
+  transform: none;
+}
+.end-head h1 {
+  font-family: var(--serif);
+  font-size: 56px;
+  letter-spacing: 0.06em;
+}
+.end-head p {
+  color: var(--ink-2);
+  font-size: 20px;
+}
+.end-flow svg {
+  width: 100%;
+  height: auto;
+}
+.end-box rect {
+  fill: var(--panel-2);
+  stroke: var(--edge-strong);
+  stroke-width: 1.5;
+}
+.end-box.claude rect {
+  stroke: var(--amber);
+}
+.end-box.program rect {
+  stroke: var(--cyan);
+}
+.end-box .l {
+  fill: var(--ink);
+  font-size: 19px;
+  font-weight: 700;
+}
+.end-box .s {
+  fill: var(--ink-2);
+  font-size: 12.5px;
+}
+.end-box .arrow {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+}
+.end-legend text {
+  fill: var(--ink-2);
+  font-size: 14px;
+}
+.end-legend rect.claude {
+  fill: var(--amber);
+}
+.end-legend rect.program {
+  fill: var(--cyan);
+}
+.end-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+.end-col h2 {
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+.end-col ul {
+  margin: 0;
+  padding-left: 1.2em;
+  font-size: 16px;
+  line-height: 1.75;
+  columns: 1;
+}
+.end-sessions {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px 14px;
+}
+.end-note {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 6px 0;
+}
+.end-foot {
+  border-top: 1px solid var(--edge);
+  padding-top: 14px;
+}
+.end-url {
+  font-size: 26px;
+  color: var(--cyan);
+}
+.end-credits {
+  color: var(--ink-3);
+  font-size: 13px;
+}

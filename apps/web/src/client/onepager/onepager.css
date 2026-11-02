@@ -1,0 +1,545 @@
+/* 社長向けの一枚：黒い画面の上に置いた一枚の紙。印刷は白地の A4 縦 */
+.onepager {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 0 40px;
+}
+.op-toolbar {
+  width: min(760px, 100%);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.op-paper {
+  /* 紙の中だけの色（画面のテーマに依存しない） */
+  --paper: #fbfaf5;
+  --paper-2: #f1efe7;
+  --ink: #1b2030;
+  --ink-2: #5a6275;
+  --ink-3: #8a92a3;
+  --hair: #d7d2c5;
+  --accent: #c8102e;
+  --accent-soft: rgba(200, 16, 46, 0.08);
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --serif: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --sans: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+
+  /* 経路図（既存の部品）を紙の上で明るい配色にする */
+  --bg: var(--paper);
+  --panel: #ffffff;
+  --panel-2: #ffffff;
+  --edge: #c9c3b4;
+  --edge-strong: #a8a193;
+  --plane: rgba(40, 70, 120, 0.05);
+  --plane-edge: rgba(40, 70, 120, 0.3);
+  --cyan: #2a6f8f;
+  --cash: #148a5a;
+  --red: #c8102e;
+  --amber: #a86a00;
+  --green: #167a52;
+  --steel: #2a5fa8;
+  --violet: #6f3fb0;
+  --term: #1b2030;
+  --term-ink: #e6e6e6;
+  --btn: #ffffff;
+  --focus: #2a5fa8;
+
+  width: min(760px, 100%);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  line-height: 1.7;
+  padding: 40px 36px 32px;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 30px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  color-scheme: light;
+}
+.op-paper.tone-green {
+  --accent: #167a52;
+  --accent-soft: rgba(22, 122, 82, 0.1);
+}
+.op-paper.tone-amber {
+  --accent: #a86a00;
+  --accent-soft: rgba(168, 106, 0, 0.1);
+}
+.op-paper.tone-cyan {
+  --accent: #2a6f8f;
+  --accent-soft: rgba(42, 111, 143, 0.1);
+}
+.op-paper.tone-ink {
+  --accent: #5a6275;
+  --accent-soft: rgba(90, 98, 117, 0.1);
+}
+.op-paper::before {
+  /* 紙の左端の帯：結論の色 */
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: var(--accent);
+  border-radius: 6px 0 0 6px;
+}
+@media (max-width: 640px) {
+  .op-paper {
+    padding: 28px 18px 24px;
+    border-radius: 0;
+  }
+}
+
+.op-head {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 12px;
+}
+.op-kicker {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+}
+.op-mono {
+  font-family: var(--mono);
+}
+.op-fiction {
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0 8px;
+  letter-spacing: 0.08em;
+}
+.op-company {
+  font-family: var(--serif);
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 700;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+.op-meta {
+  color: var(--ink-2);
+  font-size: 12.5px;
+  margin-top: 4px;
+}
+
+.op-sec {
+  position: relative;
+  padding: 22px 0 18px 0;
+  border-bottom: 1px solid var(--hair);
+  break-inside: avoid;
+}
+.op-num {
+  position: absolute;
+  right: 0;
+  top: 18px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.2em;
+}
+.op-h {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ink-2);
+  margin-bottom: 10px;
+}
+.op-headline {
+  font-family: var(--serif);
+  font-size: clamp(26px, 5vw, 40px);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--accent);
+  letter-spacing: 0.01em;
+}
+.op-sub {
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.op-word {
+  color: var(--ink);
+  margin-left: 6px;
+  padding: 0 6px;
+  background: var(--accent-soft);
+  border-radius: 4px;
+}
+
+.op-figure {
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.op-figure svg.diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.op-figure * {
+  /* biome-ignore lint/complexity/noImportantStyles: 静止画なので、既存の部品の動きをすべて止める */
+  animation: none !important;
+  /* biome-ignore lint/complexity/noImportantStyles: 同上 */
+  transition: none !important;
+}
+.op-figure .plane-flash {
+  display: none;
+}
+.op-lines {
+  margin: 0;
+  padding-left: 1.4em;
+  font-size: 15.5px;
+}
+.op-lines li {
+  margin: 4px 0;
+}
+.op-lines li::marker {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.op-biz {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.op-biz-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.op-biz-name {
+  font-weight: 700;
+  font-size: 16px;
+}
+.op-biz-days {
+  font-family: var(--mono);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.op-biz-days b {
+  color: var(--accent);
+  font-size: 26px;
+  margin-right: 2px;
+}
+.op-bar {
+  position: relative;
+  height: 10px;
+  background: var(--paper-2);
+  border-radius: 5px;
+  overflow: visible;
+  margin: 4px 0;
+}
+.op-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+  opacity: 0.85;
+}
+.op-bar em {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 18px;
+  background: var(--ink);
+}
+.op-biz-note {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.op-note {
+  margin-top: 10px;
+  font-size: 13.5px;
+}
+.op-none {
+  color: var(--ink-2);
+}
+
+.op-figures {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.op-figure-box {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--hair);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  background: #fff;
+}
+.op-k {
+  font-size: 12px;
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+}
+.op-v {
+  font-family: var(--mono);
+  font-size: clamp(28px, 5vw, 36px);
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.op-f {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.op-spine {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4px;
+  border-left: 2px solid var(--ink);
+}
+.op-spine li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 6px 0 6px 14px;
+  position: relative;
+}
+.op-spine li::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 16px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.op-spine li.k-legal::before {
+  background: var(--amber);
+}
+.op-spine li.k-partner::before {
+  background: var(--accent);
+}
+.op-spine li.k-insurance::before {
+  background: var(--steel);
+}
+.op-day {
+  font-family: var(--mono);
+  min-width: 64px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.op-day b {
+  font-size: 22px;
+}
+.op-day small {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin-left: 2px;
+}
+.op-dl {
+  display: flex;
+  flex-direction: column;
+}
+.op-dl-kind {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+}
+.op-dl-label {
+  font-size: 14.5px;
+}
+
+.op-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+.op-card {
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.op-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.op-card-name {
+  font-weight: 700;
+  font-size: 16px;
+}
+.op-basis {
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+  border: 1px solid var(--hair);
+  color: var(--ink-2);
+}
+.op-basis.b-ipa {
+  border-color: var(--green);
+  color: var(--green);
+}
+.op-card-stage {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.op-card-cost {
+  display: flex;
+  flex-direction: column;
+}
+.op-card-cost b {
+  font-family: var(--mono);
+  font-size: 22px;
+  color: var(--ink);
+}
+.op-card-cost b.soft {
+  font-family: var(--sans);
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.op-card-cost span {
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.op-card-to {
+  font-size: 13px;
+}
+
+.op-foot {
+  padding-top: 16px;
+  color: var(--ink-2);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.op-foot h3 {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  margin-bottom: 6px;
+}
+.op-sources,
+.op-notes {
+  margin: 0 0 8px;
+  padding-left: 1.2em;
+  word-break: break-all;
+}
+.op-brand {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--hair);
+  font-size: 11px;
+}
+
+/* 印刷：A4 縦、白地、紙だけを出す */
+@page {
+  size: A4 portrait;
+  margin: 12mm 12mm 14mm;
+}
+@media print {
+  html,
+  body {
+    /* biome-ignore lint/complexity/noImportantStyles: 印刷では画面の黒背景と格子を消す */
+    background: #fff !important;
+  }
+  body::after,
+  .topbar,
+  .no-print {
+    /* biome-ignore lint/complexity/noImportantStyles: 同上 */
+    display: none !important;
+  }
+  .wrap {
+    max-width: none;
+    padding: 0;
+  }
+  .onepager {
+    padding: 0;
+  }
+  .op-paper {
+    width: 100%;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0 0 0 10mm;
+    font-size: 11.5pt;
+  }
+  .op-paper::before {
+    border-radius: 0;
+    width: 4mm;
+  }
+  .op-sec {
+    padding: 4mm 0 3mm;
+  }
+  .op-headline {
+    font-size: 22pt;
+  }
+  .op-figure {
+    max-height: 70mm;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3mm;
+  }
+  .op-figure svg.diagram {
+    width: auto;
+    max-height: 70mm;
+  }
+  .op-lines {
+    font-size: 10.5pt;
+  }
+  .op-spine {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 6mm;
+  }
+  .op-spine li {
+    padding: 2px 0 2px 12px;
+  }
+  .op-day b {
+    font-size: 15pt;
+  }
+  .op-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 3mm;
+  }
+  .op-card {
+    padding: 2.5mm 3mm;
+  }
+  .op-card-cost b {
+    font-size: 15pt;
+  }
+  .op-figures {
+    grid-template-columns: 1fr 1fr;
+  }
+  .op-foot {
+    font-size: 7.5pt;
+    line-height: 1.45;
+    padding-top: 3mm;
+  }
+  .op-sources {
+    columns: 2;
+    column-gap: 6mm;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}

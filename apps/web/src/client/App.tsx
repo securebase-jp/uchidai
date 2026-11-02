@@ -1,4 +1,5 @@
 import { TopBar } from "./components/TopBar.tsx";
+import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
 import { AppProvider, useApp } from "./hooks/useApp.tsx";
 import { answerToken, useRoute } from "./hooks/useRoute.ts";
@@ -6,6 +7,7 @@ import { useSettings } from "./hooks/useSettings.ts";
 import { Answer } from "./screens/Answer.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
+import { OnePager } from "./screens/OnePager.tsx";
 import { Questions } from "./screens/Questions.tsx";
 import { Staff } from "./screens/Staff.tsx";
 
@@ -31,6 +33,7 @@ function Shell() {
       {route === "questions" && <Questions reduced={settings.reduced} />}
       {route === "staff" && <Staff settings={settings} />}
       {route === "exec" && <Exec settings={settings} />}
+      {route === "onepager" && <OnePager />}
     </div>
   );
 }
@@ -40,6 +43,7 @@ export function App() {
     <AppProvider>
       <AiAttackerProvider>
         <Shell />
+        <DemoLayer />
       </AiAttackerProvider>
     </AppProvider>
   );

@@ -1,12 +1,12 @@
-/** ハッシュによる画面の切り替え：#/ #/questions #/staff #/exec #/answer/:token */
+/** ハッシュによる画面の切り替え：#/ #/questions #/staff #/exec #/onepager #/answer/:token */
 import { useEffect, useMemo, useState } from "react";
 
-export type Route = "home" | "questions" | "staff" | "exec" | "answer";
+export type Route = "home" | "questions" | "staff" | "exec" | "onepager" | "answer";
 
 function parse(hash: string): Route {
   const h = hash.replace(/^#\/?/, "").split("?")[0];
   if (h?.startsWith("answer/")) return "answer";
-  if (h === "questions" || h === "staff" || h === "exec") return h;
+  if (h === "questions" || h === "staff" || h === "exec" || h === "onepager") return h;
   return "home";
 }
 

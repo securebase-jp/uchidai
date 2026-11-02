@@ -6,6 +6,7 @@ import type {
   Graph,
   LabelsFile,
   MeasureDef,
+  OnePager,
   Pattern,
   ProfileAnswers,
   RoleDef,
@@ -40,6 +41,16 @@ export type RecordedCaseMeta = {
   model?: string;
   note?: string;
   attackVersion?: string;
+};
+
+/** 社長向けの一枚（POST /api/onepager の応答） */
+export type OnePagerResponse = {
+  onePager: OnePager;
+  graph: Graph;
+  verdict: Verdict;
+  measures: MeasureDef[];
+  profile: CompanyProfile;
+  text: { source: "claude" | "template"; model?: string; noteJa?: string };
 };
 
 export class ApiError extends Error {
@@ -87,4 +98,12 @@ export const api = {
     measureIds?: string[];
     answers?: AnswerInput[];
   }) => post<Evaluation>("/api/evaluate", body),
+  onepager: (body: {
+    case: Case;
+    profile: CompanyProfile;
+    measureIds?: string[];
+    answers?: AnswerInput[];
+    rewrite?: boolean;
+  }) => post<OnePagerResponse>("/api/onepager", body),
+  demoAudio: () => call<{ available: Record<string, number | true> }>("/api/demo/audio"),
 };

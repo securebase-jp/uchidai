@@ -1,0 +1,4 @@
+# 生成物と音声は git 管理外
+audio/
+out/
+capture/

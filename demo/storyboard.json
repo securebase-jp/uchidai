@@ -1,0 +1,129 @@
+{
+  "$comment": "デモモード（?demo=1）の絵コンテ。場面ごとに画面の操作を時刻（秒）つきで並べる。各場面の長さは demo/narration.json の targetSeconds か、音声ファイル demo/audio/<n>.wav の長さ",
+  "version": 1,
+  "profile": "demo-seiko",
+  "case": "ipa-case-1",
+  "scenes": [
+    {
+      "n": 1,
+      "id": "boss-asks",
+      "route": "#/",
+      "overlay": "chat-boss",
+      "actions": [{ "at": 0, "do": "reset" }]
+    },
+    {
+      "n": 2,
+      "id": "staff-stuck",
+      "route": "#/",
+      "overlay": "chat-staff",
+      "actions": [{ "at": 0, "do": "reset" }]
+    },
+    {
+      "n": 3,
+      "id": "paste-link",
+      "route": "#/",
+      "overlay": "reading",
+      "actions": [{ "at": 0, "do": "reset" }]
+    },
+    {
+      "n": 4,
+      "id": "replay",
+      "route": "#/staff",
+      "overlay": "none",
+      "actions": [
+        { "at": 0, "do": "reset" },
+        { "at": 0.2, "do": "scroll", "to": "top" },
+        { "at": 0.5, "do": "clock", "cmd": "restart", "speed": 1 },
+        { "at": 22, "do": "overlay", "id": "slot:attacker" }
+      ]
+    },
+    {
+      "n": 5,
+      "id": "ask-vendor",
+      "route": "#/staff",
+      "overlay": "slot:request",
+      "actions": [
+        { "at": 0, "do": "reset" },
+        { "at": 0.2, "do": "scroll", "to": "top" },
+        {
+          "at": 11,
+          "do": "answers",
+          "list": [
+            {
+              "assetId": "admin",
+              "mitigation": "M1026",
+              "status": "absent",
+              "evidence": "vendor",
+              "answeredBy": "保守ベンダー",
+              "noteJa": "管理者パスワードは全 PC で共通"
+            }
+          ]
+        },
+        { "at": 12.5, "do": "clock", "cmd": "speed", "speed": 1.5 }
+      ]
+    },
+    {
+      "n": 6,
+      "id": "verdict",
+      "route": "#/staff",
+      "overlay": "none",
+      "actions": [
+        { "at": 0, "do": "measures", "ids": [] },
+        {
+          "at": 0,
+          "do": "answers",
+          "list": [
+            {
+              "assetId": "admin",
+              "mitigation": "M1026",
+              "status": "absent",
+              "evidence": "vendor",
+              "answeredBy": "保守ベンダー",
+              "noteJa": "管理者パスワードは全 PC で共通"
+            }
+          ]
+        },
+        { "at": 1, "do": "clock", "cmd": "toEnd" },
+        { "at": 1.2, "do": "scroll", "to": ".verdict" },
+        { "at": 10, "do": "scroll", "to": ".timeline" }
+      ]
+    },
+    {
+      "n": 7,
+      "id": "one-move",
+      "route": "#/staff",
+      "overlay": "none",
+      "actions": [
+        { "at": 0, "do": "measures", "ids": [] },
+        { "at": 0.2, "do": "scroll", "to": ".btn.measure" },
+        { "at": 1, "do": "clock", "cmd": "speed", "speed": 2 },
+        { "at": 1.5, "do": "measures", "ids": ["vpn-mfa"] },
+        { "at": 4, "do": "scroll", "to": "top" },
+        { "at": 9.5, "do": "scroll", "to": ".btn.measure" },
+        { "at": 10.5, "do": "measures", "ids": ["vpn-update"] },
+        { "at": 12, "do": "scroll", "to": "top" },
+        { "at": 15, "do": "overlay", "id": "slot:comparison" }
+      ]
+    },
+    {
+      "n": 8,
+      "id": "reply-boss",
+      "route": "#/onepager?profile=demo-seiko&case=ipa-case-1&measures=",
+      "overlay": "none",
+      "actions": [
+        { "at": 0, "do": "measures", "ids": [] },
+        { "at": 0.3, "do": "scroll", "to": "top" },
+        { "at": 3, "do": "scroll", "to": ".op-stopped" },
+        { "at": 5.5, "do": "scroll", "to": ".op-measures" },
+        { "at": 8, "do": "overlay", "id": "chat-reply" }
+      ]
+    },
+    {
+      "n": 9,
+      "id": "how-it-works",
+      "route": "#/",
+      "overlay": "endcard",
+      "actions": []
+    }
+  ]
+}
