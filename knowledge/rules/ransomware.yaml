@@ -8,9 +8,11 @@ rules:
     materialsJa: 外部確認：VPN装置の露出。カルテ：製品・バージョン、更新の運用
     mitigations: [M1042, M1051]
     ineffective:
+      # 公開アプリの脆弱性を突く侵入（T1190）は認証そのものを回避するので、多要素認証は効かない。
+      # 認証を回避しない脆弱性だと分かっているとき（attrs.authBypass = false）だけ例外にする
       - mitigation: M1032
-        when: { attr: { key: authBypass, equals: true } }
-        reasonJa: この脆弱性は認証を回避するため、多要素認証では止まりません
+        when: { not: { attr: { key: authBypass, equals: false } } }
+        reasonJa: 公開アプリの脆弱性を突く侵入は認証そのものを回避するため、多要素認証では止まりません
     outcomes:
       - state: blocked
         when: { control: { mitigation: M1042, status: present } }
