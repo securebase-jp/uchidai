@@ -1,0 +1,115 @@
+/** 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明 */
+import { AnimatePresence, motion } from "motion/react";
+import { PLAIN_STATE, RESULT_TONE, STATE_LABEL, yen } from "../lib/labels.ts";
+import type { Scene, Script } from "../lib/playback.ts";
+import type { Graph, Verdict } from "../lib/types.ts";
+
+type Props = {
+  verdict: Verdict;
+  scene: Scene;
+  script: Script;
+  graph: Graph;
+  fired: number;
+  caseTitle?: string;
+  plain?: boolean;
+  big?: boolean;
+  swapping?: boolean;
+};
+
+function progressText(
+  script: Script,
+  graph: Graph,
+  fired: number,
+  plain: boolean,
+): [string, string] {
+  let last: Extract<Script["beats"][number], { kind: "arrive" | "hit" }> | undefined;
+  for (let i = fired - 1; i >= 0; i--) {
+    const b = script.beats[i];
+    if (b && (b.kind === "arrive" || b.kind === "hit")) {
+      last = b;
+      break;
+    }
+  }
+  if (!last)
+    return ["攻撃が来ました", "Day 0。平時のデータの流れの中に、社外から攻撃者が現れます。"];
+  const label = graph.nodes.find((n) => n.id === last.nodeId)?.label ?? last.nodeId;
+  if (last.kind === "arrive") {
+    const word = plain ? PLAIN_STATE[last.state] : STATE_LABEL[last.state];
+    const head =
+      last.state === "breached"
+        ? `${label} が突破されました`
+        : last.state === "blocked"
+          ? `${label} で止まりました`
+          : last.state === "recoverable"
+            ? `${label} はやられますが、戻せます`
+            : `${label} は${word}`;
+    const sub = last.ineffective.length
+      ? `入れた対策「${last.ineffective.map((x) => x.reasonJa).join("」「")}」`
+      : last.labelJa
+        ? `段階：${last.labelJa}`
+        : "";
+    return [head, sub];
+  }
+  return [
+    last.layer === "business" ? "業務が止まります" : "経営に影響が広がります",
+    `${label}：${last.labelJa}`,
+  ];
+}
+
+export function VerdictBanner({
+  verdict,
+  scene,
+  script,
+  graph,
+  fired,
+  caseTitle,
+  plain = false,
+  big = false,
+  swapping = false,
+}: Props) {
+  const concluded = scene.concluded;
+  const tone = concluded ? RESULT_TONE[verdict.result] : "";
+  const [head, sub] = swapping
+    ? ["時間を巻き戻しています", "同じ攻撃を、条件を変えてもう一度走らせます。"]
+    : concluded
+      ? [verdict.headlineJa, summary(verdict, plain)]
+      : progressText(script, graph, fired, plain);
+  return (
+    <section
+      className={`verdict ${tone ? `tone-${tone}` : ""}${big && concluded ? " big" : ""}`}
+      aria-live="polite"
+    >
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={head}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="t">{head}</p>
+          <p className="s">{sub || (caseTitle ? `事例：${caseTitle}` : "")}</p>
+        </motion.div>
+      </AnimatePresence>
+    </section>
+  );
+}
+
+function summary(v: Verdict, plain: boolean): string {
+  const parts: string[] = [];
+  const i = v.impact;
+  if (i.downtimeDays > 0)
+    parts.push(`${i.stopped.map((s) => s.name).join("・")}が約 ${i.downtimeDays} 日止まります`);
+  if (i.revenueImpactJpy) parts.push(`売上影響の目安は ${yen(i.revenueImpactJpy)}`);
+  if (i.moneyLossJpy) parts.push(`${yen(i.moneyLossJpy)} が流出します`);
+  if (i.reportRequired)
+    parts.push(
+      plain
+        ? "個人情報の漏えいのおそれがあり、国への報告義務が生じます"
+        : "個人情報保護委員会への報告義務が生じます",
+    );
+  if (v.result === "blocked") parts.push("データは流れ続け、現場は動き続けます");
+  if (v.result === "pending") parts.push("未確認の項目を確認すると結論が決まります");
+  if (v.result === "no_entry") parts.push("この事例の入口になる構成が御社にありません");
+  return parts.join("。");
+}
