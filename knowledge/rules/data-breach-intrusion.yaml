@@ -1,0 +1,73 @@
+# 判定ルール表：情報漏えい（社内への侵入・持ち出し）
+# 入口・管理者権限・横展開は ransomware と同じルールを使う。ここは収集・持ち出し・到達の段階。
+# 持ち出しの段階は ransomware の枝（二重恐喝）とも共通
+rules:
+  - id: intrusion.collect.server
+    role: server
+    techniques: [T1005, T1039, T1083]
+    materialsJa: カルテ：共有フォルダのアクセス権の最小化（必要な人だけ）、アクセスログの監査
+    mitigations: [M1022, M1047]
+    outcomes:
+      # 権限の最小化と監査が揃っても、奪った権限で読める範囲は残るので「止まる」にはしない。検知で件数を抑える黄
+      - state: unknown
+        when:
+          all:
+            - control: { mitigation: M1022, status: present }
+            - control: { mitigation: M1047, status: present }
+        reasonJa: アクセス権が最小化され監査もあるので、読まれる範囲と件数を抑えられる（止まる保証はない）
+      - state: breached
+        when:
+          any:
+            - control: { mitigation: M1022, status: absent }
+            - control: { mitigation: M1047, status: absent }
+        reasonJa: 誰でも読める共有や監査のない状態で、奪った権限でまとめて集められる
+      - state: unknown
+        reasonJa: 共有フォルダのアクセス権と監査の状況が未確認
+  - id: intrusion.collect.file_server
+    role: file_server
+    techniques: [T1005, T1039, T1083]
+    materialsJa: カルテ：ファイルサーバのアクセス権の最小化（必要な人だけ）、アクセスログの監査
+    mitigations: [M1022, M1047]
+    outcomes:
+      - state: unknown
+        when:
+          all:
+            - control: { mitigation: M1022, status: present }
+            - control: { mitigation: M1047, status: present }
+        reasonJa: アクセス権が最小化され監査もあるので、読まれる範囲と件数を抑えられる（止まる保証はない）
+      - state: breached
+        when:
+          any:
+            - control: { mitigation: M1022, status: absent }
+            - control: { mitigation: M1047, status: absent }
+        reasonJa: 誰でも読める共有や監査のない状態で、奪った権限でまとめて集められる
+      - state: unknown
+        reasonJa: ファイルサーバのアクセス権と監査の状況が未確認
+  - id: intrusion.exfil
+    role: server
+    techniques: [T1048, T1041, T1567]
+    materialsJa: カルテ：持ち出しの検知・遮断（データ損失防止 DLP、外向き通信の侵入防止・遮断）
+    mitigations: [M1057, M1031]
+    outcomes:
+      - state: blocked
+        when:
+          any:
+            - control: { mitigation: M1057, status: present }
+            - control: { mitigation: M1031, status: present }
+        reasonJa: 大量データの外向き送信を検知して遮断する仕組みがある
+      - state: breached
+        when:
+          all:
+            - control: { mitigation: M1057, status: absent }
+            - control: { mitigation: M1031, status: absent }
+        reasonJa: 外向きの通信を見ていないので、集めたデータをそのまま持ち出せる
+      - state: unknown
+        reasonJa: 持ち出しの検知・遮断の有無が未確認
+  - id: intrusion.leak.file_server
+    role: file_server
+    techniques: []
+    materialsJa: カルテ：ファイルサーバに置く個人情報の所在と件数
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: ファイルサーバの個人情報が漏えいする。報告と本人通知の期限を表示する

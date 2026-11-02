@@ -1,0 +1,52 @@
+# 型紙：情報漏えい（社内への侵入と持ち出し）
+# 入口はランサムウェアと同じ候補。管理者権限を奪ってサーバへ広がり、サーバやファイルサーバの情報を集めて持ち出す。
+# 終端は到達した資産（中核システム、ファイルサーバ）で、そこに登録された個人情報から報告義務を判定する
+id: data-breach-intrusion
+damageType: data_breach
+labelJa: 情報漏えい（社内への侵入・持ち出し）
+descriptionJa: 入口から社内に侵入し、管理者権限を奪ってサーバに広がり、個人情報を集めて外部へ持ち出す
+stages:
+  - id: entry
+    labelJa: 入口から侵入
+    tactics: [TA0001]
+    entry: true
+    byRole:
+      entry.vpn: T1190
+      entry.rdp: T1133
+      entry.web: T1190
+      entry.vendor_remote: T1133
+      pc: T1566
+    accepts: [T1190, T1133, T1078, T1566, T1566.001, T1566.002, T1189, T1195.002, T1199]
+  - id: credentials
+    labelJa: 管理者権限を奪う
+    tactics: [TA0006, TA0004]
+    byRole:
+      admin: T1003
+    accepts: [T1003, T1078, T1110, T1110.004, T1555]
+  - id: lateral
+    labelJa: サーバへ広がる
+    tactics: [TA0008]
+    byRole:
+      server: T1021
+    accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
+  - id: collect
+    labelJa: 個人情報を集める
+    tactics: [TA0009, TA0007]
+    byRole:
+      server: T1005
+      file_server: T1005
+    # ローカルからの収集（T1005）、ネットワーク共有からの収集（T1039）、ファイルの探索（T1083）
+    accepts: [T1005, T1039, T1083]
+  - id: exfil
+    labelJa: 外部へ持ち出す
+    tactics: [TA0010]
+    byRole:
+      server: T1048
+    accepts: [T1048, T1041, T1567]
+  - id: leak
+    labelJa: 個人情報が漏えいする
+    tactics: [TA0010]
+    byRole:
+      file_server: null
+      core: null
+    terminal: true

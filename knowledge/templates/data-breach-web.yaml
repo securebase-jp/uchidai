@@ -1,0 +1,35 @@
+# 型紙：情報漏えい（公開 Web サイトへの侵入）
+# 通販サイトや問い合わせフォームの改ざんで、利用者が入力した情報を窃取・持ち出す経路。
+# 全段階が公開ホームページ（entry.web）の上で完結するので、ホームページの資産が無い（または廃止済みだけの）カルテでは入口なし
+id: data-breach-web
+damageType: data_breach
+labelJa: 情報漏えい（Web サイトへの侵入・改ざん）
+descriptionJa: 公開 Web サイトの脆弱性や管理画面から侵入し、ページを改ざんして利用者の入力した情報を窃取し、外部へ持ち出す
+stages:
+  - id: entry
+    labelJa: 公開 Web サイトへ侵入
+    tactics: [TA0001, TA0003]
+    entry: true
+    byRole:
+      entry.web: T1190
+    # 脆弱性の悪用（T1190）、Web シェルの設置（T1505.003）、管理画面の正規アカウントの悪用（T1078）
+    accepts: [T1190, T1505.003, T1078]
+  - id: capture
+    labelJa: 改ざんして入力情報を窃取
+    tactics: [TA0009, TA0040]
+    byRole:
+      entry.web: T1056.003
+    # 決済・入力フォームの改ざんによる窃取（T1056.003）、ページの改ざん（T1491.002）
+    accepts: [T1056.003, T1491.002]
+  - id: exfil
+    labelJa: 外部へ持ち出す
+    tactics: [TA0010]
+    byRole:
+      entry.web: T1567
+    accepts: [T1567, T1048, T1041]
+  - id: leak
+    labelJa: 個人情報が漏えいする
+    tactics: [TA0010]
+    byRole:
+      entry.web: null
+    terminal: true
