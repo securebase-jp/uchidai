@@ -182,7 +182,8 @@ function ControlRow(p: RowProps) {
         p.question,
         choice,
         p.staff.trim() || "担当者",
-        p.now.toISOString(),
+        // 回答した時刻（now は半年経過の判定にだけ使う。画面を開いた時刻を回答日時にしない）
+        new Date().toISOString(),
       ),
     );
     setMode("closed");
