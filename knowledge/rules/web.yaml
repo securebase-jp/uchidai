@@ -13,6 +13,9 @@ rules:
       - mitigation: M1032
         reasonJa: 脆弱性を突く侵入は管理画面のログインを通らないため、管理画面の多要素認証では止まりません
     outcomes:
+      - state: breached
+        when: { attr: { key: knownExploited, equals: true } }
+        reasonJa: ホームページのソフトウェア（CMS など）の製品・版が悪用確認済みの脆弱性に該当する
       - state: blocked
         when: { control: { mitigation: M1051, status: present } }
         reasonJa: ホームページのソフトウェア（CMS・追加機能）が更新されている
