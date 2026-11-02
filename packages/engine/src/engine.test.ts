@@ -2,11 +2,11 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { validateAiPath } from "./ai.ts";
 import { classifyMitigations } from "./classify.ts";
-import { evaluate } from "./evaluate.ts";
+import { evaluate, matchCaseSteps } from "./evaluate.ts";
 import { buildGraph, profileFromAnswers } from "./graph.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
 import { applyAnswer, applyMeasures, pendingControls } from "./measures.ts";
-import type { Case, CompanyProfile } from "./types.ts";
+import type { Case, CaseStep, CompanyProfile } from "./types.ts";
 
 let knowledge: Knowledge;
 let demo: CompanyProfile;
@@ -322,5 +322,39 @@ describe("型紙に対応づけられない記事は判定しない（誤って�
   });
   it("手法が 1 つでも対応づけられれば判定する（事例 2）", () => {
     expect(evaluate(case2, demo, { knowledge }).result).toBe("blocked");
+  });
+});
+
+describe("matchCaseSteps は手法が一致する段階を先に割り当てる", () => {
+  const ransomware = () => knowledge.templates.find((t) => t.id === "ransomware");
+  it("手法の無い TA0040 の段階が「バックアップを消す」に取られず、暗号化の段階が正しく当たる", () => {
+    const template = ransomware();
+    if (!template) throw new Error("型紙 ransomware がない");
+    const steps: CaseStep[] = [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated", quote: "暗号化" },
+      { tactic: "TA0040", techniques: [], source: "stated", quote: "リークサイトで公開" },
+    ];
+    const m = matchCaseSteps(template, steps, knowledge);
+    expect(m.get("encrypt")?.technique).toBe("T1486");
+    expect(m.get("encrypt")?.quote).toBe("暗号化");
+    // 手法の無い段階は、残った同じ戦術の段階（バックアップを消す）に戦術だけで当たる
+    expect(m.get("recovery")?.technique).toBeUndefined();
+    expect(m.get("recovery")?.quote).toBe("リークサイトで公開");
+  });
+  it("accepts に足した手法（T1133、T1485、T1570）が型紙の段階に対応づく", () => {
+    const template = ransomware();
+    if (!template) throw new Error("型紙 ransomware がない");
+    const steps: CaseStep[] = [
+      { tactic: "TA0001", techniques: ["T1133"], source: "stated" },
+      { tactic: "TA0008", techniques: ["T1570"], source: "inferred" },
+      { tactic: "TA0040", techniques: ["T1485"], source: "stated" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ];
+    const m = matchCaseSteps(template, steps, knowledge);
+    expect(m.get("entry")?.technique).toBe("T1133");
+    expect(m.get("lateral")?.technique).toBe("T1570");
+    expect(m.get("recovery")?.technique).toBe("T1485");
+    expect(m.get("encrypt")?.technique).toBe("T1486");
   });
 });

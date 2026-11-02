@@ -1,0 +1,82 @@
+{
+  "id": "ransom-mitsui",
+  "source": {
+    "url": "https://www.security-next.com/168949",
+    "media": "Security NEXT",
+    "date": "2025-04-07"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:10:26.486Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】基幹システムがランサム被害、リモートデスクトップ経由か - 美容関連商社（1ページ目",
+    "chars": 835,
+    "truncated": false
+  },
+  "raw": {
+    "title": "美容関連商社の基幹システムがリモートデスクトップ経由でランサムウェア被害",
+    "damageType": "ransomware",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1133",
+          "T1078",
+          "T1021.001"
+        ],
+        "source": "stated",
+        "quote": "外部協力のもと、侵入された原因や経路について調査を実施。リモートデスクトップが悪用され、侵害されたのが原因と見られている。",
+        "summaryJa": "外部から使えるリモートデスクトップが悪用されて社内に侵入されたと見られている"
+      },
+      {
+        "tactic": "TA0006",
+        "techniques": [
+          "T1003",
+          "T1110",
+          "T1078"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "侵入後に管理者などの認証情報を入手したと推定される"
+      },
+      {
+        "tactic": "TA0008",
+        "techniques": [
+          "T1021.001",
+          "T1021.002"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "入口から基幹システムのサーバまで社内ネットワークを移動して広がったと推定される"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1490"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "暗号化の前に復旧手段（バックアップなど）が妨害された可能性が通常考えられる"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486"
+        ],
+        "source": "stated",
+        "quote": "同社によれば、1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
+        "summaryJa": "基幹システムのサーバがランサムウェアによる攻撃を受け、ネットワークを遮断する事態になった"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 903,
+    "outputTokens": 1193,
+    "cacheReadInputTokens": 18340,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 8131
+}

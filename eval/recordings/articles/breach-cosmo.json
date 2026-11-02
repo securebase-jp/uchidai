@@ -1,0 +1,41 @@
+{
+  "id": "breach-cosmo",
+  "source": {
+    "url": "https://www.security-next.com/171527",
+    "media": "Security NEXT",
+    "date": "2025-06-23"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:10:41.562Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】クラウドのファイル権限に設定ミス、URL指定でアクセス可能 - コスモ石油マーケ（1ページ目",
+    "chars": 1030,
+    "truncated": false
+  },
+  "raw": {
+    "title": "コスモ石油マーケティング、クラウドの設定ミスで顧客情報のファイルがURL指定で閲覧可能に",
+    "damageType": "data_breach",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1530"
+        ],
+        "source": "stated",
+        "quote": "サーバやフォルダに対するアクセスは制限されていたが、2019年8月1日から2025年5月30日にかけてクラウド上に保存されているファイルのURLを直接指定すると外部からアクセスが可能だった。",
+        "summaryJa": "クラウドの閲覧制限の設定ミスにより、ファイルのURLを直接指定すれば誰でも顧客情報を取得できる状態だった（ログのある期間に実際のアクセスは確認されていない）"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 1067,
+    "outputTokens": 965,
+    "cacheReadInputTokens": 18340,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 6950
+}

@@ -37,9 +37,8 @@ import {
 } from "@uchidai/engine";
 import {
   type Article,
-  decodeHtml,
-  downloadBytes,
-  extractHtml,
+  downloadArticle,
+  extractHtmlPages,
   fetchArticle,
   type ReadKnowledge,
   readCase,
@@ -134,7 +133,13 @@ export type ArticleMeasure = {
 // ---------------------------------------------------------------------------
 // 取得とキャッシュ
 // ---------------------------------------------------------------------------
-type CacheMeta = { title?: string; truncated: boolean; chars: number; fetchedAt: string };
+type CacheMeta = {
+  title?: string;
+  truncated: boolean;
+  chars: number;
+  pages?: number;
+  fetchedAt: string;
+};
 
 function cachePaths(id: string) {
   return {
@@ -150,6 +155,7 @@ function saveExtracted(id: string, article: Article): CacheMeta {
     ...(article.title ? { title: article.title } : {}),
     truncated: article.truncated ?? false,
     chars: article.text.length,
+    pages: article.htmlPages ?? 1,
     fetchedAt: new Date().toISOString(),
   };
   writeFileSync(p.txt, article.text);
@@ -157,20 +163,20 @@ function saveExtracted(id: string, article: Article): CacheMeta {
   return meta;
 }
 
-/** 記事を取得して HTML と本文をキャッシュに置く（HTML 以外は本文だけ） */
+/** キャッシュの HTML でページの区切りに使う印（記事サイトの「次のページ」を辿ったとき） */
+const PAGE_BREAK = "\n<!-- uchidai:page-break -->\n";
+
+/** 記事を取得して HTML（続きのページを含む）と本文をキャッシュに置く（PDF なら本文だけ） */
 export async function fetchToCache(entry: ArticleEntry): Promise<CacheMeta> {
   mkdirSync(dirs.cache, { recursive: true });
   const p = cachePaths(entry.id);
-  const { data, contentType, finalUrl } = await downloadBytes(entry.url);
-  const isHtml =
-    /text\/html|application\/xhtml/i.test(contentType) || !/\.pdf(\?|#|$)/i.test(finalUrl);
+  const downloaded = await downloadArticle(entry.url);
   let article: Article;
-  if (isHtml) {
-    const html = decodeHtml(data, contentType);
-    writeFileSync(p.html, html);
-    article = await fetchArticle({ kind: "html", html, sourceUrl: entry.url });
+  if (downloaded.kind === "html") {
+    writeFileSync(p.html, downloaded.htmls.join(PAGE_BREAK));
+    article = extractHtmlPages(downloaded.htmls, entry.url);
   } else {
-    article = await fetchArticle({ kind: "pdf", data, sourceUrl: entry.url });
+    article = await fetchArticle({ kind: "pdf", data: downloaded.data, sourceUrl: entry.url });
   }
   return saveExtracted(entry.id, article);
 }
@@ -179,8 +185,8 @@ export async function fetchToCache(entry: ArticleEntry): Promise<CacheMeta> {
 export async function reExtract(entry: ArticleEntry): Promise<CacheMeta | undefined> {
   const p = cachePaths(entry.id);
   if (!existsSync(p.html)) return undefined;
-  const article = extractHtml(readFileSync(p.html, "utf8"), entry.url);
-  return saveExtracted(entry.id, article);
+  const htmls = readFileSync(p.html, "utf8").split(PAGE_BREAK);
+  return saveExtracted(entry.id, extractHtmlPages(htmls, entry.url));
 }
 
 function loadCached(id: string): { text: string; meta: CacheMeta } | undefined {
@@ -447,7 +453,7 @@ async function main() {
         const cached = opts.force ? undefined : loadCached(entry.id);
         const meta = cached ? cached.meta : await fetchToCache(entry);
         console.log(
-          `[${entry.id}] ${cached ? "キャッシュ済み" : "取得"}: ${meta.chars} 文字${meta.truncated ? "（切り詰め）" : ""} ${meta.title ?? ""}`,
+          `[${entry.id}] ${cached ? "キャッシュ済み" : "取得"}: ${meta.chars} 文字、${meta.pages ?? 1} ページ${meta.truncated ? "（切り詰め）" : ""} ${meta.title ?? ""}`,
         );
       } catch (e) {
         console.log(`[${entry.id}] 取得失敗: ${e instanceof Error ? e.message : e}`);
@@ -461,7 +467,7 @@ async function main() {
       const meta = await reExtract(entry);
       console.log(
         meta
-          ? `[${entry.id}] 抽出し直し: ${meta.chars} 文字 ${meta.title ?? ""}`
+          ? `[${entry.id}] 抽出し直し: ${meta.chars} 文字、${meta.pages ?? 1} ページ ${meta.title ?? ""}`
           : `[${entry.id}] HTML のキャッシュがありません`,
       );
     }

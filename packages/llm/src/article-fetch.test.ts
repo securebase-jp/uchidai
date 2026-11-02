@@ -254,3 +254,44 @@ describe("fetchArticle の入力の上限", () => {
     expect(fetch.calls).toEqual([]);
   });
 });
+
+describe("fetchArticle(url) は記事の続きのページを辿る", () => {
+  const page = (body: string, next?: string) =>
+    html(
+      `<html><head><title>記事</title></head><body><div><p>${body.repeat(6)}</p>${next ? `<div class="pnavi"><a href="${next}">次</a></div>` : ""}</div></body></html>`,
+    );
+  it("/2 のリンクを同じホストでだけ辿り、本文をつなげる（上限あり）", async () => {
+    const fetch = fakeFetch({
+      "https://example.com/100": () =>
+        page("1ページ目の本文。VPN装置の脆弱性を悪用された。", "https://example.com/100/2"),
+      "https://example.com/100/2": () =>
+        page("2ページ目の本文。多要素認証を導入した。", "https://example.com/100/3"),
+      "https://example.com/100/3": () =>
+        page("3ページ目の本文。再発防止策を進める。", "https://evil.example/100/4"),
+    });
+    const a = await fetchArticle(
+      { kind: "url", url: "https://example.com/100" },
+      { fetch, lookup: publicLookup },
+    );
+    expect(a.htmlPages).toBe(3);
+    expect(a.text).toContain("1ページ目の本文");
+    expect(a.text).toContain("2ページ目の本文");
+    expect(a.text).toContain("3ページ目の本文");
+    expect(fetch.calls).toEqual([
+      "https://example.com/100",
+      "https://example.com/100/2",
+      "https://example.com/100/3",
+    ]);
+  });
+  it("続きの取得に失敗しても、取れたページまでで読む", async () => {
+    const fetch = fakeFetch({
+      "https://example.com/200": () => page("本文。業務データが暗号化された。", "/200/2"),
+    });
+    const a = await fetchArticle(
+      { kind: "url", url: "https://example.com/200" },
+      { fetch, lookup: publicLookup },
+    );
+    expect(a.htmlPages).toBe(1);
+    expect(a.text).toContain("業務データが暗号化された");
+  });
+});

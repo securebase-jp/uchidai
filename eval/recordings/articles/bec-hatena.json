@@ -1,0 +1,69 @@
+{
+  "id": "bec-hatena",
+  "source": {
+    "url": "https://www.itmedia.co.jp/news/articles/2604/24/news127.html",
+    "media": "ITmedia NEWS",
+    "date": "2026-04-24"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:10:34.609Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "はてな、11億円の資金流出　振り込め詐欺か",
+    "chars": 641,
+    "truncated": false
+  },
+  "raw": {
+    "title": "はてな、不正な送金指示により約11億円の資金が流出",
+    "damageType": "bec",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1078",
+          "T1566",
+          "T1133"
+        ],
+        "source": "unknown",
+        "quote": null,
+        "summaryJa": "第三者がどのような方法で従業員のアカウントや送金指示の手段に入り込んだかは記事に書かれておらず、入口は不明。"
+      },
+      {
+        "tactic": "TA0005",
+        "techniques": [
+          "T1684.001",
+          "T1684.002"
+        ],
+        "source": "stated",
+        "quote": "その従業員に確認したところ、悪意ある第三者から虚偽の送金指示があったことが分かった。",
+        "summaryJa": "悪意ある第三者が虚偽の送金指示を出し、従業員をだました。"
+      },
+      {
+        "tactic": "TA0002",
+        "techniques": [],
+        "source": "stated",
+        "quote": "4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
+        "summaryJa": "従業員のアカウントから、銀行預金が外部の口座へ送金された。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "stated",
+        "quote": "はてなは、4月24日、不正な送金指示によって約11億円の資金が銀行口座から流出したと公表した。",
+        "summaryJa": "約11億円の資金が銀行口座から外部へ流出した。"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 665,
+    "outputTokens": 493,
+    "cacheReadInputTokens": 18340,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 3358
+}

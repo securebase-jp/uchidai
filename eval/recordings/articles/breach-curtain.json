@@ -1,0 +1,73 @@
+{
+  "id": "breach-curtain",
+  "source": {
+    "url": "https://www.security-next.com/180183",
+    "media": "Security NEXT",
+    "date": "2026-01-27"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:10:50.129Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】カーテン通販サイトで決済アプリ改ざん - 個人情報流出の可能性（1ページ目",
+    "chars": 887,
+    "truncated": false
+  },
+  "raw": {
+    "title": "カーテン通販サイトの決済アプリ改ざんによるカード情報・個人情報の流出",
+    "damageType": "data_breach",
+    "clarity": "partial",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190"
+        ],
+        "source": "stated",
+        "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
+        "summaryJa": "通販サイトのシステムの弱点を突かれて不正アクセスを受けた"
+      },
+      {
+        "tactic": "TA0003",
+        "techniques": [
+          "T1505.003",
+          "T1554"
+        ],
+        "source": "stated",
+        "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
+        "summaryJa": "決済アプリケーションが改ざんされ、攻撃者の仕掛けが残された"
+      },
+      {
+        "tactic": "TA0009",
+        "techniques": [
+          "T1056.003",
+          "T1005",
+          "T1213.006"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "改ざんされた決済アプリなどを通じて、顧客の入力したカード情報や個人情報が収集された"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1041",
+          "T1048",
+          "T1567"
+        ],
+        "source": "stated",
+        "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
+        "summaryJa": "クレジットカード情報や個人情報が外部へ流出した可能性がある"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 918,
+    "outputTokens": 614,
+    "cacheReadInputTokens": 18340,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 5479
+}
