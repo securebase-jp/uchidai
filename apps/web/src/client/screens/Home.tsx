@@ -3,7 +3,7 @@
  * ① ドメインを外から見る（任意）→ ② 最初の5問 → ③ カルテの詳細 → ④ 記事を貼る（またはキー無しで記録済みの事例）→ ⑤ 結論。
  * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
  */
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api } from "../lib/api.ts";
 import { type HomeStep, homeSteps } from "../lib/home-status.ts";
@@ -41,7 +41,7 @@ export function Home() {
   const [text, setText] = useState("");
   const [pdfName, setPdfName] = useState<string>();
   const [reading, setReading] = useState<"url" | "text" | "pdf">();
-  const [readError, setReadError] = useState<string>();
+  const [readError, setReadError] = useState<{ message: string; keyMissing: boolean }>();
   const [recon] = useState(() => reconHints.load());
 
   useEffect(() => {
@@ -68,11 +68,12 @@ export function Home() {
         theCase: app.theCase
           ? {
               title: app.theCase.title,
+              chosen: app.caseChosen,
               ...(app.caseMeta?.recorded ? { recordedId: app.caseMeta.recorded.caseId } : {}),
             }
           : undefined,
       }),
-    [recon, app.profile, app.profileSource, app.theCase, app.caseMeta],
+    [recon, app.profile, app.profileSource, app.theCase, app.caseMeta, app.caseChosen],
   );
 
   async function read(kind: "url" | "text" | "pdf", pdf?: File) {
@@ -93,7 +94,11 @@ export function Home() {
       });
       location.hash = "/staff";
     } catch (e) {
-      setReadError(e instanceof ApiError || e instanceof Error ? e.message : "読解に失敗しました");
+      // キーが無いサーバは 503（文言はサーバ）。記録済みの事例へ自然に流す
+      setReadError({
+        message: e instanceof ApiError || e instanceof Error ? e.message : "読解に失敗しました",
+        keyMissing: e instanceof ApiError && e.status === 503,
+      });
     } finally {
       setReading(undefined);
     }
@@ -102,7 +107,10 @@ export function Home() {
   function pickPdf(file: File | undefined) {
     if (!file) return;
     if (file.size > MAX_PDF_BYTES) {
-      setReadError("PDF が大きすぎます（20 MB まで）。該当ページだけを書き出してください。");
+      setReadError({
+        message: "PDF が大きすぎます（20 MB まで）。該当ページだけを書き出してください。",
+        keyMissing: false,
+      });
       return;
     }
     setPdfName(file.name);
@@ -270,12 +278,19 @@ type ArticleProps = {
   pdfName: string | undefined;
   onPdf(file: File | undefined): void;
   reading: "url" | "text" | "pdf" | undefined;
-  error: string | undefined;
+  error: { message: string; keyMissing: boolean } | undefined;
   onRead(kind: "url" | "text"): void;
 };
 
 function ArticleStep(p: ArticleProps) {
   const busy = p.reading !== undefined;
+  const recordedRef = useRef<HTMLDivElement>(null);
+  const goRecorded = () => {
+    recordedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    recordedRef.current?.querySelector<HTMLInputElement>("input[type=radio]")?.focus({
+      preventScroll: true,
+    });
+  };
   return (
     <div className="article-step">
       <div className="article-paste">
@@ -331,9 +346,18 @@ function ArticleStep(p: ArticleProps) {
             {p.pdfName && <span className="muted small">{p.pdfName}</span>}
           </div>
           {p.error && (
-            <p className="err small" role="alert">
-              {p.error}
-            </p>
+            <div role="alert">
+              <p className="err small">{p.error.message}</p>
+              {p.error.keyMissing && (
+                <p className="small" style={{ marginTop: 6 }}>
+                  このサーバでは記事を読めませんが、記録済みの事例（IPA 事例集 5
+                  件）で判定まで進めます。
+                  <button type="button" className="btn sm" onClick={goRecorded}>
+                    記録済みの事例から選ぶ
+                  </button>
+                </p>
+              )}
+            </div>
           )}
           <p className="muted small">
             記事は信頼できないデータとして扱い、指示文と分けて渡します。存在しない手法 ID
@@ -341,7 +365,7 @@ function ArticleStep(p: ArticleProps) {
           </p>
         </div>
       </div>
-      <div className="article-recorded">
+      <div className="article-recorded" ref={recordedRef}>
         <h3>記録済みの事例から選ぶ（キー不要）</h3>
         <p className="muted small">
           IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」を Claude

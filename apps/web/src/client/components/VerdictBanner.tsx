@@ -1,6 +1,7 @@
 /** 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明 */
 import { AnimatePresence, motion } from "motion/react";
 import { PLAIN_STATE, RESULT_TONE, STATE_LABEL, yen } from "../lib/labels.ts";
+import { unknownStepLabels } from "../lib/pending.ts";
 import type { Scene, Script } from "../lib/playback.ts";
 import type { Graph, Verdict } from "../lib/types.ts";
 
@@ -72,7 +73,7 @@ export function VerdictBanner({
   const [head, sub] = swapping
     ? ["時間を巻き戻しています", "同じ攻撃を、条件を変えてもう一度走らせます。"]
     : concluded
-      ? [verdict.headlineJa, summary(verdict, plain)]
+      ? [verdict.headlineJa, summary(verdict, plain, graph)]
       : progressText(script, graph, fired, plain);
   return (
     <section
@@ -95,9 +96,17 @@ export function VerdictBanner({
   );
 }
 
-function summary(v: Verdict, plain: boolean): string {
+export function summary(v: Verdict, plain: boolean, graph?: Graph): string {
   const parts: string[] = [];
   const i = v.impact;
+  // 未確認の段階を通って到達した結論は最悪の想定（未確認は「止まる」とは扱わない）
+  const unknown = graph ? unknownStepLabels(v, graph) : [];
+  if (v.result === "breached" && unknown.length > 0)
+    parts.push(
+      plain
+        ? `確認が取れていない所（${unknown.join("、")}）は、入られるものとして見ています`
+        : `未確認の段階（${unknown.join("、")}）は突破されるとみなした最悪の想定です`,
+    );
   if (i.downtimeDays > 0)
     parts.push(`${i.stopped.map((s) => s.name).join("・")}が約 ${i.downtimeDays} 日止まります`);
   if (i.revenueImpactJpy) parts.push(`売上影響の目安は ${yen(i.revenueImpactJpy)}`);

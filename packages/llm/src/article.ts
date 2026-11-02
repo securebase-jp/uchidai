@@ -590,11 +590,17 @@ export function extractHtmlPages(htmls: string[], sourceUrl?: string): Article {
 function nextPageCandidates(current: URL): string[] {
   const out = new Set<string>();
   const path = current.pathname.replace(/\/$/, "");
-  // 末尾の数字が 2〜MAX_HTML_PAGES のときだけページ番号とみなす（/166531 のような記事 ID と区別する）
+  // 末尾の数字が 2〜MAX_HTML_PAGES のときだけページ番号とみなす（/166531 のような記事 ID と区別する）。
+  // /2024/11/2 のような日付のパスの末尾は日であってページ番号ではない（翌日の記事を続きとして辿らない）
   const m = /^(.*)\/(\d+)$/.exec(path);
   const n = m?.[2] !== undefined ? Number(m[2]) : Number.NaN;
+  const dateLike = m?.[1] !== undefined && /\/\d{4}\/\d{1,2}$/.test(m[1]);
   const bases =
-    m?.[1] !== undefined && n >= 2 && n <= MAX_HTML_PAGES ? [`${m[1]}/${n + 1}`] : [`${path}/2`];
+    m?.[1] !== undefined && !dateLike && n >= 2 && n <= MAX_HTML_PAGES
+      ? [`${m[1]}/${n + 1}`]
+      : dateLike
+        ? []
+        : [`${path}/2`];
   for (const b of bases) {
     for (const suffix of ["", "/"]) {
       const u = new URL(current.toString());

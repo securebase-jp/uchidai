@@ -1,4 +1,5 @@
 import { MotionConfig } from "motion/react";
+import { useEffect } from "react";
 import { TopBar } from "./components/TopBar.tsx";
 import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
@@ -18,6 +19,11 @@ import { Staff } from "./screens/Staff.tsx";
 function Shell({ settings }: { settings: Settings }) {
   const [route] = useRoute();
   const app = useApp();
+  // 画面を切り替えたら先頭から見せる（前の画面のスクロール位置を引き継がない）
+  // biome-ignore lint/correctness/useExhaustiveDependencies: route が変わったときだけ先頭へ
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [route]);
   return (
     <div className="wrap">
       <TopBar

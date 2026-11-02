@@ -11,6 +11,7 @@
  * 架空のドメイン demo-seiko.example は記録した応答（fixture）を再生し、実ネットワークには出ない。
  * 公開 URL 経由（remote-guard）では /api/recon/* はすべて拒否される。
  */
+import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -76,6 +77,17 @@ const StoredTokens = z.object({
   ),
 });
 
+/** ファイルのトークン一覧を読む。無い・壊れている・形が違うときは空（次の発行で書き直す） */
+function readTokens(file: string): StoredToken[] {
+  if (!existsSync(file)) return [];
+  try {
+    const parsed = StoredTokens.safeParse(JSON.parse(readFileSync(file, "utf8")));
+    return parsed.success ? parsed.data.tokens : [];
+  } catch {
+    return [];
+  }
+}
+
 /** トークン（ファイルにも保存）、所有確認の結果（メモリだけ）、最後の実行結果（メモリだけ） */
 export class ReconStore {
   private readonly tokens = new Map<string, StoredToken>();
@@ -85,21 +97,21 @@ export class ReconStore {
 
   constructor(file?: string) {
     this.file = file;
-    if (file && existsSync(file)) {
-      try {
-        const parsed = StoredTokens.safeParse(JSON.parse(readFileSync(file, "utf8")));
-        if (parsed.success) for (const t of parsed.data.tokens) this.tokens.set(t.domain, t);
-      } catch {
-        // 壊れたファイルは無視して空で始める（次の発行で書き直す）
-      }
-    }
+    if (file) for (const t of readTokens(file)) this.tokens.set(t.domain, t);
   }
 
+  /**
+   * ファイルに書く。別のプロセス（別ポートで動く dev サーバなど）が同じファイルに書いたドメインは残し、
+   * 自分の持つドメインだけ上書きする。一時ファイル名はプロセスごとに分け、rename で置き換える
+   */
   private persist(): void {
     if (!this.file) return;
     mkdirSync(dirname(this.file), { recursive: true });
-    const tmp = `${this.file}.tmp`;
-    writeFileSync(tmp, JSON.stringify({ tokens: [...this.tokens.values()] }, null, 2), "utf8");
+    const merged = new Map<string, StoredToken>();
+    for (const t of readTokens(this.file)) merged.set(t.domain, t);
+    for (const t of this.tokens.values()) merged.set(t.domain, t);
+    const tmp = `${this.file}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ tokens: [...merged.values()] }, null, 2), "utf8");
     renameSync(tmp, this.file);
   }
 

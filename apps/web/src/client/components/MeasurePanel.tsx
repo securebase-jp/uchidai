@@ -1,4 +1,5 @@
 /** 対策ボタン（knowledge/measures.yaml から）。押すと巻き戻して同じ攻撃をもう一度 */
+import { STATE_LABEL } from "../lib/labels.ts";
 import type { MeasureDef, Verdict } from "../lib/types.ts";
 
 type Props = {
@@ -44,7 +45,7 @@ export function measureEffect(
             ? "効いた：ここで止まる"
             : eff.state === "recoverable"
               ? "効いた：復旧できる"
-              : "適用中",
+              : `適用中：この段階はまだ「${STATE_LABEL[eff.state]}」${eff.reasonJa ? `（${eff.reasonJa}）` : ""}`,
       };
     return { kind: "effective", textJa: `この段階に効く：${eff.labelJa ?? eff.role}` };
   }

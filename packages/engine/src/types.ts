@@ -228,6 +228,8 @@ export const PathStep = z.object({
   labelJa: z.string().optional(),
   /** 前提条件として表示する段階（止めない） */
   precondition: z.boolean().optional(),
+  /** 本線から枝分かれした段階（二重恐喝の持ち出しなど）。止まっても本線は進み、結論の材料にも数えない */
+  branch: z.boolean().optional(),
   quote: z.string().optional(),
 });
 

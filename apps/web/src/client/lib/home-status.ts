@@ -13,8 +13,8 @@ export type HomeInput = {
   /** 会社カルテ（このブラウザに保存されているもの） */
   profile: { companyName: string; fictional: boolean; pending: number } | undefined;
   profileSource: "example" | "answers" | "saved" | undefined;
-  /** いま選んでいる事例。recordedId があれば記録済みの読解結果 */
-  theCase: { title: string; recordedId?: string } | undefined;
+  /** いま選んでいる事例。recordedId があれば記録済みの読解結果。chosen: false は担当者が選んでいない既定の事例 */
+  theCase: { title: string; recordedId?: string; chosen?: boolean } | undefined;
   /** 日時の表示（テストで固定できるように差し替え可） */
   formatDateTime?: (iso: string) => string;
 };
@@ -133,14 +133,19 @@ export function homeSteps(input: HomeInput): HomeStep[] {
     titleJa: "記事を貼る",
     leadJa:
       "報道記事の URL・本文・PDF を Claude が読み、攻撃の段階を手法 ID に対応づけます。キーが無ければ記録済みの事例から選びます。",
-    ...(theCase
+    ...(theCase && theCase.chosen === false
       ? {
-          statusJa: theCase.recordedId
-            ? `いまの事例：${theCase.title}（記録済みの読解結果）`
-            : `いまの事例：${theCase.title}（Claude が読解）`,
-          tone: "done" as const,
+          statusJa: `まだ選んでいません（既定で記録済みの事例「${theCase.title}」を使っています。記事を貼るか、下から選べます）`,
+          tone: "todo" as const,
         }
-      : { statusJa: "事例がまだありません", tone: "todo" as const }),
+      : theCase
+        ? {
+            statusJa: theCase.recordedId
+              ? `いまの事例：${theCase.title}（記録済みの読解結果）`
+              : `いまの事例：${theCase.title}（Claude が読解）`,
+            tone: "done" as const,
+          }
+        : { statusJa: "事例がまだありません", tone: "todo" as const }),
   };
 
   const ready = Boolean(profile && theCase);

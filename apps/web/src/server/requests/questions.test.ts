@@ -20,7 +20,42 @@ describe("質問表", () => {
   it("質問の文言に ATT&CK の ID を出さない（背景として別に添える）", () => {
     for (const q of allQuestions()) {
       expect(q.textJa).not.toMatch(/\b(M\d{4}|T\d{4})\b/);
+      for (const v of Object.values(q.byRole ?? {})) {
+        expect(v.textJa).not.toMatch(/\b(M\d{4}|T\d{4})\b/);
+        if (v.choices) expect(v.choices.some((c) => c.status === "unknown")).toBe(true);
+      }
     }
+  });
+  it("役割で意味が変わる緩和策は役割ごとの文言を返し、無い役割は共通の文言のまま", () => {
+    const k = loadKnowledge();
+    // 判定ルールが同じ緩和策を別の意味で見る役割の組み合わせ：byRole に文言があること
+    for (const [m, role] of [
+      ["M1047", "entry.web"],
+      ["M1047", "server"],
+      ["M1047", "file_server"],
+      ["M1022", "server"],
+      ["M1022", "file_server"],
+      ["M1051", "entry.web"],
+      ["M1032", "entry.web"],
+    ] as const) {
+      expect(questionFor(m)?.byRole?.[role], `${m} × ${role}`).toBeDefined();
+      expect(k.rules.some((r) => r.role === role && r.mitigations.includes(m))).toBe(true);
+    }
+    const web = questionFor("M1047", "entry.web");
+    expect(web?.textJa).toContain("改ざん");
+    expect(web?.byRole).toBeUndefined();
+    expect(questionFor("M1047", "cloud.storage")?.textJa).toContain("共有設定");
+    expect(questionFor("M1047")?.textJa).toContain("共有設定");
+    const vpn = questionFor("M1032", "entry.vpn");
+    expect(vpn?.textJa).toContain("VPN");
+    expect(vpn?.choices.map((c) => c.id)).toEqual(["all", "partial", "absent", "unknown"]);
+    // byRole の役割は roles.yaml にある
+    for (const q of allQuestions())
+      for (const role of Object.keys(q.byRole ?? {}))
+        expect(
+          k.roles.some((r) => r.id === role),
+          role,
+        ).toBe(true);
   });
   it("背景：役割に当たるルールから手法 ID と判定の材料を取る", () => {
     const k = loadKnowledge();

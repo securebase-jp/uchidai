@@ -64,12 +64,21 @@ export function terminalRoles(knowledge: Knowledge): Set<string> {
   );
 }
 
+export type ValidateAiPathOptions = {
+  /**
+   * 到達とみなす役割。省略時は全型紙の終点の役割（中核、ファイルサーバ、クラウドストレージ、公開ホームページ、資金の流出）。
+   * AI攻撃者の目標が中核だけなら { terminalRoles: new Set(["core"]) } を渡す（ホームページで終わる経路を到達にしない）
+   */
+  terminalRoles?: ReadonlySet<string>;
+};
+
 export function validateAiPath(
   candidate: unknown,
   graph: Graph,
   profile: CompanyProfile,
   knowledge: Knowledge = loadKnowledge(),
   id = "ai",
+  options: ValidateAiPathOptions = {},
 ): AiPathValidation {
   const parsed = AiPathCandidate.safeParse(candidate);
   if (!parsed.success)
@@ -89,11 +98,18 @@ export function validateAiPath(
       reasons.push(
         `段階 ${i + 1}: 手法 ${s.technique} は ATT&CK v${knowledge.attack.version} に存在しない`,
       );
-    const node =
-      graph.nodes.find((n) => n.role === s.role && adjacent(graph, prevId, n.id)) ??
-      graph.nodes.find((n) => n.role === s.role);
+    // 廃止済みと登録された資産（旧キャンペーンサイトなど）は、型紙の判定と同じく経路に使わない
+    const sameRole = graph.nodes.filter((n) => n.role === s.role);
+    const usable = sameRole.filter(
+      (n) => profile.assets.find((a) => a.id === n.assetId)?.attrs.decommissioned !== true,
+    );
+    const node = usable.find((n) => adjacent(graph, prevId, n.id)) ?? usable[0];
     if (!node) {
-      reasons.push(`段階 ${i + 1}: 役割 ${s.role} は構成グラフにない`);
+      reasons.push(
+        sameRole.length > 0
+          ? `段階 ${i + 1}: 役割 ${s.role} の資産は廃止済みと登録されたものだけ`
+          : `段階 ${i + 1}: 役割 ${s.role} は構成グラフにない`,
+      );
       continue;
     }
     if (!adjacent(graph, prevId, node.id))
@@ -150,7 +166,8 @@ export function validateAiPath(
   if (reasons.length > 0) return { ok: false, reasons };
 
   const lastRole = steps[steps.length - 1]?.role ?? "";
-  const reachedCore = !stopped && terminalRoles(knowledge).has(lastRole);
+  const terminals = options.terminalRoles ?? terminalRoles(knowledge);
+  const reachedCore = !stopped && terminals.has(lastRole);
   const reachedAssetIds = steps
     .filter((s) => s.state !== "blocked")
     .map((s) => graph.nodes.find((n) => n.id === s.nodeId)?.assetId)

@@ -170,6 +170,7 @@ function evaluateStageNode(
     source,
     labelJa: stage.labelJa,
     ...(stage.precondition ? { precondition: true } : {}),
+    ...(stage.branch ? { branch: true } : {}),
     ...(matched?.quote ? { quote: matched.quote } : {}),
   };
   const rule = findRule(knowledge.rules, node.role, technique);
@@ -251,9 +252,12 @@ export function buildImpact(paths: AttackPath[], profile: CompanyProfile): Impac
 export function decideResult(paths: AttackPath[]): VerdictResult {
   const reached = paths.filter((p) => p.reachedCore);
   if (reached.length > 0) {
-    // 判定の材料がある段階だけで決める（前提条件、到達、材料のない段階は除く）
+    // 判定の材料がある本線の段階だけで決める（前提条件、枝、到達、材料のない段階は除く）。
+    // 枝（持ち出しなど）は本線が中核に届くかどうかを左右しないので、枝だけが赤でも「大丈夫ではない」にはしない
     const decisive = (p: AttackPath) =>
-      p.steps.filter((s) => !s.precondition && s.mitigations.length > 0 && !isTerminal(p, s));
+      p.steps.filter(
+        (s) => !s.precondition && !s.branch && s.mitigations.length > 0 && !isTerminal(p, s),
+      );
     const onlyUnknowns = reached.every((p) => {
       const d = decisive(p);
       return (

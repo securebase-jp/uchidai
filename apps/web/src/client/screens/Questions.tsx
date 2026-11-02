@@ -239,8 +239,20 @@ export function Questions({ reduced }: { reduced: boolean }) {
                 {error}
               </p>
             )}
+            {step > 0 && (
+              <p style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn ghost sm"
+                  onClick={() => setStep((s) => Math.max(0, s - 1))}
+                >
+                  ← 前の質問に戻る
+                </button>
+              </p>
+            )}
             <p className="muted" style={{ marginTop: 14 }}>
-              文字入力はありません。2 分以内で終わります。回答はこのブラウザにだけ保存されます。
+              文字入力はありません。2
+              分以内で終わります。回答はこのブラウザにだけ保存されます。会社名は、あとでカルテの画面で登録できます。
             </p>
           </>
         ) : (

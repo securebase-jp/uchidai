@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { type CtLogSource, type DnsResolver, type MxRecord, VERIFY_PREFIX } from "@uchidai/recon";
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
@@ -46,7 +49,7 @@ class FakeCt implements CtLogSource {
   }
 }
 
-function build(opts: { now?: () => Date } = {}) {
+function build(opts: { now?: () => Date; store?: ReconStore } = {}) {
   const dns = new FakeDns();
   const ct = new FakeCt();
   const api = new Hono();
@@ -58,7 +61,11 @@ function build(opts: { now?: () => Date } = {}) {
   });
   api.route(
     "/api/recon",
-    reconRoutes({ store: new ReconStore(), live: () => ({ resolver: dns, ct }), ...opts }),
+    reconRoutes({
+      store: opts.store ?? new ReconStore(),
+      live: () => ({ resolver: dns, ct }),
+      ...opts,
+    }),
   );
   const post = (path: string, body: unknown) =>
     api.request(path, {
@@ -235,5 +242,61 @@ describe("公開 URL 経由（remote-guard）", () => {
       headers: h,
     });
     expect(status.status).toBe(403);
+  });
+});
+
+describe("サーバに会社カルテを残さない", () => {
+  it("/run に渡したカルテは応答にだけ使い、サーバが記憶するのは外部確認の結果だけ", async () => {
+    const store = new ReconStore();
+    const { post } = build({ store });
+    await post("/api/recon/token", { domain: FIXTURE_DOMAIN });
+    await post("/api/recon/verify", { domain: FIXTURE_DOMAIN });
+    const { profile } = await loose(app.request("/api/examples/demo-seiko"));
+    const run = await loose(post("/api/recon/run", { domain: FIXTURE_DOMAIN, profile }));
+    expect(run.applied.profile.companyName).toBe(profile.companyName);
+    const last = store.getLastRun(FIXTURE_DOMAIN);
+    expect(last).toBeDefined();
+    expect(last && "applied" in last).toBe(false);
+    const remembered = JSON.stringify(last);
+    expect(remembered).not.toContain(profile.companyName);
+    for (const key of ['"assets"', '"businesses"', '"personalData"', '"companyName"'])
+      expect(remembered).not.toContain(key);
+    for (const a of profile.assets) expect(remembered).not.toContain(a.label);
+  });
+});
+
+describe("ReconStore のファイル保存", () => {
+  it("別のプロセスが同じファイルに書いたドメインを消さず、壊れたファイルは空として読む", () => {
+    const dir = mkdtempSync(join(tmpdir(), "uchidai-recon-"));
+    const file = join(dir, "recon-tokens.json");
+    const a = new ReconStore(file);
+    const b = new ReconStore(file);
+    a.setToken({
+      domain: "a.example.jp",
+      token: "a".repeat(32),
+      createdAt: "2026-11-03T00:00:00Z",
+    });
+    b.setToken({
+      domain: "b.example.jp",
+      token: "b".repeat(32),
+      createdAt: "2026-11-03T00:00:00Z",
+    });
+    a.setToken({
+      domain: "a.example.jp",
+      token: "c".repeat(32),
+      createdAt: "2026-11-03T01:00:00Z",
+    });
+    const reloaded = new ReconStore(file);
+    expect(reloaded.getToken("a.example.jp")?.token).toBe("c".repeat(32));
+    expect(reloaded.getToken("b.example.jp")?.token).toBe("b".repeat(32));
+    expect(JSON.parse(readFileSync(file, "utf8")).tokens).toHaveLength(2);
+    const broken = join(dir, "broken.json");
+    const w = new ReconStore(broken);
+    w.setToken({
+      domain: "x.example.jp",
+      token: "d".repeat(32),
+      createdAt: "2026-11-03T00:00:00Z",
+    });
+    expect(new ReconStore(broken).getToken("x.example.jp")).toBeDefined();
   });
 });

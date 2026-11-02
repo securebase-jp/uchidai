@@ -4,9 +4,10 @@
  * engine の zod スキーマはブラウザに持ち込まない（engine は fs を読む）ので、画面が触る項目だけをここで見る。
  */
 import { z } from "zod";
-import type { CompanyProfile } from "./types.ts";
+import type { Case, CompanyProfile } from "./types.ts";
 
 const KEY = "uchidai.profile.v1";
+const CASE_KEY = "uchidai.case.v1";
 const THEME_KEY = "uchidai.theme";
 const MOTION_KEY = "uchidai.reduceMotion";
 
@@ -44,6 +45,33 @@ export function parseSavedProfile(raw: string | null): CompanyProfile | undefine
   return ok.success ? (ok.data as unknown as CompanyProfile) : undefined;
 }
 
+/** 担当者が選んだ事例（記事の読解結果か記録済みの事例）と、その出所。再読み込みで既定の事例に戻らないように保存する */
+const SavedCase = z.object({
+  case: z.looseObject({
+    title: z.string(),
+    damageType: z.string(),
+    clarity: z.string(),
+    steps: z.array(z.unknown()),
+  }),
+  meta: z.object({
+    label: z.string(),
+    sourceJa: z.string(),
+    sourceUrl: z.string().optional(),
+    recorded: z.looseObject({ caseId: z.string() }).optional(),
+  }),
+});
+export type SavedCase = {
+  case: Case;
+  meta: { label: string; sourceJa: string; sourceUrl?: string; recorded?: { caseId: string } };
+};
+
+export function parseSavedCase(raw: string | null): SavedCase | undefined {
+  if (!raw) return undefined;
+  const parsed = safe<unknown>(() => JSON.parse(raw), undefined);
+  const ok = SavedCase.safeParse(parsed);
+  return ok.success ? (ok.data as unknown as SavedCase) : undefined;
+}
+
 const Theme = z.enum(["dark", "light"]);
 
 export const storage = {
@@ -57,6 +85,15 @@ export const storage = {
   saveProfile: (p: CompanyProfile) =>
     safe(() => localStorage.setItem(KEY, JSON.stringify(p)), undefined),
   clearProfile: () => safe(() => localStorage.removeItem(KEY), undefined),
+  loadCase: (): SavedCase | undefined =>
+    safe(() => {
+      const c = parseSavedCase(localStorage.getItem(CASE_KEY));
+      if (!c && localStorage.getItem(CASE_KEY) !== null) localStorage.removeItem(CASE_KEY);
+      return c;
+    }, undefined),
+  saveCase: (c: SavedCase) =>
+    safe(() => localStorage.setItem(CASE_KEY, JSON.stringify(c)), undefined),
+  clearCase: () => safe(() => localStorage.removeItem(CASE_KEY), undefined),
   theme: (): "dark" | "light" | undefined =>
     safe(() => {
       const t = Theme.safeParse(localStorage.getItem(THEME_KEY));

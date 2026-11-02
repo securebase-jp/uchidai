@@ -130,7 +130,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     const k = loadKnowledge();
     const asset = body.profile.assets.find((a) => a.id === body.assetId);
     if (!asset) return c.json({ error: `資産 ${body.assetId} がカルテにありません` }, 404);
-    const q = questionFor(body.mitigation);
+    const q = questionFor(body.mitigation, asset.role);
     if (!q) return c.json({ error: `緩和策 ${body.mitigation} の質問はまだありません` }, 404);
     const bg = backgroundFor(body.mitigation, asset.role, k);
     const roleLabel = k.roles.find((x) => x.id === asset.role)?.labelJa ?? asset.role;

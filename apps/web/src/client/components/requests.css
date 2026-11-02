@@ -17,6 +17,14 @@
 .req-row .what b {
   display: block;
 }
+.req-row .what .chip.on-path,
+.ctl-row .what .chip.on-path {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  border-color: var(--steel);
+  color: var(--steel);
+  font-weight: 700;
+}
 .outbox {
   margin-top: 10px;
 }

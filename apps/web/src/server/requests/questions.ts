@@ -14,11 +14,19 @@ export type Choice = {
   attrs?: Record<string, AttrValue>;
 };
 
+/** 役割で意味が変わる緩和策の、役割ごとの文言。choices を省けば共通の選択肢を使う */
+export type RoleVariant = { textJa: string; hintJa?: string; choices?: Choice[] };
+
 export type QuestionDef = {
   mitigation: string;
   textJa: string;
   hintJa?: string;
   choices: Choice[];
+  /**
+   * 役割ごとの文言（同じ緩和策 ID でも、サーバの M1047 は「アクセスログの監査」、ホームページの M1047 は「改ざん検知」のように
+   * 判定ルールが見る意味が違う）。questionFor(mitigation, role) が当てはめる。無い役割は共通の文言
+   */
+  byRole?: Record<string, RoleVariant>;
 };
 
 const UNKNOWN: Choice = { id: "unknown", labelJa: "分からない", status: "unknown" };
@@ -69,6 +77,14 @@ const defs: QuestionDef[] = [
       { id: "absent", labelJa: "更新していない（導入時のまま）", status: "absent" },
       UNKNOWN,
     ],
+    byRole: {
+      "entry.web": {
+        textJa:
+          "ホームページの CMS や追加機能（プラグイン）は、更新が出たら決まった手順で更新していますか",
+        hintJa:
+          "レンタルサーバやクラウドサービスのサーバ本体（OS）の更新は事業者側の責任なので含めません。会社側で管理する範囲だけ",
+      },
+    },
   },
   {
     mitigation: "M1032",
@@ -85,6 +101,30 @@ const defs: QuestionDef[] = [
       { id: "absent", labelJa: "パスワードだけ", status: "absent" },
       UNKNOWN,
     ],
+    byRole: {
+      "entry.vpn": {
+        textJa:
+          "VPN の接続に、パスワードに加えてもう一つの確認（アプリの承認、SMS のコードなど）が必要ですか",
+      },
+      "entry.web": {
+        textJa:
+          "ホームページの管理画面（CMS の管理画面、FTP、事業者の管理コンソール）のログインに、パスワードに加えてもう一つの確認が必要ですか",
+        choices: [
+          { id: "present", labelJa: "必要", status: "present" },
+          { id: "absent", labelJa: "パスワードだけ", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+      "entry.vendor_remote": {
+        textJa:
+          "保守用の遠隔接続ツールのログインに、パスワードに加えてもう一つの確認（アプリの承認、SMS のコードなど）が必要ですか",
+        choices: [
+          { id: "present", labelJa: "必要", status: "present" },
+          { id: "absent", labelJa: "パスワードだけ", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+    },
   },
   {
     mitigation: "M1042",
@@ -108,6 +148,17 @@ const defs: QuestionDef[] = [
       { id: "absent", labelJa: "どこからでも接続できる", status: "absent" },
       UNKNOWN,
     ],
+    byRole: {
+      server: {
+        textJa:
+          "業務サーバへの管理用の通信（リモートデスクトップ、管理共有など）は、管理者の端末だけに限定していますか",
+        choices: [
+          { id: "present", labelJa: "管理者の端末だけに限定している", status: "present" },
+          { id: "absent", labelJa: "社員の PC からも届く", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+    },
   },
   {
     mitigation: "M1030",
@@ -188,6 +239,24 @@ const defs: QuestionDef[] = [
       },
       UNKNOWN,
     ],
+    byRole: {
+      server: {
+        textJa: "業務サーバの共有フォルダのアクセス権は、業務に必要な人だけに絞っていますか",
+        choices: [
+          { id: "present", labelJa: "必要な人だけに絞っている", status: "present" },
+          { id: "absent", labelJa: "誰でも読める共有がある", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+      file_server: {
+        textJa: "ファイルサーバのアクセス権は、業務に必要な人だけに絞っていますか",
+        choices: [
+          { id: "present", labelJa: "必要な人だけに絞っている", status: "present" },
+          { id: "absent", labelJa: "誰でも読める共有がある", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+    },
   },
   {
     mitigation: "M1047",
@@ -197,6 +266,33 @@ const defs: QuestionDef[] = [
       { id: "absent", labelJa: "見直していない", status: "absent" },
       UNKNOWN,
     ],
+    byRole: {
+      server: {
+        textJa: "業務サーバのアクセスログを、定期的に確認していますか",
+        choices: [
+          { id: "present", labelJa: "定期的に確認している", status: "present" },
+          { id: "absent", labelJa: "確認していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+      file_server: {
+        textJa: "ファイルサーバのアクセスログを、定期的に確認していますか",
+        choices: [
+          { id: "present", labelJa: "定期的に確認している", status: "present" },
+          { id: "absent", labelJa: "確認していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+      "entry.web": {
+        textJa:
+          "ホームページの改ざんを検知する仕組み（ファイルの定期的な照合や改ざん検知サービス）はありますか",
+        choices: [
+          { id: "present", labelJa: "ある", status: "present" },
+          { id: "absent", labelJa: "ない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+    },
   },
   {
     mitigation: "M1027",
@@ -276,8 +372,19 @@ const defs: QuestionDef[] = [
 
 const byId = new Map(defs.map((d) => [d.mitigation, d]));
 
-export function questionFor(mitigation: string): QuestionDef | undefined {
-  return byId.get(mitigation);
+/** 緩和策の質問。役割を渡せば、役割ごとの文言（byRole）を当てはめた 1 問を返す */
+export function questionFor(mitigation: string, role?: string): QuestionDef | undefined {
+  const q = byId.get(mitigation);
+  if (!q) return undefined;
+  const variant = role ? q.byRole?.[role] : undefined;
+  if (!variant) return q;
+  const { byRole: _byRole, hintJa: _hint, ...rest } = q;
+  return {
+    ...rest,
+    textJa: variant.textJa,
+    ...(variant.hintJa ? { hintJa: variant.hintJa } : {}),
+    ...(variant.choices ? { choices: variant.choices } : {}),
+  };
 }
 export function allQuestions(): QuestionDef[] {
   return defs;

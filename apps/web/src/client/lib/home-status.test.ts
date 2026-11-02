@@ -97,4 +97,21 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     });
     expect(onlyProfile[4]?.statusJa).toBe("事例を選ぶと見られます");
   });
+
+  it("4：担当者が選んでいない既定の事例は「未」、選んだ事例は「済」", () => {
+    const byDefault = homeSteps({
+      ...empty,
+      theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: false },
+    })[3];
+    expect(byDefault?.tone).toBe("todo");
+    expect(byDefault?.statusJa).toContain("既定で記録済みの事例「VPN の事例」");
+    const chosen = homeSteps({
+      ...empty,
+      theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: true },
+    })[3];
+    expect(chosen?.tone).toBe("done");
+    expect(chosen?.statusJa).toBe("いまの事例：VPN の事例（記録済みの読解結果）");
+    const read = homeSteps({ ...empty, theCase: { title: "報道の事例" } })[3];
+    expect(read?.statusJa).toBe("いまの事例：報道の事例（Claude が読解）");
+  });
 });

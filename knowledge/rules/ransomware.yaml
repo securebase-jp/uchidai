@@ -35,6 +35,9 @@ rules:
     techniques: [T1133, T1078]
     materialsJa: カルテ：VPN 接続の多要素認証、パスワードの使い回し防止策。外部確認：VPN装置の露出
     mitigations: [M1042, M1032, M1027]
+    ineffective:
+      - mitigation: M1051
+        reasonJa: 正規の認証情報でログインされるため、装置を更新していても止まりません
     outcomes:
       - state: blocked
         when: { control: { mitigation: M1042, status: present } }
@@ -49,7 +52,8 @@ rules:
         reasonJa: 流出・推測されたパスワードだけで VPN にログインできる（更新していても止まらない）
   - id: ransomware.entry.rdp
     role: entry.rdp
-    techniques: [T1133, T1021.001]
+    # 公開されたリモートデスクトップへの接続（T1133、T1021.001）と、流出・推測したパスワードでの正規ログイン（T1078）
+    techniques: [T1133, T1021.001, T1078]
     materialsJa: 外部確認：リモートデスクトップの露出（MVP では対象外）。カルテ：公開の有無、多要素認証、接続元の制限
     mitigations: [M1042, M1032, M1035]
     outcomes:

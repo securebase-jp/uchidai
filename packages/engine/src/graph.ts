@@ -295,10 +295,11 @@ export function profileFromAnswers(
       asset("web", "entry.web", "公開ホームページ（社内）", "system", ["M1051", "M1032", "M1047"]),
     );
   } else {
+    // SaaS 型（Wix・Jimdo など）では CMS の更新も事業者側なので M1051 は問わない。レンタルサーバでは会社側の CMS を問う
+    const webControls =
+      answers.hosting.web === "cloud" ? ["M1032", "M1047"] : ["M1051", "M1032", "M1047"];
     assets.push(
-      asset("web", "entry.web", "公開ホームページ", "system", ["M1051", "M1032", "M1047"], {
-        side: "external",
-      }),
+      asset("web", "entry.web", "公開ホームページ", "system", webControls, { side: "external" }),
     );
   }
 

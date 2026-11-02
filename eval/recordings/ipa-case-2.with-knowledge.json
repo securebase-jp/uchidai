@@ -2,11 +2,11 @@
   "caseId": "ipa-case-2",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:25:38.629Z",
+  "recordedAt": "2026-11-02T15:55:01.100Z",
   "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "クラウドストレージの公開設定ミスによる顧客リストの情報漏えい",
+    "title": "クラウドストレージの設定ミスによる顧客情報の漏えい",
     "damageType": "data_breach",
     "clarity": "clear",
     "steps": [
@@ -16,8 +16,8 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "誰でも閲覧できる状態だったクラウドストレージから、外部の者が顧客リストなどを取得した"
+        "quote": "• クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "アクセス権限の誤設定で誰でも閲覧できる状態だったクラウドストレージから、外部の者に顧客リストなどをダウンロードされた"
       },
       {
         "tactic": "TA0010",
@@ -26,13 +26,13 @@
         ],
         "source": "stated",
         "quote": "顧客リストや取引条件\nが外部からダウンロー\nドされた",
-        "summaryJa": "顧客リストや取引条件が外部に持ち出され、情報が漏えいした"
+        "summaryJa": "顧客リストや取引条件が外部に漏えいし、信頼低下と一部顧客との取引停止につながった"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "クラウドストレージの公開設定ミスによる顧客リストの情報漏えい",
+    "title": "クラウドストレージの設定ミスによる顧客情報の漏えい",
     "damageType": "data_breach",
     "clarity": "clear",
     "steps": [
@@ -42,18 +42,17 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "誰でも閲覧できる状態だったクラウドストレージから、外部の者が顧客リストなどを取得した"
+        "quote": "• クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "アクセス権限の誤設定で誰でも閲覧できる状態だったクラウドストレージから、外部の者に顧客リストなどをダウンロードされた"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567.002",
           "T1530"
         ],
         "source": "stated",
         "quote": "顧客リストや取引条件\nが外部からダウンロー\nドされた",
-        "summaryJa": "顧客リストや取引条件が外部に持ち出され、情報が漏えいした"
+        "summaryJa": "顧客リストや取引条件が外部に漏えいし、信頼低下と一部顧客との取引停止につながった"
       }
     ],
     "suspiciousInstructions": []
@@ -61,14 +60,12 @@
   "verification": {
     "stepsIn": 2,
     "stepsOut": 2,
-    "techniquesIn": 3,
+    "techniquesIn": 2,
     "techniquesOut": 2,
     "quotesIn": 2,
     "quotesOut": 2,
     "replaced": [],
-    "droppedTechniques": [
-      "T1567.002(not_in_template)"
-    ],
+    "droppedTechniques": [],
     "droppedQuotes": 0,
     "suspiciousInstructions": 0
   },

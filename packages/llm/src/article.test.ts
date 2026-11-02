@@ -130,6 +130,21 @@ describe("findNextPageUrl（記事の続きのページだけを辿る）", () =
       findNextPageUrl(`<a href="/166531/3">3</a>`, "https://www.security-next.com/166531/2"),
     ).toBe("https://www.security-next.com/166531/3");
   });
+  it("日付のパス（/2024/11/2）の末尾はページ番号とみなさず、翌日の記事を続きとして辿らない", () => {
+    const day = "https://blog.example.jp/entry/2024/11/2";
+    expect(findNextPageUrl(`<a href="/entry/2024/11/3">次の日</a>`, day)).toBeUndefined();
+    expect(findNextPageUrl(`<a href="/entry/2024/11/2/2">2</a>`, day)).toBeUndefined();
+    expect(findNextPageUrl(`<a href="/entry/2024/11/2?page=2">2</a>`, day)).toBe(
+      "https://blog.example.jp/entry/2024/11/2?page=2",
+    );
+    // 記事 ID の後ろのページ番号（Security NEXT の形）は従来どおり
+    expect(
+      findNextPageUrl(
+        `<a href="/article/2025/11/02/166531/2">2</a>`,
+        "https://m.example/article/2025/11/02/166531",
+      ),
+    ).toBe("https://m.example/article/2025/11/02/166531/2");
+  });
   it("rel=next もページ番号の形のときだけ辿り、別ホスト・別の記事・ブログの前後の記事は辿らない", () => {
     expect(findNextPageUrl(`<link rel="next" href="/166531?page=2">`, current)).toBe(
       "https://www.security-next.com/166531?page=2",
