@@ -1,0 +1,21 @@
+# 入口が不明なときに展開する入口の候補と並び順
+# 並び順の根拠：警察庁「令和7年上半期におけるサイバー空間をめぐる脅威の情勢等について」のランサムウェアの感染経路
+# （VPN機器からの侵入が最多、次いでリモートデスクトップ）。割合の数値は最新版の確認後に記入する（要確認）
+sourceJa: 警察庁「サイバー空間をめぐる脅威の情勢等について」（最新版の数値は要確認）
+sourceUrl: https://www.npa.go.jp/publications/statistics/cybersecurity/
+candidates:
+  - role: entry.vpn
+    labelJa: VPN機器
+    technique: T1190
+  - role: entry.rdp
+    labelJa: リモートデスクトップ
+    technique: T1133
+  - role: pc
+    labelJa: フィッシングメール
+    technique: T1566
+  - role: entry.web
+    labelJa: 公開Webサイト
+    technique: T1190
+  - role: entry.vendor_remote
+    labelJa: 保守ベンダーの遠隔接続
+    technique: T1133

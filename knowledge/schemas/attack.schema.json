@@ -24,7 +24,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "shortname"],
+        "required": [
+          "id",
+          "name",
+          "shortname"
+        ],
         "additionalProperties": false
       }
     },
@@ -58,7 +62,13 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "name", "tactics", "revoked", "deprecated"],
+        "required": [
+          "id",
+          "name",
+          "tactics",
+          "revoked",
+          "deprecated"
+        ],
         "additionalProperties": false
       }
     },
@@ -78,7 +88,11 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "name", "deprecated"],
+        "required": [
+          "id",
+          "name",
+          "deprecated"
+        ],
         "additionalProperties": false
       }
     },

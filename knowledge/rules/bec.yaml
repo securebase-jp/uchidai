@@ -1,0 +1,69 @@
+# 判定ルール表：なりすまし送金（被害事例5）
+rules:
+  - id: bec.leak
+    role: cloud.mail_account.exec
+    techniques: [T1589.001, T1589, T1110.004]
+    materialsJa: カルテ：パスワードの使い回し防止策（パスワード管理ツールなど）
+    mitigations: [M1027]
+    outcomes:
+      - state: breached
+        reasonJa: 前提条件として表示する段階。流出の有無の外部確認は MVP の対象外
+  - id: bec.takeover
+    role: cloud.mail_account.exec
+    techniques: [T1078.004, T1078]
+    materialsJa: カルテ：クラウドメールの多要素認証の適用範囲と方式
+    mitigations: [M1032]
+    outcomes:
+      - state: breached
+        when: { attr: { key: mfaException, equals: true } }
+        reasonJa: 社長のアカウントだけ多要素認証の例外になっている
+      - state: human
+        when:
+          all:
+            - control: { mitigation: M1032, status: present }
+            - attr: { key: mfaMethod, equals: push }
+        reasonJa: 承認ボタンを押すだけの方式は、大量の承認要求（T1621）に弱い
+      - state: blocked
+        when: { control: { mitigation: M1032, status: present } }
+        reasonJa: 役員を含む全員に多要素認証が強制されている
+      - state: unknown
+        when: { control: { mitigation: M1032, status: unknown } }
+        reasonJa: 多要素認証の適用範囲が未確認
+      - state: breached
+        reasonJa: 流出したパスワードだけでログインできる
+  - id: bec.impersonate
+    role: cloud.mail_account.exec
+    techniques: [T1684.001, T1684.002]
+    materialsJa: カルテ：DMARC などの設定（外部確認でも可）
+    mitigations: []
+    ineffective:
+      - mitigation: M1054
+        reasonJa: 本物の社長アカウントから送られるため、DMARC や SPF はこの経路では効きません
+    outcomes:
+      - state: breached
+        reasonJa: 本物のアカウントからの指示なので、メールの認証では見分けられない
+  - id: bec.human
+    role: person.accounting
+    techniques: []
+    materialsJa: カルテ：送金・振込先変更の手順
+    mitigations: [UD-01, M1017]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: UD-01, status: present } }
+        reasonJa: 振込先変更や急な送金は、登録済みの連絡先へ折り返して確認する、または二人で承認する手順がある
+      - state: human
+        when: { control: { mitigation: M1017, status: present } }
+        reasonJa: 研修のみ。だまされても仕組みで止まる手順がない
+      - state: unknown
+        when: { control: { mitigation: UD-01, status: unknown } }
+        reasonJa: 送金の手順が未確認
+      - state: breached
+        reasonJa: 手順も研修もない
+  - id: money.reached
+    role: impact.money
+    techniques: []
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 資金が流出する。送金額の目安を表示する

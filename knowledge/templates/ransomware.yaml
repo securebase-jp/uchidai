@@ -1,0 +1,43 @@
+# 型紙：業務停止（ランサムウェア）
+# 段階は役割の枠に対して定義する。byRole は役割ごとの典型手法（記事に無ければ「推定」として埋める）
+id: ransomware
+damageType: ransomware
+labelJa: 業務停止（ランサムウェア）
+descriptionJa: 入口から侵入し、管理者権限を奪って社内に広がり、バックアップを消してから暗号化する
+stages:
+  - id: entry
+    labelJa: 入口から侵入
+    tactics: [TA0001]
+    entry: true
+    byRole:
+      entry.vpn: T1190
+      entry.rdp: T1133
+      entry.web: T1190
+      entry.vendor_remote: T1133
+      pc: T1566
+  - id: credentials
+    labelJa: 管理者権限を奪う
+    tactics: [TA0006, TA0004]
+    byRole:
+      admin: T1003
+    accepts: [T1003, T1078, T1110]
+  - id: lateral
+    labelJa: サーバへ広がる
+    tactics: [TA0008]
+    byRole:
+      server: T1021
+    accepts: [T1021, T1021.001, T1021.002]
+  - id: recovery
+    labelJa: バックアップを消す
+    tactics: [TA0040]
+    byRole:
+      backup: T1490
+    accepts: [T1490]
+    optional: true
+  - id: encrypt
+    labelJa: 暗号化・業務停止
+    tactics: [TA0040]
+    byRole:
+      core: T1486
+    accepts: [T1486]
+    terminal: true

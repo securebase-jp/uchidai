@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+          },
+          "techniques": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^T\\d{4}(\\.\\d{3})?$"
+            }
+          },
+          "materialsJa": {
+            "type": "string"
+          },
+          "mitigations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^(M\\d{4}|UD-\\d{2})$"
+            }
+          },
+          "ineffective": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mitigation": {
+                  "type": "string",
+                  "pattern": "^(M\\d{4}|UD-\\d{2})$"
+                },
+                "when": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "reasonJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "mitigation",
+                "reasonJa"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "outcomes": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "blocked",
+                    "recoverable",
+                    "unknown",
+                    "human",
+                    "breached"
+                  ]
+                },
+                "when": {
+                  "$ref": "#/$defs/__schema0"
+                },
+                "reasonJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "state",
+                "reasonJa"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "techniques",
+          "materialsJa",
+          "mitigations",
+          "ineffective",
+          "outcomes"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "rules"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "all"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            }
+          },
+          "required": [
+            "any"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": [
+            "not"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "control": {
+              "type": "object",
+              "properties": {
+                "mitigation": {
+                  "type": "string",
+                  "pattern": "^(M\\d{4}|UD-\\d{2})$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "present",
+                    "absent",
+                    "unknown"
+                  ]
+                }
+              },
+              "required": [
+                "mitigation",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "control"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attr": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "equals": {
+                  "type": [
+                    "string",
+                    "number",
+                    "boolean"
+                  ]
+                },
+                "missing": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "attr"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "always": {
+              "type": "boolean",
+              "const": true
+            }
+          },
+          "required": [
+            "always"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

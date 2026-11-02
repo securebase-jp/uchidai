@@ -1,0 +1,36 @@
+# 業種別の構成パターン：卸売・サービス（事務所型）。情報通信・金融もこれに寄せる
+id: office
+labelJa: 卸売・サービス（事務所型）
+core:
+  labelJa: 販売管理システム
+businesses:
+  - id: biz-order
+    name: 受注
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 7
+    recoveryDaysWithBackup: 2
+    affectsJa: 取引先への出荷
+  - id: biz-inventory
+    name: 在庫・発注
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 7
+    recoveryDaysWithBackup: 2
+    affectsJa: 仕入先・出荷
+  - id: biz-delivery
+    name: 出荷・配送
+    roles: [core]
+    manualDays: 1
+    recoveryDays: 7
+    recoveryDaysWithBackup: 2
+    affectsJa: 取引先への出荷
+  - id: biz-billing
+    name: 請求
+    roles: [cloud.accounting]
+    manualDays: 5
+    recoveryDays: 0
+    affectsJa: 入金
+impact:
+  partnerJa: 取引先（出荷）
+  reportJa: 不正アクセスによる漏えいのおそれは件数にかかわらず報告

@@ -11,7 +11,7 @@
 - [x] 評価の仕組みの骨組み（`eval/`）← 最初のコミット
 - [x] ATT&CK Enterprise v20.0 の取り込み（`knowledge/attack/`）、役割の枠（`knowledge/roles.yaml`）、日本語ラベル、共通の型（`packages/engine/src/types.ts`）、デモ用の架空企業（`examples/demo-seiko.json`）
 - [ ] 記事の読解と手法IDの照合
-- [ ] 構成グラフ、経路探索、判定ルール
+- [x] 構成グラフ、型紙 3 つ、判定ルール表（条件式 DSL）、経路探索、対策ボタンの再判定、AI 経路の検証、知見なし比較の振り分け（`packages/engine`、`knowledge/`）
 - [ ] 経路図とアニメーション
 - [ ] 確認依頼と判定の更新、対策ボタン
 - [ ] AI攻撃者と知見なしAIとの比較

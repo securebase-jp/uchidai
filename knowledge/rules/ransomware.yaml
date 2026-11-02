@@ -1,0 +1,161 @@
+# 判定ルール表：業務停止（被害事例1）
+# 条件式：all / any / not / control {mitigation, status} / attr {key, equals | missing} / always
+# outcomes は上から順に評価し、最初に一致した状態を採用する。when の無い行は既定
+rules:
+  - id: ransomware.entry.vpn
+    role: entry.vpn
+    techniques: [T1190]
+    materialsJa: 外部確認：VPN装置の露出。カルテ：製品・バージョン、更新の運用
+    mitigations: [M1042, M1051]
+    ineffective:
+      - mitigation: M1032
+        when: { attr: { key: authBypass, equals: true } }
+        reasonJa: この脆弱性は認証を回避するため、多要素認証では止まりません
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1042, status: present } }
+        reasonJa: VPN装置を外部に公開していない
+      - state: breached
+        when: { attr: { key: knownExploited, equals: true } }
+        reasonJa: 製品・バージョンが悪用確認済みの脆弱性に該当する
+      - state: blocked
+        when: { control: { mitigation: M1051, status: present } }
+        reasonJa: 更新の運用があり、悪用確認済みの脆弱性に該当しない
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1051, status: unknown }
+            - attr: { key: version, missing: true }
+        reasonJa: バージョンまたは更新の運用が未確認
+      - state: breached
+        reasonJa: 更新の運用がなく、脆弱性が残っている
+  - id: ransomware.entry.rdp
+    role: entry.rdp
+    techniques: [T1133, T1021.001]
+    materialsJa: 外部確認：リモートデスクトップの露出（MVP では対象外）。カルテ：公開の有無、多要素認証、接続元の制限
+    mitigations: [M1042, M1032, M1035]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1042, status: present } }
+        reasonJa: リモートデスクトップを外部に公開していない
+      - state: blocked
+        when:
+          all:
+            - control: { mitigation: M1032, status: present }
+            - control: { mitigation: M1035, status: present }
+        reasonJa: 多要素認証があり、接続元も限定されている
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1042, status: unknown }
+            - control: { mitigation: M1032, status: unknown }
+        reasonJa: 公開の有無または多要素認証が未確認
+      - state: breached
+        reasonJa: 公開されたリモートデスクトップにパスワードだけで入れる
+  - id: ransomware.entry.web
+    role: entry.web
+    techniques: [T1190]
+    materialsJa: カルテ：CMS などの更新管理
+    mitigations: [M1051]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1051, status: present } }
+        reasonJa: ホームページのソフトウェアが更新されている
+      - state: unknown
+        when: { control: { mitigation: M1051, status: unknown } }
+        reasonJa: ホームページの更新管理が未確認
+      - state: breached
+        reasonJa: ホームページのソフトウェアが更新されていない
+  - id: ransomware.entry.phishing
+    role: pc
+    techniques: [T1566, T1566.001, T1566.002, T1204]
+    materialsJa: カルテ：EDR の有無、研修
+    mitigations: [M1040, M1049]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1040, status: present } }
+        reasonJa: 端末の振る舞い防御（EDR）で実行が止まる
+      - state: human
+        when: { control: { mitigation: M1017, status: present } }
+        reasonJa: 研修はあるが、だまされても仕組みで止まる手順がない
+      - state: unknown
+        when: { control: { mitigation: M1040, status: unknown } }
+        reasonJa: EDR の有無が未確認
+      - state: breached
+        reasonJa: 添付ファイルやリンクを開けば実行される
+  - id: ransomware.credentials
+    role: admin
+    techniques: [T1003, T1078, T1110]
+    materialsJa: カルテ：EDR の有無と監視体制、管理者アカウントの分離
+    mitigations: [M1040, M1026]
+    outcomes:
+      - state: blocked
+        when:
+          all:
+            - control: { mitigation: M1040, status: present }
+            - not: { attr: { key: monitored, equals: false } }
+            - control: { mitigation: M1026, status: present }
+        reasonJa: EDR のアラートを見る体制があり、管理者アカウントが分離されている
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1040, status: unknown }
+            - control: { mitigation: M1026, status: unknown }
+            - attr: { key: monitored, equals: false }
+        reasonJa: EDR の有無・監視体制・管理者アカウントの分離が未確認
+      - state: breached
+        reasonJa: 管理者権限を奪う手口を止める仕組みがない
+  - id: ransomware.lateral
+    role: server
+    techniques: [T1021, T1021.001, T1021.002]
+    materialsJa: カルテ：業務サーバ区画の分離、管理用通信の制限
+    mitigations: [M1030, M1035]
+    outcomes:
+      - state: blocked
+        when:
+          all:
+            - control: { mitigation: M1030, status: present }
+            - control: { mitigation: M1035, status: present }
+        reasonJa: 業務サーバが PC と別区画で、管理用通信が限定されている
+      - state: unknown
+        when:
+          all:
+            - control: { mitigation: M1030, status: present }
+            - control: { mitigation: M1035, status: unknown }
+        reasonJa: 区画は分かれているが、通信ルールが未確認
+      - state: unknown
+        when: { control: { mitigation: M1030, status: unknown } }
+        reasonJa: 区画の分離が未確認
+      - state: breached
+        reasonJa: 業務サーバと PC が同じネットワークにある
+  - id: ransomware.recovery
+    role: backup
+    techniques: [T1490]
+    materialsJa: カルテ：バックアップの方式と保管場所、復旧テストの有無
+    mitigations: [M1053]
+    outcomes:
+      - state: recoverable
+        when:
+          all:
+            - attr: { key: isolated, equals: true }
+            - attr: { key: restoreTested, equals: true }
+        reasonJa: 切り離した保管先があり、復旧テスト済み
+      - state: unknown
+        when:
+          all:
+            - attr: { key: isolated, equals: true }
+            - not: { attr: { key: restoreTested, equals: true } }
+        reasonJa: 切り離した保管先はあるが、復旧テストが未実施
+      - state: unknown
+        when: { control: { mitigation: M1053, status: unknown } }
+        reasonJa: バックアップの方式が未確認
+      - state: breached
+        reasonJa: 社内ネットワークやクラウド同期から切り離された保管先がなく、バックアップごと暗号化される
+  - id: core.reached
+    role: core
+    techniques: []
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 中核システムに到達。業務影響を計算する

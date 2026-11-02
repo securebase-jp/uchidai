@@ -1,0 +1,37 @@
+# 業種別の構成パターン：医療・福祉
+id: healthcare
+labelJa: 医療・福祉
+core:
+  labelJa: 電子カルテ
+businesses:
+  - id: biz-reception
+    name: 受付
+    roles: [core]
+    manualDays: 1
+    recoveryDays: 14
+    recoveryDaysWithBackup: 3
+    affectsJa: 患者の受け入れ
+  - id: biz-treatment
+    name: 診療
+    roles: [core]
+    manualDays: 1
+    recoveryDays: 14
+    recoveryDaysWithBackup: 3
+    affectsJa: 患者と地域
+  - id: biz-lab
+    name: 検査・処方
+    roles: [core]
+    manualDays: 1
+    recoveryDays: 14
+    recoveryDaysWithBackup: 3
+    affectsJa: 患者の治療
+  - id: biz-billing
+    name: 会計・請求
+    roles: [core]
+    manualDays: 3
+    recoveryDays: 14
+    recoveryDaysWithBackup: 3
+    affectsJa: 診療報酬の請求
+impact:
+  partnerJa: 患者と地域
+  reportJa: 病歴などの要配慮個人情報は件数にかかわらず報告

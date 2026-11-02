@@ -210,7 +210,8 @@ export const PathStep = z.object({
   nodeId: z.string(),
   role: Role,
   tactic: TacticId,
-  technique: TechniqueId,
+  /** 人の段階（経理担当の判断など）と到達の段階では省略する */
+  technique: TechniqueId.optional(),
   /** この段階で効く緩和策 */
   mitigations: z.array(MitigationId),
   /** この経路では効かない緩和策とその理由 */
@@ -221,6 +222,10 @@ export const PathStep = z.object({
   /** 判定に使ったルール ID と一行の理由 */
   ruleId: z.string().optional(),
   reasonJa: z.string(),
+  /** 段階の見出し（型紙の labelJa） */
+  labelJa: z.string().optional(),
+  /** 前提条件として表示する段階（止めない） */
+  precondition: z.boolean().optional(),
   quote: z.string().optional(),
 });
 
@@ -270,8 +275,15 @@ export const Impact = z.object({
   reportRequired: z.boolean(),
 });
 
-/** 結論：止められる／抑えられる／大丈夫ではない／確認中／入口なし */
-export const VerdictResult = z.enum(["blocked", "mitigated", "breached", "pending", "no_entry"]);
+/** 結論：止められる／抑えられる／大丈夫ではない／確認中／入口なし／対象外 */
+export const VerdictResult = z.enum([
+  "blocked",
+  "mitigated",
+  "breached",
+  "pending",
+  "no_entry",
+  "out_of_scope",
+]);
 
 export const Verdict = z.object({
   result: VerdictResult,

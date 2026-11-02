@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "measures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "mitigation": {
+            "type": "string",
+            "pattern": "^(M\\d{4}|UD-\\d{2})$"
+          },
+          "patches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+                },
+                "mitigation": {
+                  "type": "string",
+                  "pattern": "^(M\\d{4}|UD-\\d{2})$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "present",
+                    "absent",
+                    "unknown"
+                  ]
+                },
+                "attrs": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {
+                    "type": [
+                      "string",
+                      "number",
+                      "boolean"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "role",
+                "mitigation",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "costJpy": {
+            "type": "number"
+          },
+          "costJpyPerDevicePerYear": {
+            "type": "number"
+          },
+          "costSourceJa": {
+            "type": "string"
+          },
+          "requestToJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "mitigation",
+          "patches"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "measures"
+  ],
+  "additionalProperties": false
+}

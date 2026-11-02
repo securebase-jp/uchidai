@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": [
+        "manufacturing",
+        "office",
+        "healthcare"
+      ]
+    },
+    "labelJa": {
+      "type": "string"
+    },
+    "core": {
+      "type": "object",
+      "properties": {
+        "labelJa": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "labelJa"
+      ],
+      "additionalProperties": false
+    },
+    "businesses": {
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+            }
+          },
+          "manualDays": {
+            "type": "number",
+            "minimum": 0
+          },
+          "recoveryDays": {
+            "type": "number",
+            "minimum": 0
+          },
+          "recoveryDaysWithBackup": {
+            "type": "number",
+            "minimum": 0
+          },
+          "affectsJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "roles",
+          "manualDays",
+          "recoveryDays"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "impact": {
+      "type": "object",
+      "properties": {
+        "partnerJa": {
+          "type": "string"
+        },
+        "reportJa": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "partnerJa",
+        "reportJa"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "labelJa",
+    "core",
+    "businesses",
+    "impact"
+  ],
+  "additionalProperties": false
+}

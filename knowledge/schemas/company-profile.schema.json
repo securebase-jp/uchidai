@@ -21,55 +21,114 @@
     },
     "pattern": {
       "type": "string",
-      "enum": ["manufacturing", "office", "healthcare"]
+      "enum": [
+        "manufacturing",
+        "office",
+        "healthcare"
+      ]
     },
     "answers": {
       "type": "object",
       "properties": {
         "industry": {
           "type": "string",
-          "enum": ["manufacturing", "wholesale_service", "healthcare", "it", "finance", "other"]
+          "enum": [
+            "manufacturing",
+            "wholesale_service",
+            "healthcare",
+            "it",
+            "finance",
+            "other"
+          ]
         },
         "site": {
           "type": "string",
-          "enum": ["factory", "store", "clinic", "office_only"]
+          "enum": [
+            "factory",
+            "store",
+            "clinic",
+            "office_only"
+          ]
         },
         "hosting": {
           "type": "object",
           "properties": {
             "mail": {
               "type": "string",
-              "enum": ["onprem", "cloud", "provider", "unknown"]
+              "enum": [
+                "onprem",
+                "cloud",
+                "provider",
+                "unknown"
+              ]
             },
             "files": {
               "type": "string",
-              "enum": ["onprem", "cloud", "provider", "unknown"]
+              "enum": [
+                "onprem",
+                "cloud",
+                "provider",
+                "unknown"
+              ]
             },
             "core": {
               "type": "string",
-              "enum": ["onprem", "cloud", "provider", "unknown"]
+              "enum": [
+                "onprem",
+                "cloud",
+                "provider",
+                "unknown"
+              ]
             },
             "web": {
               "type": "string",
-              "enum": ["onprem", "cloud", "provider", "unknown"]
+              "enum": [
+                "onprem",
+                "cloud",
+                "provider",
+                "unknown"
+              ]
             }
           },
-          "required": ["mail", "files", "core", "web"],
+          "required": [
+            "mail",
+            "files",
+            "core",
+            "web"
+          ],
           "additionalProperties": false
         },
         "remoteAccess": {
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["vpn", "rdp", "vendor_remote", "cloud_only", "unknown"]
+            "enum": [
+              "vpn",
+              "rdp",
+              "vendor_remote",
+              "cloud_only",
+              "unknown"
+            ]
           }
         },
         "backup": {
           "type": "string",
-          "enum": ["same_network", "cloud_sync", "isolated", "none", "unknown"]
+          "enum": [
+            "same_network",
+            "cloud_sync",
+            "isolated",
+            "none",
+            "unknown"
+          ]
         }
       },
-      "required": ["industry", "site", "hosting", "remoteAccess", "backup"],
+      "required": [
+        "industry",
+        "site",
+        "hosting",
+        "remoteAccess",
+        "backup"
+      ],
       "additionalProperties": false
     },
     "employees": {
@@ -87,7 +146,12 @@
           },
           "kind": {
             "type": "string",
-            "enum": ["device", "system", "person", "account"]
+            "enum": [
+              "device",
+              "system",
+              "person",
+              "account"
+            ]
           },
           "role": {
             "type": "string",
@@ -98,7 +162,11 @@
           },
           "side": {
             "type": "string",
-            "enum": ["internal", "external", "person"]
+            "enum": [
+              "internal",
+              "external",
+              "person"
+            ]
           },
           "product": {
             "type": "string"
@@ -118,11 +186,20 @@
                 },
                 "status": {
                   "type": "string",
-                  "enum": ["present", "absent", "unknown"]
+                  "enum": [
+                    "present",
+                    "absent",
+                    "unknown"
+                  ]
                 },
                 "evidence": {
                   "type": "string",
-                  "enum": ["external", "vendor", "registered", "none"]
+                  "enum": [
+                    "external",
+                    "vendor",
+                    "registered",
+                    "none"
+                  ]
                 },
                 "noteJa": {
                   "type": "string"
@@ -134,7 +211,11 @@
                   "type": "string"
                 }
               },
-              "required": ["mitigation", "status", "evidence"],
+              "required": [
+                "mitigation",
+                "status",
+                "evidence"
+              ],
               "additionalProperties": false
             }
           },
@@ -145,7 +226,11 @@
               "type": "string"
             },
             "additionalProperties": {
-              "type": ["string", "number", "boolean"]
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
             }
           },
           "attrEvidence": {
@@ -156,11 +241,24 @@
             },
             "additionalProperties": {
               "type": "string",
-              "enum": ["external", "vendor", "registered", "none"]
+              "enum": [
+                "external",
+                "vendor",
+                "registered",
+                "none"
+              ]
             }
           }
         },
-        "required": ["id", "kind", "role", "label", "controls", "attrs", "attrEvidence"],
+        "required": [
+          "id",
+          "kind",
+          "role",
+          "label",
+          "controls",
+          "attrs",
+          "attrEvidence"
+        ],
         "additionalProperties": false
       }
     },
@@ -197,7 +295,13 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "assetIds", "manualDays", "recoveryDays"],
+        "required": [
+          "id",
+          "name",
+          "assetIds",
+          "manualDays",
+          "recoveryDays"
+        ],
         "additionalProperties": false
       }
     },
@@ -229,7 +333,12 @@
             "type": "boolean"
           }
         },
-        "required": ["assetId", "descriptionJa", "over1000", "sensitive"],
+        "required": [
+          "assetId",
+          "descriptionJa",
+          "over1000",
+          "sensitive"
+        ],
         "additionalProperties": false
       }
     },
@@ -245,7 +354,9 @@
           "maximum": 9007199254740991
         }
       },
-      "required": ["enrolled"],
+      "required": [
+        "enrolled"
+      ],
       "additionalProperties": false
     },
     "vendor": {
@@ -258,7 +369,9 @@
           "type": "string"
         }
       },
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "additionalProperties": false
     }
   },

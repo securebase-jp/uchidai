@@ -1,0 +1,38 @@
+# 型紙：なりすまし送金（ビジネスメール詐欺）
+id: bec
+damageType: bec
+labelJa: なりすまし送金（ビジネスメール詐欺）
+descriptionJa: 流出したパスワードで社長のメールに入り、社長になりすまして経理に送金を指示する
+stages:
+  - id: leak
+    labelJa: パスワードが流出している
+    tactics: [TA0043]
+    entry: true
+    precondition: true
+    byRole:
+      cloud.mail_account.exec: T1589.001
+    accepts: [T1589.001, T1589, T1110.004]
+  - id: takeover
+    labelJa: 社長のメールに入られる
+    tactics: [TA0001, TA0003]
+    byRole:
+      cloud.mail_account.exec: T1078.004
+    accepts: [T1078.004, T1078]
+  - id: impersonate
+    labelJa: 社長になりすまして指示する
+    tactics: [TA0005]
+    byRole:
+      cloud.mail_account.exec: T1684.001
+    accepts: [T1684.001, T1684.002]
+  - id: human
+    labelJa: 経理担当が送金する
+    tactics: [TA0002]
+    human: true
+    byRole:
+      person.accounting: null
+  - id: money
+    labelJa: 資金が流出する
+    tactics: [TA0040]
+    byRole:
+      impact.money: null
+    terminal: true
