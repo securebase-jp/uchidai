@@ -5,7 +5,8 @@
 import type { Asset, CompanyProfile, Contradiction } from "@uchidai/engine";
 import type { HostnameEntry, ReconResult } from "./types.ts";
 
-function assetHostnames(asset: Asset): string[] {
+/** 資産に登録されたホスト名（attrs.hostname／hostnames。空白・読点区切り、小文字に正規化） */
+export function assetHostnames(asset: Asset): string[] {
   const names: string[] = [];
   for (const key of ["hostname", "hostnames"]) {
     const value = asset.attrs[key];
@@ -32,7 +33,7 @@ function describeExternal(entry: HostnameEntry): string {
 }
 
 /** 外から「生きている」と見えるか：DNS で解決できる、または有効期限内の証明書がある */
-function alive(entry: HostnameEntry): boolean {
+export function aliveExternally(entry: HostnameEntry): boolean {
   return entry.resolves === true || entry.activeCertCount > 0;
 }
 
@@ -47,7 +48,7 @@ export function findContradictions(result: ReconResult, profile: CompanyProfile)
     if (asset.attrs.decommissioned === true) {
       for (const name of assetHostnames(asset)) {
         const entry = byName.get(name);
-        if (entry && alive(entry)) {
+        if (entry && aliveExternally(entry)) {
           out.push({
             assetId: asset.id,
             messageJa: `「${asset.label}」はカルテで廃止済みだが、ホスト名 ${name} が外部に残っている可能性がある`,

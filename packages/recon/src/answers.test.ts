@@ -160,3 +160,121 @@ describe("applyAssetHints と根拠の優先順位", () => {
     expect(m1042.find((c) => c.evidence === "registered")?.status).toBe("present");
   });
 });
+
+describe("applyAssetHints と外部確認の名前の突き合わせ（external を渡したとき）", () => {
+  it("廃止済みの資産に externallySeen / externallySeenAt / lastCertExpiry を根拠 external で付ける", async () => {
+    const r = await result();
+    const updated = applyAssetHints(demoProfile, reconToAssetHints(r), r);
+    const campaign = updated.assets.find((a) => a.id === "campaign-site");
+    expect(campaign?.attrs).toMatchObject({
+      decommissioned: true,
+      hostname: "campaign2019.demo-seiko.example",
+      externallySeen: true,
+      externallySeenAt: r.checkedAt,
+      lastCertExpiry: "2019-07-30T23:59:59Z",
+    });
+    expect(campaign?.attrEvidence).toMatchObject({
+      externallySeen: "external",
+      externallySeenAt: "external",
+      lastCertExpiry: "external",
+    });
+    // 役割（entry.web）の属性は廃止済みの資産には重ねない
+    expect(campaign?.attrs.exposed).toBeUndefined();
+    expect(campaign?.attrs.hostingProvider).toBeUndefined();
+    expect(CompanyProfile.parse(updated)).toEqual(updated);
+  });
+  it("外部に残っていない廃止済みの資産には externallySeen: false を付け、ホスト名の無い資産には何も付けない", async () => {
+    const r = await result();
+    const gone = {
+      id: "old-shop",
+      kind: "system" as const,
+      role: "entry.web",
+      label: "旧通販サイト",
+      attrs: { decommissioned: true, hostname: "shop2015.demo-seiko.example" },
+      attrEvidence: { decommissioned: "registered" as const, hostname: "registered" as const },
+      controls: [],
+    };
+    const noName = {
+      ...gone,
+      id: "old-file",
+      label: "旧ファイルサーバ",
+      attrs: { decommissioned: true },
+      attrEvidence: { decommissioned: "registered" as const },
+    };
+    const profile = { ...demoProfile, assets: [...demoProfile.assets, gone, noName] };
+    const updated = applyAssetHints(profile, reconToAssetHints(r), r);
+    const shop = updated.assets.find((a) => a.id === "old-shop");
+    expect(shop?.attrs).toEqual({
+      decommissioned: true,
+      hostname: "shop2015.demo-seiko.example",
+      externallySeen: false,
+      externallySeenAt: r.checkedAt,
+    });
+    expect(shop?.attrEvidence.externallySeen).toBe("external");
+    expect(updated.assets.find((a) => a.id === "old-file")).toEqual(noName);
+  });
+  it("前回の外部確認の値（根拠 external）は付け直し、担当者が登録した値は残す", async () => {
+    const r = await result();
+    const profile = {
+      ...demoProfile,
+      assets: demoProfile.assets.map((a) =>
+        a.id === "campaign-site"
+          ? {
+              ...a,
+              attrs: { ...a.attrs, externallySeen: false, lastCertExpiry: "2000-01-01T00:00:00Z" },
+              attrEvidence: {
+                ...a.attrEvidence,
+                externallySeen: "external" as const,
+                lastCertExpiry: "registered" as const,
+              },
+            }
+          : a,
+      ),
+    };
+    const updated = applyAssetHints(profile, reconToAssetHints(r), r);
+    const campaign = updated.assets.find((a) => a.id === "campaign-site");
+    expect(campaign?.attrs.externallySeen).toBe(true);
+    // 担当者登録の lastCertExpiry は外部確認で上書きされる（属性は 1 値。根拠は external に）
+    expect(campaign?.attrs.lastCertExpiry).toBe("2019-07-30T23:59:59Z");
+    expect(campaign?.attrEvidence.lastCertExpiry).toBe("external");
+  });
+  it("現役の資産には、ホスト名に当たる証明書の最後の期限（certExpiry）を付ける", async () => {
+    const r = await result();
+    const updated = applyAssetHints(demoProfile, reconToAssetHints(r), r);
+    const vpn = updated.assets.find((a) => a.id === "vpn");
+    expect(vpn?.attrs.certExpiry).toBe("2027-03-31T23:59:59Z");
+    expect(vpn?.attrEvidence.certExpiry).toBe("external");
+    expect(vpn?.attrs.certWildcard).toBeUndefined();
+    // ホスト名の登録が無い資産には付かない
+    const core = updated.assets.find((a) => a.id === "core");
+    expect(core?.attrs.certExpiry).toBeUndefined();
+  });
+  it("同じ名前の証明書が無く親のワイルドカードだけなら certWildcard: true を添える", async () => {
+    const r = await result();
+    const intranet = {
+      id: "intranet",
+      kind: "system" as const,
+      role: "server",
+      label: "社内ポータル",
+      attrs: { hostname: "portal.demo-seiko.example" },
+      attrEvidence: { hostname: "registered" as const },
+      controls: [],
+    };
+    const profile = { ...demoProfile, assets: [...demoProfile.assets, intranet] };
+    const updated = applyAssetHints(profile, reconToAssetHints(r), r);
+    const portal = updated.assets.find((a) => a.id === "intranet");
+    expect(portal?.attrs).toMatchObject({ certExpiry: "2025-01-01T23:59:59Z", certWildcard: true });
+    expect(portal?.attrEvidence).toMatchObject({
+      certExpiry: "external",
+      certWildcard: "external",
+    });
+  });
+  it("external を渡さなければ、証明書と廃止済みの属性は付かない（従来どおり）", async () => {
+    const r = await result();
+    const updated = applyAssetHints(demoProfile, reconToAssetHints(r));
+    expect(updated.assets.find((a) => a.id === "vpn")?.attrs.certExpiry).toBeUndefined();
+    expect(
+      updated.assets.find((a) => a.id === "campaign-site")?.attrs.externallySeen,
+    ).toBeUndefined();
+  });
+});

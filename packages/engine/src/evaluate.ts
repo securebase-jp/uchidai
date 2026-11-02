@@ -482,6 +482,34 @@ function pathsForTemplate(
   return { paths, hasEntry: true };
 }
 
+const dateOf = (v: unknown): string | undefined =>
+  typeof v === "string" && v.length >= 10 ? v.slice(0, 10) : undefined;
+
+/**
+ * カルテの属性だけから分かる矛盾（経路の判定に依らず、判定のたびに同じ結果になる）：
+ * 廃止済み（attrs.decommissioned）と登録された資産に、外部確認が「ホスト名が外部に残っている」
+ * （attrs.externallySeen = true、根拠 external。recon の applyAssetHints が付ける）と記していれば矛盾。
+ * 担当者が手で externallySeen を付けても根拠が external でなければ出さない
+ */
+export function profileContradictions(profile: CompanyProfile): Contradiction[] {
+  const out: Contradiction[] = [];
+  for (const asset of profile.assets) {
+    if (asset.attrs.decommissioned !== true) continue;
+    if (asset.attrs.externallySeen !== true || asset.attrEvidence.externallySeen !== "external")
+      continue;
+    const hostname = typeof asset.attrs.hostname === "string" ? asset.attrs.hostname : undefined;
+    const seenAt = dateOf(asset.attrs.externallySeenAt);
+    const expiry = dateOf(asset.attrs.lastCertExpiry);
+    out.push({
+      assetId: asset.id,
+      messageJa: "カルテで廃止済みだが、外部にホスト名が残っている可能性",
+      external: `外部確認：ホスト名${hostname ? ` ${hostname}` : ""} が DNS または証明書の公開ログに残っている${seenAt ? `（${seenAt} 時点）` : ""}${expiry ? `。最後の証明書の期限 ${expiry}` : ""}`,
+      registered: "担当者登録：廃止済み（attrs.decommissioned = true）",
+    });
+  }
+  return out;
+}
+
 export function evaluate(
   theCase: Case,
   profile: CompanyProfile,
@@ -489,7 +517,8 @@ export function evaluate(
 ): Verdict {
   const knowledge = options.knowledge ?? loadKnowledge();
   const graph = options.graph ?? buildGraph(profile, knowledge.roles);
-  const contradictions: Contradiction[] = [];
+  // 経路の判定で見つかる矛盾（resolveControl）の前に、カルテの属性だけから分かる矛盾を積む
+  const contradictions: Contradiction[] = profileContradictions(profile);
   const selected = theCase.damageType === "out_of_scope" ? [] : selectTemplates(theCase, knowledge);
   // 型紙を 1 本に絞れたときだけ Verdict に載せる（複数を展開したときは各経路の templateId を見る）
   const single = selected.length === 1 ? selected[0]?.template : undefined;
