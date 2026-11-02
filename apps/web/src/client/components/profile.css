@@ -109,6 +109,29 @@ table.profile-table input.in.txt {
   height: 18px;
 }
 
+/* まず答えるとよい項目（経路で問われている未確認） */
+.profile .first-ask {
+  border-color: var(--steel);
+}
+.profile .first-ask-list {
+  margin: 6px 0 0;
+  padding-left: 22px;
+  font-size: 14px;
+}
+.profile .first-ask-list li {
+  margin: 3px 0;
+}
+.profile .first-ask-list .link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--steel);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 /* 資産ごとの確認項目 */
 .asset-card {
   background: var(--panel);

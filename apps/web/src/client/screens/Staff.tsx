@@ -17,7 +17,8 @@ import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
-import { pendingCount } from "../lib/profile.ts";
+import { RESULT_SHORT } from "../lib/labels.ts";
+import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
 import { timelineOf } from "../lib/timeline.ts";
 
 export function Legend() {
@@ -102,8 +103,17 @@ export function Staff({ settings }: { settings: Settings }) {
   const measureLabel = (m: string) =>
     knowledge.labels.mitigations[m] ?? knowledge.labels.custom[m]?.labelJa ?? m;
 
-  // 5問から作った（または詳細が未登録の）自社のカルテ：未確認の件数とカルテ画面への案内（P1）
-  const pending = profile.fictional ? 0 : pendingCount(profile);
+  // 5問から作った（または詳細が未登録の）自社のカルテ：未確認の件数とカルテ画面への案内（P1）。
+  // 件数は判定に使ったカルテ（送信箱の回答を重ねたもの）で数える
+  const current = evaluation?.profile ?? profile;
+  const ranked = profile.fictional
+    ? []
+    : rankPending(current, evaluation?.verdict, evaluation?.graph);
+  const pending = ranked.length;
+  const onPath = ranked.filter((x) => x.onPath);
+  const unknownSteps = evaluation ? unknownStepLabels(evaluation.verdict, evaluation.graph) : [];
+  const result = evaluation?.verdict.result;
+  const heading = evaluation ? templateHeading(evaluation.verdict, knowledge.templates) : "";
 
   return (
     <div>
@@ -111,9 +121,39 @@ export function Staff({ settings }: { settings: Settings }) {
         <div className="panel warn" style={{ marginBottom: 10 }}>
           <p className="small">
             <b>未確認の項目が {pending} 件あります。</b>
-            未確認は「止まる」とは扱わないので、いまの結論は最悪の想定（または「確認中」）です。詳細を登録するか、ベンダーに確認すると判定が確定します。
+            {onPath.length > 0 ? (
+              <>
+                うち、この攻撃の経路で問われているのは {onPath.length} 件（
+                {[...new Set(onPath.map((x) => x.assetLabel))].join("、")}）。
+              </>
+            ) : (
+              "この攻撃の経路で問われている項目はありません。"
+            )}
+            {result === "breached" && unknownSteps.length > 0 && (
+              <>
+                いまの結論「{RESULT_SHORT.breached}」は、未確認の段階（{unknownSteps.join("、")}
+                ）を「突破される」とみなした<b>最悪の想定</b>
+                です。未確認は「止まる」とは扱いません。
+              </>
+            )}
+            {result === "pending" && (
+              <>
+                いまの結論は「{RESULT_SHORT.pending}」です。未確認の段階（{unknownSteps.join("、")}
+                ）が決まると結論が決まります。
+              </>
+            )}
+            {result !== "breached" && result !== "pending" && onPath.length === 0 && (
+              <>
+                この攻撃の結論は未確認の段階を通らずに出ています。残りの未確認は別の攻撃で問われることがあります。
+              </>
+            )}
+            {onPath.length > 0 &&
+              " 経路の項目から答える（またはベンダーに確認する）と、結論が変わりやすくなります。"}
+            {profile.companyName === "うちの会社" && " 会社名もカルテで登録できます。"}
             <a className="btn sm" href="#/profile" style={{ marginLeft: 10 }}>
-              カルテに詳細を登録する
+              {onPath.length > 0
+                ? `カルテで経路の ${onPath.length} 件から答える`
+                : "カルテに詳細を登録する"}
             </a>
           </p>
         </div>
@@ -131,9 +171,7 @@ export function Staff({ settings }: { settings: Settings }) {
         <div>
           <p className="muted">
             {caseMeta?.sourceJa}
-            {evaluation?.verdict.templateLabelJa && (
-              <> ／ 型紙「{evaluation.verdict.templateLabelJa}」で判定</>
-            )}
+            {heading && <> ／ {heading}</>}
           </p>
           <h1 style={{ fontSize: 20 }}>{theCase.title}</h1>
         </div>
@@ -220,6 +258,7 @@ export function Staff({ settings }: { settings: Settings }) {
               profile={stage.input.profile}
               labels={knowledge.labels}
               graph={stage.input.graph}
+              templates={knowledge.templates}
             />
           </div>
           <div style={{ marginTop: 12 }}>

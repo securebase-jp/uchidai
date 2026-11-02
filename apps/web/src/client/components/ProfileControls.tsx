@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
 import { useRequests } from "../hooks/useRequests.tsx";
 import { EVIDENCE_LABEL } from "../lib/labels.ts";
+import type { PendingItem } from "../lib/pending.ts";
 import {
   answerFromChoice,
   effectiveControl,
@@ -36,11 +37,42 @@ type Props = {
   questions: ControlQuestion[];
   /** 送信箱から再適用される回答（表示と「変更不可」の判定に使う） */
   outboxAnswers: AnswerInput[];
+  /** いまの判定の経路で問われている未確認（入口に近い順）。該当する資産と行を先頭に寄せ、印を付ける */
+  onPath?: PendingItem[];
   staff: string;
   now: Date;
   onAnswer(a: StaffAnswer): void;
   onProduct(assetId: string, product: string | undefined, version: string | undefined): void;
 };
+
+/** 経路で問われている資産を先頭に（資産の中では問われている行を先頭に）。それ以外の順は変えない */
+export function orderByPath(assets: Asset[], onPath: PendingItem[]): Asset[] {
+  if (onPath.length === 0) return assets;
+  const assetRank = new Map<string, number>();
+  const rowRank = new Map<string, number>();
+  onPath.forEach((x, i) => {
+    if (!assetRank.has(x.assetId)) assetRank.set(x.assetId, i);
+    rowRank.set(`${x.assetId}:${x.mitigation}`, i);
+  });
+  const rank = (m: Map<string, number>, key: string) => m.get(key) ?? Number.POSITIVE_INFINITY;
+  return assets
+    .map((a, i) => ({ a, i }))
+    .sort((x, y) => {
+      const d = rank(assetRank, x.a.id) - rank(assetRank, y.a.id);
+      return d !== 0 ? d : x.i - y.i;
+    })
+    .map(({ a }) => ({
+      ...a,
+      controls: a.controls
+        .map((c, i) => ({ c, i }))
+        .sort((x, y) => {
+          const d =
+            rank(rowRank, `${a.id}:${x.c.mitigation}`) - rank(rowRank, `${a.id}:${y.c.mitigation}`);
+          return d !== 0 ? d : x.i - y.i;
+        })
+        .map(({ c }) => c),
+    }));
+}
 
 export function ProfileControls(p: Props) {
   const mit = (id: string) =>
@@ -48,9 +80,12 @@ export function ProfileControls(p: Props) {
   const roleLabel = (role: string) => p.roles.find((r) => r.id === role)?.labelJa ?? role;
   const questionFor = (id: string) =>
     p.questions.find((q) => q.mitigation === id) ?? plainQuestion(id, mit(id));
+  const onPath = p.onPath ?? [];
+  const pathStage = (assetId: string, mitigation: string) =>
+    onPath.find((x) => x.assetId === assetId && x.mitigation === mitigation);
   return (
     <div className="stack">
-      {p.profile.assets.map((a) => (
+      {orderByPath(p.profile.assets, onPath).map((a) => (
         <AssetCard
           key={a.id}
           asset={a}
@@ -58,6 +93,7 @@ export function ProfileControls(p: Props) {
           mit={mit}
           questionFor={questionFor}
           outboxAnswers={p.outboxAnswers}
+          pathStage={pathStage}
           staff={p.staff}
           now={p.now}
           onAnswer={p.onAnswer}
@@ -74,6 +110,7 @@ type CardProps = {
   mit(id: string): string;
   questionFor(id: string): ControlQuestion;
   outboxAnswers: AnswerInput[];
+  pathStage(assetId: string, mitigation: string): PendingItem | undefined;
   staff: string;
   now: Date;
   onAnswer(a: StaffAnswer): void;
@@ -141,6 +178,7 @@ function AssetCard(p: CardProps) {
             outboxAnswer={p.outboxAnswers.find(
               (x) => x.assetId === asset.id && x.mitigation === c.mitigation,
             )}
+            onPath={p.pathStage(asset.id, c.mitigation)}
             staff={p.staff}
             now={p.now}
             onAnswer={p.onAnswer}
@@ -157,6 +195,7 @@ type RowProps = {
   label: string;
   question: ControlQuestion;
   outboxAnswer: AnswerInput | undefined;
+  onPath: PendingItem | undefined;
   staff: string;
   now: Date;
   onAnswer(a: StaffAnswer): void;
@@ -189,12 +228,22 @@ function ControlRow(p: RowProps) {
     setMode("closed");
   };
 
+  // 5問の「クラウド同期」「同じネットワーク内」は M1053 が「あり」でも切り離していない（文言が無いので補う）
+  const isolatedNote =
+    p.mitigation === "M1053" && !ctl.noteJa && p.asset.attrs.isolated === false
+      ? "切り離した保管先ではない（同じネットワーク内かクラウド同期）"
+      : undefined;
   return (
-    <div className="ctl-row">
+    <div className="ctl-row" id={`ctl-${p.asset.id}-${p.mitigation}`}>
       <div className="what">
         <b>
           {p.label} <code>{p.mitigation}</code>
         </b>
+        {p.onPath && (
+          <span className="chip on-path">
+            この攻撃の経路{p.onPath.stageJa ? `：${p.onPath.stageJa}` : ""}
+          </span>
+        )}
         <p className="q">{p.question.textJa}</p>
       </div>
       <div className="state">
@@ -220,6 +269,7 @@ function ControlRow(p: RowProps) {
           </span>
         )}
         {ctl.noteJa && <span className="who">{ctl.noteJa}</span>}
+        {isolatedNote && <span className="who">{isolatedNote}</span>}
       </div>
       <div className="actions">
         {locked ? (

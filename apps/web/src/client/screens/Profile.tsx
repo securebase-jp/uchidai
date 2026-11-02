@@ -7,10 +7,11 @@ import { ProfileControls } from "../components/ProfileControls.tsx";
 import { ProfileFile } from "../components/ProfileFile.tsx";
 import { BusinessTable, CompanyForm, PersonalDataTable } from "../components/ProfileForms.tsx";
 import { useApp } from "../hooks/useApp.tsx";
+import { type PendingItem, rankPending } from "../lib/pending.ts";
 import {
   applyStaffAnswer,
+  effectiveControl,
   isStale,
-  pendingCount,
   setAssetProduct,
   setPersonalData,
   staffName,
@@ -22,7 +23,7 @@ import "../components/profile.css";
 
 export function Profile() {
   const app = useApp();
-  const { knowledge, profile, busy, error, answers } = app;
+  const { knowledge, profile, busy, error, answers, evaluation, theCase } = app;
   const [staff, setStaff] = useState(() => staffName.load());
   const [savedAt, setSavedAt] = useState<string>();
   const now = useMemo(() => new Date(), []);
@@ -32,7 +33,39 @@ export function Profile() {
     setSavedAt(new Date().toLocaleTimeString("ja-JP"));
   };
 
-  const pending = profile ? pendingCount(profile) : 0;
+  // 未確認の数は、一覧の行と同じ見え方（送信箱のベンダー回答を重ねたもの）で数える
+  const pending = profile
+    ? profile.assets.reduce(
+        (n, a) =>
+          n +
+          a.controls.filter(
+            (c) =>
+              effectiveControl(
+                c,
+                answers.find((x) => x.assetId === a.id && x.mitigation === c.mitigation),
+                c.mitigation,
+              ).status === "unknown",
+          ).length,
+        0,
+      )
+    : 0;
+  // いまの判定の経路で問われている未確認（答えると結論が変わりやすい順）。判定は engine の結果をそのまま使う
+  const ranked = useMemo(
+    () =>
+      profile && !profile.fictional
+        ? rankPending(evaluation?.profile ?? profile, evaluation?.verdict, evaluation?.graph)
+        : [],
+    [profile, evaluation],
+  );
+  const onPath = ranked.filter((x) => x.onPath);
+  const mitLabel = (id: string) =>
+    knowledge?.labels.mitigations[id] ?? knowledge?.labels.custom[id]?.labelJa ?? id;
+  /** 一覧の行へ移って「自分で答える」に焦点を当てる（ハッシュ経路なのでアンカーは使えない） */
+  const jumpTo = (x: PendingItem) => {
+    const row = document.getElementById(`ctl-${x.assetId}-${x.mitigation}`);
+    row?.scrollIntoView({ behavior: "smooth", block: "center" });
+    row?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+  };
   const staleCount = profile
     ? profile.assets.reduce(
         (n, a) => n + a.controls.filter((c) => isStale(c.answeredAt, now)).length,
@@ -115,6 +148,28 @@ export function Profile() {
             <CompanyForm profile={profile} onChange={(f) => save(updateCompany(profile, f))} />
           </div>
 
+          {onPath.length > 0 && (
+            <div className="panel first-ask">
+              <h2>
+                まず答えるとよい項目（いまの攻撃の経路で問われている未確認 {onPath.length} 件）
+              </h2>
+              <p className="muted">
+                {theCase ? `事例「${theCase.title}」` : "いまの事例"}
+                の経路で、未確認のまま通っている段階の対策です。入口に近い順に並べています。ここから答える（またはベンダーに聞く）と結論が変わりやすく、他の未確認はこの攻撃の結論には関わりません。
+              </p>
+              <ol className="first-ask-list">
+                {onPath.map((x) => (
+                  <li key={`${x.assetId}:${x.mitigation}`}>
+                    <button type="button" className="link" onClick={() => jumpTo(x)}>
+                      {x.assetLabel}：{mitLabel(x.mitigation)}
+                    </button>
+                    {x.stageJa && <span className="muted">　段階：{x.stageJa}</span>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           <div>
             <h2 style={{ fontSize: 17, margin: "4px 0 8px" }}>
               確認項目（構成要素ごとの対策の有無）
@@ -131,6 +186,7 @@ export function Profile() {
                 roles={knowledge.roles}
                 questions={knowledge.controlQuestions}
                 outboxAnswers={answers}
+                onPath={onPath}
                 staff={staff}
                 now={now}
                 onAnswer={(a) => save(applyStaffAnswer(profile, a))}
