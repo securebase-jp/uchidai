@@ -238,3 +238,17 @@ describe("送信の差し替え", () => {
     expect(defaultDeadline(new Date("2026-11-05T10:00:00Z"))).toBe("2026年11月12日");
   });
 });
+
+describe("DELETE /api/requests（送信箱を空にする）", () => {
+  it("メモリの依頼を全部消し、消した件数を返す。回答ページのトークンも無効になる", async () => {
+    const { app, post } = build();
+    const created = await post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" });
+    const { request } = await loose(created);
+    const res = await app.request("/api/requests", { method: "DELETE" });
+    expect(res.status).toBe(200);
+    expect(await loose(res)).toMatchObject({ ok: true, cleared: 1 });
+    const list = await loose(await app.request("/api/requests"));
+    expect(list.items).toEqual([]);
+    expect((await app.request(`/api/requests/${request.token}`)).status).toBe(404);
+  });
+});

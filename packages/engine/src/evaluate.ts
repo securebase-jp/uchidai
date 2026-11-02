@@ -36,6 +36,10 @@ export const HEADLINES: Record<VerdictResult, string> = {
   out_of_scope: "この事故は攻撃経路で判定できないため、対象外です",
 };
 
+/** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
+export const UNMAPPED_HEADLINE =
+  "この記事の攻撃は、ウチダイの型紙の手法に対応づけられないため、判定できません（対象外）";
+
 export type EvaluateOptions = {
   knowledge?: Knowledge;
   /** 事前に作った構成グラフ（省略時はカルテから作る） */
@@ -250,9 +254,9 @@ export function evaluate(
   const knowledge = options.knowledge ?? loadKnowledge();
   const graph = options.graph ?? buildGraph(profile, knowledge.roles);
   const contradictions: Contradiction[] = [];
-  const empty = (result: VerdictResult): Verdict => ({
+  const empty = (result: VerdictResult, headlineJa?: string): Verdict => ({
     result,
-    headlineJa: HEADLINES[result],
+    headlineJa: headlineJa ?? HEADLINES[result],
     paths: [],
     contradictions,
     timeline: [],
@@ -266,6 +270,17 @@ export function evaluate(
   const matched = matchCaseSteps(template, theCase.steps, knowledge);
   const entryStage = template.stages.find((s) => s.entry);
   if (!entryStage) return empty("out_of_scope");
+
+  // 記事の段階のどれも型紙の手法に対応づけられないなら、型紙はこの記事の攻撃を表していない。
+  // 手法の無い段階を戦術だけで当てはめて「止められます」と答えると、誤って安心を与えるので判定しない。
+  // 入口が分からない記事（clarity: unknown）は、仕様どおり入口の候補をすべて展開する
+  if (
+    theCase.clarity !== "unknown" &&
+    theCase.steps.length > 0 &&
+    ![...matched.values()].some((m) => m.technique !== undefined)
+  ) {
+    return empty("out_of_scope", UNMAPPED_HEADLINE);
+  }
 
   // 入口の候補：型紙の入口の役割のうち、グラフにあり攻撃者とつながっているノード
   const entryNodes = graph.nodes

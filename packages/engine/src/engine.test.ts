@@ -294,3 +294,33 @@ describe("5問からの構成グラフ", () => {
     expect(v.result).toBe("pending");
   });
 });
+
+describe("型紙に対応づけられない記事は判定しない（誤って安心させない）", () => {
+  // 読解で手法がすべて型紙外として破棄され、戦術だけが残った記事（Web サイト改ざんなど）
+  const tacticsOnly: Case = {
+    title: "Web サイト改ざん（検証用）",
+    damageType: "data_breach",
+    clarity: "partial",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0001", techniques: [], source: "stated" },
+      { tactic: "TA0010", techniques: [], source: "stated" },
+    ],
+  };
+  it("手法がどれも型紙に対応づけられないなら、止められますと答えず対象外にする", () => {
+    const v = evaluate(tacticsOnly, demo, { knowledge });
+    expect(v.result).toBe("out_of_scope");
+    expect(v.paths).toEqual([]);
+    expect(v.headlineJa).toContain("判定できません");
+  });
+  it("入口が不明（clarity: unknown）な記事は、仕様どおり入口の候補を展開する", () => {
+    const v = evaluate({ ...tacticsOnly, damageType: "ransomware", clarity: "unknown" }, demo, {
+      knowledge,
+    });
+    expect(v.result).not.toBe("out_of_scope");
+    expect(v.paths.length).toBeGreaterThan(0);
+  });
+  it("手法が 1 つでも対応づけられれば判定する（事例 2）", () => {
+    expect(evaluate(case2, demo, { knowledge }).result).toBe("blocked");
+  });
+});

@@ -2,6 +2,7 @@
  * 確認依頼と回答の API。
  * - POST /            依頼を作り、依頼文を生成し、送信箱に積む（SMTP_URL があれば送る）
  * - GET  /            送信箱（依頼と回答の状態）
+ * - DELETE /          送信箱を空にする（手元だけ。公開 URL 経由では拒否される）
  * - GET  /events      SSE。回答が来たら answer イベントで AnswerInput を流す
  * - GET  /:token      回答ページ用：質問と選択肢
  * - POST /:token/answer  回答を保存し、AnswerInput に変換して返す（二重回答は 409）
@@ -93,6 +94,8 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   const r = new Hono();
 
   r.get("/", (c) => c.json({ items: store.list().map(toView) }));
+
+  r.delete("/", (c) => c.json({ ok: true, cleared: store.clear() }));
 
   r.get("/events", (c) => {
     if (store.subscriberCount >= maxSubscribers)

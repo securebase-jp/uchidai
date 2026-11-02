@@ -183,8 +183,35 @@ export function buildTimeline(
     }
   }
 
-  return events
+  return mergeSameEvents(events)
     .map((e, i) => ({ e, i }))
     .sort((a, b) => a.e.day - b.e.day || a.i - b.i)
     .map(({ e }) => e);
+}
+
+/**
+ * 同じ日・同じ種類・同じ見出しの出来事は 1 つにまとめる（複数の業務が同じ取引先に影響するとき、
+ * 「3 日目から取引先の納期に影響」が並ばないように）。詳細は重複を除いてつなぐ。
+ * 紐づく業務は先頭のものを残す（対策で経路が止まれば、まとめた出来事ごと消える）
+ */
+function mergeSameEvents(events: TimelineEvent[]): TimelineEvent[] {
+  const out: TimelineEvent[] = [];
+  const index = new Map<string, number>();
+  for (const e of events) {
+    const key = `${e.kind}|${e.day}|${e.labelJa}`;
+    const at = index.get(key);
+    if (at === undefined) {
+      index.set(key, out.length);
+      out.push(e);
+      continue;
+    }
+    const prev = out[at];
+    if (prev && e.detailJa && !(prev.detailJa ?? "").includes(e.detailJa)) {
+      out[at] = {
+        ...prev,
+        detailJa: prev.detailJa ? `${prev.detailJa}／${e.detailJa}` : e.detailJa,
+      };
+    }
+  }
+  return out;
 }

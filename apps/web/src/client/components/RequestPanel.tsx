@@ -103,7 +103,11 @@ export function RequestPanel() {
           })}
         </div>
       )}
-      <OutboxPanel items={req.items} live={req.live} />
+      <OutboxPanel
+        items={req.items}
+        live={req.live}
+        onClear={() => void requestsApi.clear().then(() => req.refresh())}
+      />
       {selectedMeasures.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <h2>対策の依頼文（下書き。確認してから送る）</h2>

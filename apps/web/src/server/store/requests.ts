@@ -116,6 +116,13 @@ export class RequestStore {
     this.persist();
     return item;
   }
+  /** 送信箱を空にする（録画前などに使う）。メモリと保存ファイルの両方を空にし、消した件数を返す */
+  clear(): number {
+    const n = this.items.size;
+    this.items.clear();
+    this.persist();
+    return n;
+  }
   byToken(token: string): StoredRequest | undefined {
     for (const it of this.items.values()) if (it.token === token) return it;
     return undefined;

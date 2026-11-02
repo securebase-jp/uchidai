@@ -510,3 +510,36 @@ describe("社長向けの一枚の文と対策", () => {
     expect(one.notesJa.join("")).toContain("外部統計からの損害額の推計ではありません");
   });
 });
+
+describe("時間軸の重複（同じ見出しの出来事は 1 つにまとめる）", () => {
+  it("5 問から作った製造業のカルテで、同じ日の「取引先の納期に影響」が重複しない", () => {
+    const k = loadKnowledge();
+    const p = profileFromAnswers(
+      {
+        industry: "manufacturing",
+        site: "factory",
+        hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+        remoteAccess: ["vpn", "vendor_remote"],
+        backup: "cloud_sync",
+      },
+      k.patterns,
+    );
+    const v = evaluate(
+      {
+        title: "t",
+        damageType: "ransomware",
+        clarity: "partial",
+        suspiciousInstructions: [],
+        steps: [
+          { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+          { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+        ],
+      },
+      p,
+      { knowledge: k },
+    );
+    const keys = v.timeline.map((e) => `${e.kind}|${e.day}|${e.labelJa}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    expect(v.timeline.filter((e) => e.kind === "partner" && e.day === 3)).toHaveLength(2);
+  });
+});

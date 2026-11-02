@@ -58,7 +58,11 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
         時間軸（Day 0 から）
         {view.events.length === 0 && (
           <span className="chip" style={{ marginLeft: 8 }}>
-            この経路では業務への影響と期限は発生しません
+            {verdict.result === "out_of_scope"
+              ? "判定の対象外のため、業務への影響と期限は計算していません"
+              : verdict.result === "no_entry"
+                ? "この攻撃の入口が無いため、業務への影響と期限は発生しません"
+                : "この経路では業務への影響と期限は発生しません"}
           </span>
         )}
       </h2>

@@ -12,10 +12,20 @@ function build(allowAll = false) {
   app.get("/api/requests/:token", (c) => c.json({ token: c.req.param("token") }));
   app.post("/api/requests/:token/answer", (c) => c.json({ ok: true }));
   app.post("/api/evaluate", (c) => c.json({ ok: true }));
+  app.delete("/api/requests", (c) => c.json({ ok: true }));
   return app;
 }
 
 describe("remoteGuard", () => {
+  it("公開 URL 経由では送信箱を空にできない", async () => {
+    const app = build();
+    const res = await app.request("/api/requests", {
+      method: "DELETE",
+      headers: { "cf-connecting-ip": "203.0.113.5" },
+    });
+    expect(res.status).toBe(403);
+    expect((await app.request("/api/requests", { method: "DELETE" })).status).toBe(200);
+  });
   it("転送ヘッダが無ければ（手元の Vite 経由）すべて通す", async () => {
     const app = build();
     expect((await app.request("/api/requests")).status).toBe(200);

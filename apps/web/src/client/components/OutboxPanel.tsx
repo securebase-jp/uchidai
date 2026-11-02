@@ -77,7 +77,16 @@ export function OutboxItem({ item }: { item: RequestView }) {
   );
 }
 
-export function OutboxPanel({ items, live }: { items: RequestView[]; live: boolean }) {
+export function OutboxPanel({
+  items,
+  live,
+  onClear,
+}: {
+  items: RequestView[];
+  live: boolean;
+  /** 送信箱を空にする（録画前などに使う） */
+  onClear?: () => void;
+}) {
   return (
     <div className="outbox">
       <div className="row" style={{ justifyContent: "space-between" }}>
@@ -86,6 +95,11 @@ export function OutboxPanel({ items, live }: { items: RequestView[]; live: boole
           <i /> {live ? "回答を待ち受け中" : "受信を再接続中"}
         </span>
       </div>
+      {onClear && items.length > 0 && (
+        <button type="button" className="btn ghost sm" style={{ marginTop: 6 }} onClick={onClear}>
+          送信箱を空にする（{items.length} 件）
+        </button>
+      )}
       {items.length === 0 ? (
         <p className="muted" style={{ marginTop: 6 }}>
           まだ依頼はありません。上の「ベンダーに確認する」で作ると、ここに文面と回答リンクが出ます。
