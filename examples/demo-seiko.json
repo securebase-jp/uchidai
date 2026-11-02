@@ -17,6 +17,7 @@
   },
   "vendor": { "name": "地域の保守ベンダー（架空）", "email": "vendor@example.com" },
   "cyberInsurance": { "enrolled": true, "notifyWithinDays": 30 },
+  "typicalTransferJpy": 5000000,
   "assets": [
     {
       "id": "vpn",

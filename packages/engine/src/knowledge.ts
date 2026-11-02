@@ -20,6 +20,7 @@ import {
   StepState,
   TacticId,
   TechniqueId,
+  TimelineEvent,
 } from "./types.ts";
 
 export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -195,6 +196,81 @@ export type EntryCandidate = z.infer<typeof EntryCandidate>;
 export type EntryCandidates = z.infer<typeof EntryCandidates>;
 
 // ---------------------------------------------------------------------------
+// 法令・実務上の期限（deadlines.yaml）と対策費用の目安（costs.yaml）
+// ---------------------------------------------------------------------------
+export const DeadlineSource = z.object({
+  id: z.string(),
+  nameJa: z.string(),
+  url: z.string().optional(),
+  checkedAt: z.string(),
+  noteJa: z.string().optional(),
+});
+/** 報告義務の判定条件。到達した個人情報に当てはめる */
+export const ReportTrigger = z.object({
+  id: z.string(),
+  ruleJa: z.string(),
+  labelJa: z.string(),
+  when: z.enum(["sensitive", "unauthorizedAccess", "over1000"]),
+  sourceId: z.string(),
+});
+export const Deadline = z.object({
+  id: z.string(),
+  kind: TimelineEvent.shape.kind,
+  labelJa: z.string(),
+  /** 発覚日からの日数（上限の目安） */
+  days: z.number().nonnegative().optional(),
+  /** 幅がある場合の下限（速報の 3〜5 日など） */
+  daysFrom: z.number().nonnegative().optional(),
+  /** 不正の目的によるおそれがある場合の日数（確報の 60 日） */
+  daysIfUnauthorized: z.number().nonnegative().optional(),
+  /** 日数をカルテから取る項目 */
+  daysFromProfile: z.enum(["cyberInsurance.notifyWithinDays"]).optional(),
+  /** 日数ではなく出来事に相対して置く */
+  placement: z.enum(["before_partner_impact"]).optional(),
+  appliesTo: z.enum(["report", "insurance", "partner", "police", "bec", "all"]),
+  basisJa: z.string(),
+  sourceId: z.string(),
+  status: z.enum(["confirmed", "unverified"]),
+  noteJa: z.string().optional(),
+});
+export const DeadlinesFile = z.object({
+  checkedAt: z.string(),
+  sources: z.array(DeadlineSource).min(1),
+  reportTriggers: z.array(ReportTrigger).min(1),
+  deadlines: z.array(Deadline).min(1),
+});
+export type DeadlineSource = z.infer<typeof DeadlineSource>;
+export type ReportTrigger = z.infer<typeof ReportTrigger>;
+export type Deadline = z.infer<typeof Deadline>;
+export type DeadlinesFile = z.infer<typeof DeadlinesFile>;
+
+export const UnitPrice = z.object({
+  id: z.string(),
+  labelJa: z.string(),
+  unitJpy: z.number().nonnegative(),
+  per: z.enum(["device_year", "person", "company", "service"]),
+  pageJa: z.string(),
+});
+export const CostEntry = z.object({
+  measureId: z.string(),
+  /** ipa = 出典の単価で計算、quote = ベンダーの見積もり待ち、internal = 社内ルールで外部費用なし */
+  basis: z.enum(["ipa", "quote", "internal"]),
+  unitPriceId: z.string().optional(),
+  quantity: z.enum(["devices", "people", "company"]).optional(),
+  noteJa: z.string().optional(),
+});
+export const CostsFile = z.object({
+  sourceJa: z.string(),
+  sourceUrl: z.string(),
+  checkedAt: z.string(),
+  unitPrices: z.array(UnitPrice),
+  measures: z.array(CostEntry),
+});
+export type UnitPrice = z.infer<typeof UnitPrice>;
+export type CostEntry = z.infer<typeof CostEntry>;
+export type CostsFile = z.infer<typeof CostsFile>;
+
+// ---------------------------------------------------------------------------
 // 読み込み
 // ---------------------------------------------------------------------------
 function readYaml(rel: string): unknown {
@@ -233,6 +309,12 @@ export function loadPatterns(): Pattern[] {
 export function loadEntryCandidates(): EntryCandidates {
   return EntryCandidates.parse(readYaml("entry-candidates.yaml"));
 }
+export function loadDeadlines(): DeadlinesFile {
+  return DeadlinesFile.parse(readYaml("deadlines.yaml"));
+}
+export function loadCosts(): CostsFile {
+  return CostsFile.parse(readYaml("costs.yaml"));
+}
 export function loadProfile(path: string): CompanyProfile {
   return CompanyProfile.parse(JSON.parse(readFileSync(path, "utf8")));
 }
@@ -247,6 +329,8 @@ export type Knowledge = {
   measures: MeasureDef[];
   patterns: Pattern[];
   entryCandidates: EntryCandidates;
+  deadlines: DeadlinesFile;
+  costs: CostsFile;
 };
 let cached: Knowledge | undefined;
 export function loadKnowledge(): Knowledge {
@@ -259,6 +343,8 @@ export function loadKnowledge(): Knowledge {
     measures: loadMeasures(),
     patterns: loadPatterns(),
     entryCandidates: loadEntryCandidates(),
+    deadlines: loadDeadlines(),
+    costs: loadCosts(),
   };
   return cached;
 }
@@ -409,6 +495,51 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   }
   collect("questions", () => QuestionsFile.parse(readYaml("questions.yaml")));
 
+  const deadlines = collect("deadlines", loadDeadlines);
+  if (deadlines) {
+    const sourceIds = new Set(deadlines.sources.map((s) => s.id));
+    const ids = deadlines.deadlines.map((d) => d.id);
+    for (const id of ids.filter((id, i) => ids.indexOf(id) !== i))
+      problems.push(`deadlines: ${id} が重複`);
+    for (const d of deadlines.deadlines) {
+      if (!sourceIds.has(d.sourceId))
+        problems.push(`deadlines/${d.id}: 出典 ${d.sourceId} が sources にない`);
+      if (d.days === undefined && !d.daysFromProfile && !d.placement)
+        problems.push(`deadlines/${d.id}: days、daysFromProfile、placement のいずれかが必要`);
+      if (d.daysFrom !== undefined && d.days !== undefined && d.daysFrom > d.days)
+        problems.push(`deadlines/${d.id}: daysFrom が days を超える`);
+      if (d.status === "unverified" && !(d.noteJa ?? "").includes("要確認"))
+        problems.push(`deadlines/${d.id}: 未確認の期限は noteJa に「要確認」と書く`);
+    }
+    for (const t of deadlines.reportTriggers)
+      if (!sourceIds.has(t.sourceId))
+        problems.push(`deadlines: 報告条件 ${t.id} の出典 ${t.sourceId} が sources にない`);
+  }
+
+  const costs = collect("costs", loadCosts);
+  if (costs) {
+    const unitIds = new Set(costs.unitPrices.map((u) => u.id));
+    const measureIds = new Set(measures.map((m) => m.id));
+    const covered = new Set<string>();
+    for (const c of costs.measures) {
+      if (!measureIds.has(c.measureId))
+        problems.push(`costs: 対策 ${c.measureId} は measures.yaml にない`);
+      if (covered.has(c.measureId)) problems.push(`costs: 対策 ${c.measureId} が重複`);
+      covered.add(c.measureId);
+      if (c.basis === "ipa") {
+        if (!c.unitPriceId || !unitIds.has(c.unitPriceId))
+          problems.push(`costs/${c.measureId}: 出典の単価 ${c.unitPriceId ?? "（なし）"} がない`);
+        if (!c.quantity) problems.push(`costs/${c.measureId}: 数量の取り方（quantity）がない`);
+      }
+    }
+    for (const m of measures)
+      if (!covered.has(m.id))
+        problems.push(`costs: 対策 ${m.id} の費用の扱い（ipa / quote / internal）が未記入`);
+    for (const u of costs.unitPrices)
+      if (!/PDF \d+ ページ/.test(u.pageJa))
+        problems.push(`costs: 単価 ${u.id} の出典ページ（PDF n ページ）が未記入`);
+  }
+
   for (const path of profilePaths) {
     const profile = collect(path, () => loadProfile(path));
     if (!profile) continue;
@@ -448,4 +579,6 @@ export const schemaExports = {
   "measures.schema.json": MeasuresFile,
   "pattern.schema.json": Pattern,
   "entry-candidates.schema.json": EntryCandidates,
+  "deadlines.schema.json": DeadlinesFile,
+  "costs.schema.json": CostsFile,
 } as const;

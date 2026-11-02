@@ -1,0 +1,111 @@
+# 法令・実務上の期限。判定（報告義務の有無）と日付の計算はプログラムが行い、Claude には計算させない
+# 出典は sources に置き、各期限は sourceId で参照する。確認できなかった項目は status: unverified と noteJa に「要確認」を明記する
+checkedAt: "2026-11-02"
+sources:
+  - id: ppc-guidelines
+    nameJa: 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等
+    url: https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/
+    checkedAt: "2026-11-02"
+    noteJa: 3-5-3 個人情報保護委員会への報告（法第26条第1項関係）、3-5-3-3 速報（規則第8条第1項関係）、3-5-3-4 確報（規則第8条第2項関係）、3-5-4 本人への通知（法第26条第2項関係）を確認
+  - id: ppc-leak
+    nameJa: 個人情報保護委員会「漏えい等の対応とお役立ち資料」
+    url: https://www.ppc.go.jp/personalinfo/legal/leakAction/
+    checkedAt: "2026-11-02"
+    noteJa: 速報「発覚日から3～5日以内」、確報「発覚日から30日以内」「不正な目的で行われたおそれがある場合は発覚日から60日以内」を確認
+  - id: npa-soudan
+    nameJa: 警察庁「サイバー事案に関する相談窓口」（全国統一のオンライン受付窓口と都道府県警察のサイバー犯罪相談窓口）
+    url: https://www.npa.go.jp/bureau/cyber/soudan.html
+    checkedAt: "2026-11-02"
+  - id: mpd-bec
+    nameJa: 警視庁「ビジネスメール詐欺（BEC）対策」（2026-09-24 更新）
+    url: https://www.keishicho.metro.tokyo.lg.jp/kurashi/cyber/notes/business_mail.html
+    checkedAt: "2026-11-02"
+    noteJa: 「速やかに送金元の銀行に送金のキャンセルや組み戻しの手続きを依頼してください」「最寄りの警察署、またはサイバー犯罪相談窓口に通報・相談してください」を確認
+  - id: profile
+    nameJa: 会社カルテ（サイバー保険の契約、取引先との契約）
+    checkedAt: "2026-11-02"
+    noteJa: 日数は契約ごとに異なるため、カルテに登録した値をそのまま使う
+
+# 個人情報保護委員会への報告義務が生じる事態（個人情報保護法施行規則 第7条）。いずれか一つに当たれば報告対象
+# 「漏えい等が発生し、又は発生したおそれがある事態」も対象（おそれで足りる）
+reportTriggers:
+  - id: sensitive
+    ruleJa: 規則第7条第1号
+    labelJa: 要配慮個人情報（病歴など）を含む個人データの漏えい等（件数にかかわらず）
+    when: sensitive
+    sourceId: ppc-guidelines
+  - id: unauthorized
+    ruleJa: 規則第7条第3号
+    labelJa: 不正の目的をもって行われたおそれがある行為による漏えい等（不正アクセス由来は件数にかかわらず）
+    when: unauthorizedAccess
+    sourceId: ppc-guidelines
+  - id: over1000
+    ruleJa: 規則第7条第4号
+    labelJa: 本人の数が 1,000 人を超える漏えい等
+    when: over1000
+    sourceId: ppc-guidelines
+  # 規則第7条第2号（財産的被害が生じるおそれがある個人データ：クレジットカード番号など）は、カルテに項目がないため判定しない（要確認：項目を足すか）
+
+deadlines:
+  - id: ppc-prompt
+    kind: legal
+    labelJa: 個人情報保護委員会へ速報
+    days: 5
+    daysFrom: 3
+    appliesTo: report
+    basisJa: 法第26条第1項、規則第8条第1項。「速やか」の目安は、事態を知った時点から概ね3～5日以内
+    sourceId: ppc-guidelines
+    status: confirmed
+  - id: ppc-final
+    kind: legal
+    labelJa: 個人情報保護委員会へ確報
+    days: 30
+    daysIfUnauthorized: 60
+    appliesTo: report
+    basisJa: 規則第8条第2項。事態を知った日から30日以内（不正の目的をもって行われたおそれがある場合は60日以内）
+    sourceId: ppc-guidelines
+    status: confirmed
+  - id: ppc-notify
+    kind: legal
+    labelJa: 本人への通知
+    days: 5
+    appliesTo: report
+    basisJa: 法第26条第2項。「当該事態の状況に応じて速やかに」（日数の定めはない。速報と同じ時期を目安に置く）
+    sourceId: ppc-guidelines
+    status: confirmed
+    noteJa: 日数は法令に定めがないため、表示上の目安として速報と同じ日に置く
+  - id: insurance
+    kind: insurance
+    labelJa: サイバー保険の事故通知
+    daysFromProfile: cyberInsurance.notifyWithinDays
+    appliesTo: insurance
+    basisJa: 保険契約の事故通知条項（カルテに登録した日数）
+    sourceId: profile
+    status: confirmed
+  - id: partner-notice
+    kind: partner
+    labelJa: 取引先への契約上の通知
+    placement: before_partner_impact
+    appliesTo: partner
+    basisJa: 取引先との契約（基本契約の通知条項）。日数は契約ごとに異なる
+    sourceId: profile
+    status: unverified
+    noteJa: 要確認：契約の通知条項。表示上は、取引先に影響が出る前（手作業で回せる最終日）に置く
+  - id: police
+    kind: police
+    labelJa: 警察（サイバー犯罪相談窓口）への相談
+    days: 1
+    appliesTo: all
+    basisJa: 警察庁の全国統一オンライン受付窓口、または都道府県警察のサイバー犯罪相談窓口。法令上の期限はなく、発覚後すみやかに（目安）
+    sourceId: npa-soudan
+    status: confirmed
+    noteJa: 日数は目安。ログの保全など初動で警察から求められる場合がある
+  - id: bank-recall
+    kind: money
+    labelJa: 送金元の銀行へ組戻しを依頼
+    days: 0
+    appliesTo: bec
+    basisJa: 送金してしまった場合は、速やかに送金元の銀行に送金のキャンセルや組戻しを依頼する（目安）
+    sourceId: mpd-bec
+    status: confirmed
+    noteJa: 海外口座では回収が非常に難しいとされるため、発覚当日を目安に置く
