@@ -5,10 +5,9 @@ type Props = {
   clock: Clock;
   reduced: boolean;
   onReduced(v: boolean): void;
-  speedOptions?: boolean;
 };
 
-export function Controls({ clock, reduced, onReduced, speedOptions = true }: Props) {
+export function Controls({ clock, reduced, onReduced }: Props) {
   return (
     <div className="controls">
       <div className="group">
@@ -29,24 +28,22 @@ export function Controls({ clock, reduced, onReduced, speedOptions = true }: Pro
           </button>
         )}
       </div>
-      {speedOptions && (
-        <fieldset className="group" style={{ border: 0, padding: 0, margin: 0 }}>
-          <legend className="lab" style={{ float: "left", marginRight: 6 }}>
-            速さ
-          </legend>
-          {[0.5, 1, 2].map((v) => (
-            <button
-              type="button"
-              key={v}
-              className="btn sm"
-              aria-pressed={clock.speed === v}
-              onClick={() => clock.setSpeed(v)}
-            >
-              ×{v}
-            </button>
-          ))}
-        </fieldset>
-      )}
+      <fieldset className="group" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="lab" style={{ float: "left", marginRight: 6 }}>
+          速さ
+        </legend>
+        {[0.5, 1, 2].map((v) => (
+          <button
+            type="button"
+            key={v}
+            className="btn sm"
+            aria-pressed={clock.speed === v}
+            onClick={() => clock.setSpeed(v)}
+          >
+            ×{v}
+          </button>
+        ))}
+      </fieldset>
       <label className="group lab" style={{ cursor: "pointer" }}>
         <input type="checkbox" checked={reduced} onChange={(e) => onReduced(e.target.checked)} />
         動きを減らす（結論だけを表示）
