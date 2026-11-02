@@ -1,0 +1,150 @@
+# @uchidai/recon：外部確認
+
+「うちの会社は大丈夫？」に答える材料の一つとして、**所有確認した自社ドメイン**について、第三者に公開済みの情報だけから自社の弱点の手がかりを得る。
+
+参照するのは次の 2 つだけ。
+
+- DNS の公開レコード（TXT、MX、A、AAAA、CNAME、PTR）
+- 証明書の公開ログ（Certificate Transparency）。検索サービスは crt.sh の JSON 出力
+
+**対象のホストへは一切アクセスしない。** ポートスキャン、Web ページの取得、ログイン画面の確認、TLS 接続による証明書の取得を含めて行わない。見つかったホスト名の名前解決は DNS サーバへの問い合わせであり、ホストにはつながない。
+
+これは「国の調査（IPA 事例集の脆弱性事例）で中小企業に実際に見つかった弱点」の確認と位置づける。推定はすべてプログラムの固定表（`src/patterns.ts`）で決め、Claude は使わない。
+
+## 使い方
+
+```ts
+import {
+  findContradictions,
+  generateVerificationToken,
+  recon,
+  reconToAnswers,
+  reconToAssetHints,
+  verificationInstructionsJa,
+  verifyOwnership,
+} from "@uchidai/recon";
+
+// 1. 担当者にトークンを渡し、TXT レコードを設定してもらう
+const token = generateVerificationToken(); // 32 文字の 16 進数
+verificationInstructionsJa("example.jp", token); // 日本語の手順
+
+// 2. 所有確認（DNS の TXT に uchidai-verify=<token> があるか）
+const check = await verifyOwnership("example.jp", token);
+if (!check.ok) throw new Error(check.reasonJa);
+
+// 3. 外部確認。verifyOwnership の結果（VerifiedDomain）が無いと動かない
+const result = await recon("example.jp", { ownership: check.verified });
+
+// 4. カルテへの反映
+const answers = reconToAnswers(result); // 5 問の初期値と「外部から推定」のフラグ
+const hints = reconToAssetHints(result); // 資産の役割ごとの属性と緩和策（根拠 external）
+const contradictions = findContradictions(result, profile); // カルテとの矛盾
+```
+
+デモとテストでは fixture（記録した応答）を再生する。実ネットワークには出ない。
+
+```ts
+import { fixtureSources, loadDemoFixture, recon, verifyOwnership } from "@uchidai/recon";
+
+const fixture = loadDemoFixture(); // examples/recon/demo-seiko.example.json
+const { resolver, ct } = fixtureSources(fixture);
+const check = await verifyOwnership(fixture.domain, fixture.verificationToken ?? "", { resolver });
+if (check.ok) {
+  const result = await recon(fixture.domain, { ownership: check.verified, resolver, ct });
+}
+```
+
+## 公開する関数と型
+
+| 種別     | 名前                                                                                                                                                                                              | 内容                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 所有確認 | `generateVerificationToken()`、`verificationRecord(token)`、`verificationInstructionsJa(domain, token)`                                                                                           | トークンの生成、TXT の値、担当者向けの手順                                                           |
+| 所有確認 | `verifyOwnership(domain, token, { resolver? })` → `OwnershipCheck`                                                                                                                                | 通れば `verified: VerifiedDomain`。通らなければ `reasonJa` と見つかった TXT                          |
+| 所有確認 | `isVerifiedDomain(x)`、`assertVerified(domain, proof)`、`OwnershipNotVerifiedError`                                                                                                               | 発行済みの VerifiedDomain か（同じ形のオブジェクトでは通らない）                                     |
+| 確認     | `recon(domain, { ownership, resolver?, ct?, cache?, now?, maxHostLookups? })` → `ReconResult`                                                                                                     | 本体。zod の `ReconResult` で検証して返す                                                            |
+| 反映     | `reconToAnswers(result)` → `AnswerHints`、`mergeAnswers(current, hints)`                                                                                                                          | 5 問の初期値（`hosting.mail`、`hosting.web`、`remoteAccess`）と「外部から推定」の項目                |
+| 反映     | `reconToAssetHints(result)` → `AssetHint[]`、`applyAssetHints(profile, hints)`                                                                                                                    | 役割ごとの属性（`entry.vpn` の `exposed`、`cloud.mail` の `spf`/`dmarc` など）と緩和策（M1042 なし） |
+| 矛盾     | `findContradictions(result, profile)` → `Contradiction[]`                                                                                                                                         | engine の `Contradiction` の形                                                                       |
+| 参照先   | `DnsResolver`、`CtLogSource`、`ReconCache`、`ReconSources`                                                                                                                                        | インターフェース                                                                                     |
+| 実装     | `NodeDnsResolver`、`CrtShSource`、`FileCache`、`MemoryCache`                                                                                                                                      | 実際の参照。`setDefaultResolver()`、`setDefaultCtSource()` で既定を差し替え可能                      |
+| fixture  | `ReconFixture`、`loadFixture(path)`、`loadDemoFixture()`、`fixtureSources(fixture)`、`FixtureDnsResolver`、`FixtureCtSource`                                                                      | 記録した応答の再生                                                                                   |
+| 型       | `ReconResult`、`Finding`、`HostnameEntry`、`RemoteAccessCandidate`、`MailInfo`、`SpfInfo`、`DmarcInfo`、`ProviderGuess`、`CloudService`、`WebInfo`、`Evidence`、`OwnershipProof`、`CtCertificate` | すべて zod スキーマと TypeScript 型の両方                                                            |
+| 表       | `REMOTE_ACCESS_PATTERNS`、`MX_PROVIDERS`、`SPF_INCLUDE_SERVICES`、`WEB_HOSTING_PATTERNS`、`IPA_VULN_CASES`                                                                                        | 推定に使う固定表                                                                                     |
+
+## 確認項目（`ReconResult.findings`）
+
+| id                   | 内容                                                                                                               | 根拠                     | IPA 脆弱性事例       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------ | -------------------- |
+| `hostnames.ct`       | 証明書の公開ログから集めたホスト名の件数（重複除去、ワイルドカード、有効期限、名前解決の有無）                     | CT                       | ―                    |
+| `remote_access.vpn`  | VPN 用と推定されるホスト名（vpn、sslvpn、remote、ras、gw、fw、forti、ssl、access、globalprotect、anyconnect など） | CT、DNS の A/AAAA        | 8・9                 |
+| `remote_access.rdp`  | リモートデスクトップ用と推定されるホスト名（rdweb、rdgw、vdi、citrix など）                                        | CT、DNS                  | （番号は S0 が確認） |
+| `mail_auth.spf`      | SPF の有無、`all` の種類、include                                                                                  | TXT                      | （番号は S0 が確認） |
+| `mail_auth.dmarc`    | DMARC の有無とポリシー（p=none/quarantine/reject）                                                                 | `_dmarc.<domain>` の TXT | （番号は S0 が確認） |
+| `mail_provider.mx`   | MX からの提供元の推定（Microsoft 365、Google Workspace、国内のレンタルサーバ数社、ゲートウェイ製品、不明）         | MX                       | ―                    |
+| `cloud_services.spf` | SPF の include から分かるクラウドサービス                                                                          | TXT                      | ―                    |
+| `web_hosting.hint`   | ホームページの置き場所の手がかり（CNAME 先、A の逆引き名。代表的な国内事業者数社と主要クラウド）                   | CNAME、A、PTR            | ―                    |
+
+ホスト名のパターンは「推定」であり、装置の有無や種類を断定しない。提供元も表にあるものだけを挙げ、無ければ「不明」とする。
+
+## 安全の実装
+
+- **所有確認なしの実行を拒否する**：`recon()` は `verifyOwnership()` が返した `VerifiedDomain` を要求する。発行は WeakSet に記録され、同じ形のオブジェクトを外で作っても `OwnershipNotVerifiedError` になる。別ドメインの確認結果も拒否する
+- **ネットワークに出る経路は 2 つだけ**：DNS（`src/dns-node.ts`、Node 標準 `dns/promises`）と crt.sh（`src/safe-fetch.ts` の `restrictedFetch`）
+- **宛先の限定**：`restrictedFetch` は `https://crt.sh/?q=%25.<domain>&output=json` の形以外を `ForbiddenDestinationError` で拒否する。別ホスト、別パス、余分なパラメータ、認証情報、フラグメント、http を含む。リダイレクトは追わない（`redirect: "error"`）。GET のみ
+- **コード上の固定**：`src/safety.test.ts` が、`node:http`／`node:https`／`node:net`／`node:tls`／`node:child_process` などを import しないこと、`fetch` を呼ぶのが `proxy.ts` と `safe-fetch.ts` だけであること、`recon()` が最初に `assertVerified` を通すことをソース走査で確かめる
+- **キャッシュ**：crt.sh の応答は既定で `packages/recon/.cache/`（gitignore 済み）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない
+- **プロキシ**：`HTTPS_PROXY` が設定された環境では undici の `EnvHttpProxyAgent` を使う（`packages/llm/src/proxy.ts` と同じ方針）
+
+実ネットワークのテストは書かない（CI では fixture だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。
+
+## crt.sh の利用条件（2026-11-02 確認）
+
+- crt.sh のトップページ（https://crt.sh/ ）と Advanced ページには、利用規約・レート制限・自動取得の可否に関する記述は**ない**。フッターに「© Sectigo Limited」の表記だけがある。ソースコードは https://github.com/crtsh （certwatch_db、GPL-3.0）で、README にも利用条件の記述はない
+- 公式グループ（https://groups.google.com/g/crtsh ）のスレッド「DB's usage policy」（2024-06）で、運営側（sectigo.com のアドレス）は「We don't publish a fair-use policy.」「Some queries are lightweight; other queries tax the database rather a lot.」と述べ、明らかに乱用している IP をブロックし、解除の際に使い方の変更を求める運用だと説明している。PostgreSQL 直接接続（5432 番）には「10 秒間に 5 回を超える接続は落とす」制限があるとしている
+- スレッド「Fair Usage」（2024-10）で、「並列ではなく順次、数秒に 1 回」の問い合わせについて運営側は「That sounds fine.」と答えている
+- 本パッケージはこれに合わせ、1 ドメインにつき 1 回の GET（`output=json`）だけを行い、応答をディスクにキャッシュし、並列には問い合わせない。利用規約として明文化された文書は確認できなかったので、上記の運営側の発言を根拠とする。確認中に Advanced ページが 502 を返すこともあり、参照できないときは DNS だけで続けて `notesJa` に注記する（`sources.ct = "unavailable"`）
+
+## fixture の形
+
+`examples/recon/demo-seiko.example.json`（デモ用の架空ドメイン `demo-seiko.example`。IP は文書用の予約範囲）。
+
+```jsonc
+{
+  "domain": "demo-seiko.example",
+  "recordedAt": "2026-11-02T07:00:00Z",
+  "verificationToken": "demo-seiko-verification-token-0001",
+  "dns": {
+    "<名前>": {
+      "TXT": [],
+      "MX": [{ "exchange": "", "priority": 0 }],
+      "A": [],
+      "AAAA": [],
+      "CNAME": []
+    }
+  },
+  "ptr": { "<IP>": ["<逆引き名>"] },
+  "ct": [{ "id": 1, "issuer": "", "names": [], "notBefore": "...", "notAfter": "..." }]
+}
+```
+
+載っていない名前は NXDOMAIN 扱い。実ドメインの応答を記録して fixture にするときも同じ形にする（crt.sh の行は `normalizeRow` でこの形になる）。
+
+## デモ用の実ドメインに設定してもらう DNS レコード
+
+デモの実ドメイン（開発者が用意）で fixture と同じ結果を出すには、次のレコードが要る。
+
+| 種別     | 名前                    | 値                                                        | 役割                                                                                                                                         |
+| -------- | ----------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| TXT      | `<domain>`              | `uchidai-verify=<token>`                                  | 所有確認（トークンは `generateVerificationToken()` で生成）                                                                                  |
+| A        | `vpn.<domain>`          | 任意（例：文書用の 203.0.113.10。実際の装置は不要）       | VPN 用と推定されるホスト名。証明書の公開ログにも載せるなら、この名前で証明書を 1 枚発行する（Let's Encrypt の DNS 認証でよい。ホストは不要） |
+| TXT      | `<domain>`              | `v=spf1 include:spf.protection.outlook.com -all`          | SPF あり                                                                                                                                     |
+| （なし） | `_dmarc.<domain>`       | 設定しない                                                | DMARC なし                                                                                                                                   |
+| MX       | `<domain>`              | `0 <tenant>.mail.protection.outlook.com`                  | Microsoft 365 と推定される MX（実際に受信しなくてよい）                                                                                      |
+| CNAME    | `www.<domain>`          | レンタルサーバ事業者配下の名前（例：`xxxx.sakura.ne.jp`） | ホームページの置き場所の手がかり                                                                                                             |
+| A        | `campaign2019.<domain>` | 任意                                                      | 廃止済みの旧キャンペーンサイト（カルテで `decommissioned: true`、`hostname` に同じ名前）。矛盾表示の例                                       |
+
+## 出典
+
+- IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）：VPN 用ホスト名の推定の根拠として脆弱性事例 8・9 を注記。本文はリポジトリに入れない
+- crt.sh（Sectigo Limited）：https://crt.sh/ 。証明書の公開ログの検索サービス
+- Node.js `dns/promises`：DNS の問い合わせ
