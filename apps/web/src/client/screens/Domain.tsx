@@ -132,10 +132,6 @@ export function Domain() {
       const r = await reconApi.run(domain, profile);
       setRun(r);
       setApplied(r.applied);
-      setTimeout(
-        () => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-        0,
-      );
       reconHints.save({
         domain: r.domain,
         fixture: r.fixture,
@@ -153,6 +149,11 @@ export function Domain() {
       setBusy(undefined);
     }
   }
+  // 実行の結果が描かれたら、そこへスクロールする（描く前に動かすと、まだ短いページの端で止まる）
+  useEffect(() => {
+    if (run) resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [run]);
+
   // 実行の後でカルテが変わった（読み込まれた）ときは、直前の結果で反映の一覧を作り直す
   useEffect(() => {
     if (!run || !profile || applied?.profile.id === profile.id) return;
