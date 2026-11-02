@@ -1,7 +1,8 @@
 import { TopBar } from "./components/TopBar.tsx";
 import { AppProvider, useApp } from "./hooks/useApp.tsx";
-import { useRoute } from "./hooks/useRoute.ts";
+import { answerToken, useRoute } from "./hooks/useRoute.ts";
 import { useSettings } from "./hooks/useSettings.ts";
+import { Answer } from "./screens/Answer.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
 import { Questions } from "./screens/Questions.tsx";
@@ -11,6 +12,7 @@ function Shell() {
   const [route] = useRoute();
   const settings = useSettings();
   const app = useApp();
+  if (route === "answer") return <Answer token={answerToken() ?? ""} />;
   return (
     <div className="wrap">
       <TopBar
