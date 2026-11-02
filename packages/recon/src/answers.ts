@@ -165,10 +165,12 @@ export function reconToAssetHints(result: ReconResult): AssetHint[] {
  * 一致する資産が無い役割は何もしない（資産を増やすかは担当者の判断）。
  * 緩和策は、前回の外部確認（evidence external）の記録だけを置き換え、担当者登録・ベンダー回答の記録は残す。
  * 残した記録と食い違えば engine（resolveControl）が矛盾として表示し、根拠の優先順位（外部確認が最上位）で判定する。
- * 属性（attrs）は 1 値なので上書きされる。登録値との食い違いは、重ねる前に findContradictions で拾う
+ * 属性（attrs）は 1 値なので上書きされる。登録値との食い違いは、重ねる前に findContradictions で拾う。
+ * 廃止済み（attrs.decommissioned = true）の資産には重ねない（ホームページの置き場所などは現役の資産の属性。残っている名前は矛盾として出す）
  */
 export function applyAssetHints(profile: CompanyProfile, hints: AssetHint[]): CompanyProfile {
   const assets = profile.assets.map((asset) => {
+    if (asset.attrs.decommissioned === true) return asset;
     const matching = hints.filter((h) => h.role === asset.role);
     if (matching.length === 0) return asset;
     let next: Asset = {
