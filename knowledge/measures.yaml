@@ -1,0 +1,80 @@
+# 対策ボタン。patches は役割で資産を特定し、緩和策の有無と属性を書き換える（根拠は担当者登録）
+# 費用の目安は出典を確認できた項目だけ入れる。無い項目は「ベンダーの見積もり待ち」と表示する
+measures:
+  - id: vpn-mfa
+    labelJa: VPN に多要素認証
+    mitigation: M1032
+    patches:
+      - role: entry.vpn
+        mitigation: M1032
+        status: present
+    requestToJa: 保守ベンダー
+  - id: vpn-update
+    labelJa: VPN 装置の更新
+    mitigation: M1051
+    patches:
+      - role: entry.vpn
+        mitigation: M1051
+        status: present
+        attrs: { knownExploited: false, authBypass: false }
+    requestToJa: 保守ベンダー
+  - id: backup-isolated
+    labelJa: 切り離したバックアップ
+    mitigation: M1053
+    patches:
+      - role: backup
+        mitigation: M1053
+        status: present
+        attrs: { method: isolated, isolated: true, restoreTested: true }
+    requestToJa: 保守ベンダー
+  - id: exec-mfa
+    labelJa: 社長にも多要素認証
+    mitigation: M1032
+    patches:
+      - role: cloud.mail_account.exec
+        mitigation: M1032
+        status: present
+        attrs: { mfaException: false }
+    requestToJa: 情シス担当者（設定変更）
+  - id: transfer-callback
+    labelJa: 送金時の折り返し確認ルール
+    mitigation: UD-01
+    patches:
+      - role: person.accounting
+        mitigation: UD-01
+        status: present
+    requestToJa: 経理・社長（社内ルール）
+  - id: vendor-remote-harden
+    labelJa: 保守接続に多要素認証と必要時のみ有効化
+    mitigation: M1032
+    patches:
+      - role: entry.vendor_remote
+        mitigation: M1032
+        status: present
+      - role: entry.vendor_remote
+        mitigation: UD-02
+        status: present
+        attrs: { alwaysOn: false }
+    requestToJa: 保守ベンダー
+  - id: edr
+    labelJa: EDR の導入と監視
+    mitigation: M1040
+    patches:
+      - role: admin
+        mitigation: M1040
+        status: present
+        attrs: { monitored: true }
+      - role: pc
+        mitigation: M1040
+        status: present
+    costJpyPerDevicePerYear: 13200
+    costSourceJa: IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」参考資料の単価（EDR 導入 1台あたり年13,200円）。最新版で要確認
+    requestToJa: 保守ベンダー
+  - id: admin-separate
+    labelJa: 管理者パスワードを PC ごとに個別化
+    mitigation: M1026
+    patches:
+      - role: admin
+        mitigation: M1026
+        status: present
+    requestToJa: 保守ベンダー

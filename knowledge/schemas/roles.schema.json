@@ -16,21 +16,36 @@
           },
           "layer": {
             "type": "string",
-            "enum": ["system", "business", "management"]
+            "enum": [
+              "system",
+              "business",
+              "management"
+            ]
           },
           "side": {
             "type": "string",
-            "enum": ["internal", "external", "person"]
+            "enum": [
+              "internal",
+              "external",
+              "person"
+            ]
           },
           "descriptionJa": {
             "type": "string"
           }
         },
-        "required": ["id", "labelJa", "layer", "side"],
+        "required": [
+          "id",
+          "labelJa",
+          "layer",
+          "side"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["roles"],
+  "required": [
+    "roles"
+  ],
   "additionalProperties": false
 }

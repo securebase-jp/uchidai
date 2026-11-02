@@ -1,0 +1,108 @@
+# 最初の5問と、回答が構成グラフ（役割の枠）とどの緩和策の確認に対応するか
+questions:
+  - id: industry
+    textJa: 御社の業種は？
+    options:
+      - value: manufacturing
+        labelJa: 製造・建設
+        pattern: manufacturing
+      - value: wholesale_service
+        labelJa: 卸売・小売・サービス
+        pattern: office
+      - value: healthcare
+        labelJa: 医療・福祉
+        pattern: healthcare
+      - value: it
+        labelJa: 情報通信
+        pattern: office
+      - value: finance
+        labelJa: 金融・保険
+        pattern: office
+      - value: other
+        labelJa: その他
+        pattern: office
+  - id: site
+    textJa: 現場はありますか？
+    options:
+      - value: factory
+        labelJa: 工場・倉庫
+        siteBusinessJa: 生産ライン
+      - value: store
+        labelJa: 店舗
+        siteBusinessJa: 店頭
+      - value: clinic
+        labelJa: 診療所・施設
+        siteBusinessJa: 診療
+      - value: office_only
+        labelJa: 事務所のみ
+  - id: hosting
+    textJa: 主な仕事の置き場所は？（メール、ファイル、中核の業務システム、ホームページ）
+    hintJa: 例：Microsoft 365、Google Workspace、kintone、freee、レンタルサーバ
+    rows:
+      - key: mail
+        labelJa: メール
+        roles: { onprem: null, cloud: cloud.mail, provider: cloud.mail, unknown: cloud.mail }
+      - key: files
+        labelJa: ファイルサーバ（ファイル共有）
+        roles:
+          {
+            onprem: file_server,
+            cloud: cloud.storage,
+            provider: cloud.storage,
+            unknown: file_server,
+          }
+      - key: core
+        labelJa: 中核の業務システム（販売・生産・会計など）
+        roles: { onprem: core, cloud: core, provider: core, unknown: core }
+        sideByValue: { onprem: internal, cloud: external, provider: external, unknown: internal }
+      - key: web
+        labelJa: ホームページ
+        roles: { onprem: entry.web, cloud: entry.web, provider: entry.web, unknown: entry.web }
+    options: [onprem, cloud, provider, unknown]
+    optionLabelsJa:
+      {
+        onprem: 社内のサーバ,
+        cloud: クラウドサービス,
+        provider: レンタルサーバ・プロバイダ,
+        unknown: 分からない,
+      }
+  - id: remoteAccess
+    textJa: 社外からのつなぎ方は？（複数選択）
+    multi: true
+    options:
+      - value: vpn
+        labelJa: VPN装置
+        addsRole: entry.vpn
+        checks: [M1051, M1032, M1042]
+      - value: rdp
+        labelJa: リモートデスクトップなどの遠隔操作ツール
+        addsRole: entry.rdp
+        checks: [M1032, M1035]
+      - value: vendor_remote
+        labelJa: 保守ベンダーの遠隔接続
+        addsRole: entry.vendor_remote
+        checks: [M1032, UD-02, M1035]
+      - value: cloud_only
+        labelJa: クラウドサービスだけ
+      - value: unknown
+        labelJa: 分からない
+        unknownEntries: [entry.vpn, entry.rdp, entry.vendor_remote]
+  - id: backup
+    textJa: バックアップの方式は？
+    options:
+      - value: same_network
+        labelJa: 同じ社内ネットワーク
+        attrs: { method: same_network, isolated: false }
+      - value: cloud_sync
+        labelJa: クラウド同期
+        attrs: { method: cloud_sync, isolated: false }
+      - value: isolated
+        labelJa: 切り離した保管先
+        attrs: { method: isolated, isolated: true }
+        checks: [M1053]
+      - value: none
+        labelJa: なし
+        attrs: { method: none, isolated: false }
+      - value: unknown
+        labelJa: 分からない
+        attrs: {}

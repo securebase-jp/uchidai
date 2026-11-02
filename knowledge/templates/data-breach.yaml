@@ -1,0 +1,19 @@
+# 型紙：情報漏えい（クラウドストレージの設定ミス）
+id: data_breach
+damageType: data_breach
+labelJa: 情報漏えい（不正アクセス・設定ミス）
+descriptionJa: 誰でも閲覧できる状態のクラウドストレージから顧客情報を取得される
+stages:
+  - id: storage
+    labelJa: 公開状態のクラウドストレージから取得される
+    tactics: [TA0009, TA0001]
+    entry: true
+    byRole:
+      cloud.storage: T1530
+    accepts: [T1530]
+  - id: leak
+    labelJa: 個人情報が漏えいする
+    tactics: [TA0010]
+    byRole:
+      cloud.storage: null
+    terminal: true

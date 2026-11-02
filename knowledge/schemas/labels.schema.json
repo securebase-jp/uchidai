@@ -48,11 +48,18 @@
             "type": "string"
           }
         },
-        "required": ["labelJa"],
+        "required": [
+          "labelJa"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["tactics", "techniques", "mitigations", "custom"],
+  "required": [
+    "tactics",
+    "techniques",
+    "mitigations",
+    "custom"
+  ],
   "additionalProperties": false
 }

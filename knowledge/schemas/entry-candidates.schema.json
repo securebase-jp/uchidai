@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "sourceJa": {
+      "type": "string"
+    },
+    "sourceUrl": {
+      "type": "string"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "technique": {
+            "type": "string",
+            "pattern": "^T\\d{4}(\\.\\d{3})?$"
+          }
+        },
+        "required": [
+          "role",
+          "labelJa",
+          "technique"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "sourceJa",
+    "sourceUrl",
+    "candidates"
+  ],
+  "additionalProperties": false
+}

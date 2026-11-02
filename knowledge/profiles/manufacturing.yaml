@@ -1,0 +1,37 @@
+# 業種別の構成パターン：製造業（工場あり）
+id: manufacturing
+labelJa: 製造業（工場あり）
+core:
+  labelJa: 生産管理システム
+businesses:
+  - id: biz-order
+    name: 受注
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 取引先の納期
+  - id: biz-design
+    name: 設計
+    roles: [file_server]
+    manualDays: 3
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 新規案件の見積・図面
+  - id: biz-production
+    name: 生産ライン
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 出荷
+  - id: biz-shipping
+    name: 出荷
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 取引先の納期
+impact:
+  partnerJa: 取引先（納期）
+  reportJa: 不正アクセスによる漏えいのおそれは件数にかかわらず報告

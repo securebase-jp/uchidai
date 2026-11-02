@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "damageType": {
+      "type": "string",
+      "enum": [
+        "ransomware",
+        "bec",
+        "data_breach",
+        "out_of_scope"
+      ]
+    },
+    "labelJa": {
+      "type": "string"
+    },
+    "descriptionJa": {
+      "type": "string"
+    },
+    "stages": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "tactics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^TA\\d{4}$"
+            }
+          },
+          "entry": {
+            "default": false,
+            "type": "boolean"
+          },
+          "precondition": {
+            "default": false,
+            "type": "boolean"
+          },
+          "human": {
+            "default": false,
+            "type": "boolean"
+          },
+          "optional": {
+            "default": false,
+            "type": "boolean"
+          },
+          "terminal": {
+            "default": false,
+            "type": "boolean"
+          },
+          "byRole": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^T\\d{4}(\\.\\d{3})?$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "accepts": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^T\\d{4}(\\.\\d{3})?$"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "tactics",
+          "entry",
+          "precondition",
+          "human",
+          "optional",
+          "terminal",
+          "byRole",
+          "accepts"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "damageType",
+    "labelJa",
+    "descriptionJa",
+    "stages"
+  ],
+  "additionalProperties": false
+}

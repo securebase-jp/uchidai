@@ -1,0 +1,24 @@
+# 判定ルール表：保守ベンダーの遠隔接続（AI攻撃者が見つける経路）
+rules:
+  - id: vendor_remote.entry
+    role: entry.vendor_remote
+    techniques: [T1133, T1199]
+    materialsJa: カルテ：保守ツールの認証方式、接続の有効化の運用、接続元の限定
+    mitigations: [M1032, UD-02, M1035]
+    outcomes:
+      - state: blocked
+        when:
+          all:
+            - control: { mitigation: M1032, status: present }
+            - any:
+                - control: { mitigation: UD-02, status: present }
+                - control: { mitigation: M1035, status: present }
+        reasonJa: 多要素認証があり、必要なときだけ接続を有効にする、または接続元を限定している
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1032, status: unknown }
+            - control: { mitigation: UD-02, status: unknown }
+        reasonJa: 保守接続の認証方式や運用が未確認
+      - state: breached
+        reasonJa: 常時接続で、ベンダー共通のパスワードだけで入れる
