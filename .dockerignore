@@ -1,0 +1,18 @@
+# 秘密情報とローカルの状態をイメージに入れない
+.env
+.env.*
+!.env.example
+.git
+.claude
+node_modules
+**/node_modules
+**/dist
+eval/.cache
+eval/results
+apps/web/.data
+packages/recon/.cache
+demo/audio
+*.log
+.DS_Store
+.pnpm-store
+**/.pnpm-store

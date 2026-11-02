@@ -58,6 +58,17 @@ PUBLIC_BASE_URL=https://xxxx.trycloudflare.com pnpm dev
 
 公開 URL 経由（転送ヘッダつき）の要求は、既定では回答ページの API（`/api/requests/:token` と回答の送信）だけに制限する。他の API（会社カルテを扱うもの）を公開 URL から使うのは `UCHIDAI_ALLOW_REMOTE_API=1` を設定したときだけで、デモ以外では設定しない。CORS も手元の localhost と `PUBLIC_BASE_URL` だけに許す。
 
+## Docker で動かす
+
+特定のホスティング事業者の独自機能には依存しない単一イメージです。API キーはイメージに入れず、実行時に渡します（`.env` は `.dockerignore` で除外済み）。
+
+```bash
+docker build -t uchidai .
+docker run --rm -p 127.0.0.1:8787:8787 --env-file .env uchidai
+```
+
+http://localhost:8787/?profile=demo-seiko を開きます。`-p 127.0.0.1:8787:8787` で手元だけに公開してください（会社カルテを扱う API が外から見えないように）。キー無しでも、記録済みの事例・AI攻撃者の記録・比較の記録で動きます。確認依頼の保存先を残すなら `-v uchidai-data:/app/apps/web/.data` を足します。
+
 ## 責任ある利用
 
 - 外部確認の対象は、DNS の TXT レコードで所有を確認した自社ドメインだけ。DNS の公開レコードと証明書の公開ログだけを参照し、対象ホストへの直接アクセス（ポートスキャン、Web ページの取得を含む）は一切行わない
