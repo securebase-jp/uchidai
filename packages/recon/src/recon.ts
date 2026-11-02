@@ -163,7 +163,16 @@ export function guessMailProvider(domain: string, mx: MxRecord[]): ProviderGuess
       evidence,
     };
   }
-  const sorted = [...mx].sort((a, b) => a.priority - b.priority);
+  const sorted = [...mx]
+    .filter((m) => m.exchange !== "" && m.exchange !== ".")
+    .sort((a, b) => a.priority - b.priority);
+  if (sorted.length === 0) {
+    return {
+      kind: "unknown",
+      reasonJa: "Null MX（RFC 7505）。このドメインではメールを受け取らないと宣言している",
+      evidence,
+    };
+  }
   for (const m of sorted) {
     const hit = matchProvider(m.exchange, MX_PROVIDERS);
     if (!hit) continue;

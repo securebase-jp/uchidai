@@ -28,11 +28,15 @@ interface Envelope {
 }
 
 export class FileCache implements ReconCache {
-  constructor(
-    private readonly dir: string = defaultCacheDir,
-    private readonly ttlMs: number = 24 * 60 * 60 * 1000,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
+  private readonly dir: string;
+  private readonly ttlMs: number;
+  private readonly now: () => Date;
+
+  constructor(dir: string = defaultCacheDir, ttlMs = 24 * 60 * 60 * 1000, now = () => new Date()) {
+    this.dir = dir;
+    this.ttlMs = ttlMs;
+    this.now = now;
+  }
 
   private pathFor(key: string): string {
     const digest = createHash("sha256").update(key).digest("hex").slice(0, 32);

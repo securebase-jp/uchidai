@@ -81,3 +81,15 @@ describe("ネットワークに出る経路", () => {
     expect(assertAt).toBeLessThan(firstAwait);
   });
 });
+
+describe("Node の型ストリップで直接実行できる（S3 の API が node で動かすため）", () => {
+  it("コンストラクタのパラメータプロパティなど、strip-only で落ちる構文を使わない", () => {
+    for (const { file, text } of sources) {
+      expect(text, `${file} がパラメータプロパティを使っている`).not.toMatch(
+        /constructor\(\s*(private|public|protected|readonly)\b/,
+      );
+      expect(text, `${file} が enum を使っている`).not.toMatch(/^\s*(export\s+)?enum\s/m);
+      expect(text, `${file} が namespace を使っている`).not.toMatch(/^\s*(export\s+)?namespace\s/m);
+    }
+  });
+});

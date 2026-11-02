@@ -162,6 +162,14 @@ describe("MX からの提供元の推定", () => {
     ).toBe("unknown");
     expect(guessMailProvider("example.jp", []).kind).toBe("unknown");
   });
+  it("Null MX（exchange が空や「.」）はメールを受け取らない宣言として扱う", () => {
+    const guess = guessMailProvider("example.jp", [{ exchange: "", priority: 0 }]);
+    expect(guess.kind).toBe("unknown");
+    expect(guess.reasonJa).toContain("Null MX");
+    expect(guessMailProvider("example.jp", [{ exchange: ".", priority: 0 }]).reasonJa).toContain(
+      "Null MX",
+    );
+  });
   it("優先度の高い MX から見る。ゲートウェイは受信箱の提供元を不明とする", () => {
     const guess = guessMailProvider("example.jp", [
       { exchange: "mx0b-0001.pphosted.com", priority: 10 },

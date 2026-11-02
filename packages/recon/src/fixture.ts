@@ -32,7 +32,10 @@ export const ReconFixture = z.object({
 export type ReconFixture = z.infer<typeof ReconFixture>;
 
 export class FixtureDnsResolver implements DnsResolver {
-  constructor(private readonly fixture: ReconFixture) {}
+  private readonly fixture: ReconFixture;
+  constructor(fixture: ReconFixture) {
+    this.fixture = fixture;
+  }
 
   private records(name: string) {
     return this.fixture.dns[name.toLowerCase().replace(/\.$/, "")];
@@ -58,7 +61,10 @@ export class FixtureDnsResolver implements DnsResolver {
 }
 
 export class FixtureCtSource implements CtLogSource {
-  constructor(private readonly fixture: ReconFixture) {}
+  private readonly fixture: ReconFixture;
+  constructor(fixture: ReconFixture) {
+    this.fixture = fixture;
+  }
   async listCertificates(domain: string): Promise<CtCertificate[]> {
     if (domain.toLowerCase() !== this.fixture.domain) return [];
     return this.fixture.ct;
