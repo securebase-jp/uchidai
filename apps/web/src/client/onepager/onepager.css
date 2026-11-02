@@ -451,16 +451,252 @@
   font-size: 11px;
 }
 
-/* 印刷：A4 縦、白地、紙だけを出す */
+/* 紙を包む表：印刷では thead / tfoot の走り見出しが各ページに繰り返される（画面では見出しを出さない） */
+.op-sheet {
+  width: min(760px, 100%);
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.op-sheet td {
+  padding: 0;
+}
+.op-sheet .op-paper {
+  width: 100%;
+}
+.op-run {
+  display: none;
+}
+
+/*
+ * 印刷：A4 縦、余白 15mm、白地・黒文字（画面が黒背景でも）。
+ * 紙の体裁は :root.printing（印刷の直前に JS が付ける）と :root.print-preview（「印刷の見え方を確認」）で同じ規則を当てる。
+ * 1 枚目：結論・何が起きるか（経路図の静止画）・止まる業務。2 枚目（.op-pb から）：金額・期限・対策・出典と注記
+ */
 @page {
   size: A4 portrait;
-  margin: 12mm 12mm 14mm;
+  margin: 15mm;
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+    font-size: 8pt;
+    color: #5a6275;
+  }
 }
+:root:is(.printing, .print-preview) .op-sheet {
+  width: 100%;
+}
+:root:is(.printing, .print-preview) .op-run {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+  font-size: 8pt;
+  line-height: 1.4;
+  color: #5a6275;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+:root:is(.printing, .print-preview) .op-run b {
+  color: #1b2030;
+}
+:root:is(.printing, .print-preview) .op-run-head {
+  padding-bottom: 2mm;
+  margin-bottom: 3mm;
+  border-bottom: 1px solid #d7d2c5;
+}
+:root:is(.printing, .print-preview) .op-run-foot {
+  padding-top: 2mm;
+  margin-top: 3mm;
+  border-top: 1px solid #d7d2c5;
+}
+:root:is(.printing, .print-preview) .op-paper {
+  box-shadow: none;
+  border-radius: 0;
+  border-left: 2.5mm solid var(--accent);
+  padding: 0 0 0 5mm;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+:root:is(.printing, .print-preview) .op-paper::before {
+  display: none;
+}
+:root:is(.printing, .print-preview) .op-head {
+  padding-bottom: 2.5mm;
+  break-after: avoid;
+}
+:root:is(.printing, .print-preview) .op-company {
+  font-size: 20pt;
+  margin-top: 1mm;
+}
+:root:is(.printing, .print-preview) .op-meta {
+  font-size: 8.5pt;
+}
+:root:is(.printing, .print-preview) .op-sec {
+  padding: 4mm 0 3.5mm;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-h {
+  break-after: avoid;
+  margin-bottom: 2mm;
+}
+:root:is(.printing, .print-preview) .op-headline {
+  font-size: 21pt;
+}
+:root:is(.printing, .print-preview) .op-sub {
+  font-size: 10pt;
+}
+:root:is(.printing, .print-preview) .op-figure {
+  margin-bottom: 3mm;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-figure svg.diagram {
+  /* 幅いっぱい。縦横比は viewBox が保つ（高さの上限に当たれば中央に置かれる） */
+  width: 100%;
+  height: auto;
+  max-height: 102mm;
+}
+:root:is(.printing, .print-preview) .op-lines {
+  font-size: 10pt;
+}
+:root:is(.printing, .print-preview) .op-lines li {
+  margin: 1mm 0;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-biz {
+  gap: 2.5mm;
+}
+:root:is(.printing, .print-preview) .op-biz > li {
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-biz-name {
+  font-size: 11pt;
+}
+:root:is(.printing, .print-preview) .op-biz-days b {
+  font-size: 16pt;
+}
+:root:is(.printing, .print-preview) .op-biz-note,
+:root:is(.printing, .print-preview) .op-note {
+  font-size: 9pt;
+}
+/* 2 枚目の先頭の節 */
+:root:is(.printing, .print-preview) .op-pb {
+  break-before: page;
+  padding-top: 0;
+}
+:root:is(.printing, .print-preview) .op-figures {
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+}
+:root:is(.printing, .print-preview) .op-figure-box {
+  break-inside: avoid;
+  padding: 2.5mm 3mm;
+}
+:root:is(.printing, .print-preview) .op-v {
+  font-size: 18pt;
+}
+:root:is(.printing, .print-preview) .op-spine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 6mm;
+}
+:root:is(.printing, .print-preview) .op-spine li {
+  padding: 1mm 0 1mm 3mm;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-day b {
+  font-size: 14pt;
+}
+:root:is(.printing, .print-preview) .op-dl-label {
+  font-size: 9.5pt;
+}
+:root:is(.printing, .print-preview) .op-cards {
+  grid-template-columns: 1fr 1fr;
+  gap: 3mm;
+}
+:root:is(.printing, .print-preview) .op-card {
+  padding: 2.5mm 3mm;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-card-top {
+  align-items: flex-start;
+}
+:root:is(.printing, .print-preview) .op-card-name {
+  /* 長い対策名は折り返す（表の列幅を越えない） */
+  font-size: 10.5pt;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+:root:is(.printing, .print-preview) .op-card-stage,
+:root:is(.printing, .print-preview) .op-card-to {
+  font-size: 8.5pt;
+}
+:root:is(.printing, .print-preview) .op-card-cost b {
+  font-size: 14pt;
+}
+:root:is(.printing, .print-preview) .op-foot {
+  font-size: 7.5pt;
+  line-height: 1.45;
+  padding-top: 3mm;
+  break-inside: avoid;
+}
+:root:is(.printing, .print-preview) .op-sources {
+  columns: 2;
+  column-gap: 6mm;
+}
+:root:is(.printing, .print-preview) .op-paper a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* 画面で確かめる：黒い画面の上に A4 の白い紙（余白 15mm を含む）を置く。2 枚目の始まりに破線 */
+:root.print-preview .onepager {
+  gap: 10px;
+}
+:root.print-preview .op-sheet {
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  background: #fff;
+  color-scheme: light;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+:root.print-preview .op-sheet > thead > tr > td,
+:root.print-preview .op-sheet > tfoot > tr > td {
+  padding: 0 15mm;
+}
+:root.print-preview .op-sheet > thead > tr > td {
+  padding-top: 15mm;
+}
+:root.print-preview .op-sheet > tfoot > tr > td {
+  padding-bottom: 15mm;
+}
+:root.print-preview .op-sheet > tbody > tr > td {
+  padding: 0 15mm;
+}
+:root.print-preview .op-pb::before {
+  content: "— ここから 2 枚目（印刷では改ページ）—";
+  display: block;
+  border-top: 1px dashed #a8a193;
+  margin: 0 0 4mm;
+  padding-top: 1mm;
+  font-size: 8pt;
+  letter-spacing: 0.1em;
+  color: #8a92a3;
+  text-align: center;
+}
+
+/* 実際の印刷：画面の黒背景・格子・上部バー・ボタンを消し、紙だけを出す */
 @media print {
   html,
   body {
     /* biome-ignore lint/complexity/noImportantStyles: 印刷では画面の黒背景と格子を消す */
     background: #fff !important;
+    /* biome-ignore lint/complexity/noImportantStyles: 同上（黒背景の文字色を引き継がない） */
+    color: #1b2030 !important;
   }
   body::after,
   .topbar,
@@ -473,73 +709,7 @@
     padding: 0;
   }
   .onepager {
+    display: block;
     padding: 0;
-  }
-  .op-paper {
-    width: 100%;
-    box-shadow: none;
-    border-radius: 0;
-    padding: 0 0 0 10mm;
-    font-size: 11.5pt;
-  }
-  .op-paper::before {
-    border-radius: 0;
-    width: 4mm;
-  }
-  .op-sec {
-    padding: 4mm 0 3mm;
-  }
-  .op-headline {
-    font-size: 22pt;
-  }
-  .op-figure {
-    max-height: 70mm;
-    display: flex;
-    justify-content: center;
-    margin-bottom: 3mm;
-  }
-  .op-figure svg.diagram {
-    width: auto;
-    max-height: 70mm;
-  }
-  .op-lines {
-    font-size: 10.5pt;
-  }
-  .op-spine {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 6mm;
-  }
-  .op-spine li {
-    padding: 2px 0 2px 12px;
-  }
-  .op-day b {
-    font-size: 15pt;
-  }
-  .op-cards {
-    grid-template-columns: 1fr 1fr;
-    gap: 3mm;
-  }
-  .op-card {
-    padding: 2.5mm 3mm;
-  }
-  .op-card-cost b {
-    font-size: 15pt;
-  }
-  .op-figures {
-    grid-template-columns: 1fr 1fr;
-  }
-  .op-foot {
-    font-size: 7.5pt;
-    line-height: 1.45;
-    padding-top: 3mm;
-  }
-  .op-sources {
-    columns: 2;
-    column-gap: 6mm;
-  }
-  a {
-    color: inherit;
-    text-decoration: none;
   }
 }
