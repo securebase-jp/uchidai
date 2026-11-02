@@ -179,12 +179,16 @@ function recordView(domain: string, token: string) {
   return { name: domain, type: "TXT" as const, value: verificationRecord(token) };
 }
 
-/** findContradictions → applyAssetHints → mergeAnswers の順（属性は上書きされるので矛盾を先に拾う） */
+/**
+ * findContradictions → applyAssetHints → mergeAnswers の順（属性は上書きされるので矛盾を先に拾う）。
+ * applyAssetHints には公開ログの名前も渡し、廃止済みの資産に「外部に残っているか」、現役の資産に証明書の期限を付ける
+ * （engine が判定のたびに矛盾を出せるよう、カルテ自体に根拠 external で残す）
+ */
 export function applyToProfile(result: ReconResult, profile: CompanyProfile): AppliedView {
   const contradictions = findContradictions(result, profile);
   const hints = reconToAssetHints(result);
   let next: CompanyProfile = {
-    ...applyAssetHints(profile, hints),
+    ...applyAssetHints(profile, hints, result),
     domain: result.domain,
     domainVerified: true,
   };

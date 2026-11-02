@@ -28,7 +28,15 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
     return h && h.profileId === profile.id ? h : undefined;
   }, [profile.id]);
   const engineMessages = new Set(verdict.contradictions.map((c) => c.messageJa));
-  const externalOnly = (external?.items ?? []).filter((c) => !engineMessages.has(c.messageJa));
+  // 廃止済み資産の残存は engine がカルテの属性から出すので、同じ資産の外部確認由来の行は重ねない
+  const engineDecommissioned = new Set(
+    verdict.contradictions.filter((c) => c.messageJa.includes("廃止済み")).map((c) => c.assetId),
+  );
+  const externalOnly = (external?.items ?? []).filter(
+    (c) =>
+      !engineMessages.has(c.messageJa) &&
+      !(c.messageJa.includes("廃止済み") && engineDecommissioned.has(c.assetId)),
+  );
   const pending = profile.assets.flatMap((a) =>
     a.controls
       .filter((c) => c.status === "unknown")

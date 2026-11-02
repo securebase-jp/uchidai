@@ -5,7 +5,7 @@
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { validateAiPath } from "./ai.ts";
-import { decideResult, evaluate, walkStages } from "./evaluate.ts";
+import { decideResult, evaluate, profileContradictions, walkStages } from "./evaluate.ts";
 import { adjacent, buildGraph, connected, profileFromAnswers } from "./graph.ts";
 import { type Knowledge, loadKnowledge, loadProfile, type Rule, repoRoot } from "./knowledge.ts";
 import { applyMeasures } from "./measures.ts";
@@ -638,5 +638,83 @@ describe("5問からの構成", () => {
     const noPhishing = { ...p, assets: p.assets.filter((a) => a.role !== "pc") };
     expect(evaluate(case1, noPhishing, { knowledge }).result).toBe("no_entry");
     expect(p.assets.some((a) => a.role === "backup")).toBe(false);
+  });
+});
+
+describe("廃止済みの資産が外部に残っている矛盾（カルテの属性から再現する）", () => {
+  const decommissioned = (attrs: Asset["attrs"], attrEvidence: Asset["attrEvidence"]): Asset =>
+    asset({
+      id: "campaign-site",
+      role: "entry.web",
+      kind: "system",
+      label: "旧キャンペーンサイト（廃止済み）",
+      attrs: { decommissioned: true, hostname: "campaign2019.demo-seiko.example", ...attrs },
+      attrEvidence: { decommissioned: "registered", hostname: "registered", ...attrEvidence },
+    });
+  const withCampaign = (a: Asset): CompanyProfile => ({
+    ...clone(demo),
+    assets: [...demo.assets.filter((x) => x.id !== "campaign-site"), a],
+  });
+
+  it("externallySeen: true（根拠 external）なら矛盾を 1 件出し、外部確認の記録が無くても判定のたびに再現する", () => {
+    const p = withCampaign(
+      decommissioned(
+        {
+          externallySeen: true,
+          externallySeenAt: "2026-11-02T07:00:00Z",
+          lastCertExpiry: "2019-07-30T23:59:59Z",
+        },
+        { externallySeen: "external", externallySeenAt: "external", lastCertExpiry: "external" },
+      ),
+    );
+    const found = profileContradictions(p);
+    expect(found).toHaveLength(1);
+    expect(found[0]).toMatchObject({
+      assetId: "campaign-site",
+      messageJa: "カルテで廃止済みだが、外部にホスト名が残っている可能性",
+    });
+    expect(found[0]?.external).toContain("campaign2019.demo-seiko.example");
+    expect(found[0]?.external).toContain("2026-11-02");
+    expect(found[0]?.external).toContain("2019-07-30");
+    expect(found[0]?.registered).toContain("廃止済み");
+    const v = evaluate(case1, p, { knowledge });
+    expect(v.contradictions.filter((c) => c.assetId === "campaign-site")).toHaveLength(1);
+    // 廃止済みの資産は入口に数えない（従来どおり）
+    expect(v.paths.some((x) => x.steps.some((s) => s.nodeId.includes("campaign")))).toBe(false);
+  });
+  it("externallySeen: false なら出ない", () => {
+    const p = withCampaign(
+      decommissioned(
+        { externallySeen: false, externallySeenAt: "2026-11-02T07:00:00Z" },
+        { externallySeen: "external", externallySeenAt: "external" },
+      ),
+    );
+    expect(profileContradictions(p)).toEqual([]);
+    expect(evaluate(case1, p, { knowledge }).contradictions).toEqual([]);
+  });
+  it("根拠が external でなければ（担当者が手で付けた値）出ない", () => {
+    const p = withCampaign(
+      decommissioned({ externallySeen: true }, { externallySeen: "registered" }),
+    );
+    expect(profileContradictions(p)).toEqual([]);
+  });
+  it("廃止済みでない資産に externallySeen があっても出ない", () => {
+    const p = withCampaign(
+      asset({
+        id: "campaign-site",
+        role: "entry.web",
+        attrs: { externallySeen: true },
+        attrEvidence: { externallySeen: "external" },
+      }),
+    );
+    expect(profileContradictions(p)).toEqual([]);
+  });
+  it("対象外の事例でもカルテの矛盾は結論に載る", () => {
+    const p = withCampaign(
+      decommissioned({ externallySeen: true }, { externallySeen: "external" }),
+    );
+    const v = evaluate({ ...case1, damageType: "out_of_scope" }, p, { knowledge });
+    expect(v.result).toBe("out_of_scope");
+    expect(v.contradictions).toHaveLength(1);
   });
 });
