@@ -76,4 +76,21 @@ export type Question =
       options: QuestionOption[];
     };
 
+/**
+ * 緩和策ごとの「1 問だけの選択式」の質問（server/requests/questions.ts の質問表を画面にも渡す形）。
+ * 選択肢を選ぶと status と、判定ルールが参照する属性（attrs）が決まる
+ */
+export type ControlChoice = {
+  id: string;
+  labelJa: string;
+  status: "present" | "absent" | "unknown";
+  attrs?: Record<string, string | number | boolean>;
+};
+export type ControlQuestion = {
+  mitigation: string;
+  textJa: string;
+  hintJa?: string;
+  choices: ControlChoice[];
+};
+
 export type ApiError = { error: string; details?: unknown };
