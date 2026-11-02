@@ -5,12 +5,12 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { evaluate } from "./evaluate.ts";
 import { profileFromAnswers } from "./graph.ts";
-import { computeImpact, formatJpy } from "./impact.ts";
+import { computeImpact, formatJpy, hasRecoverableStep } from "./impact.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
 import { applyMeasures } from "./measures.ts";
-import { buildOnePager, OnePager } from "./onepager.ts";
+import { buildOnePager, effectiveMeasures, OnePager, stripIds } from "./onepager.ts";
 import { buildTimeline } from "./timeline.ts";
-import type { Case, CompanyProfile, TimelineEvent } from "./types.ts";
+import type { AttackPath, Case, CompanyProfile, TimelineEvent, Verdict } from "./types.ts";
 
 let knowledge: Knowledge;
 let demo: CompanyProfile;
@@ -315,8 +315,198 @@ describe("buildTimeline と formatJpy", () => {
     expect(formatJpy(100_000_000)).toBe("約 1 億円");
     expect(formatJpy(5_000_000)).toBe("約 500 万円");
     expect(formatJpy(1_584_000)).toBe("約 158.4 万円");
-    expect(formatJpy(20_000_000)).toBe("約 2000 万円");
+    expect(formatJpy(20_000_000)).toBe("約 2,000 万円");
+    expect(formatJpy(150_000_000)).toBe("約 1.5 億円");
+    expect(formatJpy(99_999_999)).toBe("約 1 億円");
+    expect(formatJpy(9_999)).toBe("9,999 円");
+    expect(formatJpy(0)).toBe("0 円");
     expect(formatJpy(13_200)).toBe("約 1.3 万円");
     expect(formatJpy(5_280)).toBe("5,280 円");
+  });
+});
+
+describe("経営の層の境界", () => {
+  it("復旧できる経路と復旧できない経路が混在すれば、停止日数は通常の復旧日数で見る", () => {
+    const v = evaluate(case1, applyMeasures(demo, [measure("backup-isolated")]), { knowledge });
+    const recoverable = v.paths.filter((p) => p.reachedCore);
+    expect(recoverable.length).toBeGreaterThan(0);
+    const hard: AttackPath = {
+      ...(recoverable[0] as AttackPath),
+      id: "ransomware:other",
+      steps: (recoverable[0] as AttackPath).steps.map((s) =>
+        s.state === "recoverable" ? { ...s, state: "breached" as const } : s,
+      ),
+    };
+    expect(hasRecoverableStep(recoverable)).toBe(true);
+    expect(hasRecoverableStep([...recoverable, hard])).toBe(false);
+    expect(hasRecoverableStep([])).toBe(false);
+    const mixed = computeImpact([...recoverable, hard], demo, {
+      damageType: "ransomware",
+      knowledge,
+    });
+    expect(mixed.downtimeDays).toBe(10);
+    expect(mixed.partnerImpactDay).toBe(3);
+  });
+
+  it("手作業で回せる日数が復旧日数以上なら取引先への影響は出ず、復旧 0 日の業務は止まらない", () => {
+    const p: CompanyProfile = structuredClone(demo);
+    const order = p.businesses.find((b) => b.id === "biz-order");
+    if (!order) throw new Error("biz-order");
+    order.manualDays = 10;
+    const v = evaluate(case1, p, { knowledge });
+    expect(v.impact.stopped[0]?.partnerDay).toBeUndefined();
+    expect(v.impact.partnerImpactDay).toBeUndefined();
+    expect(v.timeline.some((e) => e.kind === "partner")).toBe(false);
+    const one = buildOnePager(v, p, knowledge);
+    expect(one.partnerImpactJa).toContain("取引先への影響は見込みません");
+  });
+
+  it("1 日の売上と個人情報が未登録なら、売上影響と報告義務は出ない", () => {
+    const p: CompanyProfile = structuredClone(demo);
+    delete p.dailyRevenue;
+    p.personalData = [];
+    const v = evaluate(case1, p, { knowledge });
+    expect(v.impact.downtimeDays).toBe(10);
+    expect(v.impact.revenueImpactJpy).toBeUndefined();
+    expect(v.impact.reportRequired).toBe(false);
+    expect(v.timeline.some((e) => e.kind === "legal")).toBe(false);
+    const one = buildOnePager(v, p, knowledge);
+    expect(one.revenueImpactJa).toBeUndefined();
+    expect(one.sources.join("\n")).not.toContain("個人情報保護委員会");
+  });
+
+  it("保険に加入しているが通知期限が未登録なら、発覚当日に「要確認」として置く", () => {
+    const p: CompanyProfile = structuredClone(demo);
+    p.cyberInsurance = { enrolled: true };
+    const v = evaluate(case1, p, { knowledge });
+    const ins = byDeadline(v.timeline, "insurance");
+    expect(ins).toMatchObject({ day: 0, kind: "insurance" });
+    expect(ins?.labelJa).toContain("カルテ未登録");
+    expect(ins?.detailJa).toContain("要確認");
+    p.cyberInsurance = { enrolled: false };
+    expect(byDeadline(evaluate(case1, p, { knowledge }).timeline, "insurance")).toBeUndefined();
+  });
+
+  it("本人への通知は法令に日数の定めがないので「◯ 日以内」とは書かず、目安と書く", () => {
+    const v = evaluate(case1, demo, { knowledge });
+    const notify = byDeadline(v.timeline, "ppc-notify");
+    expect(notify?.labelJa).not.toMatch(/\d+ 日以内/);
+    expect(notify?.labelJa).toContain("目安");
+    expect(byDeadline(v.timeline, "ppc-prompt")?.labelJa).toContain("3〜5 日以内");
+    expect(byDeadline(v.timeline, "ppc-final")?.labelJa).toContain("60 日以内");
+  });
+
+  it("確認中（pending）でも影響は到達した前提で計算し、一枚に確認中の段階を書く", () => {
+    // サーバへ広がる段階（M1030・M1035）を未確認にすると、材料のある段階が未確認だけになり pending
+    const p: CompanyProfile = structuredClone(demo);
+    for (const a of p.assets) {
+      if (a.id === "server" || a.id === "backup" || a.id === "vpn") {
+        a.controls = a.controls.map((c) => ({
+          ...c,
+          status: "unknown" as const,
+          evidence: "none" as const,
+        }));
+        a.attrs = {};
+        a.attrEvidence = {};
+      }
+    }
+    const v = evaluate(case1, p, { knowledge });
+    expect(v.result).toBe("pending");
+    expect(v.impact.downtimeDays).toBe(10);
+    const one = buildOnePager(v, p, knowledge);
+    expect(one.whatHappensJa.join("")).toContain("確認中");
+  });
+});
+
+describe("社長向けの一枚の文と対策", () => {
+  it("一枚のどの文にも手法 ID・緩和策 ID が出ない（判定ルールの理由文に混じっていても取り除く）", () => {
+    expect(stripIds("承認ボタンを押すだけの方式は、大量の承認要求（T1621）に弱い")).toBe(
+      "承認ボタンを押すだけの方式は、大量の承認要求に弱い",
+    );
+    expect(stripIds("多要素認証（M1032、UD-01）がない。T1078.004 で入る")).toBe(
+      "多要素認証がない。 で入る",
+    );
+    expect(stripIds("CVE-2024-55591 に該当")).toBe("CVE-2024-55591 に該当");
+    for (const c of [case1, case2, case5]) {
+      const v = evaluate(c, demo, { knowledge });
+      const one = buildOnePager(v, demo, knowledge);
+      const texts = [
+        one.headlineJa,
+        ...one.whatHappensJa,
+        one.partnerImpactJa ?? "",
+        ...one.deadlines.map((d) => d.labelJa),
+        ...one.measures.flatMap((m) => [m.labelJa, m.stageJa ?? "", m.costJa]),
+        ...one.notesJa,
+      ];
+      for (const t of texts)
+        expect(t).not.toMatch(/\b(T\d{4}(\.\d{3})?|M\d{4}|TA\d{4}|UD-\d{2})\b/);
+    }
+  });
+
+  it("止まる段階の理由に ID が混じった経路でも、一枚の文からは消える", () => {
+    const v = evaluate(case2, demo, { knowledge });
+    const path = v.paths.find((p) => p.steps.some((s) => s.state === "blocked"));
+    if (!path) throw new Error("blocked path");
+    const tainted: Verdict = {
+      ...v,
+      paths: v.paths.map((p) =>
+        p.id === path.id
+          ? {
+              ...p,
+              steps: p.steps.map((s) =>
+                s.state === "blocked" ? { ...s, reasonJa: `${s.reasonJa}（M1022、T1530）` } : s,
+              ),
+            }
+          : p,
+      ),
+    };
+    const one = buildOnePager(tainted, demo, knowledge);
+    expect(one.whatHappensJa[0]).toContain("理由：");
+    expect(one.whatHappensJa[0]).not.toMatch(/M1022|T1530/);
+  });
+
+  it("対策は攻撃を早い段階で止めるものが先に並び、費用と依頼先がつく", () => {
+    const v = evaluate(case1, demo, { knowledge });
+    const one = buildOnePager(v, demo, knowledge);
+    const ids = one.measures.map((m) => m.id);
+    expect(ids[0]).toBe("vpn-update");
+    expect(ids.indexOf("vpn-update")).toBeLessThan(ids.indexOf("edr"));
+    expect(ids.indexOf("edr")).toBeLessThan(ids.indexOf("backup-isolated"));
+    for (const m of one.measures) {
+      expect(m.costJa.length).toBeGreaterThan(0);
+      expect(m.requestToJa).toBeTruthy();
+    }
+  });
+
+  it("既に講じてある対策（切り離したバックアップ済み）は勧めない。AI が見つけた経路だけに効く対策も載せない", () => {
+    const applied = applyMeasures(demo, [measure("backup-isolated")]);
+    const v = evaluate(case1, applied, { knowledge });
+    expect(v.result).toBe("mitigated");
+    const ids = buildOnePager(v, applied, knowledge).measures.map((m) => m.id);
+    expect(ids).not.toContain("backup-isolated");
+    expect(ids).toContain("vpn-update");
+    // profile を渡さなければ従来どおり（経路で効く対策をすべて）
+    expect(effectiveMeasures(v, knowledge.measures).map((x) => x.measure.id)).toContain(
+      "backup-isolated",
+    );
+    const aiOnly: Verdict = { ...v, paths: v.paths.map((p) => ({ ...p, source: "ai" as const })) };
+    expect(effectiveMeasures(aiOnly, knowledge.measures)).toEqual([]);
+  });
+
+  it("出典は実際に使った期限の分だけ載せる（業務停止の一枚に警視庁の BEC 資料は載らない）", () => {
+    const one1 = buildOnePager(evaluate(case1, demo, { knowledge }), demo, knowledge);
+    expect(one1.sources.join("\n")).toContain("警察庁");
+    expect(one1.sources.join("\n")).not.toContain("警視庁");
+    const one5 = buildOnePager(evaluate(case5, demo, { knowledge }), demo, knowledge);
+    expect(one5.sources.join("\n")).toContain("警視庁");
+    expect(one5.sources.join("\n")).not.toContain("個人情報保護委員会");
+    expect(one5.deadlines.every((d) => d.deadlineId)).toBe(true);
+  });
+
+  it("日数と売上影響の文には「目安」と書き、外部統計からの推計はしないと注記する", () => {
+    const one = buildOnePager(evaluate(case1, demo, { knowledge }), demo, knowledge);
+    expect(one.whatHappensJa.join("")).toContain("目安");
+    expect(one.revenueImpactJa).toContain("目安");
+    expect(one.notesJa.join("")).toContain("外部統計からの損害額の推計ではありません");
   });
 });
