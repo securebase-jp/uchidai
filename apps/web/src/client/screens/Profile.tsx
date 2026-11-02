@@ -193,6 +193,7 @@ export function Profile() {
                 onProduct={(id, product, version) =>
                   save(setAssetProduct(profile, id, product, version))
                 }
+                onKevApplied={(next) => save(next)}
               />
             ) : (
               <p className="muted">質問表を読み込んでいます…</p>

@@ -1,5 +1,6 @@
 /** 担当者向けの根拠：手法 ID、緩和策 ID、根拠の種類、記事中の根拠文、矛盾、未確認の一覧 */
 import { useMemo } from "react";
+import { kevHints } from "../lib/kevHints.ts";
 import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
 import { pathTemplateLabel, type TemplateRef } from "../lib/pending.ts";
 import { reconHints } from "../lib/reconHints.ts";
@@ -10,7 +11,7 @@ type Props = {
   theCase: Case;
   profile: CompanyProfile;
   labels: LabelsFile;
-  graph: { nodes: { id: string; label: string }[] };
+  graph: { nodes: { id: string; label: string; assetId?: string | undefined }[] };
   /** 型紙の名前（複数の型紙を展開したときに経路ごとの見出しに出す） */
   templates?: TemplateRef[];
 };
@@ -29,6 +30,19 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
   }, [profile.id]);
   const engineMessages = new Set(verdict.contradictions.map((c) => c.messageJa));
   const externalOnly = (external?.items ?? []).filter((c) => !engineMessages.has(c.messageJa));
+  // KEV との突き合わせ（#/profile）で出た矛盾。反映したカルテの id と一致するものだけ（判定の矛盾と重なるものは除く）
+  const kevContradictions = kevHints
+    .contradictionsFor(profile.id)
+    .filter((c) => !engineMessages.has(c.messageJa));
+  /** 公開情報（CISA KEV）で判定した資産の出典の一行。根拠の欄に出す */
+  const kevSourceOf = (nodeId: string): string | undefined => {
+    const assetId = graph.nodes.find((n) => n.id === nodeId)?.assetId;
+    const a = assetId ? profile.assets.find((x) => x.id === assetId) : undefined;
+    if (a?.attrEvidence.knownExploited !== "external" || a.attrs.kevCatalogVersion === undefined)
+      return undefined;
+    const cves = typeof a.attrs.kevCves === "string" ? a.attrs.kevCves.replaceAll(",", "、") : "";
+    return `公開情報：CISA KEV（カタログ版 ${String(a.attrs.kevCatalogVersion)}${cves ? `、${cves}` : "、該当なし"}）`;
+  };
   const pending = profile.assets.flatMap((a) =>
     a.controls
       .filter((c) => c.status === "unknown")
@@ -125,7 +139,15 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                       ))}
                     </td>
                     <td>{SOURCE_LABEL[s.source]}</td>
-                    <td>{EVIDENCE_LABEL[s.evidence]}</td>
+                    <td>
+                      {EVIDENCE_LABEL[s.evidence]}
+                      {kevSourceOf(s.nodeId) && (
+                        <>
+                          <br />
+                          <span className="muted">{kevSourceOf(s.nodeId)}</span>
+                        </>
+                      )}
+                    </td>
                     <td>
                       {s.reasonJa}
                       {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
@@ -140,7 +162,9 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
       <div className="grid-2">
         <div className="panel">
           <h2>矛盾（外部確認と登録内容の食い違い）</h2>
-          {verdict.contradictions.length === 0 && externalOnly.length === 0 ? (
+          {verdict.contradictions.length === 0 &&
+          externalOnly.length === 0 &&
+          kevContradictions.length === 0 ? (
             <p className="muted">なし</p>
           ) : (
             <>
@@ -159,6 +183,15 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                     外部確認
                   </span>{" "}
                   <b>{nodeLabel(c.assetId)}</b>：{c.messageJa}（外部：{c.external}／登録：
+                  {c.registered}）
+                </p>
+              ))}
+              {kevContradictions.map((c) => (
+                <p key={`kev-${c.assetId}-${c.messageJa}`} className="small">
+                  <span className="chip" title={`突き合わせた日時：${c.checkedAt}`}>
+                    公開情報（KEV）
+                  </span>{" "}
+                  <b>{nodeLabel(c.assetId)}</b>：{c.messageJa}（公開情報：{c.external}／登録：
                   {c.registered}）
                 </p>
               ))}
