@@ -78,7 +78,7 @@ rules:
         reasonJa: 前提条件として表示する段階。取引先の名前や請求の時期は公開情報や過去のやり取りから集められる
   - id: bec_invoice.mail
     role: person.accounting
-    techniques: [T1566.001, T1566.002, T1684.002, T1598]
+    techniques: [T1566.001, T1566.002, T1566.004, T1684.002, T1598]
     materialsJa: カルテ：送金・振込先変更の手順（折り返し確認・二人承認）、研修
     mitigations: [UD-01, M1017]
     ineffective:

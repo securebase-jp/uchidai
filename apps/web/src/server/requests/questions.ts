@@ -124,6 +124,26 @@ const defs: QuestionDef[] = [
     ],
   },
   {
+    mitigation: "M1057",
+    textJa:
+      "社内から外へ大量のデータが送られたときに、検知して止める仕組み（DLP など）はありますか",
+    choices: [
+      { id: "present", labelJa: "ある（検知して止める）", status: "present" },
+      { id: "absent", labelJa: "ない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1031",
+    textJa:
+      "外向きの通信を監視して、不審な通信を遮断する仕組み（UTM・IPS の外向き監視など）はありますか",
+    choices: [
+      { id: "present", labelJa: "ある（監視して遮断する）", status: "present" },
+      { id: "absent", labelJa: "ない（外向きは見ていない）", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
     mitigation: "M1053",
     textJa:
       "バックアップは、社内ネットワークやクラウド同期から切り離した保管先にありますか。復旧テストはしましたか",

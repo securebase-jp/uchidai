@@ -248,7 +248,16 @@ export function profileFromAnswers(
     ),
   );
   if (coreSide === "internal") {
-    assets.push(asset("server", "server", "業務サーバ区画", "system", ["M1030", "M1035"]));
+    assets.push(
+      asset("server", "server", "業務サーバ区画", "system", [
+        "M1030",
+        "M1035",
+        "M1022",
+        "M1047",
+        "M1057",
+        "M1031",
+      ]),
+    );
   }
   assets.push(asset("pc", "pc", "社員PC", "device", ["M1040", "M1049"]));
   assets.push(asset("admin", "admin", "管理者アカウント", "account", ["M1026", "M1040"]));
@@ -271,7 +280,9 @@ export function profileFromAnswers(
     );
   }
   if (answers.hosting.files === "onprem" || answers.hosting.files === "unknown") {
-    assets.push(asset("file-server", "file_server", "ファイルサーバ", "system", []));
+    assets.push(
+      asset("file-server", "file_server", "ファイルサーバ", "system", ["M1022", "M1047"]),
+    );
   } else {
     assets.push(
       asset("cloud-storage", "cloud.storage", "クラウドストレージ", "system", ["M1022", "M1047"], {
@@ -280,10 +291,14 @@ export function profileFromAnswers(
     );
   }
   if (answers.hosting.web === "onprem") {
-    assets.push(asset("web", "entry.web", "公開ホームページ（社内）", "system", ["M1051"]));
+    assets.push(
+      asset("web", "entry.web", "公開ホームページ（社内）", "system", ["M1051", "M1032", "M1047"]),
+    );
   } else {
     assets.push(
-      asset("web", "entry.web", "公開ホームページ", "system", ["M1051"], { side: "external" }),
+      asset("web", "entry.web", "公開ホームページ", "system", ["M1051", "M1032", "M1047"], {
+        side: "external",
+      }),
     );
   }
 

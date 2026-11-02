@@ -129,7 +129,12 @@ export function Staff({ settings }: { settings: Settings }) {
       )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
-          <p className="muted">{caseMeta?.sourceJa}</p>
+          <p className="muted">
+            {caseMeta?.sourceJa}
+            {evaluation?.verdict.templateLabelJa && (
+              <> ／ 型紙「{evaluation.verdict.templateLabelJa}」で判定</>
+            )}
+          </p>
           <h1 style={{ fontSize: 20 }}>{theCase.title}</h1>
         </div>
         <Meters
