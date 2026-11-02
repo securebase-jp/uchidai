@@ -132,3 +132,12 @@ describe("共有リンク（圧縮 → base64url → 展開 → zod）", () => {
     expect(shareSizeNoteJa(2345)).toContain("社外に送るとき");
   });
 });
+
+describe("共有リンクの URL の読み取り", () => {
+  it("d= は形が崩れていても渡し、他の指定より優先する", async () => {
+    const { parseOnePagerHash } = await import("../onepager/params.ts");
+    expect(parseOnePagerHash("#/onepager?d=abc!!&profile=demo-seiko").d).toBe("abc!!");
+    expect(parseOnePagerHash("#/onepager?profile=demo-seiko").d).toBeUndefined();
+    expect(parseOnePagerHash("#/onepager").profile).toBeUndefined();
+  });
+});

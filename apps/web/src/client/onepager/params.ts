@@ -6,7 +6,6 @@
  *   カルテは examples/ か、このブラウザの localStorage に無いと再現できない
  */
 import { useEffect, useState } from "react";
-import { BASE64URL } from "../lib/onepager-share.ts";
 
 export type OnePagerParams = {
   /** 内容を載せた共有リンクの本体（base64url）。あるときは他の指定より優先する */
@@ -24,8 +23,9 @@ export function parseOnePagerHash(hash: string = location.hash): OnePagerParams 
   const q = hash.slice(hash.indexOf("?") + 1 || hash.length);
   const p = new URLSearchParams(q);
   const out: OnePagerParams = { rewrite: p.get("rewrite") !== "0" };
+  // d= は形が崩れていても渡す（開く側が「壊れています」と理由を出す。黙ってカルテの一枚に落とさない）
   const d = p.get("d");
-  if (d && BASE64URL.test(d)) out.d = d;
+  if (d) out.d = d;
   const profile = p.get("profile");
   if (profile && SAFE_ID.test(profile)) out.profile = profile;
   const c = p.get("case");
