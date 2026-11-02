@@ -7,11 +7,12 @@ import { AppProvider, useApp } from "./hooks/useApp.tsx";
 import { RequestsProvider } from "./hooks/useRequests.tsx";
 import { answerToken, useRoute } from "./hooks/useRoute.ts";
 import { type Settings, useSettings } from "./hooks/useSettings.ts";
+import { parseOnePagerHash } from "./onepager/params.ts";
 import { Answer } from "./screens/Answer.tsx";
 import { Domain } from "./screens/Domain.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
-import { OnePager } from "./screens/OnePager.tsx";
+import { OnePager, SharedOnePager } from "./screens/OnePager.tsx";
 import { Profile } from "./screens/Profile.tsx";
 import { Questions } from "./screens/Questions.tsx";
 import { Staff } from "./screens/Staff.tsx";
@@ -52,6 +53,19 @@ export function App() {
   if (route === "answer") {
     const token = answerToken() ?? "";
     return <Answer key={token} token={token} />;
+  }
+  // 共有リンク（内容を URL に載せた一枚）も同じく軽い画面：カルテ・知識・判定の API を呼ばない。
+  // 公開 URL（Cloudflare Tunnel）から社長のスマホで開いても、API の 403 がエラーとして出ない
+  const shared = route === "onepager" ? parseOnePagerHash().d : undefined;
+  if (shared) {
+    return (
+      <MotionConfig reducedMotion={settings.reduced ? "always" : "user"}>
+        <div className="wrap">
+          <TopBar route="onepager" theme={settings.theme} onToggleTheme={settings.toggleTheme} />
+          <SharedOnePager key={shared} d={shared} />
+        </div>
+      </MotionConfig>
+    );
   }
   return (
     // 「動きを減らす」は motion のアニメーションにも効かせる（CSS の animation/transition と同じ扱い）

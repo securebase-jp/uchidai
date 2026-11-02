@@ -31,6 +31,8 @@ export type Beat =
       curved: boolean;
       /** 止まる段階へ向かう（壁の手前で止まる） */
       blocked: boolean;
+      /** 本線から枝分かれした段階へ向かう（持ち出しなど。止まっても本線は進む） */
+      branch?: boolean;
     }
   | {
       t: number;
@@ -58,8 +60,15 @@ export type Script = {
   beats: Beat[];
   duration: number;
   primaryPathId?: string;
-  /** 経路の線として描く区間（出来事が起きる前から薄く描く） */
-  segments: { edgeId: string; from: string; to: string; pathId: string; source: PathSource }[];
+  /** 経路の線として描く区間（出来事が起きる前から薄く描く）。branch は枝の段階へ向かう区間（破線で描く） */
+  segments: {
+    edgeId: string;
+    from: string;
+    to: string;
+    pathId: string;
+    source: PathSource;
+    branch?: boolean;
+  }[];
 };
 
 const T = {
@@ -134,7 +143,14 @@ export function buildScript(
       if (prev !== step.nodeId) {
         const edge = edgeBetween(graph, prev, step.nodeId);
         const edgeId = edge?.id ?? `${prev}~${step.nodeId}`;
-        segments.push({ edgeId, from: prev, to: step.nodeId, pathId: path.id, source: stepSource });
+        segments.push({
+          edgeId,
+          from: prev,
+          to: step.nodeId,
+          pathId: path.id,
+          source: stepSource,
+          ...(step.branch ? { branch: true } : {}),
+        });
         const already = visited.has(step.nodeId);
         const dur = already
           ? T.revisit
@@ -156,16 +172,18 @@ export function buildScript(
           source: stepSource,
           curved: ineffective.length > 0 && step.state !== "blocked",
           blocked: step.state === "blocked",
+          ...(step.branch ? { branch: true } : {}),
         });
         const logT = t + Math.min(400, dur / 3);
         const techniqueText = step.technique
           ? `${step.technique} ${tl(step.technique)}`
           : (step.labelJa ?? "");
         const target = node.label;
-        const tail =
+        const tail = `${
           ineffective.length > 0
             ? `${RESULT_WORD[step.state]}（${ineffective.map((x) => x.reasonJa).join("。")}）`
-            : RESULT_WORD[step.state];
+            : RESULT_WORD[step.state]
+        }${step.branch ? "〔枝：止まっても本線は進む〕" : ""}`;
         beats.push({
           t: logT,
           kind: "log",
@@ -193,14 +211,17 @@ export function buildScript(
       prev = step.nodeId;
       t += step.state === "blocked" ? 900 : T.gap;
       if (step.state === "blocked") {
+        // 枝の段階（持ち出しなど）が止まっても本線は進む（engine の walk と同じ）。壁は立つが経路は終えない
         beats.push({
           t: t - 600,
           kind: "log",
-          text: `${node.label} で止められた（${STATE_LABEL.blocked}）。この経路はあきらめる`,
+          text: step.branch
+            ? `${node.label} で枝の段階が止められた（${STATE_LABEL.blocked}）。本線はそのまま進む`
+            : `${node.label} で止められた（${STATE_LABEL.blocked}）。この経路はあきらめる`,
           tone: "green",
           ai,
         });
-        break;
+        if (!step.branch) break;
       }
     }
     if (path.reachedCore) {

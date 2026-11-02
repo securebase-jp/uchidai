@@ -81,7 +81,10 @@ app.onError((err, c) => {
   if (err instanceof ClientError) return c.json({ error: err.message }, err.status);
   if (err instanceof z.ZodError) {
     const details = err.issues.slice(0, 20).map((i) => ({ path: i.path, message: i.message }));
-    return c.json({ error: "入力の形式が正しくありません", details }, 400);
+    // 画面が原因を案内できるよう、どの項目で落ちたか（zod の path）を日本語の文に含める
+    const where = [...new Set(err.issues.map((i) => i.path.map(String).join(".") || "(全体)"))];
+    const shown = where.slice(0, 3).join("、") + (where.length > 3 ? " ほか" : "");
+    return c.json({ error: `入力の形式が正しくありません（項目：${shown}）`, details }, 400);
   }
   if (err instanceof SyntaxError)
     return c.json({ error: "入力の形式が正しくありません（JSON として読めません）" }, 400);

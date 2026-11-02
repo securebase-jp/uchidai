@@ -1,13 +1,16 @@
 /**
  * 社長向けの一枚（#/onepager）。縦長の紙を画面に置き、ブラウザの印刷で PDF にする。
  * 共有リンク（主）：#/onepager?d=<内容を圧縮した文字列>。一枚の内容がそのまま URL に入り、社長のスマホでも開ける。
+ *   開く側は SharedOnePager（AppProvider の外。カルテ・知識・判定の API を一切呼ばない。回答ページと同じ扱い）
  * 共有リンク（ID 形式。架空の会社の記録向け）：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import {
   buildShareHash,
+  decodeShare,
   encodeShare,
+  type SharePayload,
   sharePayloadFrom,
   shareSizeNoteJa,
   supportsShare,
@@ -33,6 +36,7 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/** API で作る一枚（自分のカルテ、または架空の会社の記録）。共有リンク（d=）で開いた一枚は SharedOnePager */
 export function OnePager() {
   const app = useApp();
   const params = useOnePagerParams();
@@ -101,11 +105,6 @@ export function OnePager() {
     }
   }
 
-  async function copyCurrentLink() {
-    if (await copyText(location.href)) flash("current");
-    else showManual(location.href);
-  }
-
   async function copyIdLink(hash: string) {
     if (await copyText(absolute(hash))) flash("id");
     else showManual(absolute(hash));
@@ -144,16 +143,6 @@ export function OnePager() {
             )}
           </>
         )}
-        {state.status === "shared" && (
-          <>
-            <button type="button" className="btn" onClick={() => void copyCurrentLink()}>
-              {copied === "current" ? "コピーしました" : "このリンクをコピー"}
-            </button>
-            <a className="btn ghost sm" href="#/">
-              自分の会社で試す
-            </a>
-          </>
-        )}
       </div>
       {state.status === "ready" && (
         <div className="op-toolbar no-print small muted" style={{ display: "block" }}>
@@ -170,6 +159,126 @@ export function OnePager() {
           )}
         </div>
       )}
+      {manualLink && (
+        <div className="op-toolbar no-print small" style={{ display: "block" }}>
+          <p className="muted">
+            このブラウザではクリップボードに書けませんでした。下のリンクを選択してコピーしてください。
+          </p>
+          <input
+            ref={manualRef}
+            className="in"
+            readOnly
+            value={manualLink}
+            aria-label="共有リンク"
+            onFocus={(e) => e.target.select()}
+          />
+        </div>
+      )}
+      {state.status === "loading" && <p className="muted">一枚を作っています…</p>}
+      {state.status === "missing" && (
+        <div className="panel">
+          <p>{state.reasonJa}</p>
+          <p className="row" style={{ marginTop: 8 }}>
+            <a className="btn primary" href="#/">
+              はじめにへ
+            </a>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => (location.hash = "#/onepager?profile=demo-seiko&case=ipa-case-1")}
+            >
+              架空の会社（デモ精工）の一枚を見る
+            </button>
+          </p>
+        </div>
+      )}
+      {state.status === "error" && (
+        <div className="panel">
+          <p className="err">{state.messageJa}</p>
+          {params.d && (
+            <p className="row" style={{ marginTop: 8 }}>
+              <a className="btn primary" href="#/">
+                はじめにへ
+              </a>
+            </p>
+          )}
+        </div>
+      )}
+      {view && <OnePagerView data={view} measureLabel={measureLabel} />}
+    </div>
+  );
+}
+
+/**
+ * 共有リンク（d=）で受け取った一枚。AppProvider の外で描く：知識（/api/knowledge）も判定も読まないので、
+ * 公開 URL（Cloudflare Tunnel など）から開いて API が 403 でもエラーにならない。緩和策の名前は要らない（経路図は無い）
+ */
+export function SharedOnePager({ d }: { d: string }) {
+  const [state, setState] = useState<
+    | { status: "loading" }
+    | { status: "error"; messageJa: string }
+    | { status: "shared"; payload: SharePayload }
+  >({ status: "loading" });
+  const [copied, setCopied] = useState(false);
+  const [manualLink, setManualLink] = useState<string>();
+  const manualRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setState({ status: "loading" });
+    setCopied(false);
+    setManualLink(undefined);
+    decodeShare(d).then((r) => {
+      if (!alive) return;
+      setState(
+        r.ok
+          ? { status: "shared", payload: r.payload }
+          : { status: "error", messageJa: `共有リンクを開けませんでした。${r.reasonJa}` },
+      );
+    });
+    return () => {
+      alive = false;
+    };
+  }, [d]);
+
+  const view = useMemo(
+    () => (state.status === "shared" ? viewDataFromShare(state.payload) : undefined),
+    [state],
+  );
+  useEffect(() => {
+    const prev = document.title;
+    if (view) document.title = `社長向けの一枚_${view.onePager.companyName}`;
+    return () => {
+      document.title = prev;
+    };
+  }, [view]);
+
+  async function copyCurrentLink() {
+    if (await copyText(location.href)) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } else {
+      setManualLink(location.href);
+      setTimeout(() => {
+        manualRef.current?.focus();
+        manualRef.current?.select();
+      }, 0);
+    }
+  }
+
+  return (
+    <div className="onepager">
+      <div className="op-toolbar no-print">
+        <button type="button" className="btn primary" onClick={() => window.print()}>
+          PDF で保存（印刷）
+        </button>
+        <button type="button" className="btn" onClick={() => void copyCurrentLink()}>
+          {copied ? "コピーしました" : "このリンクをコピー"}
+        </button>
+        <a className="btn ghost sm" href="#/">
+          自分の会社で試す
+        </a>
+      </div>
       {manualLink && (
         <div className="op-toolbar no-print small" style={{ display: "block" }}>
           <p className="muted">
@@ -204,37 +313,18 @@ export function OnePager() {
           </p>
         </div>
       )}
-      {state.status === "loading" && <p className="muted">一枚を作っています…</p>}
-      {state.status === "missing" && (
+      {state.status === "loading" && <p className="muted">一枚を開いています…</p>}
+      {state.status === "error" && (
         <div className="panel">
-          <p>{state.reasonJa}</p>
+          <p className="err">{state.messageJa}</p>
           <p className="row" style={{ marginTop: 8 }}>
             <a className="btn primary" href="#/">
               はじめにへ
             </a>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => (location.hash = "#/onepager?profile=demo-seiko&case=ipa-case-1")}
-            >
-              架空の会社（デモ精工）の一枚を見る
-            </button>
           </p>
         </div>
       )}
-      {state.status === "error" && (
-        <div className="panel">
-          <p className="err">{state.messageJa}</p>
-          {params.d && (
-            <p className="row" style={{ marginTop: 8 }}>
-              <a className="btn primary" href="#/">
-                はじめにへ
-              </a>
-            </p>
-          )}
-        </div>
-      )}
-      {view && <OnePagerView data={view} measureLabel={measureLabel} />}
+      {view && <OnePagerView data={view} />}
     </div>
   );
 }

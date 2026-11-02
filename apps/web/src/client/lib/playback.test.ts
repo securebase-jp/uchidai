@@ -117,6 +117,41 @@ describe("buildScript", () => {
     expect(arrive?.kind === "arrive" && arrive.ineffective[0]?.mitigation).toBe("M1032");
     expect(s.beats.some((b) => b.kind === "log" && b.text.includes("素通り"))).toBe(true);
   });
+  it("枝の段階（持ち出しなど）へ向かう区間は branch の印が付き、止まっても本線は進む", () => {
+    const withBranch: Verdict = {
+      ...breached,
+      paths: [
+        {
+          ...breached.paths[0],
+          steps: [
+            step("vpn", "breached", { technique: "T1190" }),
+            // 管理者で持ち出し（枝）が止まる → 本線は中核へ進む
+            step("admin", "blocked", { branch: true, labelJa: "持ち出し" }),
+            step("core", "breached"),
+          ],
+        } as Verdict["paths"][0],
+      ],
+    };
+    const s = buildScript(graph, withBranch, profile);
+    expect(s.segments.map((x) => [x.to, x.branch ?? false])).toEqual([
+      ["vpn", false],
+      ["admin", true],
+      ["core", false],
+    ]);
+    const traverses = s.beats.filter((b) => b.kind === "traverse");
+    expect(traverses.map((b) => (b.kind === "traverse" ? (b.branch ?? false) : null))).toEqual([
+      false,
+      true,
+      false,
+    ]);
+    expect(
+      s.beats.some((b) => b.kind === "log" && b.text.includes("枝：止まっても本線は進む")),
+    ).toBe(true);
+    // 本線は中核まで進み、結論に至る
+    const scene = sceneAt(s, graph, s.beats.length);
+    expect(scene.nodes.core?.state).toBe("breached");
+    expect(scene.concluded).toBe(true);
+  });
   it("止まる段階で経路が終わり、壁が立つ", () => {
     const blocked: Verdict = {
       ...breached,

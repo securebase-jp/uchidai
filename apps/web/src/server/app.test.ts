@@ -231,10 +231,25 @@ describe("POST /api/evaluate", () => {
     expect(body.verdict.paths[0].steps[1].state).toBe("breached");
     expect(body.verdict.paths[0].steps[1].evidence).toBe("vendor");
   });
-  it("形式が違えば 400", async () => {
+  it("形式が違えば 400。どの項目で落ちたかを日本語の文に含める", async () => {
     const res = await json("/api/evaluate", { bad: 1 });
     expect(res.status).toBe(400);
-    expect((await loose(res)).error).toContain("形式");
+    const body = await loose(res);
+    expect(body.error).toContain("形式");
+    expect(body.error).toContain("項目：");
+    expect(body.error).toContain("case");
+    // 入れ子の項目は path を点でつなぐ（画面が「構成要素 2 件目の役割」などと案内できる）
+    const { theCase, profile } = await demoFixture();
+    const broken = structuredClone(profile);
+    broken.assets[1].role = "Not A Role";
+    const res2 = await json("/api/evaluate", {
+      case: theCase,
+      profile: broken,
+      measureIds: [],
+      answers: [],
+    });
+    expect(res2.status).toBe(400);
+    expect((await loose(res2)).error).toContain("項目：profile.assets.1.role");
   });
 });
 

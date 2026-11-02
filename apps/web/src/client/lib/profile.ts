@@ -89,6 +89,30 @@ export function plainQuestion(mitigation: string, labelJa: string): ControlQuest
 }
 
 /**
+ * 資産の役割に合わせた質問。同じ緩和策 ID でも役割で判定の意味が違う（サーバの M1047 はアクセスログの監査、
+ * ホームページの M1047 は改ざん検知）ので、質問表の byRole[role] があれば textJa・hintJa・choices を置き換える。
+ * サーバ側の questionFor(mitigation, role) と同じ当てはめ方（役割の文言に hintJa が無ければ共通の hintJa も出さない）
+ */
+export function questionForRole(
+  questions: ControlQuestion[],
+  mitigation: string,
+  role: string,
+  fallbackLabelJa: string,
+): ControlQuestion {
+  const q = questions.find((x) => x.mitigation === mitigation);
+  if (!q) return plainQuestion(mitigation, fallbackLabelJa);
+  const variant = q.byRole?.[role];
+  if (!variant) return q;
+  const { byRole: _byRole, hintJa: _hint, ...rest } = q;
+  return {
+    ...rest,
+    textJa: variant.textJa,
+    ...(variant.hintJa ? { hintJa: variant.hintJa } : {}),
+    ...(variant.choices ? { choices: variant.choices } : {}),
+  };
+}
+
+/**
  * 上書きの可否：外部確認は変更不可、ベンダー回答は確認してから、それ以外は自由。
  * 送信箱の回答（outbox）は、画面を開き直すたびに再適用されるので変更不可として扱う
  */
