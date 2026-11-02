@@ -27,6 +27,8 @@ import { checkLineAgainst } from "./attacker-safety.ts";
 import { callStructured, type LlmOptions } from "./client.ts";
 
 export const ATTACKER_VERSION = "v2";
+/** 候補数の上限（maxPaths はこれ以上にできない） */
+export const MAX_PATHS = 5;
 /** v1：役割と手法の一覧だけ → core の手法に T1078 を選び、判定ルールが無く破棄。v2：役割ごとに判定できる手法の表を渡す */
 
 /** 下見で参照する戦術（初期アクセス、永続化、権限昇格、認証情報アクセス、横展開、収集、持ち出し、影響） */
@@ -254,7 +256,7 @@ export async function reconnoiter(
   options: ReconOptions,
 ): Promise<ReconResult> {
   const input = renderAbstracted(abstracted);
-  const max = options.maxPaths ?? 3;
+  const max = Math.min(MAX_PATHS, Math.max(1, Math.floor(options.maxPaths ?? 3)));
   const user = `${input}\n\n上の構成について、型紙以外の入口から目標の役割に至る侵入経路の候補を最大 ${max} 本、スキーマに従って JSON だけで出力してください。`;
   const r = await callStructured<RawPaths>(
     { ...options, maxTokens: options.maxTokens ?? 4000 },
@@ -295,6 +297,7 @@ export function profileBannedTerms(profile: CompanyProfile): string[] {
   add(profile.companyName);
   add(profile.domain);
   add(profile.vendor?.name);
+  add(profile.vendor?.email);
   for (const a of profile.assets) {
     add(a.product);
     add(a.version);
