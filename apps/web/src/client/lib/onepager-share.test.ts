@@ -7,6 +7,11 @@ import {
   decodeShare,
   encodeShare,
   fromBase64Url,
+  InflateTooLargeError,
+  inflateLimited,
+  LIMITS,
+  MAX_INFLATED_BYTES,
+  MAX_SHARE_CHARS,
   SHARE_VERSION,
   sharePayloadFrom,
   shareSizeNoteJa,
@@ -116,6 +121,75 @@ describe("共有リンク（圧縮 → base64url → 展開 → zod）", () => {
     };
     const bad = await decodeShare(await encodeRaw(JSON.stringify(tampered)));
     expect(!bad.ok && bad.reasonJa).toContain("result");
+  });
+
+  it("長すぎる d=（64 KB 超）は展開せずに断る", async () => {
+    const r = await decodeShare("A".repeat(MAX_SHARE_CHARS + 1));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reasonJa).toContain("長すぎます");
+    // 上限ちょうどは長さでは断らない（中身が壊れていれば別の理由）
+    const r2 = await decodeShare("A".repeat(MAX_SHARE_CHARS));
+    expect(!r2.ok && r2.reasonJa).not.toContain("長すぎます");
+  });
+
+  it("展開後が巨大になるリンク（圧縮爆弾）は、展開を途中で止めて断る", async () => {
+    // 2 MB の同じ文字は deflate で数 KB になる。d= の長さの検査だけでは通ってしまう
+    const bomb = new Uint8Array(MAX_INFLATED_BYTES * 2).fill(0x20);
+    const piped = new Blob([bomb as BlobPart])
+      .stream()
+      .pipeThrough(new CompressionStream("deflate"));
+    const packed = new Uint8Array(await new Response(piped).arrayBuffer());
+    expect(packed.length).toBeLessThan(MAX_SHARE_CHARS / 4);
+    await expect(inflateLimited(packed, MAX_INFLATED_BYTES)).rejects.toBeInstanceOf(
+      InflateTooLargeError,
+    );
+    const r = await decodeShare(toBase64Url(packed));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reasonJa).toContain("大きすぎます");
+    // 上限内なら展開できる
+    const small = new Uint8Array(1000).fill(0x20);
+    const sp = new Blob([small as BlobPart]).stream().pipeThrough(new CompressionStream("deflate"));
+    const out = await inflateLimited(new Uint8Array(await new Response(sp).arrayBuffer()), 2000);
+    expect(out.length).toBe(1000);
+  });
+
+  it("文字列や配列が長すぎる内容は、項目名と日本語の理由で断る", async () => {
+    const data = await onePagerResponse();
+    const payload = sharePayloadFrom(data);
+    const encodeRaw = async (v: unknown) => {
+      const bytes = new TextEncoder().encode(JSON.stringify(v));
+      const piped = new Blob([bytes as BlobPart])
+        .stream()
+        .pipeThrough(new CompressionStream("deflate"));
+      return toBase64Url(new Uint8Array(await new Response(piped).arrayBuffer()));
+    };
+    const longHeadline = await decodeShare(
+      await encodeRaw({
+        ...payload,
+        onePager: { ...payload.onePager, headlineJa: "あ".repeat(LIMITS.title + 1) },
+      }),
+    );
+    expect(longHeadline.ok).toBe(false);
+    if (!longHeadline.ok) {
+      expect(longHeadline.reasonJa).toContain("onePager.headlineJa");
+      expect(longHeadline.reasonJa).toContain("見出しが長すぎます");
+    }
+    const longLine = await decodeShare(
+      await encodeRaw({
+        ...payload,
+        onePager: { ...payload.onePager, whatHappensJa: ["い".repeat(LIMITS.sentence + 1)] },
+      }),
+    );
+    expect(!longLine.ok && longLine.reasonJa).toContain("長すぎます");
+    const manyNotes = await decodeShare(
+      await encodeRaw({
+        ...payload,
+        onePager: { ...payload.onePager, notesJa: Array(LIMITS.items + 1).fill("注") },
+      }),
+    );
+    expect(!manyNotes.ok && manyNotes.reasonJa).toContain("多すぎます");
+    // 上限内の正規の一枚はそのまま通る
+    expect((await decodeShare(await encodeRaw(payload))).ok).toBe(true);
   });
 
   it("base64url は + / = を使わず、往復で同じバイト列になる", () => {
