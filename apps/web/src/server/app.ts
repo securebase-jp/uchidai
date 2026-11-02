@@ -30,6 +30,7 @@ import { cors } from "hono/cors";
 import { z } from "zod";
 import { AnswerInput, ReadRequest } from "../shared/api.ts";
 import { loadQuestions } from "./knowledge-view.ts";
+import { attackerRoutes } from "./routes/attacker.ts";
 
 const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
@@ -48,6 +49,7 @@ app.onError((err, c) => {
 });
 
 app.get("/api/health", (c) => c.json({ ok: true }));
+app.route("/api/attacker", attackerRoutes);
 
 // 知識：ラベル、対策ボタン、5問、業種別パターン、役割、ATT&CK のバージョン
 app.get("/api/knowledge", (c) => {

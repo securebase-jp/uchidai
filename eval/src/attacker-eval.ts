@@ -41,12 +41,12 @@ import {
   compareGenericMitigations,
   compareRecordingPath,
   type DiscardedCandidate,
-  type GenericMitigation,
   leakedTerms,
   listGenericMitigations,
   profileBannedTerms,
   reconnoiter,
   renderAbstracted,
+  toGenericMitigations,
   validateCandidates,
 } from "@uchidai/llm";
 
@@ -267,7 +267,7 @@ export function scoreCompare(caseId: string, profileId: string) {
   const theCase = Case.parse(caseRec.output);
   const profile = loadProfile(join(repoRoot, "examples", `${profileId}.json`));
   const verdict = evaluate(theCase, profile, { knowledge: k, graph: buildGraph(profile, k.roles) });
-  const c = compareGenericMitigations(rec.items as GenericMitigation[], verdict, k.labels);
+  const c = compareGenericMitigations(toGenericMitigations(rec.items), verdict, k.labels);
   return { caseId, model: rec.model, recordedAt: rec.recordedAt, ...c.counts };
 }
 

@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { repoRoot } from "@uchidai/engine";
 import { z } from "zod";
+import type { GenericMitigation } from "./reader.ts";
 
 export const AttackerRecording = z.object({
   profileId: z.string(),
@@ -91,17 +92,29 @@ export function loadAttackerRecording(profileId: string): AttackerRecording | un
   return AttackerRecording.parse(JSON.parse(readFileSync(p, "utf8")));
 }
 
+export function toGenericMitigations(items: CompareRecording["items"]): GenericMitigation[] {
+  return items.map((i) => ({
+    nameJa: i.nameJa,
+    reasonJa: i.reasonJa,
+    ...(i.mitigationId ? { mitigationId: i.mitigationId } : {}),
+    ...(i.rejectedId ? { rejectedId: i.rejectedId } : {}),
+  }));
+}
+
 /** 知見なしの対策一覧の記録。compare.<caseId>.json が無ければ S1 の mitigations/<caseId>.json を使う */
 export function loadCompareRecording(
   caseId: string,
-):
-  | { items: CompareRecording["items"]; model: string; recordedAt: string; note: string }
-  | undefined {
+): { items: GenericMitigation[]; model: string; recordedAt: string; note: string } | undefined {
   if (!safe(caseId)) return undefined;
   const p = compareRecordingPath(caseId);
   if (existsSync(p)) {
     const rec = CompareRecording.parse(JSON.parse(readFileSync(p, "utf8")));
-    return { items: rec.items, model: rec.model, recordedAt: rec.recordedAt, note: rec.note };
+    return {
+      items: toGenericMitigations(rec.items),
+      model: rec.model,
+      recordedAt: rec.recordedAt,
+      note: rec.note,
+    };
   }
   const legacy = join(recordingsDir, "mitigations", `${caseId}.json`);
   if (!existsSync(legacy)) return undefined;
@@ -109,7 +122,7 @@ export function loadCompareRecording(
     .extend({ note: z.string().optional() })
     .parse(JSON.parse(readFileSync(legacy, "utf8")));
   return {
-    items: rec.items,
+    items: toGenericMitigations(rec.items),
     model: rec.model,
     recordedAt: rec.recordedAt,
     note: rec.note ?? "知見なしの対策一覧（eval/recordings/mitigations）",
