@@ -118,6 +118,15 @@ export function Staff({ settings }: { settings: Settings }) {
           </p>
         </div>
       )}
+      {theCase.clarity === "unknown" && (
+        <div className="panel warn" style={{ marginBottom: 10 }}>
+          <p className="small">
+            <b>記事に入口が書かれていません。</b>
+            型紙の入口候補（VPN
+            装置、リモートデスクトップ、メールなど）だけで判定しています。別の入口から来る攻撃は判定に含まれないので、結論が「止められます」でも、この型紙の入口候補について止められる、という意味に留めてください。
+          </p>
+        </div>
+      )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <p className="muted">{caseMeta?.sourceJa}</p>
