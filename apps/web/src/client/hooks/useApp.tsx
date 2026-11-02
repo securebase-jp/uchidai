@@ -37,6 +37,8 @@ export type AppState = {
   profileSource: ProfileSource | undefined;
   theCase: Case | undefined;
   caseMeta: CaseMeta | undefined;
+  /** 事例を担当者が選んだ（記事を読ませた、または記録済みの事例を選んだ）か。false なら既定の事例 1 を使っている */
+  caseChosen: boolean;
   measureIds: string[];
   answers: AnswerInput[];
   evaluation: Evaluation | undefined;
@@ -46,7 +48,8 @@ export type AppState = {
   setProfile(p: CompanyProfile, source: ProfileSource): void;
   clearProfile(): void;
   setCase(c: Case, meta: CaseMeta): void;
-  loadRecorded(caseId: string): Promise<void>;
+  /** 記録済みの事例を読む。chosen: false は既定の事例（担当者が選んだのではない） */
+  loadRecorded(caseId: string, opts?: { chosen?: boolean }): Promise<void>;
   toggleMeasure(id: string): void;
   clearMeasures(): void;
   addAnswer(a: AnswerInput): void;
@@ -69,8 +72,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profileSource, setProfileSource] = useState<ProfileSource | undefined>(() =>
     profile ? "saved" : undefined,
   );
-  const [theCase, setCaseState] = useState<Case>();
-  const [caseMeta, setCaseMeta] = useState<CaseMeta>();
+  // 担当者が選んだ事例はこのブラウザに保存してある（再読み込みで既定の事例 1 に戻らない）。?profile= のデモでは使わない
+  const saved = useMemo(() => (urlProfileId() ? undefined : storage.loadCase()), []);
+  const [theCase, setCaseState] = useState<Case | undefined>(saved?.case);
+  const [caseMeta, setCaseMeta] = useState<CaseMeta | undefined>(saved?.meta);
+  const [caseChosen, setCaseChosen] = useState(saved !== undefined);
   const [measureIds, setMeasureIds] = useState<string[]>([]);
   const [answers, setAnswers] = useState<AnswerInput[]>([]);
   const [evaluation, setEvaluation] = useState<Evaluation>();
@@ -114,20 +120,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     },
     [setProfile, fail],
   );
-  const setCase = useCallback((c: Case, meta: CaseMeta) => {
+  const setCase = useCallback((c: Case, meta: CaseMeta, chosen = true) => {
     setCaseState(c);
     setCaseMeta(meta);
+    setCaseChosen(chosen);
     setMeasureIds([]);
+    if (chosen) {
+      const { recorded, ...rest } = meta;
+      storage.saveCase({
+        case: c,
+        meta: { ...rest, ...(recorded ? { recorded: { caseId: recorded.caseId } } : {}) },
+      });
+    } else storage.clearCase();
   }, []);
   const loadRecorded = useCallback(
-    async (caseId: string) => {
+    async (caseId: string, opts?: { chosen?: boolean }) => {
       try {
         const { case: c, meta } = await api.recorded(caseId);
-        setCase(c, {
-          label: c.title,
-          sourceJa: `IPA 事例集の読解結果（記録 ${caseId}）`,
-          recorded: meta,
-        });
+        setCase(
+          c,
+          {
+            label: c.title,
+            sourceJa: `IPA 事例集の読解結果（記録 ${caseId}）`,
+            recorded: meta,
+          },
+          opts?.chosen ?? true,
+        );
       } catch (e) {
         fail(e);
       }
@@ -141,9 +159,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (id) void loadExample(id);
   }, [loadExample]);
 
-  // 事例が無ければ記録済みの事例 1 を使う（デモとキー無しの動作確認用）
+  // 事例が無ければ記録済みの事例 1 を使う（デモとキー無しの動作確認用）。担当者が選んだ事例ではない
   useEffect(() => {
-    if (!theCase) void loadRecorded(DEFAULT_CASE_ID);
+    if (!theCase) void loadRecorded(DEFAULT_CASE_ID, { chosen: false });
   }, [theCase, loadRecorded]);
 
   // 判定：カルテ・事例・対策・回答のどれかが変わるたびに API へ
@@ -186,6 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       profileSource,
       theCase,
       caseMeta,
+      caseChosen,
       measureIds,
       answers,
       evaluation,
@@ -208,6 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       profileSource,
       theCase,
       caseMeta,
+      caseChosen,
       measureIds,
       answers,
       evaluation,

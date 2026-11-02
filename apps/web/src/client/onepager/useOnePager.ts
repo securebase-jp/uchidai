@@ -15,7 +15,13 @@ export type OnePagerState =
   | { status: "missing"; reasonJa: string }
   | { status: "error"; messageJa: string }
   /** API で作った一枚。idShareHash は ID で指す形の共有リンク（架空の会社の記録のときだけ作れる） */
-  | { status: "ready"; data: OnePagerResponse; idShareHash: string | undefined }
+  | {
+      status: "ready";
+      data: OnePagerResponse;
+      idShareHash: string | undefined;
+      /** 記事に入口が書かれていない事例（型紙の入口候補で判定した一枚） */
+      entryUnknown: boolean;
+    }
   /** 共有リンク（d=）から復元した一枚 */
   | { status: "shared"; payload: SharePayload };
 
@@ -81,6 +87,7 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
         setState({
           status: "ready",
           data,
+          entryUnknown: theCase.clarity === "unknown",
           idShareHash:
             profileId && caseId
               ? buildOnePagerHash({ profile: profileId, case: caseId, measures: measureIds })

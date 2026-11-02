@@ -2,10 +2,11 @@
  * ベンダーへの確認依頼（S7）：未確認の各行に「ベンダーに確認する」ボタン、送信箱、回答が届いたときの知らせ、
  * 選んだ対策ボタンの依頼文の下書き（担当者が確認してから送る）
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MeasureDraftView } from "../../shared/requests.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import { useRequests } from "../hooks/useRequests.tsx";
+import { rankPending } from "../lib/pending.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
 import { OutboxPanel } from "./OutboxPanel.tsx";
 import "./requests.css";
@@ -18,6 +19,7 @@ export function RequestPanel() {
   const [draft, setDraft] = useState<MeasureDraftView>();
   const [draftFor, setDraftFor] = useState<string>();
   const [drafting, setDrafting] = useState(false);
+  const outboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!req.lastAnswer) return;
@@ -33,11 +35,24 @@ export function RequestPanel() {
   const current = evaluation?.profile ?? profile;
   const mit = (id: string) =>
     knowledge.labels.mitigations[id] ?? knowledge.labels.custom[id]?.labelJa ?? id;
-  const pending = current.assets.flatMap((a) =>
-    a.controls
-      .filter((c) => c.status === "unknown")
-      .map((c) => ({ assetId: a.id, asset: a.label, mitigation: c.mitigation, noteJa: c.noteJa })),
-  );
+  // 経路で問われている未確認を先頭に（答えると結論が変わりやすい順）
+  const pending = rankPending(current, evaluation?.verdict, evaluation?.graph).map((x) => ({
+    ...x,
+    asset: x.assetLabel,
+    noteJa: current.assets
+      .find((a) => a.id === x.assetId)
+      ?.controls.find((c) => c.mitigation === x.mitigation)?.noteJa,
+  }));
+  const onPathCount = pending.filter((x) => x.onPath).length;
+
+  /** 依頼を作ったら、送信箱へ案内する（送信箱は画面の下にあり、作ったことに気づきにくい） */
+  async function createAndShow(assetId: string, mitigation: string) {
+    const r = await req.create(assetId, mitigation);
+    if (!r) return;
+    setToast("送信箱に確認依頼を作りました。文面と回答リンクは下の送信箱にあります");
+    setTimeout(() => setToast(undefined), 6000);
+    outboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
   const openFor = (assetId: string, mitigation: string) =>
     req.items.find((r) => r.assetId === assetId && r.mitigation === mitigation && !r.answer);
   const selectedMeasures = knowledge.measures.filter((m) => measureIds.includes(m.id));
@@ -75,6 +90,12 @@ export function RequestPanel() {
         </p>
       ) : (
         <div style={{ marginTop: 6 }}>
+          {onPathCount > 0 && (
+            <p className="muted small">
+              先頭の {onPathCount}{" "}
+              件は、いまの攻撃の経路で問われている項目です（答えると結論が変わりやすい）。
+            </p>
+          )}
           {pending.map((x) => {
             const open = openFor(x.assetId, x.mitigation);
             const key = `${x.assetId}:${x.mitigation}`;
@@ -84,6 +105,11 @@ export function RequestPanel() {
                   <b>
                     {x.asset}　<code>{x.mitigation}</code> {mit(x.mitigation)}
                   </b>
+                  {x.onPath && (
+                    <span className="chip on-path">
+                      この攻撃の経路{x.stageJa ? `：${x.stageJa}` : ""}
+                    </span>
+                  )}
                   {x.noteJa && <span className="muted">{x.noteJa}</span>}
                 </div>
                 {open ? (
@@ -91,9 +117,9 @@ export function RequestPanel() {
                 ) : (
                   <button
                     type="button"
-                    className="btn sm primary"
+                    className={`btn sm ${x.onPath ? "primary" : ""}`}
                     disabled={req.busyKey !== undefined}
-                    onClick={() => void req.create(x.assetId, x.mitigation)}
+                    onClick={() => void createAndShow(x.assetId, x.mitigation)}
                   >
                     {req.busyKey === key ? "依頼文を作成中…" : "ベンダーに確認する"}
                   </button>
@@ -103,11 +129,13 @@ export function RequestPanel() {
           })}
         </div>
       )}
-      <OutboxPanel
-        items={req.items}
-        live={req.live}
-        onClear={() => void requestsApi.clear().then(() => req.refresh())}
-      />
+      <div ref={outboxRef}>
+        <OutboxPanel
+          items={req.items}
+          live={req.live}
+          onClear={() => void requestsApi.clear().then(() => req.refresh())}
+        />
+      </div>
       {selectedMeasures.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <h2>対策の依頼文（下書き。確認してから送る）</h2>

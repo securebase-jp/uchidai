@@ -23,6 +23,7 @@ function BlurInput(props: {
   step?: number;
   ariaLabel?: string;
   id?: string;
+  selectOnFocus?: boolean;
 }) {
   const [v, setV] = useState(props.value);
   useEffect(() => setV(props.value), [props.value]);
@@ -37,6 +38,8 @@ function BlurInput(props: {
       {...(props.step !== undefined ? { step: props.step } : {})}
       {...(props.ariaLabel ? { "aria-label": props.ariaLabel } : {})}
       inputMode={props.type === "number" ? "numeric" : undefined}
+      // 既定の文（「個人情報」など）が入っている欄は、焦点が当たったら全選択して打ち直せるようにする
+      onFocus={(e) => props.selectOnFocus && e.target.select()}
       onChange={(e) => setV(e.target.value)}
       onBlur={() => {
         if (v !== props.value) props.onCommit(v);
@@ -324,6 +327,7 @@ export function PersonalDataTable({
                     <BlurInput
                       className="in txt"
                       value={pd.descriptionJa}
+                      selectOnFocus
                       placeholder="例：取引先担当者の連絡先"
                       ariaLabel={`${a.label}：個人情報の説明`}
                       onCommit={(v) => put({ descriptionJa: v })}

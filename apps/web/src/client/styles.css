@@ -156,6 +156,7 @@ p {
 .topbar nav {
   display: flex;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .topbar nav a {
   text-decoration: none;
@@ -164,6 +165,7 @@ p {
   border-radius: 999px;
   border: 1px solid transparent;
   font-size: 14px;
+  white-space: nowrap;
 }
 .topbar nav a[aria-current="page"] {
   color: var(--ink);
@@ -195,6 +197,38 @@ p {
 }
 .chip.mono {
   font-family: var(--mono);
+}
+/* 狭い画面（スマホ）：ナビは折り返して二段、チップは幅に収める */
+@media (max-width: 720px) {
+  .wrap {
+    padding: 10px 12px 28px;
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .brand {
+    width: 100%;
+    white-space: nowrap;
+  }
+  .topbar nav {
+    width: 100%;
+    gap: 4px;
+  }
+  .topbar nav a {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+  .topbar .spacer {
+    display: none;
+  }
+  .chips {
+    width: 100%;
+  }
+  .chip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 /* ボタン */
@@ -926,6 +960,46 @@ table.evidence code {
 }
 .warn {
   border-color: var(--amber);
+}
+
+/* 業種を切り替えて同じ攻撃を見る一場面 */
+.industry-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 10px;
+}
+.industry-card {
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.industry-card.picked {
+  border-color: var(--steel);
+  box-shadow: 0 0 0 1px var(--steel);
+}
+.industry-card h3 {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.industry-card .result {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 4px 0 6px;
+}
+.industry-card.tone-red .result {
+  color: var(--red);
+}
+.industry-card.tone-green .result {
+  color: var(--green);
+}
+.industry-card.tone-amber .result {
+  color: var(--amber);
+}
+.industry-card.tone-cyan .result {
+  color: var(--cyan);
 }
 
 /* 配置 */

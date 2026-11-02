@@ -71,8 +71,9 @@ describe("measureEffect（対策ボタンの効く／効かない／経路の外
     expect(measureEffect(m("vpn-update", "M1051", "entry.vpn"), verdict, false).textJa).toBe(
       "この段階に効く：入口から侵入",
     );
+    // 適用しても止まらない段階は、いまの状態の語を添える（「適用中」だけでは効いたのか分からない）
     expect(measureEffect(m("vpn-update", "M1051", "entry.vpn"), verdict, true).textJa).toBe(
-      "適用中",
+      "適用中：この段階はまだ「突破される」",
     );
   });
   it("経路の外の対策を適用中なら、外れていないことが分かる語にする", () => {

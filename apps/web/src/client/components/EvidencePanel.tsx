@@ -1,6 +1,7 @@
 /** 担当者向けの根拠：手法 ID、緩和策 ID、根拠の種類、記事中の根拠文、矛盾、未確認の一覧 */
 import { useMemo } from "react";
 import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
+import { pathTemplateLabel, type TemplateRef } from "../lib/pending.ts";
 import { reconHints } from "../lib/reconHints.ts";
 import type { Case, CompanyProfile, LabelsFile, Verdict } from "../lib/types.ts";
 
@@ -10,10 +11,16 @@ type Props = {
   profile: CompanyProfile;
   labels: LabelsFile;
   graph: { nodes: { id: string; label: string }[] };
+  /** 型紙の名前（複数の型紙を展開したときに経路ごとの見出しに出す） */
+  templates?: TemplateRef[];
 };
 
-export function EvidencePanel({ verdict, theCase, profile, labels, graph }: Props) {
+export function EvidencePanel({ verdict, theCase, profile, labels, graph, templates }: Props) {
   const nodeLabel = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
+  // 型紙を 1 本に絞れなかった（verdict.templateId が無い）ときだけ、経路ごとに型紙の名前を出す
+  const multiTemplate =
+    !verdict.templateId &&
+    new Set(verdict.paths.filter((p) => p.source !== "ai").map((p) => p.templateId)).size > 1;
   const mit = (id: string) => labels.mitigations[id] ?? labels.custom[id]?.labelJa ?? "";
   // 外部確認（#/domain）で見つかった矛盾。反映したカルテの id と一致するものだけ。判定（engine）の矛盾と同じ欄に出す
   const external = useMemo(() => {
@@ -43,6 +50,9 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph }: Prop
         <div className="panel" key={p.id}>
           <h2>
             経路 {p.id}　{SOURCE_LABEL[p.source]}　{p.reachedCore ? "中核に到達" : "途中で止まる"}
+            {multiTemplate && templates && pathTemplateLabel(p, templates) && (
+              <>　型紙「{pathTemplateLabel(p, templates)}」</>
+            )}
           </h2>
           <div style={{ overflowX: "auto" }}>
             <table className="evidence">
