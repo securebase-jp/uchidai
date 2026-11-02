@@ -40,6 +40,11 @@ describe("VPN・リモートデスクトップ用と推定されるホスト名"
     "campaign2019.example.jp",
     "sslcert.example.jp",
     "vpnews.example.jp",
+    "mail-gw.example.jp",
+    "api-gateway.example.jp",
+    "smtp-gw2.example.jp",
+    "web-fw.example.jp",
+    "sip-gw.example.jp",
   ])("%s は当たらない", (host) => {
     expect(matchRemoteAccessHost(host, "example.jp")).toBeUndefined();
   });

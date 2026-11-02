@@ -31,16 +31,16 @@ export function reconToAnswers(result: ReconResult): AnswerHints {
     hints.inferred.push("hosting.web");
     hints.reasonsJa["hosting.web"] = result.web.hosting.reasonJa;
   }
-  const kinds = new Set(result.remoteAccessCandidates.map((c) => c.kind));
+  // 過去の痕跡（DNS になく証明書も期限切れ）は、今の社外接続の推定には使わない
+  const current = result.remoteAccessCandidates.filter((c) => c.current);
+  const kinds = new Set(current.map((c) => c.kind));
   if (kinds.size > 0) {
     const remote: ProfileAnswers["remoteAccess"] = [];
     if (kinds.has("vpn")) remote.push("vpn");
     if (kinds.has("rdp")) remote.push("rdp");
     hints.answers.remoteAccess = remote;
     hints.inferred.push("remoteAccess");
-    hints.reasonsJa.remoteAccess = result.remoteAccessCandidates
-      .map((c) => `${c.hostname}（${c.reasonJa}）`)
-      .join("、");
+    hints.reasonsJa.remoteAccess = current.map((c) => `${c.hostname}（${c.reasonJa}）`).join("、");
   }
   return hints;
 }
@@ -89,7 +89,7 @@ export interface AssetHint {
 
 export function reconToAssetHints(result: ReconResult): AssetHint[] {
   const hints: AssetHint[] = [];
-  const vpn = result.remoteAccessCandidates.filter((c) => c.kind === "vpn");
+  const vpn = result.remoteAccessCandidates.filter((c) => c.kind === "vpn" && c.current);
   if (vpn.length > 0) {
     const first = vpn[0];
     hints.push({
@@ -108,7 +108,7 @@ export function reconToAssetHints(result: ReconResult): AssetHint[] {
       reasonJa: vpn.map((c) => c.reasonJa).join("。"),
     });
   }
-  const rdp = result.remoteAccessCandidates.filter((c) => c.kind === "rdp");
+  const rdp = result.remoteAccessCandidates.filter((c) => c.kind === "rdp" && c.current);
   if (rdp.length > 0) {
     const first = rdp[0];
     hints.push({
@@ -162,7 +162,10 @@ export function reconToAssetHints(result: ReconResult): AssetHint[] {
 
 /**
  * 資産のヒントをカルテに重ねる。役割が一致する資産に属性と緩和策を書き込む（根拠 external は最優先）。
- * 一致する資産が無い役割は何もしない（資産を増やすかは担当者の判断）
+ * 一致する資産が無い役割は何もしない（資産を増やすかは担当者の判断）。
+ * 緩和策は、前回の外部確認（evidence external）の記録だけを置き換え、担当者登録・ベンダー回答の記録は残す。
+ * 残した記録と食い違えば engine（resolveControl）が矛盾として表示し、根拠の優先順位（外部確認が最上位）で判定する。
+ * 属性（attrs）は 1 値なので上書きされる。登録値との食い違いは、重ねる前に findContradictions で拾う
  */
 export function applyAssetHints(profile: CompanyProfile, hints: AssetHint[]): CompanyProfile {
   const assets = profile.assets.map((asset) => {
@@ -180,7 +183,11 @@ export function applyAssetHints(profile: CompanyProfile, hints: AssetHint[]): Co
         attrs: { ...next.attrs, ...hint.attrs },
         attrEvidence: { ...next.attrEvidence, ...hint.attrEvidence },
         controls: [
-          ...next.controls.filter((c) => !hint.controls.some((h) => h.mitigation === c.mitigation)),
+          ...next.controls.filter(
+            (c) =>
+              c.evidence !== "external" ||
+              !hint.controls.some((h) => h.mitigation === c.mitigation),
+          ),
           ...hint.controls,
         ],
       };

@@ -6,9 +6,17 @@
  */
 import { FileCache } from "./cache.ts";
 import { CrtShSource } from "./crtsh.ts";
-import { assertVerified, defaultResolver, type VerifiedDomain } from "./ownership.ts";
+import {
+  assertVerified,
+  defaultResolver,
+  isLiveResolver,
+  OwnershipNotVerifiedError,
+  sourceOf,
+  type VerifiedDomain,
+} from "./ownership.ts";
 import {
   IPA_SOURCE_JA,
+  IPA_UNKNOWN_ASSETS_JA,
   IPA_VULN_CASES,
   MX_PROVIDERS,
   matchProvider,
@@ -24,6 +32,7 @@ import {
   type Evidence,
   type Finding,
   type HostnameEntry,
+  isLookupSafeName,
   type MailInfo,
   type MxRecord,
   normalizeDomain,
@@ -44,7 +53,13 @@ export interface ReconOptions {
   now?: () => Date;
   /** CT で見つかったホスト名のうち、DNS で名前解決を確かめる上限 */
   maxHostLookups?: number;
+  /** 所有確認から経過してよい時間（既定 24 時間） */
+  ownershipMaxAgeMs?: number;
 }
+
+/** CNAME をたどる上限（DNS の問い合わせだけ。ホストにはつながない） */
+const MAX_CNAME_HOPS = 3;
+const SPF_ALL_VALUES = ["-all", "~all", "?all", "+all"] as const;
 
 let defaultCtFactory: (cache?: ReconCache) => CtLogSource = (cache) =>
   new CrtShSource({ cache: cache ?? new FileCache() });
@@ -120,10 +135,8 @@ export function parseSpf(domain: string, txt: string[]): SpfInfo {
   const includes = terms
     .filter((t) => /^[+?~-]?(include:|redirect=)/i.test(t))
     .map((t) => t.replace(/^[+?~-]?(include:|redirect=)/i, "").toLowerCase());
-  const all = terms.find((t) => /^[+?~-]?all$/i.test(t));
-  const allMechanism = all
-    ? ((all.length === 3 ? `+${all}` : all).toLowerCase() as SpfInfo["allMechanism"])
-    : undefined;
+  const all = terms.find((t) => /^[+?~-]?all$/i.test(t))?.toLowerCase();
+  const allMechanism = SPF_ALL_VALUES.find((v) => v === (all?.length === 3 ? `+${all}` : all));
   return {
     present: true,
     record,
@@ -233,6 +246,18 @@ async function webInfo(domain: string, resolver: DnsResolver, notes: string[]): 
       records.push(dns("CNAME", name, c));
       candidates.push(c);
     }
+    // CNAME の連鎖（www → cdn.自社 → 事業者）を上限つきでたどる。問い合わせ先は DNS サーバだけ
+    let target = cnames[0];
+    for (let hop = 1; target && hop < MAX_CNAME_HOPS; hop++) {
+      if (!isLookupSafeName(target)) break;
+      const t = target;
+      const next = await safe(() => resolver.resolveCname(t), notes, `${t} の CNAME`);
+      for (const c of next) {
+        records.push(dns("CNAME", t, c));
+        candidates.push(c);
+      }
+      target = next[0];
+    }
     if (cnames.length > 0) continue;
     const a = await safe(() => resolver.resolve4(name), notes, `${name} の A`);
     for (const ip of a) records.push(dns("A", name, ip));
@@ -306,6 +331,10 @@ function buildFindings(
 ): Finding[] {
   const findings: Finding[] = [];
   const ipaVpn = [...IPA_VULN_CASES.vpnExposed];
+  const wildcards = hostnames.filter((h) => h.wildcard).length;
+  const stale = hostnames.filter(
+    (h) => !h.wildcard && h.resolves === false && h.activeCertCount === 0 && h.certCount > 0,
+  );
 
   findings.push({
     id: "hostnames.ct",
@@ -315,21 +344,42 @@ function buildFindings(
       ? `証明書の公開ログに ${hostnames.length} 件のホスト名`
       : "証明書の公開ログを参照できなかった",
     detailJa: ctAvailable
-      ? `${domain} とそのサブドメインに発行された証明書から集めた名前。うち現在も有効な証明書があるのは ${hostnames.filter((h) => h.activeCertCount > 0).length} 件、DNS で名前が解決できるのは ${hostnames.filter((h) => h.resolves === true).length} 件`
+      ? `${domain} とそのサブドメインに発行された証明書から集めた名前。うち現在も有効な証明書があるのは ${hostnames.filter((h) => h.activeCertCount > 0).length} 件、DNS で名前が解決できるのは ${hostnames.filter((h) => h.resolves === true).length} 件${wildcards > 0 ? `。ワイルドカード証明書（*.）が ${wildcards} 件あり、その配下の個別のホスト名は公開ログからは分からない` : ""}${stale.length > 0 ? `。証明書が期限切れで DNS にも無い名前が ${stale.length} 件（${stale.map((h) => h.name).join("、")}）。担当者が把握していない過去の資産の可能性があり、カルテとの照合に使う` : ""}`
       : "ホスト名の洗い出しと VPN 用ホスト名の推定は DNS だけで行った",
     evidence: [],
     ipaCases: [],
+    ...(stale.length > 0 ? { sourceJa: `${IPA_SOURCE_JA} ${IPA_UNKNOWN_ASSETS_JA}` } : {}),
   });
 
+  const expired = hostnames.filter(
+    (h) => !h.wildcard && h.resolves === true && h.activeCertCount === 0 && h.certCount > 0,
+  );
+  if (expired.length > 0) {
+    findings.push({
+      id: "certificates.expired",
+      category: "hostnames",
+      severity: "warn",
+      titleJa: `証明書が期限切れのまま DNS に残る名前が ${expired.length} 件`,
+      detailJa: `${expired.map((h) => `${h.name}（最後の期限 ${h.lastExpiry?.slice(0, 10)}）`).join("、")}。公開ログに新しい証明書の記録がなく、名前は今も解決できる。更新忘れか、使っていないのに残っている可能性（接続して確かめることはしない）`,
+      evidence: [],
+      ipaCases: [...IPA_VULN_CASES.certExpired],
+      sourceJa: IPA_SOURCE_JA,
+    });
+  }
+
   const vpn = candidates.filter((c) => c.kind === "vpn");
+  const vpnCurrent = vpn.filter((c) => c.current);
   findings.push(
     vpn.length > 0
       ? {
           id: "remote_access.vpn",
           category: "remote_access",
-          severity: "warn",
-          titleJa: `VPN 用と推定されるホスト名が ${vpn.length} 件公開されている`,
-          detailJa: `${vpn.map((c) => c.hostname).join("、")}。名前のパターンからの推定で、装置の有無や種類は断定しない。公開された VPN 装置の更新漏れは事例集の脆弱性事例 ${ipaVpn.join("・")} で中小企業に実際に見つかった弱点`,
+          severity: vpnCurrent.length > 0 ? "warn" : "info",
+          titleJa:
+            vpnCurrent.length > 0
+              ? `VPN 用と推定されるホスト名が ${vpnCurrent.length} 件公開されている`
+              : `VPN 用と推定されるホスト名が過去に ${vpn.length} 件あった（今は DNS になく証明書も期限切れ）`,
+          detailJa: `${vpn.map((c) => `${c.hostname}${c.current ? "" : "（過去の痕跡）"}`).join("、")}。名前のパターンからの推定で、装置の有無や種類は断定しない。公開された VPN 装置の更新漏れは事例集の脆弱性事例 ${ipaVpn.join("・")} で中小企業に実際に見つかった弱点`,
           evidence: vpn.flatMap((c) => c.evidence),
           ipaCases: ipaVpn,
           sourceJa: IPA_SOURCE_JA,
@@ -360,15 +410,20 @@ function buildFindings(
     });
   }
 
+  const spfDuplicated = mail.spf.evidence.length > 1;
   findings.push(
     mail.spf.present
       ? {
           id: "mail_auth.spf",
           category: "mail_auth",
           severity:
-            mail.spf.allMechanism === "+all" || mail.spf.allMechanism === "?all" ? "warn" : "ok",
-          titleJa: "SPF が設定されている",
-          detailJa: `送信元として許可するサーバが宣言されている（${mail.spf.allMechanism ?? "all なし"}）。include: ${mail.spf.includes.join(", ") || "なし"}`,
+            spfDuplicated || mail.spf.allMechanism === "+all" || mail.spf.allMechanism === "?all"
+              ? "warn"
+              : "ok",
+          titleJa: spfDuplicated
+            ? `SPF のレコードが ${mail.spf.evidence.length} 件ある（受信側で無効と扱われる）`
+            : "SPF が設定されている",
+          detailJa: `送信元として許可するサーバが宣言されている（${mail.spf.allMechanism ?? "all なし"}）。include: ${mail.spf.includes.join(", ") || "なし"}${spfDuplicated ? "。v=spf1 の TXT は 1 件だけにする必要がある" : ""}`,
           evidence: mail.spf.evidence,
           ipaCases: [...IPA_VULN_CASES.mailAuth],
         }
@@ -382,17 +437,23 @@ function buildFindings(
           ipaCases: [...IPA_VULN_CASES.mailAuth],
         },
   );
+  const dmarcDuplicated = mail.dmarc.evidence.length > 1;
   findings.push(
     mail.dmarc.present
       ? {
           id: "mail_auth.dmarc",
           category: "mail_auth",
-          severity: mail.dmarc.policy === "none" || !mail.dmarc.policy ? "warn" : "ok",
-          titleJa: `DMARC が設定されている（p=${mail.dmarc.policy ?? "不明"}）`,
+          severity:
+            dmarcDuplicated || mail.dmarc.policy === "none" || !mail.dmarc.policy ? "warn" : "ok",
+          titleJa: dmarcDuplicated
+            ? `DMARC のレコードが ${mail.dmarc.evidence.length} 件ある（受信側で無効と扱われる）`
+            : `DMARC が設定されている（p=${mail.dmarc.policy ?? "不明"}）`,
           detailJa:
             mail.dmarc.policy === "none"
               ? "監視のみの設定。なりすましメールは受信側で隔離・拒否されない"
-              : "認証に失敗したメールの扱い（隔離・拒否）が宣言されている",
+              : !mail.dmarc.policy
+                ? "p= の指定が読み取れない（必須のタグ）。受信側で無効と扱われるおそれ"
+                : "認証に失敗したメールの扱い（隔離・拒否）が宣言されている",
           evidence: mail.dmarc.evidence,
           ipaCases: [...IPA_VULN_CASES.mailAuth],
         }
@@ -451,10 +512,21 @@ function buildFindings(
 // ---------------------------------------------------------------------------
 export async function recon(domainInput: string, options: ReconOptions): Promise<ReconResult> {
   const domain = normalizeDomain(domainInput);
-  const ownership = assertVerified(domain, options.ownership);
   const now = options.now ?? (() => new Date());
+  const ownership = assertVerified(domain, options.ownership, {
+    now,
+    ...(options.ownershipMaxAgeMs === undefined ? {} : { maxAgeMs: options.ownershipMaxAgeMs }),
+  });
   const resolver = options.resolver ?? defaultResolver();
   const ct = options.ct ?? defaultCtFactory(options.cache);
+  const ctLive = ct instanceof CrtShSource;
+  // fixture（記録）で通した所有確認で、実際の DNS や crt.sh に問い合わせることは許さない
+  if (ownership.source === "fixture" && (isLiveResolver(resolver) || ctLive)) {
+    throw new OwnershipNotVerifiedError(
+      domain,
+      "記録（fixture）による所有確認では、実際の DNS・証明書ログを参照しない",
+    );
+  }
   const notes: string[] = [];
   const checkedAt = now().toISOString();
 
@@ -474,6 +546,11 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
   let looked = 0;
   for (const entry of hostMap.values()) {
     if (entry.wildcard) continue;
+    // 証明書の名前は第三者が書けるデータ。ホスト名として正しいものだけを DNS に問い合わせる
+    if (!isLookupSafeName(entry.name)) {
+      notes.push(`証明書にホスト名として扱えない名前があり、名前解決を省いた: ${entry.name}`);
+      continue;
+    }
     if (looked >= limit) {
       notes.push(`ホスト名が ${hostMap.size} 件あり、名前解決の確認は ${limit} 件で打ち切った`);
       break;
@@ -512,6 +589,7 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
       hostname: entry.name,
       kind: hit.pattern.kind,
       pattern: hit.pattern.name,
+      current: entry.resolves === true || entry.activeCertCount > 0,
       reasonJa: `ホスト名の「${hit.label}」が${hit.pattern.labelJa}に当たる${entry.resolves ? "。DNS で名前も解決できる" : entry.resolves === false ? "。DNS には名前がない（証明書の記録だけ）" : ""}`,
       evidence,
       ipaCases: [
@@ -540,12 +618,8 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
     domain,
     checkedAt,
     sources: {
-      dns: ownership.source,
-      ct: ctAvailable
-        ? options.ct && !(options.ct instanceof CrtShSource)
-          ? "fixture"
-          : "live"
-        : "unavailable",
+      dns: sourceOf(resolver),
+      ct: ctAvailable ? (ctLive ? "live" : "fixture") : "unavailable",
     },
     ownership,
     hostnames,

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { fixtureSources, loadDemoFixture } from "./fixture.ts";
+import { reconToAnswers, reconToAssetHints } from "./answers.ts";
+import { fixtureSources, loadDemoFixture, ReconFixture } from "./fixture.ts";
 import { verifyOwnership } from "./ownership.ts";
 import { guessMailProvider, parseDmarc, parseSpf, recon } from "./recon.ts";
-import type { CtLogSource } from "./sources.ts";
+import type { CtLogSource, DnsResolver } from "./sources.ts";
 import { ReconResult } from "./types.ts";
 
 const fixture = loadDemoFixture();
@@ -177,5 +178,203 @@ describe("MX からの提供元の推定", () => {
     ]);
     expect(guess.name).toBe("Proofpoint");
     expect(guess.kind).toBe("unknown");
+  });
+});
+
+describe("推定の境界（fixture を組み替えて確かめる）", () => {
+  const base = loadDemoFixture();
+  async function runWith(fx: ReconFixture) {
+    const sources = fixtureSources(fx);
+    const check = await verifyOwnership(fx.domain, fx.verificationToken ?? "", {
+      resolver: sources.resolver,
+    });
+    if (!check.ok) throw new Error(check.reasonJa);
+    return recon(fx.domain, { ownership: check.verified, ...sources, now });
+  }
+
+  it("証明書が期限切れで DNS にも無い VPN 用の名前は「過去の痕跡」（current: false）で、推定やカルテの初期値には使わない", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      ct: [
+        {
+          issuer: "C=US, O=Old CA",
+          names: ["remote.demo-seiko.example"],
+          notBefore: "2019-01-01T00:00:00Z",
+          notAfter: "2020-01-01T00:00:00Z",
+        },
+      ],
+    });
+    const result = await runWith(fx);
+    expect(result.remoteAccessCandidates).toHaveLength(1);
+    expect(result.remoteAccessCandidates[0]).toMatchObject({
+      hostname: "remote.demo-seiko.example",
+      current: false,
+    });
+    const finding = result.findings.find((f) => f.id === "remote_access.vpn");
+    expect(finding?.severity).toBe("info");
+    expect(finding?.titleJa).toContain("過去に");
+    expect(reconToAnswers(result).answers.remoteAccess).toBeUndefined();
+    expect(reconToAssetHints(result).some((h) => h.role === "entry.vpn")).toBe(false);
+    // 把握していない資産の手がかりとして hostnames.ct に載る
+    expect(result.findings.find((f) => f.id === "hostnames.ct")?.detailJa).toContain(
+      "remote.demo-seiko.example",
+    );
+  });
+
+  it("今も DNS で解決できる VPN 用の名前は current: true で warn", async () => {
+    const result = await run();
+    expect(result.remoteAccessCandidates[0]?.current).toBe(true);
+    expect(result.findings.find((f) => f.id === "remote_access.vpn")?.severity).toBe("warn");
+  });
+
+  it("証明書が期限切れのまま DNS に残る名前は、IPA 事例 16 を添えて warn", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      dns: { ...base.dns, "shop.demo-seiko.example": { A: ["203.0.113.90"] } },
+      ct: [
+        ...base.ct,
+        {
+          issuer: "C=US, O=Let's Encrypt, CN=R3",
+          names: ["shop.demo-seiko.example"],
+          notBefore: "2024-01-01T00:00:00Z",
+          notAfter: "2024-03-31T23:59:59Z",
+        },
+      ],
+    });
+    const result = await runWith(fx);
+    const f = result.findings.find((x) => x.id === "certificates.expired");
+    expect(f).toMatchObject({ severity: "warn", ipaCases: [16] });
+    expect(f?.detailJa).toContain("shop.demo-seiko.example");
+    expect(f?.detailJa).toContain("2024-03-31");
+    // 今も有効な証明書がある www は載らない
+    expect(f?.detailJa).not.toContain("www.demo-seiko.example");
+  });
+
+  it("ワイルドカード証明書の件数を hostnames.ct の説明に添える", async () => {
+    const result = await run();
+    expect(result.findings.find((f) => f.id === "hostnames.ct")?.detailJa).toContain(
+      "ワイルドカード証明書（*.）が 1 件",
+    );
+  });
+
+  it("証明書にホスト名として扱えない名前があれば、DNS に問い合わせずに注記する", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      ct: [
+        ...base.ct,
+        {
+          issuer: "C=US, O=Weird CA",
+          names: ["bad name.demo-seiko.example"],
+          notBefore: "2026-01-01T00:00:00Z",
+          notAfter: "2027-01-01T00:00:00Z",
+        },
+      ],
+    });
+    const calls: string[] = [];
+    const sources = fixtureSources(fx);
+    const r = sources.resolver;
+    const spy: DnsResolver = {
+      resolveTxt: (n) => r.resolveTxt(n),
+      resolveMx: (n) => r.resolveMx(n),
+      resolve6: (n) => r.resolve6(n),
+      resolveCname: (n) => r.resolveCname(n),
+      resolve4: async (name) => {
+        calls.push(name);
+        return r.resolve4(name);
+      },
+    };
+    const check = await verifyOwnership(fx.domain, fx.verificationToken ?? "", { resolver: spy });
+    if (!check.ok) throw new Error(check.reasonJa);
+    const result = await recon(fx.domain, {
+      ownership: check.verified,
+      resolver: spy,
+      ct: sources.ct,
+      now,
+    });
+    expect(calls).not.toContain("bad name.demo-seiko.example");
+    expect(result.notesJa.some((n) => n.includes("bad name.demo-seiko.example"))).toBe(true);
+  });
+
+  it("SPF のレコードが 2 件あれば warn（受信側で無効扱い）", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      dns: {
+        ...base.dns,
+        "demo-seiko.example": {
+          ...base.dns["demo-seiko.example"],
+          TXT: [
+            ...(base.dns["demo-seiko.example"]?.TXT ?? []),
+            "v=spf1 include:_spf.google.com ~all",
+          ],
+        },
+      },
+    });
+    const result = await runWith(fx);
+    const f = result.findings.find((x) => x.id === "mail_auth.spf");
+    expect(f?.severity).toBe("warn");
+    expect(f?.titleJa).toContain("2 件");
+    expect(result.mail.spf.evidence).toHaveLength(2);
+  });
+
+  it("DMARC に p= が無ければ warn、2 件あっても warn", async () => {
+    const one = ReconFixture.parse({
+      ...base,
+      dns: {
+        ...base.dns,
+        "_dmarc.demo-seiko.example": { TXT: ["v=DMARC1; rua=mailto:x@demo-seiko.example"] },
+      },
+    });
+    const r1 = await runWith(one);
+    expect(r1.mail.dmarc.present).toBe(true);
+    expect(r1.mail.dmarc.policy).toBeUndefined();
+    const f1 = r1.findings.find((x) => x.id === "mail_auth.dmarc");
+    expect(f1?.severity).toBe("warn");
+    expect(f1?.detailJa).toContain("p= の指定が読み取れない");
+    const two = ReconFixture.parse({
+      ...base,
+      dns: {
+        ...base.dns,
+        "_dmarc.demo-seiko.example": { TXT: ["v=DMARC1; p=reject", "v=DMARC1; p=none"] },
+      },
+    });
+    const f2 = (await runWith(two)).findings.find((x) => x.id === "mail_auth.dmarc");
+    expect(f2?.severity).toBe("warn");
+    expect(f2?.titleJa).toContain("2 件");
+  });
+
+  it("CNAME の連鎖（www → 自社の cdn → 事業者）を上限つきでたどり、事業者を推定する", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      dns: {
+        ...base.dns,
+        "www.demo-seiko.example": { CNAME: ["cdn.demo-seiko.example"] },
+        "cdn.demo-seiko.example": { CNAME: ["www0000.sakura.ne.jp"] },
+      },
+    });
+    const result = await runWith(fx);
+    expect(result.web.hosting.name).toBe("さくらインターネット");
+    expect(result.web.records.map((r) => r.value)).toEqual(
+      expect.arrayContaining(["cdn.demo-seiko.example", "www0000.sakura.ne.jp"]),
+    );
+  });
+
+  it("ゲートウェイの語でもメール用（mail-gw）は VPN 候補にしない", async () => {
+    const fx = ReconFixture.parse({
+      ...base,
+      dns: { ...base.dns, "mail-gw.demo-seiko.example": { A: ["203.0.113.25"] } },
+      ct: [
+        ...base.ct,
+        {
+          issuer: "C=US, O=Let's Encrypt, CN=R11",
+          names: ["mail-gw.demo-seiko.example"],
+          notBefore: "2026-09-01T00:00:00Z",
+          notAfter: "2026-11-30T23:59:59Z",
+        },
+      ],
+    });
+    const result = await runWith(fx);
+    expect(result.remoteAccessCandidates.map((c) => c.hostname)).toEqual([
+      "vpn.demo-seiko.example",
+    ]);
   });
 });

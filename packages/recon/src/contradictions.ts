@@ -39,7 +39,8 @@ function alive(entry: HostnameEntry): boolean {
 export function findContradictions(result: ReconResult, profile: CompanyProfile): Contradiction[] {
   const out: Contradiction[] = [];
   const byName = new Map(result.hostnames.map((h) => [h.name, h]));
-  const vpnHosts = result.remoteAccessCandidates.filter((c) => c.kind === "vpn");
+  // 今も使われている形跡のある VPN 用ホスト名だけを材料にする（過去の痕跡は矛盾の根拠にしない）
+  const vpnHosts = result.remoteAccessCandidates.filter((c) => c.kind === "vpn" && c.current);
 
   for (const asset of profile.assets) {
     // 1. 廃止済みのホスト名が DNS／CT に残っている
@@ -49,7 +50,7 @@ export function findContradictions(result: ReconResult, profile: CompanyProfile)
         if (entry && alive(entry)) {
           out.push({
             assetId: asset.id,
-            messageJa: `「${asset.label}」はカルテで廃止済みだが、ホスト名 ${name} が外部に残っている`,
+            messageJa: `「${asset.label}」はカルテで廃止済みだが、ホスト名 ${name} が外部に残っている可能性がある`,
             external: describeExternal(entry),
             registered: "廃止済み（attrs.decommissioned = true）",
           });
@@ -64,7 +65,7 @@ export function findContradictions(result: ReconResult, profile: CompanyProfile)
       if (hidden && hidden.evidence !== "external") {
         out.push({
           assetId: asset.id,
-          messageJa: `「${asset.label}」は非公開と登録されているが、VPN 用と推定されるホスト名が公開されている`,
+          messageJa: `「${asset.label}」は非公開と登録されているが、VPN 用と推定されるホスト名が公開されている可能性がある（別の装置の名前である可能性もある）`,
           external: `VPN 用と推定されるホスト名: ${hostList}`,
           registered: `M1042（非公開化）あり（根拠: ${hidden.evidence}）${hidden.noteJa ? `。${hidden.noteJa}` : ""}`,
         });
@@ -73,7 +74,7 @@ export function findContradictions(result: ReconResult, profile: CompanyProfile)
       if (asset.attrs.exposed === false && asset.attrEvidence.exposed !== "external") {
         out.push({
           assetId: asset.id,
-          messageJa: `「${asset.label}」は外部に公開していないと登録されているが、VPN 用と推定されるホスト名が公開されている`,
+          messageJa: `「${asset.label}」は外部に公開していないと登録されているが、VPN 用と推定されるホスト名が公開されている可能性がある（別の装置の名前である可能性もある）`,
           external: `VPN 用と推定されるホスト名: ${hostList}`,
           registered: "attrs.exposed = false",
         });
