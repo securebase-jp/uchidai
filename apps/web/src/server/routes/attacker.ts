@@ -13,7 +13,6 @@ import {
   CompanyProfile,
   type Knowledge,
   loadKnowledge,
-  terminalRoles,
   Verdict,
 } from "@uchidai/engine";
 import {
@@ -35,6 +34,9 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Answers, MeasureIds } from "../../shared/api.ts";
 import { patchProfile } from "../profile-patch.ts";
+
+/** AI攻撃者の目標の役割。到達の判定（validateAiPath）もこの役割だけを終点とする（ホームページで終わる経路を到達にしない） */
+const AI_GOALS: readonly string[] = ["core"];
 
 export const attackerRoutes = new Hono();
 
@@ -62,10 +64,9 @@ function sortPaths(paths: AttackPath[]): AttackPath[] {
 
 function abstracted(profile: CompanyProfile, k: Knowledge): AbstractedProfile {
   const graph = buildGraph(profile, k.roles);
-  const goals = [...terminalRoles(k)].filter((r) => r === "core");
   return abstractProfile(profile, graph, k.roles, {
     labels: k.labels,
-    goals: goals.length > 0 ? goals : ["core"],
+    goals: [...AI_GOALS],
   });
 }
 
@@ -102,7 +103,9 @@ attackerRoutes.post("/recon", async (c) => {
       rules: k.rules,
       extraBannedTerms: profileBannedTerms(profile),
     });
-    const validated = validateCandidates(r.candidates, graph, profile, k);
+    const validated = validateCandidates(r.candidates, graph, profile, k, "ai", {
+      terminalRoles: new Set(AI_GOALS),
+    });
     const log = buildReconLog({
       abstracted: abs,
       attackVersion: k.attack.version,
@@ -141,7 +144,9 @@ attackerRoutes.post("/recon", async (c) => {
   }
   const candidates = z.array(AiPathCandidate).parse(rec.candidates);
   const screened = rec.screened as DiscardedCandidate[];
-  const validated = validateCandidates(candidates, graph, profile, k);
+  const validated = validateCandidates(candidates, graph, profile, k, "ai", {
+    terminalRoles: new Set(AI_GOALS),
+  });
   const log = buildReconLog({
     abstracted: abs,
     attackVersion: k.attack.version,
@@ -175,7 +180,9 @@ attackerRoutes.post("/validate", async (c) => {
   const k = loadKnowledge();
   const profile = patchedProfile(body, k);
   const graph = buildGraph(profile, k.roles);
-  const validated = validateCandidates(body.candidates, graph, profile, k);
+  const validated = validateCandidates(body.candidates, graph, profile, k, "ai", {
+    terminalRoles: new Set(AI_GOALS),
+  });
   return c.json({ paths: sortPaths(validated.paths), discarded: validated.discarded });
 });
 

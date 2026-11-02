@@ -6,7 +6,7 @@ import { evaluate, matchCaseSteps, rankTemplates, UNMAPPED_HEADLINE } from "./ev
 import { buildGraph, profileFromAnswers } from "./graph.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
 import { applyAnswer, applyMeasures, pendingControls } from "./measures.ts";
-import type { Case, CaseStep, CompanyProfile } from "./types.ts";
+import type { Case, CaseStep, CompanyProfile, ProfileAnswers } from "./types.ts";
 
 let knowledge: Knowledge;
 let demo: CompanyProfile;
@@ -687,5 +687,86 @@ describe("ransomware の持ち出しの枝（二重恐喝）と VPN の認証情
     expect(updated.paths.find((p) => p.steps[0]?.nodeId === "vpn")?.steps[0]?.state).toBe(
       "breached",
     );
+  });
+});
+
+describe("枝の段階と結論、AI 経路の到達と廃止済み資産（A4 監査）", () => {
+  const nihonkai: Case = {
+    ...case1,
+    title: "リークサイトに取引情報",
+    steps: [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+      { tactic: "TA0010", techniques: ["T1567"], source: "stated", quote: "リークサイトで公開" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ],
+  };
+  const answers: ProfileAnswers = {
+    industry: "manufacturing",
+    site: "factory",
+    hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+    remoteAccess: ["vpn"],
+    backup: "unknown",
+  };
+  it("本線が全部未確認なら、枝（持ち出し）だけが赤でも結論は「確認中」のまま（枝は結論の材料にしない）", () => {
+    let p = profileFromAnswers(answers, knowledge.patterns);
+    p = setControl(p, "server", "M1057", "absent");
+    p = setControl(p, "server", "M1031", "absent");
+    const v = evaluate(nihonkai, p, { knowledge });
+    const exfil = v.paths[0]?.steps.find((s) => s.stageId === "exfil");
+    expect(exfil).toMatchObject({ state: "breached", branch: true });
+    expect(v.paths[0]?.steps.filter((s) => s.branch).map((s) => s.stageId)).toEqual(["exfil"]);
+    expect(v.result).toBe("pending");
+  });
+  it("AI 経路は廃止済みの資産を通れない", () => {
+    const graph = buildGraph(demo, knowledge.roles);
+    const r = validateAiPath(
+      {
+        steps: [
+          { role: "entry.web", technique: "T1190", reasonJa: "旧サイトから" },
+          { role: "entry.web", technique: "T1056.003", reasonJa: "改ざん" },
+        ],
+      },
+      graph,
+      demo,
+      knowledge,
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reasons.join("\n")).toContain("廃止済み");
+  });
+  it("AI 経路の到達は terminalRoles で絞れる（目標が中核なら、ホームページで終わる経路は到達にしない）", () => {
+    const withWeb = setControl(
+      {
+        ...demo,
+        assets: [
+          ...demo.assets,
+          {
+            id: "www",
+            kind: "system" as const,
+            role: "entry.web",
+            label: "公開ホームページ",
+            side: "internal" as const,
+            controls: [],
+            attrs: {},
+            attrEvidence: {},
+          },
+        ],
+      },
+      "www",
+      "M1051",
+      "absent",
+    );
+    const graph = buildGraph(withWeb, knowledge.roles);
+    const candidate = {
+      steps: [
+        { role: "entry.web", technique: "T1190", reasonJa: "脆弱性" },
+        { role: "entry.web", technique: "T1056.003", reasonJa: "改ざん" },
+      ],
+    };
+    const all = validateAiPath(candidate, graph, withWeb, knowledge);
+    expect(all.ok && all.path.reachedCore).toBe(true);
+    const coreOnly = validateAiPath(candidate, graph, withWeb, knowledge, "ai", {
+      terminalRoles: new Set(["core"]),
+    });
+    expect(coreOnly.ok && coreOnly.path.reachedCore).toBe(false);
   });
 });

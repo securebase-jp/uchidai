@@ -15,6 +15,7 @@ const profile = {
   assets: [
     { id: "admin", role: "admin", label: "管理者アカウント" },
     { id: "vpn", role: "entry.vpn", label: "VPN装置" },
+    { id: "web", role: "entry.web", label: "公開ホームページ" },
   ],
 };
 
@@ -70,6 +71,14 @@ describe("POST /api/requests", () => {
     const list = await loose(app.request("/api/requests"));
     expect(list.items).toHaveLength(1);
     expect(list.items[0].id).toBe(request.id);
+  });
+  it("質問は資産の役割ごとの文言で作る（ホームページの M1047 は改ざん検知、共有設定の見直しではない）", async () => {
+    const { post } = build();
+    const res = await post("/api/requests", { profile, assetId: "web", mitigation: "M1047" });
+    expect(res.status).toBe(201);
+    const { request } = await loose(res);
+    expect(request.text).toContain("改ざん");
+    expect(request.text).not.toContain("共有設定");
   });
   it("無い資産・質問の無い緩和策・形式違いはそれぞれ 404 / 404 / 400", async () => {
     const { post } = build();
