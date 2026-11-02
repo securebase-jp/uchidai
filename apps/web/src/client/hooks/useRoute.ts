@@ -1,22 +1,24 @@
 /** ハッシュによる画面の切り替え：#/ #/questions #/staff #/exec #/answer/:token */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export type Route = "home" | "questions" | "staff" | "exec" | "answer";
 
-function parse(): Route {
-  const h = location.hash.replace(/^#\/?/, "").split("?")[0];
+function parse(hash: string): Route {
+  const h = hash.replace(/^#\/?/, "").split("?")[0];
   if (h?.startsWith("answer/")) return "answer";
   if (h === "questions" || h === "staff" || h === "exec") return h;
   return "home";
 }
 
 export function useRoute(): [Route, (r: Route) => void] {
-  const [route, setRoute] = useState<Route>(parse);
+  // ハッシュ全体を状態に持つ（#/answer/A → #/answer/B のように route が同じでも再描画する）
+  const [hash, setHash] = useState(() => location.hash);
   useEffect(() => {
-    const on = () => setRoute(parse());
+    const on = () => setHash(location.hash);
     addEventListener("hashchange", on);
     return () => removeEventListener("hashchange", on);
   }, []);
+  const route = useMemo(() => parse(hash), [hash]);
   return [route, (r) => (location.hash = r === "home" ? "/" : `/${r}`)];
 }
 

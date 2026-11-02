@@ -12,7 +12,10 @@ function Shell() {
   const [route] = useRoute();
   const settings = useSettings();
   const app = useApp();
-  if (route === "answer") return <Answer token={answerToken() ?? ""} />;
+  if (route === "answer") {
+    const token = answerToken() ?? "";
+    return <Answer key={token} token={token} />;
+  }
   return (
     <div className="wrap">
       <TopBar
