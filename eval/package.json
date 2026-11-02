@@ -1,0 +1,20 @@
+{
+  "name": "@uchidai/eval",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "専門家の正解データに対する読解・判定の一致度を採点する",
+  "scripts": {
+    "eval": "node --disable-warning=ExperimentalWarning src/run.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "yaml": "^2.8.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "vitest": "^3.2.0"
+  }
+}

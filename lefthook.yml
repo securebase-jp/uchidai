@@ -1,0 +1,5 @@
+# コミット前に秘密情報を検出する（gitleaks）
+pre-commit:
+  commands:
+    gitleaks:
+      run: gitleaks git --pre-commit --staged --no-banner --redact

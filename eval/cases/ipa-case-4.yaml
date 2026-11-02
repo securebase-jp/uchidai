@@ -1,0 +1,23 @@
+id: ipa-case-4
+title: 被害事例4：取引先を装うメール（読解の検証用）
+status: draft
+source:
+  citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
+  url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  summary: >-
+    取引先を装ったメールから始まる事例。被害の型（なりすまし送金かマルウェア感染か）と手法IDは開発者が本文を確認して確定する。
+expected:
+  damageType: bec
+  clarity: partial
+  usedInDemo: false
+  steps:
+    - label: 取引先を装うメール
+      tactic: TA0001
+      techniques: [T1566.001, T1566.002, T1566]
+      source: stated
+      quoteHint: メール
+    - label: 取引先へのなりすまし
+      tactic: TA0005
+      techniques: [T1656]
+      source: stated
+      quoteHint: 装

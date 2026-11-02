@@ -1,0 +1,22 @@
+id: ipa-case-3
+title: 被害事例3：Webサイト改ざん（読解の検証用）
+status: draft
+source:
+  citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
+  url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  summary: >-
+    自社のWebサイトが改ざんされた事例。入口（CMSの脆弱性か管理アカウントか）と手法IDは開発者が本文を確認して確定する。
+expected:
+  damageType: out_of_scope
+  clarity: partial
+  usedInDemo: false
+  steps:
+    - label: Webサイトへの侵入（入口は要確認）
+      tactic: TA0001
+      techniques: [T1190, T1078]
+      source: inferred
+    - label: 改ざん
+      tactic: TA0040
+      techniques: [T1491.002, T1491]
+      source: stated
+      quoteHint: 改ざん

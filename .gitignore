@@ -1,0 +1,27 @@
+# 秘密情報（最初のコミットから）
+.env
+.env.*
+!.env.example
+
+# 依存と生成物
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# 評価用のキャッシュ（記事本文はリポジトリに入れない）
+eval/.cache/
+
+# OS・エディタ
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# ローカルの Claude Code 設定
+.claude/settings.local.json
+.claude/.cc-writes/
+
+# サンドボックス内で pnpm がプロジェクト内に作るストア
+.pnpm-store/

@@ -1,0 +1,20 @@
+id: ipa-case-2
+title: 被害事例2：クラウド設定ミスによる情報漏えい
+status: draft
+source:
+  citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
+  url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  summary: >-
+    情報通信業（100名）。クラウドストレージの共有設定の誤りで顧客リストが誰でも閲覧できる状態になり、
+    流出が判明して一部の取引が停止した。侵入ではなく設定ミスが入口。
+expected:
+  damageType: data_breach
+  clarity: clear
+  usedInDemo: true
+  verdict: blocked
+  steps:
+    - label: 公開状態のクラウドストレージから取得される
+      tactic: TA0009
+      techniques: [T1530]
+      source: stated
+      quoteHint: 設定

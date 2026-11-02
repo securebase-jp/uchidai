@@ -1,0 +1,25 @@
+{
+  "name": "uchidai",
+  "private": true,
+  "version": "0.0.0",
+  "description": "ウチダイ：「うちの会社は大丈夫？」に根拠つきで答える道具",
+  "license": "MIT",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "eval": "pnpm --filter @uchidai/eval run eval",
+    "test": "pnpm -r --if-present run test",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "secrets": "gitleaks git --no-banner",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "lefthook": "^1.12.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,39 @@
+# 正解データ（叩き台）。手法IDと区別は開発者が確定する。本文は含めない
+id: ipa-case-1
+title: 被害事例1：VPN装置の脆弱性悪用によるランサムウェア感染
+status: draft
+source:
+  citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
+  url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  summary: >-
+    製造業（80名、兼務情シス2名）。更新されていないVPN装置の脆弱性から侵入され、
+    社内のサーバとクラウド同期していたバックアップまで暗号化された。想定被害額4,600万円。
+expected:
+  damageType: ransomware
+  clarity: partial
+  usedInDemo: true
+  verdict: breached
+  steps:
+    - label: VPN装置から侵入
+      tactic: TA0001
+      techniques: [T1190]
+      source: stated
+      quoteHint: VPN
+    - label: 管理者権限を奪う
+      tactic: TA0006
+      techniques: [T1003, T1078]
+      source: inferred
+    - label: サーバへ広がる
+      tactic: TA0008
+      techniques: [T1021]
+      source: inferred
+    - label: バックアップを消す・暗号化する
+      tactic: TA0040
+      techniques: [T1490]
+      source: stated
+      quoteHint: バックアップ
+    - label: 暗号化・業務停止
+      tactic: TA0040
+      techniques: [T1486]
+      source: stated
+      quoteHint: 暗号化

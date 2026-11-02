@@ -1,0 +1,15 @@
+{
+  "caseId": "ipa-case-1",
+  "mode": "with-knowledge",
+  "model": "placeholder",
+  "recordedAt": "2026-11-02T05:30:00.000Z",
+  "note": "評価の仕組みの骨組みを確認するための仮の記録。読解を実装したら実際の応答で置き換える。記事の本文と根拠文は含めない",
+  "output": {
+    "damageType": "ransomware",
+    "clarity": "partial",
+    "steps": [
+      { "tactic": "TA0001", "techniques": ["T1190"], "source": "stated" },
+      { "tactic": "TA0040", "techniques": ["T1486"], "source": "stated" }
+    ]
+  }
+}
