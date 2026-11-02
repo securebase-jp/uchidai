@@ -1,21 +1,32 @@
 # 入口が不明なときに展開する入口の候補と並び順
-# 並び順の根拠：警察庁「令和7年上半期におけるサイバー空間をめぐる脅威の情勢等について」のランサムウェアの感染経路
-# （VPN機器からの侵入が最多、次いでリモートデスクトップ）。割合の数値は最新版の確認後に記入する（要確認）
-sourceJa: 警察庁「サイバー空間をめぐる脅威の情勢等について」（最新版の数値は要確認）
+# 並び順の根拠：警察庁の最新版統計（ランサムウェア被害企業・団体等へのアンケート、感染経路）の件数の多い順。
+# 警察庁の区分にない候補（公開 Web サイト、保守ベンダーの遠隔接続）は「その他」に含まれると考えられるが、
+# 個別の件数は公表されていないため末尾に置く（要確認）。
+sourceJa: 警察庁サイバー警察局「令和7年におけるサイバー空間をめぐる脅威の情勢等について」（令和8年3月）統計編「ランサムウェア感染経路」p.124
 sourceUrl: https://www.npa.go.jp/publications/statistics/cybersecurity/
+# 2026-11-02 に PDF の図表から転記。読んだ PDF は奈良県警サイトの掲載分。警察庁サイトの掲載 URL は公開ページから辿って確認すること（要確認）
+mirrorUrl: https://www.police.pref.nara.jp/cmsfiles/contents/0000003/3629/R07_cyber_jousei.pdf
+surveyJa: ランサムウェア被害にあった企業・団体等へのアンケート調査（令和7年、有効回答 92 件）
+# 参考：過去5年（有効回答 485 件）：VPN機器 293、リモートデスクトップ 105、不審メールやその添付ファイル 24、その他 63
+fiveYear: { total: 485, vpn: 293, rdp: 105, mail: 24, other: 63 }
 candidates:
   - role: entry.vpn
     labelJa: VPN機器
     technique: T1190
+    stat: { categoryJa: VPN機器, count: 61, total: 92 }
   - role: entry.rdp
     labelJa: リモートデスクトップ
     technique: T1133
+    stat: { categoryJa: リモートデスクトップ, count: 19, total: 92 }
   - role: pc
     labelJa: フィッシングメール
     technique: T1566
+    stat: { categoryJa: 不審メールやその添付ファイル, count: 2, total: 92 }
   - role: entry.web
     labelJa: 公開Webサイト
     technique: T1190
+    noteJa: 警察庁の区分では「その他」（10 件）に含まれると考えられるが、個別の件数は公表されていない（要確認）
   - role: entry.vendor_remote
     labelJa: 保守ベンダーの遠隔接続
     technique: T1133
+    noteJa: 警察庁の区分では「その他」（10 件）に含まれると考えられるが、個別の件数は公表されていない（要確認）

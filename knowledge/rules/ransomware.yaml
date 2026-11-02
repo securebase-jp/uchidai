@@ -137,12 +137,14 @@ rules:
       - state: recoverable
         when:
           all:
+            - control: { mitigation: M1053, status: present }
             - attr: { key: isolated, equals: true }
             - attr: { key: restoreTested, equals: true }
         reasonJa: 切り離した保管先があり、復旧テスト済み
       - state: unknown
         when:
           all:
+            - not: { control: { mitigation: M1053, status: absent } }
             - attr: { key: isolated, equals: true }
             - not: { attr: { key: restoreTested, equals: true } }
         reasonJa: 切り離した保管先はあるが、復旧テストが未実施

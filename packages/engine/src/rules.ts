@@ -34,15 +34,18 @@ export function resolveControl(
   mitigation: MitigationId,
   contradictions?: Contradiction[],
 ): ResolvedControl | undefined {
-  const entries = asset.controls.filter((c) => c.mitigation === mitigation);
-  if (entries.length === 0) return undefined;
+  const all = asset.controls.filter((c) => c.mitigation === mitigation);
+  if (all.length === 0) return undefined;
+  // 未確認の記録は、確定した記録があればそちらを採る（未確認と確定の組み合わせは矛盾ではない）
+  const known = all.filter((c) => c.status !== "unknown");
+  const entries = known.length > 0 ? known : all;
   const sorted = [...entries].sort((a, b) => EVIDENCE_RANK[b.evidence] - EVIDENCE_RANK[a.evidence]);
   const top = sorted[0];
   if (!top) return undefined;
   const disagree = sorted.find((c) => c.status !== top.status);
   let result: ResolvedControl = {
     status: top.status,
-    evidence: top.evidence,
+    evidence: top.status === "unknown" ? "none" : top.evidence,
     ...(top.noteJa ? { note: top.noteJa } : {}),
   };
   if (disagree) {
@@ -50,7 +53,7 @@ export function resolveControl(
       (w, c) => (STATUS_RANK[c.status] < STATUS_RANK[w.status] ? c : w),
       top,
     );
-    contradictions?.push({
+    pushContradiction(contradictions, {
       assetId: asset.id,
       messageJa: `${asset.label} の ${mitigation}：${evidenceLabel(top.evidence)}では「${statusLabel(top.status)}」、${evidenceLabel(disagree.evidence)}では「${statusLabel(disagree.status)}」。悪い方で判定します`,
       external: `${evidenceLabel(top.evidence)}：${statusLabel(top.status)}`,
@@ -64,7 +67,7 @@ export function resolveControl(
     asset.attrs.exposed === true &&
     asset.attrEvidence.exposed === "external"
   ) {
-    contradictions?.push({
+    pushContradiction(contradictions, {
       assetId: asset.id,
       messageJa: `${asset.label} は「非公開」と登録されていますが、外部確認では公開されています。公開ありとして判定します`,
       external: "外部確認：公開あり",
@@ -73,6 +76,13 @@ export function resolveControl(
     result = { status: "absent", evidence: "external" };
   }
   return result;
+}
+
+/** 同じ矛盾を二重に積まない（条件式の評価は同じ緩和策を何度も参照する） */
+function pushContradiction(list: Contradiction[] | undefined, c: Contradiction): void {
+  if (!list) return;
+  if (list.some((x) => x.assetId === c.assetId && x.messageJa === c.messageJa)) return;
+  list.push(c);
 }
 
 export function statusLabel(s: Control["status"]): string {
@@ -145,6 +155,8 @@ export function evaluateCondition(
   return false;
 }
 
+const STOPPING_STATES: ReadonlySet<StepState> = new Set(["blocked", "recoverable", "human"]);
+
 export type RuleResult = {
   state: StepState;
   evidence: EvidenceKind;
@@ -170,6 +182,8 @@ export function evaluateRule(
     const trace: Trace = { evidence: "none" };
     if (outcome.when && !evaluateCondition(outcome.when, asset, trace, contradictions)) continue;
     let evidence = trace.evidence;
+    let state = outcome.state;
+    let reasonJa = outcome.reasonJa;
     if (!outcome.when) {
       // 既定の結果：ルールの緩和策のうち状態が分かっているものの根拠を採る
       for (const m of rule.mitigations) {
@@ -177,12 +191,18 @@ export function evaluateRule(
         if (r && r.status !== "unknown") evidence = strongerEvidence(evidence, r.evidence);
       }
     }
-    if (outcome.state === "unknown") evidence = "none";
+    // 止まる・復旧できる・人次第は、確定した対策や属性の根拠があるときだけ。
+    // 未確認の項目だけで止まる扱いにはしない（ルールの書き方にかかわらず評価関数が保証する）
+    if (STOPPING_STATES.has(state) && (!outcome.when || evidence === "none")) {
+      state = "unknown";
+      reasonJa = `${reasonJa}（根拠となる対策が未確認のため、止まる扱いにはしません）`;
+    }
+    if (state === "unknown") evidence = "none";
     return {
-      state: outcome.state,
+      state,
       evidence,
       ruleId: rule.id,
-      reasonJa: outcome.reasonJa,
+      reasonJa,
       mitigations: rule.mitigations,
       ineffective,
     };

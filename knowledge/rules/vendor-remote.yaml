@@ -14,11 +14,14 @@ rules:
                 - control: { mitigation: UD-02, status: present }
                 - control: { mitigation: M1035, status: present }
         reasonJa: 多要素認証があり、必要なときだけ接続を有効にする、または接続元を限定している
-      - state: unknown
-        when:
-          any:
-            - control: { mitigation: M1032, status: unknown }
-            - control: { mitigation: UD-02, status: unknown }
-        reasonJa: 保守接続の認証方式や運用が未確認
       - state: breached
-        reasonJa: 常時接続で、ベンダー共通のパスワードだけで入れる
+        when: { control: { mitigation: M1032, status: absent } }
+        reasonJa: 保守ツールのログインがパスワードだけで、漏れればそのまま入れる
+      - state: breached
+        when:
+          all:
+            - control: { mitigation: UD-02, status: absent }
+            - control: { mitigation: M1035, status: absent }
+        reasonJa: 常時接続で接続元の限定もなく、保守ツール経由で入れる
+      - state: unknown
+        reasonJa: 保守接続の認証方式や運用が未確認

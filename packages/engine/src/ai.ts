@@ -38,6 +38,18 @@ export type AiPathValidation =
   | { ok: true; path: AttackPath; contradictions: Contradiction[] }
   | { ok: false; reasons: string[] };
 
+/** 型紙がその役割の典型手法として挙げる手法 */
+export function typicalTechniques(knowledge: Knowledge, role: string): Set<string> {
+  const out = new Set<string>();
+  for (const t of knowledge.templates)
+    for (const s of t.stages) {
+      const tech = s.byRole[role];
+      if (tech) out.add(tech);
+      if (role in s.byRole) for (const a of s.accepts) out.add(a);
+    }
+  return out;
+}
+
 export function terminalRoles(knowledge: Knowledge): Set<string> {
   return new Set(
     knowledge.templates.flatMap((t) =>
@@ -80,7 +92,15 @@ export function validateAiPath(
     }
     if (!adjacent(graph, prevId, node.id))
       reasons.push(`段階 ${i + 1}: ${prevId} と ${node.id} の間に通信のつながりがない`);
-    const rule = findRule(knowledge.rules, node.role, technique);
+    // (d) 役割の既定ルール（手法を問わない「到達」）は、型紙がその役割の典型手法として挙げる手法にだけ使う
+    const found = findRule(knowledge.rules, node.role, technique);
+    const rule =
+      found &&
+      found.techniques.length === 0 &&
+      technique &&
+      !typicalTechniques(knowledge, node.role).has(technique)
+        ? undefined
+        : found;
     if (!rule)
       reasons.push(
         `段階 ${i + 1}: 役割 ${s.role} と手法 ${s.technique} を評価する判定ルールがない`,
