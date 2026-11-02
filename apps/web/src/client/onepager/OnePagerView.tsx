@@ -109,8 +109,10 @@ export function OnePagerView({ data, measureLabel }: Props) {
   const appliedNames = data.appliedJa;
   // 印刷の各ページの上下に出す走り見出し（紙では thead / tfoot がページごとに繰り返される。画面では出さない）
   const asOf = `${generatedAtJa(generatedAt, true)} 時点の判定${data.fromShare ? "（共有リンク）" : ""}`;
-  // 2 枚目の先頭：金額の節（無ければ期限の節）。1 枚目は結論・何が起きるか・止まる業務
+  // 2 枚目の先頭：金額の節（無ければ期限の節）。1 枚目は結論・何が起きるか（経路図）・止まる業務。
+  // 経路図の無い一枚（共有リンク）は 1 枚目が短いので改ページを固定せず、節の途中で切れない範囲で続けて流す
   const hasMoney = op.revenueImpactJpy !== undefined || op.moneyLossJpy !== undefined;
+  const pageBreak = (first: boolean) => (diagram && first ? " op-pb" : "");
 
   return (
     <table className="op-sheet" role="presentation">
@@ -212,7 +214,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
               </section>
 
               {(op.revenueImpactJpy !== undefined || op.moneyLossJpy !== undefined) && (
-                <section className="op-sec op-money op-pb">
+                <section className={`op-sec op-money${pageBreak(true)}`}>
                   <div className="op-num">04</div>
                   <h2 className="op-h">お金への影響の目安</h2>
                   <div className="op-figures">
@@ -236,7 +238,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                 </section>
               )}
 
-              <section className={`op-sec op-deadlines${hasMoney ? "" : " op-pb"}`}>
+              <section className={`op-sec op-deadlines${pageBreak(!hasMoney)}`}>
                 <div className="op-num">05</div>
                 <h2 className="op-h">期限（起きた日を 0 日目として）</h2>
                 {deadlines.length === 0 ? (
