@@ -2,90 +2,71 @@
   "caseId": "ipa-case-2",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:23:34.835Z",
-  "note": "ATT&CK の手法一覧と日本語ラベルを渡して読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
+  "recordedAt": "2026-11-02T06:32:35.868Z",
+  "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "クラウドストレージの設定ミスで顧客リストが外部からダウンロードされた情報漏えい",
+    "title": "クラウドストレージの設定ミスによる顧客リストの情報漏えい",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
-      {
-        "tactic": "TA0001",
-        "techniques": [
-          "T1190"
-        ],
-        "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "アクセス権限の誤設定でインターネットから誰でも見られる状態になったクラウドストレージに、外部から到達された"
-      },
       {
         "tactic": "TA0009",
         "techniques": [
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "公開状態のクラウドストレージから顧客リスト等のデータが取得された"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "誰でも閲覧できる状態だったクラウドストレージから、外部の者が顧客リスト等をダウンロードした"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567.002",
-          "T1537"
+          "T1530"
         ],
         "source": "inferred",
-        "summaryJa": "取得されたデータが攻撃者側の手元に持ち出された"
+        "summaryJa": "ダウンロードされた顧客リストや取引条件などの個人情報・取引情報が外部に漏えいした"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "クラウドストレージの設定ミスで顧客リストが外部からダウンロードされた情報漏えい",
+    "title": "クラウドストレージの設定ミスによる顧客リストの情報漏えい",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
-      {
-        "tactic": "TA0001",
-        "techniques": [
-          "T1190"
-        ],
-        "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "アクセス権限の誤設定でインターネットから誰でも見られる状態になったクラウドストレージに、外部から到達された"
-      },
       {
         "tactic": "TA0009",
         "techniques": [
           "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "公開状態のクラウドストレージから顧客リスト等のデータが取得された"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "誰でも閲覧できる状態だったクラウドストレージから、外部の者が顧客リスト等をダウンロードした"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567.002",
-          "T1537"
+          "T1530"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "取得されたデータが攻撃者側の手元に持ち出された"
+        "summaryJa": "ダウンロードされた顧客リストや取引条件などの個人情報・取引情報が外部に漏えいした"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
-    "stepsIn": 3,
-    "stepsOut": 3,
-    "techniquesIn": 4,
-    "techniquesOut": 4,
-    "quotesIn": 2,
-    "quotesOut": 2,
+    "stepsIn": 2,
+    "stepsOut": 2,
+    "techniquesIn": 2,
+    "techniquesOut": 2,
+    "quotesIn": 1,
+    "quotesOut": 1,
     "replaced": [],
     "droppedTechniques": [],
     "droppedQuotes": 0,
     "suspiciousInstructions": 0
-  }
+  },
+  "verdict": "blocked"
 }

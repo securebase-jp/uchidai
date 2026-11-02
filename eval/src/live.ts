@@ -3,12 +3,23 @@
  * - 記事の原文は eval/.cache/<caseId>.txt に置く（git 管理外）。無ければ source.url（PDF なら source.pages）から取り込む
  * - 知見あり（with-knowledge）と知見なし（without-knowledge）の 2 モードで読む
  * - どちらも verifyCase を通した結果を output に、検証前の生の出力を raw に残す
+ *   （知見ありでは、読み取った被害の型の型紙にない手法を破棄する。知見なしは ID の実在確認だけ）
+ * - デモ用架空企業（examples/demo-seiko.json）に当てはめた判定（evaluate）の結論を verdict に残す
  * - 知見なしの Claude による対策一覧は eval/recordings/mitigations/<caseId>.json に残す（採点対象外）
  * - リクエストヘッダや API キーは一切保存しない
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import type { AttackData } from "@uchidai/engine";
+import {
+  type AttackData,
+  type CompanyProfile,
+  evaluate,
+  loadAttack,
+  loadLabels,
+  loadProfile,
+  loadTemplates,
+  repoRoot,
+} from "@uchidai/engine";
 import {
   downloadBytes,
   fetchArticle,
@@ -16,10 +27,9 @@ import {
   type ReadKnowledge,
   readCase,
   readCaseWithoutKnowledge,
+  templateTechniques,
   verifyCase,
 } from "@uchidai/llm";
-// TODO(S0): engine の index から knowledge.ts が export されたら "@uchidai/engine" からの import に戻す
-import { loadAttack, loadLabels } from "../../packages/engine/src/knowledge.ts";
 import type { GoldCase, Recording } from "./types.ts";
 
 export type LiveDirs = { cache: string; recordings: string };
@@ -70,6 +80,7 @@ export async function recordCase(
   text: string,
   attack: AttackData,
   knowledge: ReadKnowledge,
+  profile: CompanyProfile,
   dirs: LiveDirs,
 ): Promise<Recording> {
   const meta = { url: gold.source.url, title: gold.title };
@@ -77,7 +88,13 @@ export async function recordCase(
     mode === "with-knowledge"
       ? await readCase(text, { attack, knowledge, ...meta })
       : await readCaseWithoutKnowledge(text, meta);
-  const { case: c, report } = verifyCase(read.raw, text, attack, { url: gold.source.url });
+  const verifyOpts: Parameters<typeof verifyCase>[3] = { url: gold.source.url };
+  if (mode === "with-knowledge" && knowledge.templates) {
+    const allowed = templateTechniques(knowledge.templates, read.value.damageType);
+    if (allowed.size > 0) verifyOpts.allowedTechniques = allowed;
+  }
+  const { case: c, report } = verifyCase(read.raw, text, attack, verifyOpts);
+  const verdict = evaluate(c, profile);
   const rec: Recording = {
     caseId: gold.id,
     mode,
@@ -85,7 +102,7 @@ export async function recordCase(
     recordedAt: new Date().toISOString(),
     note:
       mode === "with-knowledge"
-        ? "ATT&CK の手法一覧と日本語ラベルを渡して読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）"
+        ? "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）"
         : "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
     attackVersion: attack.version,
     output: {
@@ -103,6 +120,7 @@ export async function recordCase(
     },
     raw: read.raw,
     verification: summarize(report),
+    verdict: verdict.result,
   };
   mkdirSync(dirs.recordings, { recursive: true });
   writeFileSync(
@@ -147,18 +165,18 @@ export type LiveOptions = {
 
 export async function runLive(cases: GoldCase[], dirs: LiveDirs, opts: LiveOptions): Promise<void> {
   const attack = loadAttack();
-  const labels = loadLabels();
-  const knowledge: ReadKnowledge = { labels };
+  const knowledge: ReadKnowledge = { labels: loadLabels(), templates: loadTemplates() };
+  const profile = loadProfile(join(repoRoot, "examples", "demo-seiko.json"));
   const targets = opts.caseIds ? cases.filter((c) => opts.caseIds?.includes(c.id)) : cases;
   for (const gold of targets) {
     console.log(`\n[${gold.id}] ${gold.title}`);
     const text = await ensureArticle(gold, dirs);
     console.log(`  原文 ${text.length} 文字`);
     for (const mode of opts.modes) {
-      const rec = await recordCase(gold, mode, text, attack, knowledge, dirs);
+      const rec = await recordCase(gold, mode, text, attack, knowledge, profile, dirs);
       const v = rec.verification;
       console.log(
-        `  ${mode}: ${rec.output.damageType}/${rec.output.clarity}、段階 ${rec.output.steps.length}（検証: 手法 ${v?.techniquesIn}→${v?.techniquesOut}、根拠文 ${v?.quotesIn}→${v?.quotesOut}、置換 ${v?.replaced?.length ?? 0}）`,
+        `  ${mode}: ${rec.output.damageType}/${rec.output.clarity}、段階 ${rec.output.steps.length}（検証: 手法 ${v?.techniquesIn}→${v?.techniquesOut}、根拠文 ${v?.quotesIn}→${v?.quotesOut}、置換 ${v?.replaced?.length ?? 0}）判定 ${rec.verdict}`,
       );
     }
     if (opts.mitigations) {

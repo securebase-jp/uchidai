@@ -9,7 +9,14 @@ export const TechniqueId = z
 export const DamageType = z.enum(["ransomware", "bec", "data_breach", "out_of_scope"]);
 export const Clarity = z.enum(["clear", "partial", "unknown"]);
 export const StepSource = z.enum(["stated", "inferred", "unknown"]);
-export const VerdictResult = z.enum(["blocked", "mitigated", "breached", "pending"]);
+export const VerdictResult = z.enum([
+  "blocked",
+  "mitigated",
+  "breached",
+  "pending",
+  "no_entry",
+  "out_of_scope",
+]);
 
 /** Claude の読解結果（packages/llm の出力と同じ形。ここでは採点に必要な部分だけ） */
 export const CaseStepSchema = z.object({

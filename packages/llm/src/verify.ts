@@ -6,9 +6,7 @@
  * 4. allowedTechniques（型紙にある手法）があれば、それ以外を破棄
  * 5. 記事中の指示らしき文を検知して suspiciousInstructions に残す
  */
-import { type AttackData, Case, type CaseStep } from "@uchidai/engine";
-// TODO(S0): engine の index から knowledge.ts が export されたら "@uchidai/engine" からの import に戻す
-import { canonicalTechnique } from "../../engine/src/knowledge.ts";
+import { type AttackData, Case, type CaseStep, canonicalTechnique } from "@uchidai/engine";
 import { RawCase } from "./schema.ts";
 
 /** 空白と全角半角の揺れを吸収して照合する（eval/src/score.ts の normalizeText と同じ規則） */

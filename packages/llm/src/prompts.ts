@@ -2,25 +2,35 @@
  * 読解の指示文。記事本文は必ず user 側の <article> に入れ、指示文（system）とは分ける。
  */
 import type Anthropic from "@anthropic-ai/sdk";
-import type { AttackData, DamageType, TacticId, TechniqueId } from "@uchidai/engine";
+import type { AttackData, TacticId, Template, TemplateStage } from "@uchidai/engine";
 
-/** 知見ファイル。labels は knowledge/labels.ja.yaml の形、templates は型紙（S2 が作成中。読解に必要な部分だけ） */
+/** 知見ファイル。labels は knowledge/labels.ja.yaml（loadLabels）、templates は knowledge/templates（loadTemplates） */
 export type ReadKnowledge = {
   labels: {
     tactics: Record<string, string>;
     techniques: Record<string, string>;
     mitigations?: Record<string, string>;
   };
-  templates?: ReadTemplate[];
+  templates?: Template[];
 };
 
-/** 型紙のうち読解が使う部分：被害の型ごとの典型的な段階と手法 */
-export type ReadTemplate = {
-  id: string;
-  damageType: DamageType;
-  labelJa: string;
-  stages: { tactic: TacticId; labelJa: string; techniques: TechniqueId[] }[];
-};
+/** 型紙の段階が受け入れる手法：役割ごとの典型手法（byRole）と accepts の和 */
+export function stageTechniques(stage: TemplateStage): string[] {
+  const ids = new Set<string>();
+  for (const t of Object.values(stage.byRole)) if (t !== null) ids.add(t);
+  for (const t of stage.accepts) ids.add(t);
+  return [...ids];
+}
+
+/** 型紙にある手法の集合（verifyCase の allowedTechniques に渡す）。damageType を指定すればその型紙だけ */
+export function templateTechniques(templates: Template[], damageType?: string): Set<string> {
+  const ids = new Set<string>();
+  for (const t of templates) {
+    if (damageType !== undefined && t.damageType !== damageType) continue;
+    for (const s of t.stages) for (const id of stageTechniques(s)) ids.add(id);
+  }
+  return ids;
+}
 
 /** 読解で使う戦術の順（攻撃の進行順に並べる） */
 export const TACTIC_ORDER: TacticId[] = [
@@ -85,11 +95,17 @@ export function renderTechniqueList(attack: AttackData, knowledge?: ReadKnowledg
   return lines.join("\n");
 }
 
-export function renderTemplates(templates: ReadTemplate[]): string {
+export function renderTemplates(templates: Template[]): string {
   const lines: string[] = [TEMPLATE_HINT_JA];
   for (const t of templates) {
-    lines.push("", `### ${t.labelJa}（damageType=${t.damageType}）`);
-    for (const s of t.stages) lines.push(`- ${s.tactic} ${s.labelJa}：${s.techniques.join(", ")}`);
+    lines.push("", `### ${t.labelJa}（damageType=${t.damageType}）：${t.descriptionJa}`);
+    for (const s of t.stages) {
+      const ids = stageTechniques(s);
+      const note = s.human ? "（人の判断。手法なし）" : s.precondition ? "（前提条件）" : "";
+      lines.push(
+        `- ${s.tactics.join("/")} ${s.labelJa}${note}${ids.length > 0 ? `：${ids.join(", ")}` : ""}`,
+      );
+    }
   }
   return lines.join("\n");
 }

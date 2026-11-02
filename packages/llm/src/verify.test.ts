@@ -1,8 +1,9 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadAttack, loadTemplates } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
-import { loadAttack } from "../../engine/src/knowledge.ts";
+import { templateTechniques } from "./prompts.ts";
 import { detectInstructions, normalizeText, verifyCase } from "./verify.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -102,6 +103,30 @@ describe("verifyCase", () => {
 
   it("形が違う出力は例外にする", () => {
     expect(() => verifyCase({ title: "x" }, article, attack)).toThrow();
+  });
+});
+
+describe("templateTechniques", () => {
+  const templates = loadTemplates();
+  it("型紙の byRole と accepts の和を返し、damageType で絞れる", () => {
+    const all = templateTechniques(templates);
+    const ransomware = templateTechniques(templates, "ransomware");
+    expect(ransomware.has("T1190")).toBe(true);
+    expect(ransomware.has("T1486")).toBe(true);
+    expect(ransomware.has("T1684.001")).toBe(false);
+    expect(all.has("T1684.001")).toBe(true);
+    expect(templateTechniques(templates, "out_of_scope").size).toBe(0);
+  });
+  it("型紙の手法だけを残す（事例 1 の記録で T1552 のような型紙外の手法が落ちる）", () => {
+    const v = verifyCase(raw, article, attack, {
+      allowedTechniques: templateTechniques(templates, "ransomware"),
+    });
+    expect(v.case.steps[0]?.techniques).toEqual(["T1190"]);
+    expect(v.report.droppedTechniques).toContainEqual({
+      index: 2,
+      id: "T1684.001",
+      reason: "not_in_template",
+    });
   });
 });
 
