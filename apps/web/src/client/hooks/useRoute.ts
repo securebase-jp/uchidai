@@ -1,12 +1,27 @@
-/** ハッシュによる画面の切り替え：#/ #/questions #/profile #/staff #/exec #/onepager #/answer/:token */
+/** ハッシュによる画面の切り替え：#/ #/domain #/questions #/profile #/staff #/exec #/onepager #/answer/:token */
 import { useEffect, useMemo, useState } from "react";
 
-export type Route = "home" | "questions" | "profile" | "staff" | "exec" | "onepager" | "answer";
+export type Route =
+  | "home"
+  | "domain"
+  | "questions"
+  | "profile"
+  | "staff"
+  | "exec"
+  | "onepager"
+  | "answer";
 
 function parse(hash: string): Route {
   const h = hash.replace(/^#\/?/, "").split("?")[0];
   if (h?.startsWith("answer/")) return "answer";
-  if (h === "questions" || h === "profile" || h === "staff" || h === "exec" || h === "onepager")
+  if (
+    h === "domain" ||
+    h === "questions" ||
+    h === "profile" ||
+    h === "staff" ||
+    h === "exec" ||
+    h === "onepager"
+  )
     return h;
   return "home";
 }

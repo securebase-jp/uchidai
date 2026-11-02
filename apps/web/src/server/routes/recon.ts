@@ -1,0 +1,358 @@
+/**
+ * 外部確認の API（所有確認 → DNS・証明書の公開ログの参照 → カルテへの反映）。
+ * - POST /token   トークンを発行し、DNS に追加する TXT レコードと手順を返す（メモリ ＋ .data/recon-tokens.json）
+ * - POST /verify  保存したトークンで所有確認。通れば VerifiedDomain をメモリに 24 時間保持する
+ * - POST /run     所有確認済みのドメインだけ外部確認を実行（未確認は 403）。profile を渡せば反映後のカルテと矛盾も返す
+ * - POST /apply   直前の結果（メモリ）を、後から渡したカルテに反映する
+ * - GET  /status  所有確認の状態と最後の結果
+ *
+ * 安全：実際の DNS・crt.sh に問い合わせるのは、このサーバで verifyOwnership が通ったドメインだけ。
+ * recon() 自身も VerifiedDomain（verifyOwnership だけが作る）を要求するので、二重に守られている。
+ * 架空のドメイン demo-seiko.example は記録した応答（fixture）を再生し、実ネットワークには出ない。
+ * 公開 URL 経由（remote-guard）では /api/recon/* はすべて拒否される。
+ */
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CompanyProfile } from "@uchidai/engine";
+import {
+  applyAssetHints,
+  type CtLogSource,
+  type DnsResolver,
+  FileCache,
+  findContradictions,
+  fixtureSources,
+  generateVerificationToken,
+  InvalidDomainError,
+  loadDemoFixture,
+  mergeAnswers,
+  NodeDnsResolver,
+  normalizeDomain,
+  OWNERSHIP_MAX_AGE_MS,
+  OwnershipNotVerifiedError,
+  type ReconFixture,
+  type ReconResult,
+  recon,
+  reconToAnswers,
+  reconToAssetHints,
+  type VerifiedDomain,
+  verificationInstructionsJa,
+  verificationRecord,
+  verifyOwnership,
+} from "@uchidai/recon";
+import { Hono } from "hono";
+import { z } from "zod";
+import {
+  type AppliedView,
+  CT_UNAVAILABLE_JA,
+  DomainInput,
+  DomainRequest,
+  FIXTURE_DOMAIN,
+  type RunView,
+  type StatusView,
+  TokenRequest,
+  type TokenView,
+  type VerifyView,
+} from "../../shared/recon.ts";
+import { ClientError } from "../errors.ts";
+
+export const defaultTokenFile = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  ".data",
+  "recon-tokens.json",
+);
+
+type StoredToken = { domain: string; token: string; createdAt: string };
+const StoredTokens = z.object({
+  tokens: z.array(
+    z.object({
+      domain: z.string().min(1),
+      token: z.string().regex(/^[A-Za-z0-9_-]{16,128}$/),
+      createdAt: z.string(),
+    }),
+  ),
+});
+
+/** トークン（ファイルにも保存）、所有確認の結果（メモリだけ）、最後の実行結果（メモリだけ） */
+export class ReconStore {
+  private readonly tokens = new Map<string, StoredToken>();
+  private readonly verified = new Map<string, VerifiedDomain>();
+  private readonly lastRun = new Map<string, RunView>();
+  private readonly file: string | undefined;
+
+  constructor(file?: string) {
+    this.file = file;
+    if (file && existsSync(file)) {
+      try {
+        const parsed = StoredTokens.safeParse(JSON.parse(readFileSync(file, "utf8")));
+        if (parsed.success) for (const t of parsed.data.tokens) this.tokens.set(t.domain, t);
+      } catch {
+        // 壊れたファイルは無視して空で始める（次の発行で書き直す）
+      }
+    }
+  }
+
+  private persist(): void {
+    if (!this.file) return;
+    mkdirSync(dirname(this.file), { recursive: true });
+    const tmp = `${this.file}.tmp`;
+    writeFileSync(tmp, JSON.stringify({ tokens: [...this.tokens.values()] }, null, 2), "utf8");
+    renameSync(tmp, this.file);
+  }
+
+  getToken(domain: string): StoredToken | undefined {
+    return this.tokens.get(domain);
+  }
+  setToken(t: StoredToken): void {
+    this.tokens.set(t.domain, t);
+    this.persist();
+  }
+
+  getVerified(domain: string, now: Date): VerifiedDomain | undefined {
+    const v = this.verified.get(domain);
+    if (!v) return undefined;
+    if (now.getTime() - Date.parse(v.verifiedAt) > OWNERSHIP_MAX_AGE_MS) {
+      this.verified.delete(domain);
+      return undefined;
+    }
+    return v;
+  }
+  setVerified(v: VerifiedDomain): void {
+    this.verified.set(v.domain, v);
+  }
+  clearVerified(domain: string): void {
+    this.verified.delete(domain);
+  }
+
+  getLastRun(domain: string): RunView | undefined {
+    return this.lastRun.get(domain);
+  }
+  setLastRun(domain: string, run: RunView): void {
+    this.lastRun.set(domain, run);
+  }
+}
+
+export type LiveSources = { resolver: DnsResolver; ct?: CtLogSource };
+
+export type ReconDeps = {
+  store?: ReconStore;
+  now?: () => Date;
+  /**
+   * 実際の参照先（所有確認済みのドメインにだけ使う）。既定は Node の DNS と crt.sh（ディスクキャッシュ）。
+   * テストでは偽物を差し込み、呼ばれないことを確かめる
+   */
+  live?: () => LiveSources;
+};
+
+const liveFromEnv = (): LiveSources => ({ resolver: new NodeDnsResolver() });
+
+function expiresAt(verifiedAt: string): string {
+  return new Date(Date.parse(verifiedAt) + OWNERSHIP_MAX_AGE_MS).toISOString();
+}
+
+/** 入力のドメインを正規化する（不正なら 400 と日本語の理由） */
+function domainOf(input: string): string {
+  try {
+    return normalizeDomain(input);
+  } catch (e) {
+    if (e instanceof InvalidDomainError) throw new ClientError(400, e.message);
+    throw e;
+  }
+}
+
+function recordView(domain: string, token: string) {
+  return { name: domain, type: "TXT" as const, value: verificationRecord(token) };
+}
+
+/** findContradictions → applyAssetHints → mergeAnswers の順（属性は上書きされるので矛盾を先に拾う） */
+export function applyToProfile(result: ReconResult, profile: CompanyProfile): AppliedView {
+  const contradictions = findContradictions(result, profile);
+  const hints = reconToAssetHints(result);
+  let next: CompanyProfile = {
+    ...applyAssetHints(profile, hints),
+    domain: result.domain,
+    domainVerified: true,
+  };
+  const view: AppliedView = { profile: next, contradictions };
+  if (profile.answers) {
+    const merged = mergeAnswers(profile.answers, reconToAnswers(result));
+    next = { ...next, answers: merged.answers };
+    view.profile = next;
+    view.answers = { merged: merged.answers, applied: merged.applied };
+  }
+  return view;
+}
+
+export function reconRoutes(deps: ReconDeps = {}): Hono {
+  const store = deps.store ?? new ReconStore(defaultTokenFile);
+  const now = deps.now ?? (() => new Date());
+  const live = deps.live ?? liveFromEnv;
+  let fixtureCache: ReconFixture | undefined;
+  const fixture = (): ReconFixture => {
+    fixtureCache ??= loadDemoFixture();
+    return fixtureCache;
+  };
+  const isFixture = (domain: string) => domain === FIXTURE_DOMAIN;
+  const routes = new Hono();
+
+  routes.post("/token", async (c) => {
+    const body = TokenRequest.parse(await c.req.json());
+    const domain = domainOf(body.domain);
+    const existing = store.getToken(domain);
+    let stored: StoredToken;
+    if (isFixture(domain)) {
+      // 架空のドメイン：記録に入っている TXT と同じトークンを返す（DNS の設定は要らない）
+      stored = {
+        domain,
+        token: fixture().verificationToken ?? "",
+        createdAt: fixture().recordedAt,
+      };
+    } else if (existing && !body.renew) {
+      stored = existing;
+    } else {
+      stored = { domain, token: generateVerificationToken(), createdAt: now().toISOString() };
+      store.setToken(stored);
+      store.clearVerified(domain);
+    }
+    const view: TokenView = {
+      domain,
+      fixture: isFixture(domain),
+      token: stored.token,
+      createdAt: stored.createdAt,
+      record: recordView(domain, stored.token),
+      instructionsJa: isFixture(domain)
+        ? [
+            "架空のドメインです。記録した応答（fixture）を再生するので、DNS の設定は要りません。",
+            "実際のドメインで試すときは、同じ手順で発行したトークンを TXT レコードに設定します。",
+          ]
+        : verificationInstructionsJa(domain, stored.token),
+    };
+    return c.json(view);
+  });
+
+  routes.post("/verify", async (c) => {
+    const body = DomainRequest.parse(await c.req.json());
+    const domain = domainOf(body.domain);
+    const fx = isFixture(domain);
+    const token = fx ? (fixture().verificationToken ?? "") : store.getToken(domain)?.token;
+    if (!token) {
+      throw new ClientError(
+        400,
+        "このドメインのトークンがまだ発行されていません。先に手順 1 でトークンを発行してください",
+      );
+    }
+    const resolver = fx ? fixtureSources(fixture()).resolver : live().resolver;
+    const check = await verifyOwnership(domain, token, { resolver, now });
+    if (!check.ok) {
+      store.clearVerified(domain);
+      const view: VerifyView = {
+        ok: false,
+        domain,
+        fixture: fx,
+        reasonJa: check.reasonJa,
+        txtRecords: check.txtRecords,
+      };
+      return c.json(view);
+    }
+    store.setVerified(check.verified);
+    const view: VerifyView = {
+      ok: true,
+      domain,
+      fixture: fx,
+      verifiedAt: check.verified.verifiedAt,
+      expiresAt: expiresAt(check.verified.verifiedAt),
+    };
+    return c.json(view);
+  });
+
+  const RunRequest = z.object({ domain: DomainInput, profile: CompanyProfile.optional() });
+  routes.post("/run", async (c) => {
+    const body = RunRequest.parse(await c.req.json());
+    const domain = domainOf(body.domain);
+    const fx = isFixture(domain);
+    const ownership = store.getVerified(domain, now());
+    if (!ownership) {
+      throw new ClientError(
+        403,
+        "所有確認が済んでいないドメインには外部確認を実行しません。手順 2 の「所有を確認する」を先に通してください（確認は 24 時間で失効します）",
+      );
+    }
+    let result: ReconResult;
+    try {
+      if (fx) {
+        const { resolver, ct } = fixtureSources(fixture());
+        result = await recon(domain, { ownership, resolver, ct, now });
+      } else {
+        const sources = live();
+        result = await recon(domain, {
+          ownership,
+          resolver: sources.resolver,
+          ...(sources.ct ? { ct: sources.ct } : { cache: new FileCache() }),
+          now,
+        });
+      }
+    } catch (e) {
+      if (e instanceof OwnershipNotVerifiedError) {
+        store.clearVerified(domain);
+        throw new ClientError(403, `${e.message}。手順 2 からやり直してください`);
+      }
+      throw e;
+    }
+    const view: RunView = {
+      domain,
+      fixture: fx,
+      result,
+      answersHints: reconToAnswers(result),
+      assetHints: reconToAssetHints(result),
+      ...(result.sources.ct === "unavailable" ? { ctUnavailableJa: CT_UNAVAILABLE_JA } : {}),
+      ...(body.profile ? { applied: applyToProfile(result, body.profile) } : {}),
+    };
+    store.setLastRun(domain, view);
+    return c.json(view);
+  });
+
+  const ApplyRequest = z.object({ domain: DomainInput, profile: CompanyProfile });
+  routes.post("/apply", async (c) => {
+    const body = ApplyRequest.parse(await c.req.json());
+    const domain = domainOf(body.domain);
+    const last = store.getLastRun(domain);
+    if (!last) {
+      throw new ClientError(
+        404,
+        "このドメインの外部確認の結果がサーバにありません。手順 3 の「外部確認を実行する」をもう一度押してください",
+      );
+    }
+    return c.json(applyToProfile(last.result, body.profile));
+  });
+
+  routes.get("/status", (c) => {
+    const domain = domainOf(DomainInput.parse(c.req.query("domain") ?? ""));
+    const fx = isFixture(domain);
+    const token = fx
+      ? { createdAt: fixture().recordedAt, token: fixture().verificationToken ?? "" }
+      : store.getToken(domain);
+    const verified = store.getVerified(domain, now());
+    const last = store.getLastRun(domain);
+    const view: StatusView = {
+      domain,
+      fixture: fx,
+      token: token ? { createdAt: token.createdAt, record: recordView(domain, token.token) } : null,
+      verified: verified
+        ? { verifiedAt: verified.verifiedAt, expiresAt: expiresAt(verified.verifiedAt) }
+        : null,
+      lastRun: last
+        ? {
+            checkedAt: last.result.checkedAt,
+            findings: last.result.findings.length,
+            ctUnavailable: last.result.sources.ct === "unavailable",
+          }
+        : null,
+    };
+    return c.json(view);
+  });
+
+  return routes;
+}

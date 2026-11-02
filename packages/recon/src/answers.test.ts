@@ -112,6 +112,18 @@ describe("reconToAssetHints / applyAssetHints", () => {
   });
 });
 
+describe("applyAssetHints と廃止済みの資産", () => {
+  it("廃止済み（decommissioned）の資産には属性を重ねない（残っている名前は矛盾として扱う）", async () => {
+    const hints = reconToAssetHints(await result());
+    expect(hints.some((h) => h.role === "entry.web")).toBe(true);
+    const updated = applyAssetHints(demoProfile, hints);
+    const campaign = updated.assets.find((a) => a.id === "campaign-site");
+    const before = demoProfile.assets.find((a) => a.id === "campaign-site");
+    expect(campaign?.attrs).toEqual(before?.attrs);
+    expect(campaign?.attrEvidence).toEqual(before?.attrEvidence);
+  });
+});
+
 describe("applyAssetHints と根拠の優先順位", () => {
   it("担当者登録・ベンダー回答の緩和策は残し、前回の外部確認の記録だけを置き換える（矛盾は engine が拾う）", async () => {
     const hints = reconToAssetHints(await result());
