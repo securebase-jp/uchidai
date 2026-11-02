@@ -1,0 +1,798 @@
+{
+  "profileId": "demo-seiko",
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T08:22:24.410Z",
+  "attackVersion": "20.0",
+  "attackerVersion": "v2",
+  "note": "実際の出力の記録（作り物の台本ではない）。Claude に渡したのは役割の枠に抽象化したカルテと ATT&CK の手法一覧だけ。raw は検証前の生の出力、paths は engine の 4 点検証（手法 ID・役割・つながり・判定ルール）を通った経路。リクエストヘッダは保存していない",
+  "attempts": 2,
+  "input": {
+    "abstracted": {
+      "pattern": "manufacturing",
+      "roles": [
+        {
+          "role": "attacker",
+          "labelJa": "攻撃者",
+          "side": "社外",
+          "connectsTo": [
+            "entry.vpn",
+            "entry.vendor_remote",
+            "entry.web",
+            "cloud.mail",
+            "pc",
+            "cloud.mail_account.exec",
+            "cloud.storage"
+          ],
+          "attrsJa": [],
+          "controls": []
+        },
+        {
+          "role": "entry.vpn",
+          "labelJa": "VPN装置",
+          "side": "社内",
+          "connectsTo": [
+            "attacker",
+            "pc",
+            "admin",
+            "server"
+          ],
+          "attrsJa": [
+            "外部に公開されている",
+            "悪用が確認された脆弱性が残っている",
+            "認証を回避できる脆弱性"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1051",
+              "labelJa": "ソフトウェアの更新",
+              "status": "なし"
+            },
+            {
+              "mitigation": "M1032",
+              "labelJa": "多要素認証",
+              "status": "なし"
+            },
+            {
+              "mitigation": "M1042",
+              "labelJa": "機能・プログラムの無効化（非公開化）",
+              "status": "なし"
+            }
+          ]
+        },
+        {
+          "role": "entry.vendor_remote",
+          "labelJa": "保守ベンダーの遠隔接続",
+          "side": "社外",
+          "connectsTo": [
+            "attacker",
+            "core"
+          ],
+          "attrsJa": [
+            "常時接続",
+            "共通パスワード",
+            "中核システム（core）に直結"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "labelJa": "多要素認証",
+              "status": "なし"
+            },
+            {
+              "mitigation": "UD-02",
+              "labelJa": "保守接続を必要なときだけ有効化・接続元を限定",
+              "status": "なし"
+            },
+            {
+              "mitigation": "M1035",
+              "labelJa": "ネットワーク経由のアクセス制限",
+              "status": "なし"
+            }
+          ]
+        },
+        {
+          "role": "pc",
+          "labelJa": "社員PC",
+          "side": "社内",
+          "connectsTo": [
+            "attacker",
+            "entry.vpn",
+            "cloud.mail",
+            "admin",
+            "server",
+            "cloud.storage"
+          ],
+          "attrsJa": [],
+          "controls": [
+            {
+              "mitigation": "M1049",
+              "labelJa": "ウイルス対策",
+              "status": "あり"
+            }
+          ]
+        },
+        {
+          "role": "admin",
+          "labelJa": "管理者アカウント",
+          "side": "社内",
+          "connectsTo": [
+            "entry.vpn",
+            "pc",
+            "server"
+          ],
+          "attrsJa": [],
+          "controls": [
+            {
+              "mitigation": "M1026",
+              "labelJa": "特権アカウント管理",
+              "status": "未確認"
+            },
+            {
+              "mitigation": "M1040",
+              "labelJa": "端末での振る舞い防御（EDR）",
+              "status": "未確認"
+            }
+          ]
+        },
+        {
+          "role": "server",
+          "labelJa": "業務サーバ区画",
+          "side": "社内",
+          "connectsTo": [
+            "entry.vpn",
+            "pc",
+            "admin",
+            "core",
+            "file_server",
+            "backup"
+          ],
+          "attrsJa": [
+            "区画の分離なし"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1030",
+              "labelJa": "ネットワーク分離",
+              "status": "なし"
+            },
+            {
+              "mitigation": "M1035",
+              "labelJa": "ネットワーク経由のアクセス制限",
+              "status": "なし"
+            }
+          ]
+        },
+        {
+          "role": "core",
+          "labelJa": "中核システム",
+          "side": "社内",
+          "connectsTo": [
+            "server",
+            "backup",
+            "entry.vendor_remote"
+          ],
+          "attrsJa": [],
+          "controls": []
+        },
+        {
+          "role": "file_server",
+          "labelJa": "ファイルサーバ",
+          "side": "社内",
+          "connectsTo": [
+            "server"
+          ],
+          "attrsJa": [],
+          "controls": []
+        },
+        {
+          "role": "backup",
+          "labelJa": "バックアップ",
+          "side": "社内",
+          "connectsTo": [
+            "server",
+            "core"
+          ],
+          "attrsJa": [
+            "クラウド同期型",
+            "切り離した保管先なし",
+            "復旧テスト未実施"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1053",
+              "labelJa": "データバックアップ",
+              "status": "あり"
+            }
+          ]
+        },
+        {
+          "role": "cloud.mail",
+          "labelJa": "クラウドメール",
+          "side": "社外",
+          "connectsTo": [
+            "attacker",
+            "pc",
+            "cloud.mail_account.exec"
+          ],
+          "attrsJa": [
+            "SPF あり",
+            "DMARC なし",
+            "多要素認証はアプリ方式"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "labelJa": "多要素認証",
+              "status": "あり"
+            }
+          ]
+        },
+        {
+          "role": "cloud.mail_account.exec",
+          "labelJa": "社長のメールアカウント",
+          "side": "社外",
+          "connectsTo": [
+            "attacker",
+            "cloud.mail",
+            "person.accounting",
+            "person.exec"
+          ],
+          "attrsJa": [
+            "多要素認証の例外あり"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "labelJa": "多要素認証",
+              "status": "なし"
+            },
+            {
+              "mitigation": "M1027",
+              "labelJa": "パスワードポリシー",
+              "status": "未確認"
+            }
+          ]
+        },
+        {
+          "role": "cloud.accounting",
+          "labelJa": "会計クラウド",
+          "side": "社外",
+          "connectsTo": [
+            "person.accounting"
+          ],
+          "attrsJa": [],
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "labelJa": "多要素認証",
+              "status": "あり"
+            }
+          ]
+        },
+        {
+          "role": "cloud.storage",
+          "labelJa": "クラウドストレージ",
+          "side": "社外",
+          "connectsTo": [
+            "attacker",
+            "pc"
+          ],
+          "attrsJa": [
+            "公開リンク禁止",
+            "四半期ごとに棚卸し"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1022",
+              "labelJa": "ファイル・共有の権限制限",
+              "status": "あり"
+            },
+            {
+              "mitigation": "M1047",
+              "labelJa": "監査（定期的な棚卸し）",
+              "status": "あり"
+            }
+          ]
+        },
+        {
+          "role": "person.exec",
+          "labelJa": "社長",
+          "side": "人",
+          "connectsTo": [
+            "cloud.mail_account.exec"
+          ],
+          "attrsJa": [],
+          "controls": []
+        },
+        {
+          "role": "person.accounting",
+          "labelJa": "経理担当",
+          "side": "人",
+          "connectsTo": [
+            "cloud.mail_account.exec",
+            "cloud.accounting"
+          ],
+          "attrsJa": [],
+          "controls": [
+            {
+              "mitigation": "M1017",
+              "labelJa": "ユーザー訓練",
+              "status": "あり"
+            },
+            {
+              "mitigation": "UD-01",
+              "labelJa": "送金・振込先変更の折り返し確認または二人承認",
+              "status": "なし"
+            }
+          ]
+        },
+        {
+          "role": "entry.web",
+          "labelJa": "公開ホームページ",
+          "side": "社外",
+          "connectsTo": [
+            "attacker"
+          ],
+          "attrsJa": [
+            "廃止済み"
+          ],
+          "controls": [
+            {
+              "mitigation": "M1051",
+              "labelJa": "ソフトウェアの更新",
+              "status": "未確認"
+            }
+          ]
+        }
+      ],
+      "goals": [
+        "core"
+      ]
+    },
+    "rendered": "<profile>\n構成パターン：manufacturing。役割の枠だけで表し、製品名・社名・ホスト名は含まない。\n目標の役割：core\n\n## attacker（攻撃者、社外）\n- つながる役割：entry.vpn、entry.vendor_remote、entry.web、cloud.mail、pc、cloud.mail_account.exec、cloud.storage\n\n## entry.vpn（VPN装置、社内）\n- つながる役割：attacker、pc、admin、server\n- 属性：外部に公開されている、悪用が確認された脆弱性が残っている、認証を回避できる脆弱性\n- 対策：ソフトウェアの更新（M1051）＝なし、多要素認証（M1032）＝なし、機能・プログラムの無効化（非公開化）（M1042）＝なし\n\n## entry.vendor_remote（保守ベンダーの遠隔接続、社外）\n- つながる役割：attacker、core\n- 属性：常時接続、共通パスワード、中核システム（core）に直結\n- 対策：多要素認証（M1032）＝なし、保守接続を必要なときだけ有効化・接続元を限定（UD-02）＝なし、ネットワーク経由のアクセス制限（M1035）＝なし\n\n## pc（社員PC、社内）\n- つながる役割：attacker、entry.vpn、cloud.mail、admin、server、cloud.storage\n- 対策：ウイルス対策（M1049）＝あり\n\n## admin（管理者アカウント、社内）\n- つながる役割：entry.vpn、pc、server\n- 対策：特権アカウント管理（M1026）＝未確認、端末での振る舞い防御（EDR）（M1040）＝未確認\n\n## server（業務サーバ区画、社内）\n- つながる役割：entry.vpn、pc、admin、core、file_server、backup\n- 属性：区画の分離なし\n- 対策：ネットワーク分離（M1030）＝なし、ネットワーク経由のアクセス制限（M1035）＝なし\n\n## core（中核システム、社内）\n- つながる役割：server、backup、entry.vendor_remote\n\n## file_server（ファイルサーバ、社内）\n- つながる役割：server\n\n## backup（バックアップ、社内）\n- つながる役割：server、core\n- 属性：クラウド同期型、切り離した保管先なし、復旧テスト未実施\n- 対策：データバックアップ（M1053）＝あり\n\n## cloud.mail（クラウドメール、社外）\n- つながる役割：attacker、pc、cloud.mail_account.exec\n- 属性：SPF あり、DMARC なし、多要素認証はアプリ方式\n- 対策：多要素認証（M1032）＝あり\n\n## cloud.mail_account.exec（社長のメールアカウント、社外）\n- つながる役割：attacker、cloud.mail、person.accounting、person.exec\n- 属性：多要素認証の例外あり\n- 対策：多要素認証（M1032）＝なし、パスワードポリシー（M1027）＝未確認\n\n## cloud.accounting（会計クラウド、社外）\n- つながる役割：person.accounting\n- 対策：多要素認証（M1032）＝あり\n\n## cloud.storage（クラウドストレージ、社外）\n- つながる役割：attacker、pc\n- 属性：公開リンク禁止、四半期ごとに棚卸し\n- 対策：ファイル・共有の権限制限（M1022）＝あり、監査（定期的な棚卸し）（M1047）＝あり\n\n## person.exec（社長、人）\n- つながる役割：cloud.mail_account.exec\n\n## person.accounting（経理担当、人）\n- つながる役割：cloud.mail_account.exec、cloud.accounting\n- 対策：ユーザー訓練（M1017）＝あり、送金・振込先変更の折り返し確認または二人承認（UD-01）＝なし\n\n## entry.web（公開ホームページ、社外）\n- つながる役割：attacker\n- 属性：廃止済み\n- 対策：ソフトウェアの更新（M1051）＝未確認\n\n</profile>"
+  },
+  "raw": {
+    "paths": [
+      {
+        "titleJa": "保守ベンダー遠隔接続から中核へ直結",
+        "steps": [
+          {
+            "role": "entry.vendor_remote",
+            "technique": "T1133",
+            "reasonJa": "常時接続・共通パスワードで多要素認証も接続元制限もなく、外部リモートサービス経由で入れる。"
+          },
+          {
+            "role": "core",
+            "technique": "T1486",
+            "reasonJa": "保守接続が中核システムに直結しており、アクセス制限もないため、データの暗号化まで到達できる。"
+          }
+        ]
+      },
+      {
+        "titleJa": "社員PCから管理者権限を経て中核へ",
+        "steps": [
+          {
+            "role": "pc",
+            "technique": "T1566.001",
+            "reasonJa": "ウイルス対策はあるが、添付ファイルによるフィッシングで社員PCに足場を作れる余地がある。"
+          },
+          {
+            "role": "admin",
+            "technique": "T1078",
+            "reasonJa": "特権アカウント管理と振る舞い防御が未確認で、正規アカウントの悪用に気づきにくい。"
+          },
+          {
+            "role": "server",
+            "technique": "T1021",
+            "reasonJa": "区画の分離とアクセス制限がなく、管理者権限でリモートサービス経由の横展開ができる。"
+          },
+          {
+            "role": "core",
+            "technique": "T1486",
+            "reasonJa": "業務サーバ区画から中核システムに到達でき、データ暗号化で業務を止められる。"
+          }
+        ]
+      },
+      {
+        "titleJa": "社員PCからサーバ経由でバックアップ妨害",
+        "steps": [
+          {
+            "role": "pc",
+            "technique": "T1566.002",
+            "reasonJa": "リンクによるフィッシングで社員PCを侵害できる。ウイルス対策だけでは誘導を防ぎきれない。"
+          },
+          {
+            "role": "server",
+            "technique": "T1021.002",
+            "reasonJa": "ネットワーク分離がなく、管理共有を使って業務サーバ区画へ横展開できる。"
+          },
+          {
+            "role": "backup",
+            "technique": "T1490",
+            "reasonJa": "クラウド同期型で切り離した保管先がなく、復旧テストも未実施のため、復旧手段を妨害されやすい。"
+          },
+          {
+            "role": "core",
+            "technique": "T1486",
+            "reasonJa": "復旧手段を失わせた上で中核システムを暗号化すれば、業務停止が長引く。"
+          }
+        ]
+      }
+    ]
+  },
+  "candidates": [
+    {
+      "titleJa": "保守ベンダー遠隔接続から中核へ直結",
+      "steps": [
+        {
+          "role": "entry.vendor_remote",
+          "technique": "T1133",
+          "reasonJa": "常時接続・共通パスワードで多要素認証も接続元制限もなく、外部リモートサービス経由で入れる。"
+        },
+        {
+          "role": "core",
+          "technique": "T1486",
+          "reasonJa": "保守接続が中核システムに直結しており、アクセス制限もないため、データの暗号化まで到達できる。"
+        }
+      ]
+    },
+    {
+      "titleJa": "社員PCから管理者権限を経て中核へ",
+      "steps": [
+        {
+          "role": "pc",
+          "technique": "T1566.001",
+          "reasonJa": "ウイルス対策はあるが、添付ファイルによるフィッシングで社員PCに足場を作れる余地がある。"
+        },
+        {
+          "role": "admin",
+          "technique": "T1078",
+          "reasonJa": "特権アカウント管理と振る舞い防御が未確認で、正規アカウントの悪用に気づきにくい。"
+        },
+        {
+          "role": "server",
+          "technique": "T1021",
+          "reasonJa": "区画の分離とアクセス制限がなく、管理者権限でリモートサービス経由の横展開ができる。"
+        },
+        {
+          "role": "core",
+          "technique": "T1486",
+          "reasonJa": "業務サーバ区画から中核システムに到達でき、データ暗号化で業務を止められる。"
+        }
+      ]
+    },
+    {
+      "titleJa": "社員PCからサーバ経由でバックアップ妨害",
+      "steps": [
+        {
+          "role": "pc",
+          "technique": "T1566.002",
+          "reasonJa": "リンクによるフィッシングで社員PCを侵害できる。ウイルス対策だけでは誘導を防ぎきれない。"
+        },
+        {
+          "role": "server",
+          "technique": "T1021.002",
+          "reasonJa": "ネットワーク分離がなく、管理共有を使って業務サーバ区画へ横展開できる。"
+        },
+        {
+          "role": "backup",
+          "technique": "T1490",
+          "reasonJa": "クラウド同期型で切り離した保管先がなく、復旧テストも未実施のため、復旧手段を妨害されやすい。"
+        },
+        {
+          "role": "core",
+          "technique": "T1486",
+          "reasonJa": "復旧手段を失わせた上で中核システムを暗号化すれば、業務停止が長引く。"
+        }
+      ]
+    }
+  ],
+  "screened": [],
+  "validation": [
+    {
+      "titleJa": "保守ベンダー遠隔接続から中核へ直結",
+      "ok": true
+    },
+    {
+      "titleJa": "社員PCから管理者権限を経て中核へ",
+      "ok": true
+    },
+    {
+      "titleJa": "社員PCからサーバ経由でバックアップ妨害",
+      "ok": true
+    }
+  ],
+  "paths": [
+    {
+      "id": "ai-1",
+      "source": "ai",
+      "steps": [
+        {
+          "nodeId": "vendor-remote",
+          "role": "entry.vendor_remote",
+          "tactic": "TA0003",
+          "technique": "T1133",
+          "source": "ai",
+          "labelJa": "常時接続・共通パスワードで多要素認証も接続元制限もなく、外部リモートサービス経由で入れる。",
+          "reasonJa": "保守ツールのログインがパスワードだけで、漏れればそのまま入れる",
+          "mitigations": [
+            "M1032",
+            "UD-02",
+            "M1035"
+          ],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "registered",
+          "ruleId": "vendor_remote.entry"
+        },
+        {
+          "nodeId": "core",
+          "role": "core",
+          "tactic": "TA0040",
+          "technique": "T1486",
+          "source": "ai",
+          "labelJa": "保守接続が中核システムに直結しており、アクセス制限もないため、データの暗号化まで到達できる。",
+          "reasonJa": "中核システムに到達。業務影響を計算する",
+          "mitigations": [],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "none",
+          "ruleId": "core.reached"
+        }
+      ],
+      "reachedCore": true,
+      "reachedAssetIds": [
+        "vendor-remote",
+        "core"
+      ]
+    },
+    {
+      "id": "ai-2",
+      "source": "ai",
+      "steps": [
+        {
+          "nodeId": "pc",
+          "role": "pc",
+          "tactic": "TA0001",
+          "technique": "T1566.001",
+          "source": "ai",
+          "labelJa": "ウイルス対策はあるが、添付ファイルによるフィッシングで社員PCに足場を作れる余地がある。",
+          "reasonJa": "EDR の有無が未確認",
+          "mitigations": [
+            "M1040",
+            "M1049"
+          ],
+          "ineffective": [],
+          "state": "unknown",
+          "evidence": "none",
+          "ruleId": "ransomware.entry.phishing"
+        },
+        {
+          "nodeId": "admin",
+          "role": "admin",
+          "tactic": "TA0005",
+          "technique": "T1078",
+          "source": "ai",
+          "labelJa": "特権アカウント管理と振る舞い防御が未確認で、正規アカウントの悪用に気づきにくい。",
+          "reasonJa": "EDR の有無・監視体制・管理者アカウントの分離が未確認",
+          "mitigations": [
+            "M1040",
+            "M1026"
+          ],
+          "ineffective": [],
+          "state": "unknown",
+          "evidence": "none",
+          "ruleId": "ransomware.credentials"
+        },
+        {
+          "nodeId": "server",
+          "role": "server",
+          "tactic": "TA0008",
+          "technique": "T1021",
+          "source": "ai",
+          "labelJa": "区画の分離とアクセス制限がなく、管理者権限でリモートサービス経由の横展開ができる。",
+          "reasonJa": "業務サーバと PC が同じネットワークにある",
+          "mitigations": [
+            "M1030",
+            "M1035"
+          ],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "registered",
+          "ruleId": "ransomware.lateral"
+        },
+        {
+          "nodeId": "core",
+          "role": "core",
+          "tactic": "TA0040",
+          "technique": "T1486",
+          "source": "ai",
+          "labelJa": "業務サーバ区画から中核システムに到達でき、データ暗号化で業務を止められる。",
+          "reasonJa": "中核システムに到達。業務影響を計算する",
+          "mitigations": [],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "none",
+          "ruleId": "core.reached"
+        }
+      ],
+      "reachedCore": true,
+      "reachedAssetIds": [
+        "pc",
+        "admin",
+        "server",
+        "core"
+      ]
+    },
+    {
+      "id": "ai-3",
+      "source": "ai",
+      "steps": [
+        {
+          "nodeId": "pc",
+          "role": "pc",
+          "tactic": "TA0001",
+          "technique": "T1566.002",
+          "source": "ai",
+          "labelJa": "リンクによるフィッシングで社員PCを侵害できる。ウイルス対策だけでは誘導を防ぎきれない。",
+          "reasonJa": "EDR の有無が未確認",
+          "mitigations": [
+            "M1040",
+            "M1049"
+          ],
+          "ineffective": [],
+          "state": "unknown",
+          "evidence": "none",
+          "ruleId": "ransomware.entry.phishing"
+        },
+        {
+          "nodeId": "server",
+          "role": "server",
+          "tactic": "TA0008",
+          "technique": "T1021.002",
+          "source": "ai",
+          "labelJa": "ネットワーク分離がなく、管理共有を使って業務サーバ区画へ横展開できる。",
+          "reasonJa": "業務サーバと PC が同じネットワークにある",
+          "mitigations": [
+            "M1030",
+            "M1035"
+          ],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "registered",
+          "ruleId": "ransomware.lateral"
+        },
+        {
+          "nodeId": "backup",
+          "role": "backup",
+          "tactic": "TA0040",
+          "technique": "T1490",
+          "source": "ai",
+          "labelJa": "クラウド同期型で切り離した保管先がなく、復旧テストも未実施のため、復旧手段を妨害されやすい。",
+          "reasonJa": "社内ネットワークやクラウド同期から切り離された保管先がなく、バックアップごと暗号化される",
+          "mitigations": [
+            "M1053"
+          ],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "registered",
+          "ruleId": "ransomware.recovery"
+        },
+        {
+          "nodeId": "core",
+          "role": "core",
+          "tactic": "TA0040",
+          "technique": "T1486",
+          "source": "ai",
+          "labelJa": "復旧手段を失わせた上で中核システムを暗号化すれば、業務停止が長引く。",
+          "reasonJa": "中核システムに到達。業務影響を計算する",
+          "mitigations": [],
+          "ineffective": [],
+          "state": "breached",
+          "evidence": "none",
+          "ruleId": "core.reached"
+        }
+      ],
+      "reachedCore": true,
+      "reachedAssetIds": [
+        "pc",
+        "server",
+        "backup",
+        "core"
+      ]
+    }
+  ],
+  "log": [
+    "下見を開始（claude-sonnet-5-5）",
+    "カルテを役割の枠に抽象化：役割 15 件、固有名詞なし、目標 core",
+    "ATT&CK v20.0 の手法一覧（8 戦術）を参照",
+    "候補 3 本を受け取った",
+    "候補 1「保守ベンダー遠隔接続から中核へ直結」：entry.vendor_remote T1133 外部リモートサービス → core T1486 影響を与えるためのデータ暗号化",
+    "検証：手法 ID ✓ 役割 ✓ つながり ✓ 判定ルール ✓ → 採用（entry.vendor_remote=突破される、core=突破される）",
+    "候補 2「社員PCから管理者権限を経て中核へ」：pc T1566.001 添付ファイルによるフィッシング → admin T1078 正規アカウントの悪用 → server T1021 リモートサービス → core T1486 影響を与えるためのデータ暗号化",
+    "検証：手法 ID ✓ 役割 ✓ つながり ✓ 判定ルール ✓ → 採用（pc=未確認、admin=未確認、server=突破される、core=突破される）",
+    "候補 3「社員PCからサーバ経由でバックアップ妨害」：pc T1566.002 リンクによるフィッシング → server T1021.002 Windows 管理共有 → backup T1490 システム復旧の妨害 → core T1486 影響を与えるためのデータ暗号化",
+    "検証：手法 ID ✓ 役割 ✓ つながり ✓ 判定ルール ✓ → 採用（pc=未確認、server=突破される、backup=突破される、core=突破される）",
+    "結果：採用 3 本（うち中核に到達 3 本）、破棄 0 本"
+  ],
+  "usage": {
+    "input_tokens": 1459,
+    "output_tokens": 1294
+  },
+  "previousRuns": [
+    {
+      "recordedAt": "2026-11-02T08:20:58.722Z",
+      "model": "claude-sonnet-5-5",
+      "raw": {
+        "paths": [
+          {
+            "titleJa": "保守ベンダーの常時接続から中核へ直結",
+            "steps": [
+              {
+                "role": "entry.vendor_remote",
+                "technique": "T1133",
+                "reasonJa": "常時接続で共通パスワード、多要素認証も接続元制限もなく、外部リモートサービスとして入口にできる。"
+              },
+              {
+                "role": "core",
+                "technique": "T1078",
+                "reasonJa": "保守接続が中核に直結し、アクセス制限もないため、正規アカウントの悪用でそのまま中核に入れる。"
+              }
+            ]
+          },
+          {
+            "titleJa": "社員PCのフィッシングから管理者権限経由",
+            "steps": [
+              {
+                "role": "pc",
+                "technique": "T1566.002",
+                "reasonJa": "ウイルス対策だけではリンク型フィッシングを防ぎきれず、社員PCが足がかりになる。"
+              },
+              {
+                "role": "admin",
+                "technique": "T1003",
+                "reasonJa": "特権アカウント管理と EDR が未確認のため、OS認証情報のダンプで管理者権限を得られる恐れがある。"
+              },
+              {
+                "role": "server",
+                "technique": "T1021.002",
+                "reasonJa": "区画の分離とアクセス制限がなく、管理者権限で Windows 管理共有から業務サーバ区画へ広がれる。"
+              },
+              {
+                "role": "core",
+                "technique": "T1021",
+                "reasonJa": "業務サーバ区画から中核へ届き、リモートサービスで中核システムに到達できる。"
+              }
+            ]
+          },
+          {
+            "titleJa": "クラウドメールの認証要求攻めからPC経由",
+            "steps": [
+              {
+                "role": "cloud.mail",
+                "technique": "T1621",
+                "reasonJa": "多要素認証がアプリ方式なので、承認要求の大量送信で利用者が誤承認する恐れがある。"
+              },
+              {
+                "role": "pc",
+                "technique": "T1534",
+                "reasonJa": "乗っ取ったメールから社内向けに送るフィッシングは信頼されやすく、ウイルス対策だけでは防ぎにくい。"
+              },
+              {
+                "role": "server",
+                "technique": "T1021.002",
+                "reasonJa": "区画の分離なしでアクセス制限もなく、PCから業務サーバ区画へ管理共有で横展開できる。"
+              },
+              {
+                "role": "core",
+                "technique": "T1021",
+                "reasonJa": "業務サーバ区画から中核システムへ到達でき、リモートサービス経由で目標に至る。"
+              }
+            ]
+          }
+        ]
+      },
+      "found": false
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 export * from "./article.ts";
 export * from "./attacker.ts";
 export * from "./attacker-abstract.ts";
+export * from "./attacker-recording.ts";
 export * from "./attacker-safety.ts";
 export * from "./client.ts";
 export * from "./compare.ts";

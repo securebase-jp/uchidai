@@ -17,6 +17,7 @@ import {
   type Graph,
   type Knowledge,
   type LabelsFile,
+  type Rule,
   type Template,
   validateAiPath,
 } from "@uchidai/engine";
@@ -26,6 +27,7 @@ import { checkLineAgainst } from "./attacker-safety.ts";
 import { callStructured, type LlmOptions } from "./client.ts";
 
 export const ATTACKER_VERSION = "v2";
+/** v1：役割と手法の一覧だけ → core の手法に T1078 を選び、判定ルールが無く破棄。v2：役割ごとに判定できる手法の表を渡す */
 
 /** 下見で参照する戦術（初期アクセス、永続化、権限昇格、認証情報アクセス、横展開、収集、持ち出し、影響） */
 export const RECON_TACTICS = [
@@ -51,6 +53,7 @@ export const ATTACKER_RULES_JA = `あなたは、中小企業の情報システ�
 - 各段階は { role, technique, reasonJa }。role は <profile> にある役割 ID だけ、technique は「使える手法の一覧」にある ID だけ
 - 最初の役割は attacker とつながっている役割。以降の各役割は直前の役割と「つながる役割」で結ばれていること
 - 最後の役割は目標の役割（core など）で終える。2〜5 段階
+- 「役割ごとに判定できる手法」の表にある役割と手法の組み合わせだけを使う。表にない組み合わせはプログラムの検証で破棄される（例：core で終えるなら core の行にある手法）
 - 型紙（すでに判定済みの典型経路）と同じ入口は避ける：VPN装置（entry.vpn）からの侵入、社長のメールアカウント（cloud.mail_account.exec）からのなりすまし送金、クラウドストレージ（cloud.storage）の設定ミス。これら以外の入口から始める
 - 候補は最大 3 本。有望な順。属性に「なし」「未確認」「常時接続」「共通パスワード」などの弱さが見える役割を優先する
 - 出力は JSON スキーマどおり`;
@@ -124,26 +127,57 @@ export function renderReconTechniques(attack: AttackData, labels?: LabelsFile): 
   return lines.join("\n");
 }
 
-/** 型紙の一覧（避けるべき既知の経路として渡す） */
+/** 型紙の一覧（避けるべき既知の経路として渡す）。入口は型紙の最初の役割（VPN、社長のメール、クラウドストレージ） */
 export function renderKnownTemplates(templates: Template[]): string {
   const lines = ["## 型紙（判定済みの典型経路。これと同じ入口は避ける）"];
   for (const t of templates) {
-    const entries = t.stages
-      .filter((s) => s.entry)
-      .flatMap((s) => Object.keys(s.byRole))
-      .join("、");
-    lines.push(`- ${t.labelJa}：入口 ${entries}`);
+    const entry = t.stages.find((s) => s.entry);
+    const first = entry ? Object.keys(entry.byRole)[0] : undefined;
+    if (first) lines.push(`- ${t.labelJa}：入口 ${first}`);
   }
+  return lines.join("\n");
+}
+
+/**
+ * 役割ごとに判定ルールで評価できる手法（engine の 4 点検証 (d) と同じ条件）。
+ * 役割の既定ルール（手法を問わない）は、型紙がその役割の典型手法として挙げる手法にだけ使える
+ */
+export function renderEvaluableTechniques(rules: Rule[], templates: Template[]): string {
+  const byRole = new Map<string, Set<string>>();
+  const typical = (role: string) => {
+    const out = new Set<string>();
+    for (const t of templates)
+      for (const s of t.stages) {
+        const tech = s.byRole[role];
+        if (tech) out.add(tech);
+        if (role in s.byRole) for (const a of s.accepts) out.add(a);
+      }
+    return out;
+  };
+  for (const r of rules) {
+    const set = byRole.get(r.role) ?? new Set<string>();
+    const ids = r.techniques.length > 0 ? r.techniques : [...typical(r.role)];
+    for (const id of ids) set.add(id);
+    byRole.set(r.role, set);
+  }
+  const lines = ["## 役割ごとに判定できる手法（この組み合わせだけが採用される）"];
+  for (const [role, ids] of byRole)
+    if (ids.size > 0) lines.push(`- ${role}：${[...ids].sort().join("、")}`);
   return lines.join("\n");
 }
 
 export function buildAttackerSystem(
   attack: AttackData,
-  options: { labels?: LabelsFile; templates?: Template[] } = {},
+  options: { labels?: LabelsFile; templates?: Template[]; rules?: Rule[] } = {},
 ): Anthropic.TextBlockParam[] {
   const blocks: Anthropic.TextBlockParam[] = [{ type: "text", text: ATTACKER_RULES_JA }];
   if (options.templates && options.templates.length > 0)
     blocks.push({ type: "text", text: renderKnownTemplates(options.templates) });
+  if (options.rules && options.rules.length > 0)
+    blocks.push({
+      type: "text",
+      text: renderEvaluableTechniques(options.rules, options.templates ?? []),
+    });
   blocks.push({
     type: "text",
     text: renderReconTechniques(attack, options.labels),
@@ -156,6 +190,8 @@ export type ReconOptions = LlmOptions & {
   attack: AttackData;
   labels?: LabelsFile;
   templates?: Template[];
+  /** 判定ルール表（役割ごとに判定できる手法の表を渡すため。中身の条件は渡さない） */
+  rules?: Rule[];
   /** カルテ由来の追加の禁止語（社名、製品名など。抽象化で落ちているはずだが二重に検査する） */
   extraBannedTerms?: string[];
   maxPaths?: number;
@@ -226,6 +262,7 @@ export async function reconnoiter(
       system: buildAttackerSystem(options.attack, {
         ...(options.labels ? { labels: options.labels } : {}),
         ...(options.templates ? { templates: options.templates } : {}),
+        ...(options.rules ? { rules: options.rules } : {}),
       }),
       user,
       schema: aiPathsJsonSchema,

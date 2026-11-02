@@ -223,13 +223,23 @@ describe("reconnoiter（偽のクライアント）", () => {
       attack: k.attack,
       labels: k.labels,
       templates: k.templates,
+      rules: k.rules,
       extraBannedTerms: profileBannedTerms(profile),
     });
     expect(r.candidates.length).toBe(1);
     expect(r.discarded.length).toBe(1);
     expect(r.discarded[0]?.stage).toBe("safety");
     expect(r.model).toBe("fake-model");
-    const req = captured as { messages: { content: string }[]; tools?: unknown };
+    const req = captured as {
+      messages: { content: string }[];
+      system: { text: string }[];
+      tools?: unknown;
+    };
+    const system = req.system.map((b) => b.text).join("\n");
+    expect(system).toContain("entry.vendor_remote：T1133、T1199");
+    expect(system).toContain("core：T1486");
+    expect(system).toContain("入口 entry.vpn");
+    expect(system).not.toContain("入口 entry.vendor_remote");
     expect(req.tools).toBeUndefined();
     expect(req.messages[0]?.content).toContain("<profile>");
     expect(req.messages[0]?.content).not.toContain("Fortinet");
