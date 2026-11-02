@@ -19,7 +19,7 @@ expected:
   steps:
     - label: 流出したパスワードの使い回し
       tactic: TA0043
-      techniques: [T1589.001, T1589, T1110.004]
+      techniques: [T1589.001, T1589]
       source: stated
       quoteHint: パスワード
     - label: 社長のメールに入られる

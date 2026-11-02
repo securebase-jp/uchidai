@@ -11,7 +11,7 @@ stages:
     precondition: true
     byRole:
       cloud.mail_account.exec: T1589.001
-    accepts: [T1589.001, T1589, T1110.004]
+    accepts: [T1589.001, T1589]
   - id: takeover
     labelJa: 社長のメールに入られる
     tactics: [TA0001, TA0003]

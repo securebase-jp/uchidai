@@ -22,7 +22,7 @@ rules:
           all:
             - control: { mitigation: M1032, status: present }
             - attr: { key: mfaMethod, equals: push }
-        reasonJa: 承認ボタンを押すだけの方式は、大量の承認要求（T1621）に弱い
+        reasonJa: 承認ボタンを押すだけの方式は、承認要求を大量に送りつける手口に弱い
       - state: blocked
         when: { control: { mitigation: M1032, status: present } }
         reasonJa: 役員を含む全員に多要素認証が強制されている
