@@ -39,10 +39,13 @@ export function toIsoUtc(value: string): string {
 /** 1 行を正規化する。対象ドメインの外の名前は捨てる */
 export function normalizeRow(row: CrtShRow, domain: string): CtCertificate | undefined {
   const suffix = `.${domain}`;
-  const names = [...new Set([row.common_name, ...row.name_value.split("\n")])]
-    .map((n) => n.trim().toLowerCase())
-    .filter((n) => n.length > 0 && (n === domain || n.endsWith(suffix)))
-    .sort();
+  const names = [
+    ...new Set(
+      [row.common_name, ...row.name_value.split("\n")]
+        .map((n) => n.trim().toLowerCase())
+        .filter((n) => n.length > 0 && (n === domain || n.endsWith(suffix))),
+    ),
+  ].sort();
   if (names.length === 0) return undefined;
   return {
     ...(row.id === undefined ? {} : { id: row.id }),
