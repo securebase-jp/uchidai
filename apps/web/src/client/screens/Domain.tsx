@@ -2,7 +2,7 @@
  * 外部確認：自社のドメインについて、所有確認（DNS の TXT）→ DNS と証明書の公開ログの参照 → カルテへの反映。
  * 手順 1 トークン発行、2 所有確認、3 実行、4 反映。対象ホストにはアクセスしない（公開情報だけ）。
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ReconApplyPanel } from "../components/ReconApplyPanel.tsx";
 import { ReconResultView } from "../components/ReconResultView.tsx";
 import { useApp } from "../hooks/useApp.tsx";
@@ -55,6 +55,8 @@ export function Domain() {
   const [appliedDone, setAppliedDone] = useState(false);
   const [busy, setBusy] = useState<"token" | "verify" | "run" | "apply">();
   const [error, setError] = useState<string>();
+  /** 実行の結果（手順 3 の下）。実行が終わったらここへスクロールする（結果が画面の外に出て気づかないことがある） */
+  const resultRef = useRef<HTMLDivElement>(null);
   const profile = app.profile;
 
   const fail = useCallback(
@@ -130,6 +132,10 @@ export function Domain() {
       const r = await reconApi.run(domain, profile);
       setRun(r);
       setApplied(r.applied);
+      setTimeout(
+        () => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        0,
+      );
       reconHints.save({
         domain: r.domain,
         fixture: r.fixture,
@@ -355,7 +361,9 @@ export function Domain() {
 
       {error && <p className="err">{error}</p>}
 
-      {run && <ReconResultView result={run.result} fixture={run.fixture} />}
+      <div ref={resultRef}>
+        {run && <ReconResultView result={run.result} fixture={run.fixture} />}
+      </div>
 
       {run && (
         <div className="panel">
