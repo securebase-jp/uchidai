@@ -8,14 +8,11 @@
 import {
   AiPathCandidate,
   type AttackPath,
-  applyAnswer,
-  applyMeasures,
   buildGraph,
   Case,
   CompanyProfile,
   type Knowledge,
   loadKnowledge,
-  type MeasureDef,
   terminalRoles,
   Verdict,
 } from "@uchidai/engine";
@@ -36,7 +33,8 @@ import {
 } from "@uchidai/llm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AnswerInput } from "../../shared/api.ts";
+import { Answers, MeasureIds } from "../../shared/api.ts";
+import { patchProfile } from "../profile-patch.ts";
 
 export const attackerRoutes = new Hono();
 
@@ -44,27 +42,13 @@ const ProfileInput = z.object({
   /** true なら Claude を呼ばず記録を再生する（デモモード用。毎回同じ映像にする） */
   replay: z.boolean().optional(),
   profile: CompanyProfile,
-  measureIds: z.array(z.string()).default([]),
-  answers: z.array(AnswerInput).default([]),
+  measureIds: MeasureIds,
+  answers: Answers,
 });
 
 /** 対策ボタンと回答を適用したカルテ（/api/evaluate と同じ手順） */
 function patchedProfile(body: z.infer<typeof ProfileInput>, k: Knowledge) {
-  const measures: MeasureDef[] = body.measureIds
-    .map((id) => k.measures.find((m) => m.id === id))
-    .filter((m): m is MeasureDef => m !== undefined);
-  let profile = applyMeasures(body.profile, measures);
-  for (const a of body.answers) {
-    if (!profile.assets.some((x) => x.id === a.assetId)) continue;
-    const { answeredAt, noteJa, attrs, ...rest } = a;
-    profile = applyAnswer(profile, {
-      ...rest,
-      ...(answeredAt !== undefined ? { answeredAt } : {}),
-      ...(noteJa !== undefined ? { noteJa } : {}),
-      ...(attrs !== undefined ? { attrs } : {}),
-    });
-  }
-  return profile;
+  return patchProfile(body.profile, body.measureIds, body.answers, k).profile;
 }
 
 /** 到達の確かな経路（未確認の段階が少ない順）を先に */

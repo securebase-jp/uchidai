@@ -40,9 +40,16 @@ export type RequestDeps = {
   publicBaseUrl: string;
   /** SSE の keepalive 間隔 */
   keepAliveMs?: number;
+  /** SSE の同時接続の上限（超えたら 503） */
+  maxSubscribers?: number;
+  /** 保存する依頼の件数の上限（超えたら 429） */
+  maxRequests?: number;
   writer?: WriterOptions;
   now?: () => Date;
 };
+
+export const DEFAULT_MAX_SUBSCRIBERS = 32;
+export const DEFAULT_MAX_REQUESTS = 1000;
 
 export const defaultStoreFile = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -77,12 +84,19 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   const publicBaseUrl = deps.publicBaseUrl.replace(/\/+$/, "");
   const now = deps.now ?? (() => new Date());
   const keepAliveMs = deps.keepAliveMs ?? 15_000;
+  const maxSubscribers = deps.maxSubscribers ?? DEFAULT_MAX_SUBSCRIBERS;
+  const maxRequests = deps.maxRequests ?? DEFAULT_MAX_REQUESTS;
   const r = new Hono();
 
   r.get("/", (c) => c.json({ items: store.list().map(toView) }));
 
-  r.get("/events", (c) =>
-    streamSSE(c, async (stream) => {
+  r.get("/events", (c) => {
+    if (store.subscriberCount >= maxSubscribers)
+      return c.json(
+        { error: "回答の待ち受けの接続が多すぎます。他のタブを閉じてから開き直してください" },
+        503,
+      );
+    return streamSSE(c, async (stream) => {
       let open = true;
       const unsub = store.subscribe((ev) => {
         void stream.writeSSE({ event: "answer", data: JSON.stringify(ev), id: ev.requestId });
@@ -96,11 +110,16 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
         await stream.sleep(keepAliveMs);
         if (open) await stream.writeSSE({ event: "ping", data: "" });
       }
-    }),
-  );
+    });
+  });
 
   r.post("/", async (c) => {
     const body = CreateRequest.parse(await c.req.json());
+    if (store.size >= maxRequests)
+      return c.json(
+        { error: `依頼の保存が上限（${maxRequests} 件）に達しました。古い依頼を整理してください` },
+        429,
+      );
     const k = loadKnowledge();
     const asset = body.profile.assets.find((a) => a.id === body.assetId);
     if (!asset) return c.json({ error: `資産 ${body.assetId} がカルテにありません` }, 404);

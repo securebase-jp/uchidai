@@ -6,27 +6,25 @@
  * Claude には役割名と数値だけを渡し、出力は検証して、落ちればテンプレート文のまま返す。
  */
 import {
-  applyAnswer,
-  applyMeasures,
   buildGraph,
   buildOnePager,
   Case,
   CompanyProfile,
   evaluate,
   loadKnowledge,
-  type MeasureDef,
   type OnePager,
 } from "@uchidai/engine";
 import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/llm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { AnswerInput } from "../../shared/api.ts";
+import { Answers, MeasureIds } from "../../shared/api.ts";
+import { patchProfile } from "../profile-patch.ts";
 
 export const OnePagerRequest = z.object({
   case: Case,
   profile: CompanyProfile,
-  measureIds: z.array(z.string()).default([]),
-  answers: z.array(AnswerInput).default([]),
+  measureIds: MeasureIds,
+  answers: Answers,
   /** Claude の言い換えを使うか（キーが無ければ常にテンプレート） */
   rewrite: z.boolean().default(true),
 });
@@ -85,20 +83,7 @@ export const onepagerRoutes = new Hono();
 onepagerRoutes.post("/api/onepager", async (c) => {
   const body = OnePagerRequest.parse(await c.req.json());
   const k = loadKnowledge();
-  const measures: MeasureDef[] = body.measureIds
-    .map((id) => k.measures.find((m) => m.id === id))
-    .filter((m): m is MeasureDef => m !== undefined);
-  let profile = applyMeasures(body.profile, measures);
-  for (const a of body.answers) {
-    if (!profile.assets.some((x) => x.id === a.assetId)) continue;
-    const { answeredAt, noteJa, attrs, ...rest } = a;
-    profile = applyAnswer(profile, {
-      ...rest,
-      ...(answeredAt !== undefined ? { answeredAt } : {}),
-      ...(noteJa !== undefined ? { noteJa } : {}),
-      ...(attrs !== undefined ? { attrs } : {}),
-    });
-  }
+  const { profile, measures } = patchProfile(body.profile, body.measureIds, body.answers, k);
   const graph = buildGraph(profile, k.roles);
   const verdict = evaluate(body.case, profile, { knowledge: k, graph });
   const base = buildOnePager(verdict, profile, k, { caseTitle: body.case.title });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { app } from "./app.ts";
+import { app, corsOrigin } from "./app.ts";
 
 const json = (path: string, body: unknown) =>
   app.request(path, {
@@ -73,6 +73,83 @@ describe("POST /api/case/read", () => {
     } finally {
       if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
     }
+  });
+  it("手元・社内・file: の URL はキーがあっても 400 で止める（Claude も取得も呼ばない）", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-key-not-used";
+    try {
+      for (const url of [
+        "http://localhost:8787/api/requests",
+        "http://127.0.0.1/",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://[::1]/",
+      ]) {
+        const res = await json("/api/case/read", { input: { kind: "url", url } });
+        expect(res.status, url).toBe(400);
+        expect((await loose(res)).error).toContain("受け付けません");
+      }
+      const file = await json("/api/case/read", {
+        input: { kind: "url", url: "file:///etc/hosts" },
+      });
+      expect(file.status).toBe(400);
+    } finally {
+      if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
+  it("本文が長すぎれば 400、JSON でなければ 400", async () => {
+    const res = await json("/api/case/read", {
+      input: { kind: "text", text: "x".repeat(300_001) },
+    });
+    expect(res.status).toBe(400);
+    const bad = await app.request("/api/case/read", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "{not json",
+    });
+    expect(bad.status).toBe(400);
+    expect((await loose(bad)).error).toContain("JSON");
+  });
+});
+
+describe("守り", () => {
+  it("大きすぎる本文は 413", async () => {
+    const res = await app.request("/api/evaluate", {
+      method: "POST",
+      headers: { "content-type": "application/json", "content-length": String(3 * 1024 * 1024) },
+      body: JSON.stringify({ pad: "x".repeat(3 * 1024 * 1024) }),
+    });
+    expect(res.status).toBe(413);
+    expect((await loose(res)).error).toContain("大きすぎ");
+  });
+  it("公開 URL 経由（転送ヘッダつき）では送信箱と判定は 403", async () => {
+    const h = { "cf-connecting-ip": "203.0.113.9" };
+    expect((await app.request("/api/requests", { headers: h })).status).toBe(403);
+    expect((await app.request("/api/knowledge", { headers: h })).status).toBe(403);
+    expect((await app.request("/api/health", { headers: h })).status).toBe(200);
+  });
+  it("CORS は手元の origin と PUBLIC_BASE_URL だけに許す", async () => {
+    const ok = await app.request("/api/health", { headers: { origin: "http://localhost:5173" } });
+    expect(ok.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
+    const ng = await app.request("/api/health", { headers: { origin: "https://evil.example" } });
+    expect(ng.headers.get("access-control-allow-origin")).toBeNull();
+    expect(
+      corsOrigin("https://demo.trycloudflare.com", {
+        PUBLIC_BASE_URL: "https://demo.trycloudflare.com/",
+      }),
+    ).toBe("https://demo.trycloudflare.com");
+    expect(
+      corsOrigin("https://evil.example", { PUBLIC_BASE_URL: "https://demo.trycloudflare.com" }),
+    ).toBeNull();
+  });
+  it("対策 ID と回答の数に上限がある", async () => {
+    const { theCase, profile } = await demoFixture();
+    const res = await json("/api/evaluate", {
+      case: theCase,
+      profile,
+      measureIds: Array.from({ length: 51 }, (_, i) => `m${i}`),
+    });
+    expect(res.status).toBe(400);
   });
 });
 

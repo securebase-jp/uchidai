@@ -173,6 +173,31 @@ describe("GET /api/requests/events（SSE）", () => {
   });
 });
 
+describe("上限", () => {
+  it("SSE の同時接続が上限に達すると 503", async () => {
+    const { app } = build({ maxSubscribers: 1 });
+    const ctrl = new AbortController();
+    const first = await app.request("/api/requests/events", { signal: ctrl.signal });
+    expect(first.status).toBe(200);
+    const reader = (first.body as ReadableStream<Uint8Array>).getReader();
+    await reader.read();
+    const second = await app.request("/api/requests/events");
+    expect(second.status).toBe(503);
+    expect(((await second.json()) as { error: string }).error).toContain("接続");
+    ctrl.abort();
+    await reader.cancel().catch(() => {});
+  });
+  it("依頼の件数が上限に達すると 429", async () => {
+    const { post } = build({ maxRequests: 1 });
+    expect(
+      (await post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" })).status,
+    ).toBe(201);
+    const res = await post("/api/requests", { profile, assetId: "vpn", mitigation: "M1051" });
+    expect(res.status).toBe(429);
+    expect(((await res.json()) as { error: string }).error).toContain("上限");
+  });
+});
+
 describe("POST /api/requests/measure-draft", () => {
   it("対策依頼文の下書きを返す（保存しない）", async () => {
     const { app, post } = build();
