@@ -5,6 +5,7 @@
 import { useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
 import { useRequests } from "../hooks/useRequests.tsx";
+import { hostStatusLines } from "../lib/hostStatus.ts";
 import { EVIDENCE_LABEL } from "../lib/labels.ts";
 import type { PendingItem } from "../lib/pending.ts";
 import {
@@ -135,6 +136,12 @@ function AssetCard(p: CardProps) {
         <h3>{asset.label}</h3>
         <span className="role">{p.roleLabel}</span>
       </div>
+      {hostStatusLines(asset, p.now).map((l) => (
+        <p key={l.labelJa} className="small" style={{ margin: "2px 0 4px" }}>
+          <span className={`st ${l.tone}`}>{l.labelJa}</span>
+          {l.detailJa && <span className="muted">　{l.detailJa}</span>}
+        </p>
+      ))}
       {PRODUCT_ROLES.has(asset.role) && (
         <div className="fields" style={{ marginBottom: 6 }}>
           <label className="f">
