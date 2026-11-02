@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    name: 型検査・Lint・テスト・評価
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - name: 評価（記録データ、API キー不要）
+        run: pnpm eval
+      - name: 評価結果を保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: eval/results/*.json
+
+  secrets:
+    name: 秘密情報の検出（gitleaks）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
