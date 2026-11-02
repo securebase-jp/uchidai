@@ -23,7 +23,7 @@
   --plane-edge: rgba(100, 190, 255, 0.32);
   --ink: #e9eef7;
   --ink-2: #93a3bc;
-  --ink-3: #5b6b84;
+  --ink-3: #7a8aa3;
   --cyan: #56d6f2;
   --cash: #40dd9a;
   --red: #ff3a4f;
@@ -33,7 +33,7 @@
   --violet: #c792ff;
   --term: #000;
   --term-ink: #cbd6e3;
-  --term-dim: #5e6d83;
+  --term-dim: #7f8fa8;
   --btn: rgba(12, 22, 36, 0.85);
   --focus: #7cc4ff;
   color-scheme: dark;
@@ -51,17 +51,17 @@
   --plane-edge: rgba(40, 110, 190, 0.35);
   --ink: #13203a;
   --ink-2: #51617b;
-  --ink-3: #7c8aa3;
+  --ink-3: #596882;
   --cyan: #177fa6;
-  --cash: #148a5a;
+  --cash: #0f6e47;
   --red: #c91a36;
-  --amber: #b27500;
-  --green: #148a5a;
+  --amber: #8a5a00;
+  --green: #0f6e47;
   --steel: #2a68c4;
   --violet: #7a3fc9;
   --term: #0f1622;
   --term-ink: #cbd6e3;
-  --term-dim: #6f7f96;
+  --term-dim: #7f8fa8;
   --btn: rgba(255, 255, 255, 0.85);
   --focus: #2a68c4;
   color-scheme: light;
@@ -594,7 +594,7 @@ p {
   fill: var(--ink-2);
 }
 .node .tid {
-  font: 700 11px var(--mono);
+  font: 700 12px var(--mono);
   fill: var(--ink-3);
 }
 .node .est {

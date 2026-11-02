@@ -8,7 +8,7 @@ import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
 import { useAiAttacker } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
-import { useRequests } from "../hooks/useRequests.ts";
+import { useRequests } from "../hooks/useRequests.tsx";
 import type { SlotProps } from "./slots.tsx";
 
 /** AI攻撃者：場面に入ったら記録した下見の出力を再生し（毎回同じ映像にする）、過程と結果を表示 */
@@ -52,14 +52,19 @@ export function ComparisonSlot(_props: SlotProps) {
   );
 }
 
-/** ベンダーへの確認：場面に入ったら管理者権限（M1026）の確認依頼を 1 件作って送信箱に出す。回答は絵コンテの answers 操作で入る */
+/**
+ * ベンダーへの確認：場面に入ったら管理者権限（M1026）の確認依頼を 1 件作って送信箱に出す。回答は絵コンテの answers 操作で入る。
+ * 前回の実演で回答済みになった依頼は数えない（毎回「回答待ち」の依頼が 1 件できる）
+ */
 export function RequestSlot(_props: SlotProps) {
   const app = useApp();
   const req = useRequests();
   const started = useRef(false);
   useEffect(() => {
     if (started.current || !app.profile || req.busyKey) return;
-    const open = req.items.some((r) => r.assetId === "admin" && r.mitigation === "M1026");
+    const open = req.items.some(
+      (r) => r.assetId === "admin" && r.mitigation === "M1026" && !r.answer,
+    );
     if (open) return;
     started.current = true;
     void req.create("admin", "M1026");

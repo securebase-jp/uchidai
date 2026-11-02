@@ -1,10 +1,21 @@
 /**
- * 確認依頼の状態：送信箱の一覧と SSE の購読。
+ * 確認依頼の状態：送信箱の一覧と SSE の購読（アプリ全体で 1 本）。
  * 回答が届いたら useApp の answers に加え、/api/evaluate が再実行される（黄 → 赤に変わり、再生が巻き戻る）。
  * 画面を開き直しても回答が消えないよう、起動時に回答済みの依頼を同じカルテのぶんだけ適用する。
+ * デモモード（?demo=1）では前回の実演の回答を再適用しない（毎回同じ映像にする）。
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { AnswerEvent, RequestView } from "../../shared/requests.ts";
+import { isDemoMode } from "../demo/params.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
 import { useApp } from "./useApp.tsx";
 
@@ -19,7 +30,9 @@ export type RequestsState = {
   refresh(): Promise<void>;
 };
 
-export function useRequests(): RequestsState {
+const Ctx = createContext<RequestsState | undefined>(undefined);
+
+export function RequestsProvider({ children }: { children: ReactNode }) {
   const app = useApp();
   const { profile, addAnswer } = app;
   const [items, setItems] = useState<RequestView[]>([]);
@@ -28,7 +41,9 @@ export function useRequests(): RequestsState {
   const [error, setError] = useState<string>();
   const [lastAnswer, setLastAnswer] = useState<AnswerEvent>();
   const applied = useRef(new Set<string>());
+  const appliedFor = useRef<string | undefined>(undefined);
   const profileId = profile?.id;
+  const replayOld = !isDemoMode();
 
   const refresh = useCallback(async () => {
     try {
@@ -40,15 +55,20 @@ export function useRequests(): RequestsState {
     }
   }, []);
 
-  // 回答済みの依頼（同じカルテ）を一度だけ適用する
+  // 回答済みの依頼（同じカルテ）を一度だけ適用する（デモモードでは前回の回答を引きずらない）。
+  // カルテが入れ替わったら（useApp.setProfile が answers を空にする）、適用済みの記録も忘れる
   useEffect(() => {
-    if (!profileId) return;
+    if (appliedFor.current !== profileId) {
+      appliedFor.current = profileId;
+      applied.current = new Set();
+    }
+    if (!profileId || !replayOld) return;
     for (const it of items) {
       if (!it.answer || it.profileId !== profileId || applied.current.has(it.id)) continue;
       applied.current.add(it.id);
       addAnswer(it.answer.input);
     }
-  }, [items, profileId, addAnswer]);
+  }, [items, profileId, addAnswer, replayOld]);
 
   useEffect(() => {
     void refresh();
@@ -86,5 +106,15 @@ export function useRequests(): RequestsState {
     [profile],
   );
 
-  return { items, live, busyKey, error, lastAnswer, create, refresh };
+  const value = useMemo<RequestsState>(
+    () => ({ items, live, busyKey, error, lastAnswer, create, refresh }),
+    [items, live, busyKey, error, lastAnswer, create, refresh],
+  );
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
+
+export function useRequests(): RequestsState {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("RequestsProvider の外で useRequests が呼ばれた");
+  return v;
 }

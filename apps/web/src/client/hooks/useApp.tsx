@@ -165,7 +165,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
   const clearMeasures = useCallback(() => setMeasureIds([]), []);
-  const addAnswer = useCallback((a: AnswerInput) => setAnswers((xs) => [...xs, a]), []);
+  // 同じ資産・同じ緩和策への回答は、後から来たものが前のものを置き換える（二重適用しない）
+  const addAnswer = useCallback(
+    (a: AnswerInput) =>
+      setAnswers((xs) => [
+        ...xs.filter((x) => !(x.assetId === a.assetId && x.mitigation === a.mitigation)),
+        a,
+      ]),
+    [],
+  );
   const clearAnswers = useCallback(() => setAnswers([]), []);
 
   const value = useMemo<AppState>(
