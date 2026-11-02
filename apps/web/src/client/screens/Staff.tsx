@@ -17,6 +17,7 @@ import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
+import { pendingCount } from "../lib/profile.ts";
 import { timelineOf } from "../lib/timeline.ts";
 
 export function Legend() {
@@ -101,8 +102,22 @@ export function Staff({ settings }: { settings: Settings }) {
   const measureLabel = (m: string) =>
     knowledge.labels.mitigations[m] ?? knowledge.labels.custom[m]?.labelJa ?? m;
 
+  // 5問から作った（または詳細が未登録の）自社のカルテ：未確認の件数とカルテ画面への案内（P1）
+  const pending = profile.fictional ? 0 : pendingCount(profile);
+
   return (
     <div>
+      {pending > 0 && (
+        <div className="panel warn" style={{ marginBottom: 10 }}>
+          <p className="small">
+            <b>未確認の項目が {pending} 件あります。</b>
+            未確認は「止まる」とは扱わないので、結論が「確認中」のままになることがあります。詳細を登録すると判定が確定します。
+            <a className="btn sm" href="#/profile" style={{ marginLeft: 10 }}>
+              カルテに詳細を登録する
+            </a>
+          </p>
+        </div>
+      )}
       <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <p className="muted">{caseMeta?.sourceJa}</p>

@@ -1,5 +1,5 @@
 /** API クライアント。Claude API のキーはサーバにしかない */
-import type { AnswerInput, CaseInput, Question } from "../../shared/api.ts";
+import type { AnswerInput, CaseInput, ControlQuestion, Question } from "../../shared/api.ts";
 import type {
   Case,
   CompanyProfile,
@@ -18,6 +18,8 @@ export type KnowledgeView = {
   labels: LabelsFile;
   measures: MeasureDef[];
   questions: Question[];
+  /** 緩和策 ID ごとの確認の質問表（カルテ画面の「自分で答える」と確認依頼で同じもの） */
+  controlQuestions: ControlQuestion[];
   patterns: Pattern[];
   roles: RoleDef[];
   templates: {

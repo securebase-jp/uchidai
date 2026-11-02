@@ -10,6 +10,7 @@ import { Answer } from "./screens/Answer.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
 import { OnePager } from "./screens/OnePager.tsx";
+import { Profile } from "./screens/Profile.tsx";
 import { Questions } from "./screens/Questions.tsx";
 import { Staff } from "./screens/Staff.tsx";
 
@@ -28,6 +29,7 @@ function Shell({ settings }: { settings: Settings }) {
       />
       {route === "home" && <Home />}
       {route === "questions" && <Questions reduced={settings.reduced} />}
+      {route === "profile" && <Profile />}
       {route === "staff" && <Staff settings={settings} />}
       {route === "exec" && <Exec settings={settings} />}
       {route === "onepager" && <OnePager />}

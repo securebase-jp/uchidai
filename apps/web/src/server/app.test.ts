@@ -41,6 +41,21 @@ describe("GET /api/knowledge", () => {
     expect(hosting.options[0]).toEqual({ value: "onprem", labelJa: "社内のサーバ" });
     expect(body.patterns.length).toBe(3);
   });
+  it("緩和策ごとの確認の質問表（controlQuestions）を選択肢と属性つきで返す", async () => {
+    const body = await loose(app.request("/api/knowledge"));
+    const ids = body.controlQuestions.map((q: { mitigation: string }) => q.mitigation);
+    expect(ids).toEqual(expect.arrayContaining(["M1051", "M1053", "M1040", "UD-01"]));
+    const backup = body.controlQuestions.find(
+      (q: { mitigation: string }) => q.mitigation === "M1053",
+    );
+    expect(backup.textJa.length).toBeGreaterThan(5);
+    const tested = backup.choices.find((c: { id: string }) => c.id === "isolated_tested");
+    expect(tested).toMatchObject({
+      status: "present",
+      attrs: { isolated: true, restoreTested: true },
+    });
+    expect(backup.choices.at(-1)).toMatchObject({ id: "unknown", status: "unknown" });
+  });
 });
 
 describe("記録済みの事例と架空企業", () => {
