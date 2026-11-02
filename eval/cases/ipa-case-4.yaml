@@ -4,20 +4,41 @@ status: draft
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+  # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
+  pages: "30"
   summary: >-
-    取引先を装ったメールから始まる事例。被害の型（なりすまし送金かマルウェア感染か）と手法IDは開発者が本文を確認して確定する。
+    金融・保険業（20名）。従業員が取引先を装ったメールの添付ファイルを開いて端末がマルウェアに感染し、
+    社内ネットワークに広がって基幹システムが停止、顧客（契約者）の情報が外部へ流出した。
+    2026-11-02 S1：本文を確認し、送金詐欺（BEC）ではなくマルウェア感染だったので damageType を data_breach に、
+    なりすまし（TA0005）の段階を外し、実行・横展開・持ち出し・業務停止の段階を追加した。
+    マルウェアの種類と横展開の手法は本文に無いので、認める ID を広めにとっている。
 expected:
-  damageType: bec
-  clarity: partial
+  damageType: data_breach
+  clarity: clear
   usedInDemo: false
   steps:
-    - label: 取引先を装うメール
+    - label: 取引先を装うメールの添付ファイル
       tactic: TA0001
-      techniques: [T1566.001, T1566.002, T1566]
+      techniques: [T1566.001, T1566]
       source: stated
-      quoteHint: メール
-    - label: 取引先へのなりすまし
-      tactic: TA0005
-      techniques: [T1684.001, T1656]
+      quoteHint: 添付ファイル
+    - label: 従業員が添付ファイルを開く
+      tactic: TA0002
+      techniques: [T1204.002, T1204]
       source: stated
-      quoteHint: 装
+      quoteHint: 開き
+    - label: 社内ネットワークへ広がる
+      tactic: TA0008
+      techniques: [T1021, T1570, T1080, T1210]
+      source: stated
+      quoteHint: 広がった
+    - label: 顧客情報の持ち出し
+      tactic: TA0010
+      techniques: [T1041, T1048, T1567, T1020]
+      source: stated
+      quoteHint: 流出
+    - label: 基幹システムの停止
+      tactic: TA0040
+      techniques: [T1489, T1499, T1486, T1529]
+      source: stated
+      quoteHint: 停止

@@ -5,11 +5,13 @@
   "type": "module",
   "description": "専門家の正解データに対する読解・判定の一致度を採点する",
   "scripts": {
-    "eval": "node --disable-warning=ExperimentalWarning src/run.ts",
+    "eval": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/run.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@uchidai/engine": "workspace:*",
+    "@uchidai/llm": "workspace:*",
     "yaml": "^2.8.0",
     "zod": "^4.1.0"
   },

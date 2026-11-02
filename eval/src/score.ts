@@ -39,14 +39,26 @@ function techniqueMatch(gold: GoldStep, actual: CaseStep): number {
   return 0.5; // 戦術は一致している
 }
 
-/** 正解の段階を順に辿り、同じ戦術の未使用の出力段階を割り当てる */
+/**
+ * 正解の段階を順に辿り、同じ戦術の未使用の出力段階を割り当てる。
+ * 同じ戦術の候補が複数あるときは、手法が一致するもの → 親手法が一致するもの → 先頭 の順に選ぶ
+ * （出力の並び順の違いで、バックアップ破壊と暗号化のような同一戦術の段階が入れ違いに採点されないようにする）
+ */
 export function matchSteps(gold: GoldStep[], actual: CaseStep[]): (CaseStep | undefined)[] {
   const used = new Set<number>();
   return gold.map((g) => {
-    const idx = actual.findIndex((a, i) => !used.has(i) && a.tactic === g.tactic);
-    if (idx < 0) return undefined;
-    used.add(idx);
-    return actual[idx];
+    const candidates = actual
+      .map((a, i) => ({ a, i }))
+      .filter(({ a, i }) => !used.has(i) && a.tactic === g.tactic);
+    if (candidates.length === 0) return undefined;
+    const best =
+      candidates.reduce<{ a: CaseStep; i: number; score: number } | undefined>((acc, c) => {
+        const score = techniqueMatch(g, c.a);
+        return acc === undefined || score > acc.score ? { ...c, score } : acc;
+      }, undefined) ?? candidates[0];
+    if (!best) return undefined;
+    used.add(best.i);
+    return best.a;
   });
 }
 
