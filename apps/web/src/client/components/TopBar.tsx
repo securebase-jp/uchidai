@@ -13,6 +13,7 @@ type Props = {
 
 const NAV: [Route, string][] = [
   ["home", "はじめに"],
+  ["domain", "外部確認"],
   ["questions", "最初の5問"],
   ["staff", "担当者画面"],
   ["exec", "社長画面"],

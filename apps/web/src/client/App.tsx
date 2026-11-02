@@ -7,6 +7,7 @@ import { RequestsProvider } from "./hooks/useRequests.tsx";
 import { answerToken, useRoute } from "./hooks/useRoute.ts";
 import { type Settings, useSettings } from "./hooks/useSettings.ts";
 import { Answer } from "./screens/Answer.tsx";
+import { Domain } from "./screens/Domain.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
 import { OnePager } from "./screens/OnePager.tsx";
@@ -27,6 +28,7 @@ function Shell({ settings }: { settings: Settings }) {
         onToggleTheme={settings.toggleTheme}
       />
       {route === "home" && <Home />}
+      {route === "domain" && <Domain />}
       {route === "questions" && <Questions reduced={settings.reduced} />}
       {route === "staff" && <Staff settings={settings} />}
       {route === "exec" && <Exec settings={settings} />}

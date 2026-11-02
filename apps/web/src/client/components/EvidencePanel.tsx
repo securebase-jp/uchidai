@@ -1,5 +1,7 @@
 /** 担当者向けの根拠：手法 ID、緩和策 ID、根拠の種類、記事中の根拠文、矛盾、未確認の一覧 */
+import { useMemo } from "react";
 import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
+import { reconHints } from "../lib/reconHints.ts";
 import type { Case, CompanyProfile, LabelsFile, Verdict } from "../lib/types.ts";
 
 type Props = {
@@ -13,6 +15,13 @@ type Props = {
 export function EvidencePanel({ verdict, theCase, profile, labels, graph }: Props) {
   const nodeLabel = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
   const mit = (id: string) => labels.mitigations[id] ?? labels.custom[id]?.labelJa ?? "";
+  // 外部確認（#/domain）で見つかった矛盾。反映したカルテの id と一致するものだけ。判定（engine）の矛盾と同じ欄に出す
+  const external = useMemo(() => {
+    const h = reconHints.load()?.contradictions;
+    return h && h.profileId === profile.id ? h : undefined;
+  }, [profile.id]);
+  const engineMessages = new Set(verdict.contradictions.map((c) => c.messageJa));
+  const externalOnly = (external?.items ?? []).filter((c) => !engineMessages.has(c.messageJa));
   const pending = profile.assets.flatMap((a) =>
     a.controls
       .filter((c) => c.status === "unknown")
@@ -115,15 +124,29 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph }: Prop
       <div className="grid-2">
         <div className="panel">
           <h2>矛盾（外部確認と登録内容の食い違い）</h2>
-          {verdict.contradictions.length === 0 ? (
+          {verdict.contradictions.length === 0 && externalOnly.length === 0 ? (
             <p className="muted">なし</p>
           ) : (
-            verdict.contradictions.map((c) => (
-              <p key={`${c.assetId}-${c.messageJa}`} className="small">
-                <b>{nodeLabel(c.assetId)}</b>：{c.messageJa}（外部：{c.external}／登録：
-                {c.registered}）
-              </p>
-            ))
+            <>
+              {verdict.contradictions.map((c) => (
+                <p key={`${c.assetId}-${c.messageJa}`} className="small">
+                  <span className="chip">判定</span> <b>{nodeLabel(c.assetId)}</b>：{c.messageJa}
+                  （外部：{c.external}／登録：{c.registered}）
+                </p>
+              ))}
+              {externalOnly.map((c) => (
+                <p key={`ext-${c.assetId}-${c.messageJa}`} className="small">
+                  <span
+                    className="chip"
+                    title={`外部確認の結果を反映した日時：${external?.appliedAt ?? ""}`}
+                  >
+                    外部確認
+                  </span>{" "}
+                  <b>{nodeLabel(c.assetId)}</b>：{c.messageJa}（外部：{c.external}／登録：
+                  {c.registered}）
+                </p>
+              ))}
+            </>
           )}
         </div>
         <div className="panel">
