@@ -3,6 +3,7 @@ export * from "./classify.ts";
 export * from "./evaluate.ts";
 export * from "./graph.ts";
 export * from "./impact.ts";
+export * from "./kev.ts";
 export * from "./knowledge.ts";
 export * from "./measures.ts";
 export * from "./onepager.ts";
