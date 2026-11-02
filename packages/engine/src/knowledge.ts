@@ -169,11 +169,29 @@ export const QuestionsFile = z.object({
   questions: z.array(z.looseObject({ id: z.string(), textJa: z.string() })),
 });
 
+export const EntryCandidate = z.object({
+  role: Role,
+  labelJa: z.string(),
+  technique: TechniqueId,
+  /** 出典の統計での件数（区分がなく件数が公表されていない候補は省略） */
+  stat: z
+    .object({
+      categoryJa: z.string(),
+      count: z.number().int().nonnegative(),
+      total: z.number().int().positive(),
+    })
+    .optional(),
+  noteJa: z.string().optional(),
+});
 export const EntryCandidates = z.object({
   sourceJa: z.string(),
   sourceUrl: z.string(),
-  candidates: z.array(z.object({ role: Role, labelJa: z.string(), technique: TechniqueId })),
+  mirrorUrl: z.string().optional(),
+  surveyJa: z.string().optional(),
+  fiveYear: z.record(z.string(), z.number()).optional(),
+  candidates: z.array(EntryCandidate).min(1),
 });
+export type EntryCandidate = z.infer<typeof EntryCandidate>;
 export type EntryCandidates = z.infer<typeof EntryCandidates>;
 
 // ---------------------------------------------------------------------------
@@ -319,7 +337,30 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   const ruleIds = rules.map((r) => r.id);
   for (const id of ruleIds.filter((id, i) => ruleIds.indexOf(id) !== i))
     problems.push(`rules: ${id} が重複`);
+  const hasRule = (role: string, tech: string | null) =>
+    rules.some(
+      (r) =>
+        r.role === role &&
+        (r.techniques.length === 0 ||
+          (tech !== null &&
+            (r.techniques.includes(tech) ||
+              r.techniques.some((t) => (t.split(".")[0] ?? t) === (tech.split(".")[0] ?? tech))))),
+    );
+  // 型紙の全段階（役割 × 典型手法）に判定ルールがあること
+  for (const t of templates)
+    for (const s of t.stages)
+      for (const [role, tech] of Object.entries(s.byRole))
+        if (!hasRule(role, tech))
+          problems.push(
+            `rules: 型紙 ${t.id} の段階 ${s.id}（${role} × ${tech ?? "手法なし"}）に判定ルールがない`,
+          );
   for (const r of rules) {
+    const last = r.outcomes[r.outcomes.length - 1];
+    if (last?.when) problems.push(`rules/${r.id}: 最後の outcome は条件なし（既定値）にする`);
+    if (r.outcomes.some((o) => o.state === "blocked" && !o.when))
+      problems.push(
+        `rules/${r.id}: 条件なしで blocked にしてはいけない（未確認は止まる扱いにしない）`,
+      );
     if (!isKnownRole(r.role, roles))
       problems.push(`rules/${r.id}: 役割 ${r.role} は roles.yaml にない`);
     for (const tech of r.techniques)
@@ -359,6 +400,12 @@ export function checkKnowledge(profilePaths: string[]): string[] {
       problems.push(`entry-candidates: 役割 ${c.role} は roles.yaml にない`);
     if (!knownTechnique(c.technique))
       problems.push(`entry-candidates: 手法 ${c.technique} は ATT&CK にない`);
+    if (!hasRule(c.role, c.technique))
+      problems.push(`rules: 入口候補（${c.role} × ${c.technique}）に判定ルールがない`);
+    if (c.stat && c.stat.count > c.stat.total)
+      problems.push(
+        `entry-candidates: ${c.role} の件数 ${c.stat.count} が有効回答 ${c.stat.total} を超える`,
+      );
   }
   collect("questions", () => QuestionsFile.parse(readYaml("questions.yaml")));
 
