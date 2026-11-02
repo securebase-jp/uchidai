@@ -26,6 +26,8 @@ const NETWORK_LINKS: [Role, Role][] = [
   ["attacker", "pc"],
   ["attacker", "cloud.mail_account.exec"],
   ["attacker", "cloud.storage"],
+  // 取引先を装う偽の請求メールは、アカウントの乗っ取りなしに経理担当へ直接届く（型紙 bec-invoice）
+  ["attacker", "person.accounting"],
   ["entry.vpn", "pc"],
   ["entry.vpn", "admin"],
   ["entry.vpn", "server"],
