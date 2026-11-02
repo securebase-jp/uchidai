@@ -1,0 +1,23 @@
+{
+  "name": "@uchidai/recon",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "外部確認：所有確認した自社ドメインについて、DNS の公開レコードと証明書の公開ログ（CT）だけを参照し、VPN 用と推定されるホスト名、SPF/DMARC、提供元の手がかりを得る。対象ホストへは一切アクセスしない",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@uchidai/engine": "workspace:*",
+    "undici": "^8.12.3",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "vitest": "^5.0.5"
+  }
+}
