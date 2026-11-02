@@ -13,6 +13,7 @@ import {
   evaluate,
   loadKnowledge,
   type MeasureDef,
+  measureCost,
   ProfileAnswers,
   profileFromAnswers,
   repoRoot,
@@ -211,5 +212,11 @@ app.post("/api/evaluate", async (c) => {
   }
   const graph = buildGraph(profile, k.roles);
   const verdict = evaluate(body.case, profile, { knowledge: k, graph });
-  return c.json({ graph, verdict, measures, profile });
+  const measureCosts = Object.fromEntries(
+    k.measures.map((m) => {
+      const { costJa, costSourceJa } = measureCost(m, profile, k);
+      return [m.id, { costJa, ...(costSourceJa ? { costSourceJa } : {}) }];
+    }),
+  );
+  return c.json({ graph, verdict, measures, profile, measureCosts });
 });

@@ -27,6 +27,8 @@ export type KnowledgeView = {
   }[];
 };
 export type Evaluation = {
+  /** 対策 ID → 費用の目安（knowledge/costs.yaml とカルテの人数から） */
+  measureCosts?: Record<string, { costJa: string; costSourceJa?: string }>;
   graph: Graph;
   verdict: Verdict;
   measures: MeasureDef[];

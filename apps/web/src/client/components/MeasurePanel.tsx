@@ -9,6 +9,8 @@ type Props = {
   onClear(): void;
   plain?: boolean;
   disabled?: boolean;
+  /** 対策 ID → 費用の目安（/api/evaluate の measureCosts） */
+  costs?: Record<string, { costJa: string; costSourceJa?: string }> | undefined;
 };
 
 export type MeasureEffect = {
@@ -61,6 +63,7 @@ export function MeasurePanel({
   onClear,
   plain = false,
   disabled = false,
+  costs: verdictCosts,
 }: Props) {
   return (
     <div className="panel">
@@ -77,18 +80,14 @@ export function MeasurePanel({
               aria-pressed={on}
               disabled={disabled}
               onClick={() => onToggle(m.id)}
-              title={m.costSourceJa ?? ""}
+              title={verdictCosts?.[m.id]?.costSourceJa ?? m.costSourceJa ?? ""}
             >
               <span>{m.labelJa}</span>
               {!plain && (
                 <span className="sub">
                   {m.mitigation}
                   {m.requestToJa ? `　依頼先：${m.requestToJa}` : ""}
-                  {m.costJpyPerDevicePerYear
-                    ? `　${m.costJpyPerDevicePerYear.toLocaleString("ja-JP")}円／台／年`
-                    : m.costJpy
-                      ? `　約${m.costJpy.toLocaleString("ja-JP")}円`
-                      : "　費用：見積もり待ち"}
+                  {`　費用：${verdictCosts?.[m.id]?.costJa ?? "ベンダーの見積もり待ち"}`}
                 </span>
               )}
               {fx.textJa && <span className={`fx ${FX_CLASS[fx.kind]}`}>{fx.textJa}</span>}

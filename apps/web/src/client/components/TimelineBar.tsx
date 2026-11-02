@@ -56,9 +56,9 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
     <div className="timeline panel">
       <h2>
         時間軸（Day 0 から）
-        {view.provisional && (
+        {view.events.length === 0 && (
           <span className="chip" style={{ marginLeft: 8 }}>
-            仮の時間軸：経営の層（S4）が確定するまでの目安
+            この経路では業務への影響と期限は発生しません
           </span>
         )}
       </h2>

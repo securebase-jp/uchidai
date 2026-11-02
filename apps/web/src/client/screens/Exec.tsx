@@ -115,6 +115,7 @@ export function Exec({ settings }: { settings: Settings }) {
           measures={plainMeasures}
           selected={measureIds}
           verdict={evaluation?.verdict}
+          costs={evaluation?.measureCosts}
           onToggle={app.toggleMeasure}
           onClear={app.clearMeasures}
           plain

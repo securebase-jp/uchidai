@@ -138,7 +138,8 @@ export function effectiveMeasures(
   return out;
 }
 
-function costOf(
+/** 対策の費用の目安（knowledge/costs.yaml と カルテの人数から）。画面の対策ボタンでも使う */
+export function measureCost(
   m: MeasureDef,
   profile: CompanyProfile,
   knowledge: Knowledge,
@@ -240,7 +241,7 @@ export function buildOnePager(
       labelJa: m.labelJa,
       ...(stageJa ? { stageJa } : {}),
       ...(m.requestToJa ? { requestToJa: m.requestToJa } : {}),
-      ...costOf(m, profile, knowledge),
+      ...measureCost(m, profile, knowledge),
     }),
   );
 

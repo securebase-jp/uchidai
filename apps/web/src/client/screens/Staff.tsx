@@ -159,6 +159,7 @@ export function Staff({ settings }: { settings: Settings }) {
               measures={knowledge.measures}
               selected={measureIds}
               verdict={evaluation?.verdict}
+              costs={evaluation?.measureCosts}
               onToggle={app.toggleMeasure}
               onClear={app.clearMeasures}
               disabled={busy}
