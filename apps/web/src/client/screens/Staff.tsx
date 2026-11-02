@@ -6,6 +6,7 @@ import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { EvidencePanel } from "../components/EvidencePanel.tsx";
+import { IndustrySwitch } from "../components/IndustrySwitch.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
@@ -238,6 +239,9 @@ export function Staff({ settings }: { settings: Settings }) {
               onClear={app.clearMeasures}
               disabled={busy}
             />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <IndustrySwitch />
           </div>
           <div style={{ marginTop: 12 }}>
             <AiAttackerPanel

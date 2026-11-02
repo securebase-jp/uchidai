@@ -962,6 +962,46 @@ table.evidence code {
   border-color: var(--amber);
 }
 
+/* 業種を切り替えて同じ攻撃を見る一場面 */
+.industry-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 10px;
+}
+.industry-card {
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.industry-card.picked {
+  border-color: var(--steel);
+  box-shadow: 0 0 0 1px var(--steel);
+}
+.industry-card h3 {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.industry-card .result {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 4px 0 6px;
+}
+.industry-card.tone-red .result {
+  color: var(--red);
+}
+.industry-card.tone-green .result {
+  color: var(--green);
+}
+.industry-card.tone-amber .result {
+  color: var(--amber);
+}
+.industry-card.tone-cyan .result {
+  color: var(--cyan);
+}
+
 /* 配置 */
 .layout-main {
   display: grid;
