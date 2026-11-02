@@ -23,6 +23,7 @@ import {
 } from "../onepager/OnePagerView.tsx";
 import { useOnePagerParams } from "../onepager/params.ts";
 import { useOnePager } from "../onepager/useOnePager.ts";
+import { usePrintPreview } from "../onepager/usePrintPreview.ts";
 
 const absolute = (hash: string) => `${location.origin}${location.pathname}${hash}`;
 
@@ -34,6 +35,21 @@ async function copyText(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/** 「印刷の見え方を確認」：印刷と同じ規則を画面に当てる（A4 の紙・余白 15mm・白地・改ページの位置） */
+function PrintPreviewToggle({ preview, onToggle }: { preview: boolean; onToggle(): void }) {
+  return (
+    <button
+      type="button"
+      className="btn"
+      aria-pressed={preview}
+      onClick={onToggle}
+      title="印刷（A4 縦・白地・余白 15mm）と同じ体裁で画面に表示します。実際の改ページはブラウザの印刷プレビューで確かめてください"
+    >
+      {preview ? "画面の表示に戻す" : "印刷の見え方を確認"}
+    </button>
+  );
 }
 
 /** API で作る一枚（自分のカルテ、または架空の会社の記録）。共有リンク（d=）で開いた一枚は SharedOnePager */
@@ -48,6 +64,7 @@ export function OnePager() {
   const [manualLink, setManualLink] = useState<string>();
   const manualRef = useRef<HTMLInputElement>(null);
   const canShare = supportsShare();
+  const print = usePrintPreview();
 
   const view = useMemo(() => {
     if (state.status === "ready")
@@ -116,6 +133,7 @@ export function OnePager() {
         <button type="button" className="btn primary" onClick={() => window.print()}>
           PDF で保存（印刷）
         </button>
+        <PrintPreviewToggle preview={print.preview} onToggle={print.toggle} />
         {state.status === "ready" && (
           <>
             <button
@@ -222,6 +240,7 @@ export function SharedOnePager({ d }: { d: string }) {
   const [copied, setCopied] = useState(false);
   const [manualLink, setManualLink] = useState<string>();
   const manualRef = useRef<HTMLInputElement>(null);
+  const print = usePrintPreview();
 
   useEffect(() => {
     let alive = true;
@@ -272,6 +291,7 @@ export function SharedOnePager({ d }: { d: string }) {
         <button type="button" className="btn primary" onClick={() => window.print()}>
           PDF で保存（印刷）
         </button>
+        <PrintPreviewToggle preview={print.preview} onToggle={print.toggle} />
         <button type="button" className="btn" onClick={() => void copyCurrentLink()}>
           {copied ? "コピーしました" : "このリンクをコピー"}
         </button>

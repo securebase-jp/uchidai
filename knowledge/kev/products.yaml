@@ -1,0 +1,497 @@
+# 悪用確認済み脆弱性（CISA KEV）との突き合わせに使う製品の対応表と、版の範囲表。
+#
+# - products[].aliases：担当者の自由入力（表記ゆれ、カタカナ）を製品に当てる別名。正規化（NFKC・小文字・空白とハイフンを除く）して部分一致
+# - products[].kev：KEV カタログの vendorProject（完全一致、大小無視）と product（正規表現）。該当する KEV の CVE をすべて拾う
+# - products[].kevCves：product 名が「Multiple Products」などで拾えない CVE を明示的に足す
+# - products[].versionScheme：版の比較の仕方。dotted（7.0.14、14.1-43.56、22.7R2.5、6.5.4.14-109n など数字と英字の並び）、
+#   r-release（Check Point の R81.10 のように R で始まる。R が無くても受け付ける）
+# - products[].ranges：ベンダーの公表資料（PSIRT）で自分で確認できた、影響を受ける版の範囲。from/to は両端を含む。below は含まない上限。
+#   authBypass は「認証を経ずに悪用できる（多要素認証では止まらない）か」。確認できないときは書かない
+# - products[].unverified：KEV にあるが版の範囲を確認できていない CVE の注記（書かなくても、ranges に無い KEV の CVE は「範囲は未確認」になる）
+#
+# 範囲表に無い CVE が KEV にある限り「該当しない」は「確認した範囲では該当しない」の意味。判定（knownExploited）はプログラムが決める
+checkedAt: "2026-11-03"
+kevCatalogUrl: https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json
+products:
+  - id: fortinet-fortios
+    labelJa: Fortinet FortiOS（FortiGate）
+    aliases:
+      - fortios
+      - fortigate
+      - fortinet
+      - forti os
+      - forti gate
+      - フォーティネット
+      - フォーティゲート
+      - フォーティ
+    kev:
+      - vendorProject: Fortinet
+        productPattern: "FortiOS"
+    kevCves: [CVE-2022-40684, CVE-2024-23113]
+    versionScheme: dotted
+    versionHintJa: "例：7.0.14（FortiOS の版。装置の型番ではなくファームウェアの版）"
+    ranges:
+      - cve: CVE-2024-55591
+        authBypass: true
+        kindJa: 認証回避（Node.js の websocket 経由で管理者権限）
+        affected:
+          - { from: "7.0.0", to: "7.0.16" }
+        fixedJa: 7.0.17 以上
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-24-535
+        checkedAt: "2026-11-03"
+        noteJa: FortiProxy 7.0.0〜7.0.19、7.2.0〜7.2.12 も影響を受けるが、この表は FortiOS の範囲だけ
+      - cve: CVE-2025-24472
+        authBypass: true
+        kindJa: 認証回避（CSF プロキシ要求経由。FG-IR-24-535 で同時に公表）
+        affected:
+          - { from: "7.0.0", to: "7.0.16" }
+        fixedJa: 7.0.17 以上
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-24-535
+        checkedAt: "2026-11-03"
+      - cve: CVE-2024-21762
+        authBypass: true
+        kindJa: SSL-VPN の境界外書き込み（認証前に任意コード実行）
+        affected:
+          - { from: "7.4.0", to: "7.4.2" }
+          - { from: "7.2.0", to: "7.2.6" }
+          - { from: "7.0.0", to: "7.0.13" }
+          - { from: "6.4.0", to: "6.4.14" }
+          - { from: "6.2.0", to: "6.2.15" }
+          - { from: "6.0.0", to: "6.0.17" }
+        fixedJa: 7.4.3、7.2.7、7.0.14、6.4.15、6.2.16、6.0.18 以上
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-24-015
+        checkedAt: "2026-11-03"
+      - cve: CVE-2023-27997
+        authBypass: true
+        kindJa: SSL-VPN のヒープオーバーフロー（認証前に任意コード実行）
+        affected:
+          - { from: "7.2.0", to: "7.2.4" }
+          - { from: "7.0.0", to: "7.0.11" }
+          - { from: "6.4.0", to: "6.4.12" }
+          - { from: "6.2.0", to: "6.2.13" }
+          - { from: "6.0.0", to: "6.0.16" }
+        fixedJa: 7.2.5、7.0.12、6.4.13、6.2.14、6.0.17 以上
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-23-097
+        checkedAt: "2026-11-03"
+        noteJa: 7.4 系は影響なし。6K7K 機種は個別の版が対象（表には含めない）
+      - cve: CVE-2022-42475
+        authBypass: true
+        kindJa: SSL-VPN のヒープオーバーフロー（認証前に任意コード実行）
+        affected:
+          - { from: "7.2.0", to: "7.2.2" }
+          - { from: "7.0.0", to: "7.0.8" }
+          - { from: "6.4.0", to: "6.4.10" }
+          - { from: "6.2.0", to: "6.2.11" }
+          - { from: "6.0.0", to: "6.0.15" }
+          - { from: "5.0.0", below: "6.0.0" }
+        fixedJa: 7.2.3、7.0.9、6.4.11、6.2.12、6.0.16 以上（5.x は修正版なし。移行が必要）
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-22-398
+        checkedAt: "2026-11-03"
+      - cve: CVE-2018-13379
+        authBypass: true
+        kindJa: SSL-VPN のパストラバーサル（認証なしでシステムファイルを取得。ログイン中の認証情報が漏れる）
+        affected:
+          - { from: "6.0.0", to: "6.0.4" }
+          - { from: "5.6.3", to: "5.6.7" }
+          - { from: "5.4.6", to: "5.4.12" }
+        fixedJa: 6.0.5、5.6.8、5.4.13 以上（6.2.0 以上は影響なし）
+        sourceUrl: https://fortiguard.fortinet.com/psirt/FG-IR-18-384
+        checkedAt: "2026-11-03"
+        noteJa: SSL-VPN を有効にしているときだけ影響。漏れた認証情報の悪用には多要素認証が一定の効果を持つが、脆弱性そのものは認証なしで突ける
+    unverified:
+      - cve: CVE-2022-40684
+        noteJa: FortiOS・FortiProxy・FortiSwitchManager の認証回避。KEV の product 名は「Multiple Products」。版の範囲はこの表では未確認
+      - cve: CVE-2024-23113
+        noteJa: fgfmd の書式文字列。KEV の product 名は「Multiple Products」。版の範囲はこの表では未確認
+
+  - id: ivanti-connect-secure
+    labelJa: Ivanti Connect Secure（旧 Pulse Connect Secure）
+    aliases:
+      - ivanti connect secure
+      - connect secure
+      - ivanti
+      - pulse secure
+      - pulse connect secure
+      - pulsesecure
+      - イヴァンティ
+      - アイバンティ
+      - パルスセキュア
+    kev:
+      - vendorProject: Ivanti
+        productPattern: "Connect Secure|Pulse Connect Secure"
+      - vendorProject: Pulse Secure
+        productPattern: "Pulse Connect Secure"
+    versionScheme: dotted
+    versionHintJa: "例：22.7R2.4、9.1R18.9"
+    ranges:
+      - cve: CVE-2025-0282
+        authBypass: true
+        kindJa: スタックオーバーフロー（認証なしで任意コード実行）
+        affected:
+          - { from: "22.7R2", to: "22.7R2.4" }
+        fixedJa: 22.7R2.5 以上
+        sourceUrl: https://hub.ivanti.com/s/article/Security-Advisory-Ivanti-Connect-Secure-Policy-Secure-ZTA-Gateways-CVE-2025-0282-CVE-2025-0283
+        checkedAt: "2026-11-03"
+        noteJa: 9.x 系はこの CVE の影響を受けない（ベンダー FAQ）
+      - cve: CVE-2025-22457
+        authBypass: true
+        kindJa: スタックオーバーフロー（認証なしで任意コード実行）
+        affected:
+          - { to: "22.7R2.5" }
+        fixedJa: 22.7R2.6 以上（Pulse Connect Secure 9.1R18.9 以前はサポート終了。移行が必要）
+        sourceUrl: https://hub.ivanti.com/s/article/April-Security-Advisory-Ivanti-Connect-Secure-Policy-Secure-ZTA-Gateways-CVE-2025-22457
+        checkedAt: "2026-11-03"
+
+  - id: cisco-asa-ftd
+    labelJa: Cisco ASA／Firepower Threat Defense
+    aliases:
+      - cisco asa
+      - cisco firepower
+      - adaptive security appliance
+      - firepower threat defense
+      - secure firewall
+      - asa 55
+      - asa55
+      - ftd
+      - シスコ asa
+      - シスコ
+    kev:
+      - vendorProject: Cisco
+        productPattern: "Adaptive Security Appliance|ASA|Firepower Threat Defense|FTD"
+    versionScheme: dotted
+    versionHintJa: "例：9.16.4.57（ASA ソフトウェアの版）"
+    ranges: []
+    unverified:
+      - cve: CVE-2025-20333
+        noteJa: ベンダーの公表資料は影響を受ける版の一覧を載せず、Software Checker で機種ごとに調べる形式のため、版の範囲は未確認
+
+  - id: paloalto-panos
+    labelJa: Palo Alto Networks PAN-OS（GlobalProtect）
+    aliases:
+      - pan-os
+      - panos
+      - palo alto
+      - paloalto
+      - globalprotect
+      - パロアルト
+      - パロアルトネットワークス
+    kev:
+      - vendorProject: Palo Alto Networks
+        productPattern: "PAN-OS"
+    versionScheme: dotted
+    versionHintJa: "例：10.2.9-h1（ホットフィックスの番号まで）"
+    ranges:
+      - cve: CVE-2024-3400
+        authBypass: true
+        kindJa: GlobalProtect のコマンドインジェクション（認証なしで root 権限）
+        affected:
+          - { from: "11.1.0", below: "11.1.0-h3" }
+          - { from: "11.1.1", below: "11.1.1-h1" }
+          - { from: "11.1.2", below: "11.1.2-h3" }
+          - { from: "11.0.0", below: "11.0.0-h3" }
+          - { from: "11.0.1", below: "11.0.1-h4" }
+          - { from: "11.0.2", below: "11.0.2-h4" }
+          - { from: "11.0.3", below: "11.0.3-h10" }
+          - { from: "11.0.4", below: "11.0.4-h1" }
+          - { from: "10.2.0", below: "10.2.0-h3" }
+          - { from: "10.2.1", below: "10.2.1-h2" }
+          - { from: "10.2.2", below: "10.2.2-h5" }
+          - { from: "10.2.3", below: "10.2.3-h13" }
+          - { from: "10.2.4", below: "10.2.4-h16" }
+          - { from: "10.2.5", below: "10.2.5-h6" }
+          - { from: "10.2.6", below: "10.2.6-h3" }
+          - { from: "10.2.7", below: "10.2.7-h8" }
+          - { from: "10.2.8", below: "10.2.8-h3" }
+          - { from: "10.2.9", below: "10.2.9-h1" }
+        fixedJa: 10.2.9-h1、11.0.4-h1、11.1.2-h3 以上（各保守版のホットフィックス）
+        sourceUrl: https://security.paloaltonetworks.com/CVE-2024-3400
+        checkedAt: "2026-11-03"
+        noteJa: GlobalProtect のゲートウェイかポータルを設定しているときだけ影響。10.1 以前は影響なし
+      - cve: CVE-2024-0012
+        authBypass: true
+        kindJa: 管理画面の認証回避
+        affected:
+          - { from: "11.2.0", below: "11.2.0-h1" }
+          - { from: "11.2.1", below: "11.2.1-h1" }
+          - { from: "11.2.2", below: "11.2.2-h2" }
+          - { from: "11.2.3", below: "11.2.3-h3" }
+          - { from: "11.2.4", below: "11.2.4-h1" }
+          - { from: "11.1.0", below: "11.1.0-h4" }
+          - { from: "11.1.1", below: "11.1.1-h2" }
+          - { from: "11.1.2", below: "11.1.2-h15" }
+          - { from: "11.1.3", below: "11.1.3-h11" }
+          - { from: "11.1.4", below: "11.1.4-h7" }
+          - { from: "11.1.5", below: "11.1.5-h1" }
+          - { from: "11.0.0", below: "11.0.0-h4" }
+          - { from: "11.0.1", below: "11.0.1-h5" }
+          - { from: "11.0.2", below: "11.0.2-h5" }
+          - { from: "11.0.3", below: "11.0.3-h13" }
+          - { from: "11.0.4", below: "11.0.4-h6" }
+          - { from: "11.0.5", below: "11.0.5-h2" }
+          - { from: "11.0.6", below: "11.0.6-h1" }
+          - { from: "10.2.0", below: "10.2.0-h4" }
+          - { from: "10.2.1", below: "10.2.1-h3" }
+          - { from: "10.2.2", below: "10.2.2-h6" }
+          - { from: "10.2.3", below: "10.2.3-h14" }
+          - { from: "10.2.4", below: "10.2.4-h32" }
+          - { from: "10.2.5", below: "10.2.5-h9" }
+          - { from: "10.2.6", below: "10.2.6-h6" }
+          - { from: "10.2.7", below: "10.2.7-h18" }
+          - { from: "10.2.8", below: "10.2.8-h15" }
+          - { from: "10.2.9", below: "10.2.9-h16" }
+          - { from: "10.2.10", below: "10.2.10-h9" }
+          - { from: "10.2.11", below: "10.2.11-h6" }
+          - { from: "10.2.12", below: "10.2.12-h2" }
+        fixedJa: 10.2.12-h2、11.0.6-h1、11.1.5-h1、11.2.4-h1 以上（各保守版のホットフィックス）
+        sourceUrl: https://security.paloaltonetworks.com/CVE-2024-0012
+        checkedAt: "2026-11-03"
+        noteJa: 管理画面がインターネットから届くときだけ影響。10.1 は影響なし
+
+  - id: sonicwall-sonicos
+    labelJa: SonicWall SonicOS（TZ／NSa）
+    aliases:
+      - sonicos
+      - sonicwall
+      - sonic wall
+      - ソニックウォール
+    kev:
+      - vendorProject: SonicWall
+        productPattern: "SonicOS"
+    versionScheme: dotted
+    versionHintJa: "例：7.0.1-5035、6.5.4.14-109n（ビルド番号まで）"
+    ranges:
+      - cve: CVE-2024-40766
+        authBypass: true
+        kindJa: 管理アクセスと SSLVPN のアクセス制御不備（認証なし）
+        affected:
+          - { from: "7.0", to: "7.0.1-5035" }
+          - { from: "6.0", to: "6.5.4.14-109n" }
+          - { from: "5.0", to: "5.9.2.14-12o" }
+        fixedJa: Gen7 は 7.0.1-5035 より新しい版、Gen6 は 6.5.4.15-116n 以上（SM9800／NSsp 12400／12800 は 6.5.2.8-2n 以上）、Gen5 は 5.9.2.14-13o 以上
+        sourceUrl: https://psirt.global.sonicwall.com/vuln-detail/SNWLID-2024-0015
+        checkedAt: "2026-11-03"
+        noteJa: SM9800／NSsp 12400／12800 の修正版 6.5.2.8-2n はこの表では「該当」と出る（機種ごとの枝を表せないため）
+
+  - id: sonicwall-sma
+    labelJa: SonicWall SMA 100／1000
+    aliases:
+      - sonicwall sma
+      - sma100
+      - sma 100
+      - sma1000
+      - sma 1000
+      - sma 200
+      - sma 210
+      - sma 400
+      - sma 410
+      - sma 500v
+      - secure mobile access
+    kev:
+      - vendorProject: SonicWall
+        productPattern: "SMA|Secure Remote Access"
+    versionScheme: dotted
+    versionHintJa: "例：10.2.1.10-62sv"
+    ranges: []
+
+  - id: citrix-netscaler
+    labelJa: Citrix NetScaler ADC／Gateway
+    aliases:
+      - netscaler
+      - citrix adc
+      - citrix gateway
+      - citrix
+      - application delivery controller
+      - シトリックス
+      - ネットスケーラー
+    kev:
+      - vendorProject: Citrix
+        productPattern: "NetScaler|Application Delivery Controller|ADC"
+    versionScheme: dotted
+    versionHintJa: "例：14.1-43.56（ビルド番号まで）"
+    ranges:
+      - cve: CVE-2023-4966
+        authBypass: true
+        kindJa: メモリの読み過ぎ（セッション情報の漏えい。認証なし。CitrixBleed）
+        affected:
+          - { from: "14.1", below: "14.1-8.50" }
+          - { from: "13.1", below: "13.1-49.15" }
+          - { from: "13.0", below: "13.0-92.19" }
+          - { from: "12.1", below: "12.2" }
+        fixedJa: 14.1-8.50、13.1-49.15、13.0-92.19 以上（12.1 はサポート終了で全版が影響）
+        sourceUrl: https://support.citrix.com/external/article/CTX579459
+        checkedAt: "2026-11-03"
+        noteJa: Gateway（VPN 仮想サーバ、ICA Proxy、CVPN、RDP Proxy）か AAA 仮想サーバとして設定しているときだけ影響。漏れたセッションで多要素認証を経ずに入られる。FIPS 版（13.1-37.164、12.1-55.300）は別の境界
+      - cve: CVE-2025-5777
+        authBypass: true
+        kindJa: 入力検証の不備によるメモリの読み過ぎ（認証なし。CitrixBleed 2）
+        affected:
+          - { from: "14.1", below: "14.1-43.56" }
+          - { from: "13.1", below: "13.1-58.32" }
+          - { from: "13.0", below: "13.1" }
+          - { from: "12.1", below: "12.2" }
+        fixedJa: 14.1-43.56、13.1-58.32 以上（12.1 と 13.0 はサポート終了で全版が影響）
+        sourceUrl: https://support.citrix.com/external/article/CTX693420
+        checkedAt: "2026-11-03"
+        noteJa: Gateway か AAA 仮想サーバとして設定しているときだけ影響。FIPS／NDcPP 版（13.1-37.235、12.1-55.328）は別の境界
+
+  - id: checkpoint-gateway
+    labelJa: Check Point Security Gateway（Quantum）
+    aliases:
+      - check point
+      - checkpoint
+      - quantum security gateway
+      - quantum spark
+      - gaia
+      - チェックポイント
+    kev:
+      - vendorProject: Check Point
+        productPattern: "Security Gateway|Quantum|Multiple Products"
+    versionScheme: r-release
+    versionHintJa: "例：R81.20（Jumbo Hotfix の Take 番号では判定できません）"
+    ranges: []
+    unverified:
+      - cve: CVE-2024-24919
+        noteJa: R81.20、R81.10、R81、R80.40 以下が対象だが、修正は Jumbo Hotfix（R81.20 Take 65、R81.10 Take 150、R81 Take 99 以上）で入るため、版番号だけでは該当の有無を決められない。出典 https://support.checkpoint.com/results/sk/sk182336（2026-11-03 確認）。IPsec VPN のリモートアクセスか Mobile Access を有効にしているときだけ影響
+
+  - id: array-ag
+    labelJa: Array Networks AG／vxAG（ArrayOS AG）
+    aliases:
+      - array networks
+      - arrayos
+      - array ag
+      - vxag
+      - アレイネットワークス
+      - アレイ
+    kev:
+      - vendorProject: Array Networks
+        productPattern: "AG|ArrayOS"
+    versionScheme: dotted
+    versionHintJa: "例：9.4.0.481"
+    ranges: []
+    unverified:
+      - cve: CVE-2023-28461
+        noteJa: ベンダーの公表資料（サポートポータル内の PDF）はログインが必要で確認できなかった。第三者の情報では 9.4.0.481 以前が対象、9.4.0.484 で修正だが、この表には入れない
+
+  - id: watchguard-fireware
+    labelJa: WatchGuard Firebox（Fireware OS）
+    aliases:
+      - watchguard
+      - fireware
+      - firebox
+      - ウォッチガード
+    kev:
+      - vendorProject: WatchGuard
+        productPattern: "Firebox"
+    versionScheme: dotted
+    versionHintJa: "例：12.11.3、2025.1"
+    ranges:
+      - cve: CVE-2025-9242
+        authBypass: true
+        kindJa: iked（IKEv2）の境界外書き込み（認証なしで任意コード実行）
+        affected:
+          - { from: "12.0", below: "12.11.4" }
+          - { from: "2025.0", below: "2025.1.1" }
+          - { from: "11.0", to: "11.12.4+541730" }
+        fixedJa: 12.11.4、2025.1.1 以上（T15／T35 は 12.5.13 以上、FIPS 版は 12.3.1+722811 以上。11.x はサポート終了）
+        sourceUrl: https://psirt.watchguard.com/CVE-2025-9242/
+        checkedAt: "2026-11-03"
+        noteJa: IKEv2 のモバイル VPN か、動的ゲートウェイへの拠点間 VPN を設定しているときに影響。T15／T35 の修正版 12.5.13〜12.5.x はこの表では「該当」と出る（機種ごとの枝を表せないため）
+
+  - id: sophos-firewall
+    labelJa: Sophos Firewall（XG／SFOS）
+    aliases:
+      - sophos firewall
+      - sophos xg
+      - xg firewall
+      - sfos
+      - sophos
+      - ソフォス
+    kev:
+      - vendorProject: Sophos
+        productPattern: "Firewall|SFOS"
+    versionScheme: dotted
+    versionHintJa: "例：18.5.3（v18.5 MR3 なら 18.5.3 と入力）"
+    ranges:
+      - cve: CVE-2022-1040
+        authBypass: true
+        kindJa: User Portal と Webadmin の認証回避（任意コード実行）
+        affected:
+          - { to: "18.5.3" }
+        fixedJa: 18.5.4（v18.5 MR4）、19.0 以上
+        sourceUrl: https://www.sophos.com/en-us/security-advisories/sophos-sa-20220325-sfos-rce
+        checkedAt: "2026-11-03"
+      - cve: CVE-2022-3236
+        kindJa: User Portal と Webadmin のコードインジェクション（任意コード実行）
+        affected:
+          - { to: "19.0.1" }
+        fixedJa: 18.5.5（v18.5 MR5）、19.0.2（v19.0 MR2）、19.5 以上
+        sourceUrl: https://www.sophos.com/en-us/security-advisories/sophos-sa-20220923-sfos-rce
+        checkedAt: "2026-11-03"
+        noteJa: 認証の要否はベンダーの公表資料に明記がないため authBypass は書かない
+
+  - id: yamaha-rtx
+    labelJa: ヤマハ RTX／NVR（ルーター）
+    aliases:
+      - yamaha
+      - rtx1210
+      - rtx1220
+      - rtx1300
+      - rtx830
+      - rtx 1210
+      - rtx 830
+      - nvr510
+      - nvr700w
+      - ヤマハ
+    kev:
+      - vendorProject: Yamaha
+        productPattern: "."
+    versionScheme: dotted
+    versionHintJa: "例：Rev.14.01.42 → 14.01.42"
+    ranges: []
+
+  - id: qnap-nas
+    labelJa: QNAP NAS（QTS／QuTS hero）
+    aliases:
+      - qnap
+      - qts
+      - quts hero
+      - キューナップ
+    kev:
+      - vendorProject: QNAP
+        productPattern: "NAS|QTS|Photo Station"
+    versionScheme: dotted
+    versionHintJa: "例：5.1.5.2645"
+    ranges: []
+
+  - id: synology-nas
+    labelJa: Synology NAS（DSM）
+    aliases:
+      - synology
+      - diskstation
+      - dsm
+      - シノロジー
+    kev:
+      - vendorProject: Synology
+        productPattern: "."
+    versionScheme: dotted
+    versionHintJa: "例：7.2.1-69057"
+    ranges: []
+
+  - id: microsoft-exchange
+    labelJa: Microsoft Exchange Server
+    aliases:
+      - exchange server
+      - exchange 2013
+      - exchange 2016
+      - exchange 2019
+      - microsoft exchange
+      - エクスチェンジ
+    kev:
+      - vendorProject: Microsoft
+        productPattern: "^Exchange"
+    versionScheme: dotted
+    versionHintJa: "例：15.2.1544.4（ビルド番号。累積更新（CU）ごとに変わる）"
+    ranges: []
+    unverified:
+      - cve: CVE-2021-26855
+        noteJa: 修正は CU ごとのセキュリティ更新で入るため、ビルド番号の範囲表はこの表では未確認

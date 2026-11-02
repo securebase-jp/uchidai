@@ -158,3 +158,5 @@ if (check.ok) {
 - **メール認証**：SPF や DMARC のレコードが 2 件以上ある、DMARC に `p=` が無い、は警告にする
 - **CNAME 連鎖**：3 段まで追う
 - **資産への反映**：`applyAssetHints` は前回の外部確認の値だけを置き換え、担当者登録やベンダー回答は消さない。矛盾は engine の根拠の優先順位（外部確認 > ベンダー回答 > 担当者登録）で出る。`findContradictions` は `applyAssetHints` の前に呼ぶ
+
+- **廃止済み資産と証明書の属性**：`applyAssetHints(profile, hints, result)` に外部確認の結果を渡すと、カルテで廃止済み（`attrs.decommissioned: true`、`attrs.hostname`）の資産に `externallySeen`（DNS で解決できる、または有効な証明書がある）、`externallySeenAt`、`lastCertExpiry` を、現役の資産に `certExpiry`／`certWildcard` を根拠 external で付ける。engine はこれらから「廃止済みだが外部に残っている可能性」の矛盾を再現する
