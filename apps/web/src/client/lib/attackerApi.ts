@@ -76,7 +76,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const attackerApi = {
   /** 下見（対策ボタン・回答を適用済みのカルテを渡す） */
-  recon: (profile: CompanyProfile) => post<ReconResponse>("/api/attacker/recon", { profile }),
+  recon: (profile: CompanyProfile, replay = false) =>
+    post<ReconResponse>("/api/attacker/recon", { profile, ...(replay ? { replay: true } : {}) }),
   /** 候補を現在のカルテで検証し直す（Claude は呼ばない） */
   validate: (profile: CompanyProfile, candidates: AiPathCandidate[]) =>
     post<{ paths: AttackPath[]; discarded: DiscardedCandidate[] }>("/api/attacker/validate", {

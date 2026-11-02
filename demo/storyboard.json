@@ -9,21 +9,36 @@
       "id": "boss-asks",
       "route": "#/",
       "overlay": "chat-boss",
-      "actions": [{ "at": 0, "do": "reset" }]
+      "actions": [
+        {
+          "at": 0,
+          "do": "reset"
+        }
+      ]
     },
     {
       "n": 2,
       "id": "staff-stuck",
       "route": "#/",
       "overlay": "chat-staff",
-      "actions": [{ "at": 0, "do": "reset" }]
+      "actions": [
+        {
+          "at": 0,
+          "do": "reset"
+        }
+      ]
     },
     {
       "n": 3,
       "id": "paste-link",
       "route": "#/",
       "overlay": "reading",
-      "actions": [{ "at": 0, "do": "reset" }]
+      "actions": [
+        {
+          "at": 0,
+          "do": "reset"
+        }
+      ]
     },
     {
       "n": 4,
@@ -31,10 +46,26 @@
       "route": "#/staff",
       "overlay": "none",
       "actions": [
-        { "at": 0, "do": "reset" },
-        { "at": 0.2, "do": "scroll", "to": "top" },
-        { "at": 0.5, "do": "clock", "cmd": "restart", "speed": 1 },
-        { "at": 22, "do": "overlay", "id": "slot:attacker" }
+        {
+          "at": 0,
+          "do": "reset"
+        },
+        {
+          "at": 0.2,
+          "do": "scroll",
+          "to": "top"
+        },
+        {
+          "at": 0.5,
+          "do": "clock",
+          "cmd": "restart",
+          "speed": 1
+        },
+        {
+          "at": 22,
+          "do": "overlay",
+          "id": "slot:attacker"
+        }
       ]
     },
     {
@@ -43,8 +74,15 @@
       "route": "#/staff",
       "overlay": "slot:request",
       "actions": [
-        { "at": 0, "do": "reset" },
-        { "at": 0.2, "do": "scroll", "to": "top" },
+        {
+          "at": 0,
+          "do": "reset"
+        },
+        {
+          "at": 0.2,
+          "do": "scroll",
+          "to": "top"
+        },
         {
           "at": 11,
           "do": "answers",
@@ -59,7 +97,12 @@
             }
           ]
         },
-        { "at": 12.5, "do": "clock", "cmd": "speed", "speed": 1.5 }
+        {
+          "at": 12.5,
+          "do": "clock",
+          "cmd": "speed",
+          "speed": 1.5
+        }
       ]
     },
     {
@@ -68,7 +111,11 @@
       "route": "#/staff",
       "overlay": "none",
       "actions": [
-        { "at": 0, "do": "measures", "ids": [] },
+        {
+          "at": 0,
+          "do": "measures",
+          "ids": []
+        },
         {
           "at": 0,
           "do": "answers",
@@ -83,9 +130,21 @@
             }
           ]
         },
-        { "at": 1, "do": "clock", "cmd": "toEnd" },
-        { "at": 1.2, "do": "scroll", "to": ".verdict" },
-        { "at": 10, "do": "scroll", "to": ".timeline" }
+        {
+          "at": 1,
+          "do": "clock",
+          "cmd": "toEnd"
+        },
+        {
+          "at": 1.2,
+          "do": "scroll",
+          "to": ".verdict"
+        },
+        {
+          "at": 10,
+          "do": "scroll",
+          "to": ".timeline"
+        }
       ]
     },
     {
@@ -94,15 +153,57 @@
       "route": "#/staff",
       "overlay": "none",
       "actions": [
-        { "at": 0, "do": "measures", "ids": [] },
-        { "at": 0.2, "do": "scroll", "to": ".btn.measure" },
-        { "at": 1, "do": "clock", "cmd": "speed", "speed": 2 },
-        { "at": 1.5, "do": "measures", "ids": ["vpn-mfa"] },
-        { "at": 4, "do": "scroll", "to": "top" },
-        { "at": 9.5, "do": "scroll", "to": ".btn.measure" },
-        { "at": 10.5, "do": "measures", "ids": ["vpn-update"] },
-        { "at": 12, "do": "scroll", "to": "top" },
-        { "at": 15, "do": "overlay", "id": "slot:comparison" }
+        {
+          "at": 0,
+          "do": "measures",
+          "ids": []
+        },
+        {
+          "at": 0.2,
+          "do": "scroll",
+          "to": ".btn.measure"
+        },
+        {
+          "at": 1,
+          "do": "clock",
+          "cmd": "speed",
+          "speed": 2
+        },
+        {
+          "at": 1.5,
+          "do": "measures",
+          "ids": ["vpn-mfa"]
+        },
+        {
+          "at": 4,
+          "do": "scroll",
+          "to": "top"
+        },
+        {
+          "at": 9.5,
+          "do": "scroll",
+          "to": ".btn.measure"
+        },
+        {
+          "at": 10.5,
+          "do": "measures",
+          "ids": ["vpn-update"]
+        },
+        {
+          "at": 12,
+          "do": "scroll",
+          "to": "top"
+        },
+        {
+          "at": 14.5,
+          "do": "measures",
+          "ids": []
+        },
+        {
+          "at": 15,
+          "do": "overlay",
+          "id": "slot:comparison"
+        }
       ]
     },
     {
@@ -111,11 +212,31 @@
       "route": "#/onepager?profile=demo-seiko&case=ipa-case-1&measures=",
       "overlay": "none",
       "actions": [
-        { "at": 0, "do": "measures", "ids": [] },
-        { "at": 0.3, "do": "scroll", "to": "top" },
-        { "at": 3, "do": "scroll", "to": ".op-stopped" },
-        { "at": 5.5, "do": "scroll", "to": ".op-measures" },
-        { "at": 8, "do": "overlay", "id": "chat-reply" }
+        {
+          "at": 0,
+          "do": "measures",
+          "ids": []
+        },
+        {
+          "at": 0.3,
+          "do": "scroll",
+          "to": "top"
+        },
+        {
+          "at": 3,
+          "do": "scroll",
+          "to": ".op-stopped"
+        },
+        {
+          "at": 5.5,
+          "do": "scroll",
+          "to": ".op-measures"
+        },
+        {
+          "at": 8,
+          "do": "overlay",
+          "id": "chat-reply"
+        }
       ]
     },
     {

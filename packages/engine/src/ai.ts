@@ -50,6 +50,12 @@ export function typicalTechniques(knowledge: Knowledge, role: string): Set<strin
   return out;
 }
 
+/** 表示用の戦術：最初の段階は初期アクセス（TA0001）を優先し、以降は最初に挙がる戦術 */
+function pickTactic(tactics: string[], first: boolean): string {
+  if (first && tactics.includes("TA0001")) return "TA0001";
+  return tactics[0] ?? "TA0001";
+}
+
 export function terminalRoles(knowledge: Knowledge): Set<string> {
   return new Set(
     knowledge.templates.flatMap((t) =>
@@ -110,7 +116,7 @@ export function validateAiPath(
     const base = {
       nodeId: node.id,
       role: node.role,
-      tactic: tech?.tactics[0] ?? "TA0001",
+      tactic: pickTactic(tech?.tactics ?? [], i === 0),
       ...(technique ? { technique } : {}),
       source: "ai" as const,
       labelJa: s.reasonJa,

@@ -123,6 +123,12 @@
           "status": "present",
           "evidence": "registered",
           "noteJa": "ウイルス対策ソフトあり"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "EDR は未導入（ウイルス対策ソフトのみ）"
         }
       ]
     },

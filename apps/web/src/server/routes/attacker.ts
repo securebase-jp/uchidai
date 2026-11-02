@@ -41,6 +41,8 @@ import { AnswerInput } from "../../shared/api.ts";
 export const attackerRoutes = new Hono();
 
 const ProfileInput = z.object({
+  /** true なら Claude を呼ばず記録を再生する（デモモード用。毎回同じ映像にする） */
+  replay: z.boolean().optional(),
   profile: CompanyProfile,
   measureIds: z.array(z.string()).default([]),
   answers: z.array(AnswerInput).default([]),
@@ -108,7 +110,7 @@ attackerRoutes.post("/recon", async (c) => {
   const abs = abstracted(profile, k);
   const techniqueLabel = (id: string) => k.labels.techniques[id];
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.ANTHROPIC_API_KEY && !body.replay) {
     const r = await reconnoiter(abs, {
       attack: k.attack,
       labels: k.labels,

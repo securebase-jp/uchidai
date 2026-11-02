@@ -14,7 +14,7 @@
 - [x] 構成グラフ、型紙 3 つ、判定ルール表（条件式 DSL）、経路探索、対策ボタンの再判定、AI 経路の検証、知見なし比較の振り分け（`packages/engine`、`knowledge/`）
 - [x] 経路図とアニメーション、最初の5問、自動レイアウト、担当者画面・社長画面、黒背景と攻撃者ログ（`apps/web`）
 - [x] 確認依頼と判定の更新（1 問選択式の確認依頼、送信箱と `mailto:`／SMTP、スマホ向け回答ページ、SSE による判定の更新。`apps/web/src/server/routes/requests.ts`、`packages/llm/src/writer.ts`）
-- [ ] AI攻撃者と知見なしAIとの比較
+- [x] AI攻撃者（抽象化カルテ、4 点検証、記録の再生）と知見なしAIとの比較（効く／効かない／経路の外）
 - [x] 経営への影響（業務波及、時間軸、法令・実務上の期限、費用の目安）と社長向けの一枚のデータ（`packages/engine`）。一枚の描画は未実装
 - [x] 外部確認（所有確認、DNS、CT ログ、fixture、矛盾検出。`packages/recon`）。画面との接続は未実装
 - [x] デモモード（`?demo=1`）、社長向けの一枚（`#/onepager`）、ナレーション原稿と字幕・音声・結合のスクリプト。作り方は [demo/README.md](demo/README.md)

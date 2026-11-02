@@ -38,7 +38,8 @@ export type AiAttackerState = {
   paths: AttackPath[];
   discarded: DiscardedCandidate[];
   log: string[];
-  run(): Promise<void>;
+  /** replay: true なら記録を再生する（デモモード） */
+  run(opts?: { replay?: boolean }): Promise<void>;
   clear(): void;
   comparison: Comparison | undefined;
   compareBusy: boolean;
@@ -101,29 +102,32 @@ export function AiAttackerProvider({ children }: { children: ReactNode }) {
     setCompareMeta(undefined);
   }, [profileId, clear]);
 
-  const run = useCallback(async () => {
-    const p = evaluation?.profile ?? profile;
-    if (!p) return;
-    const my = ++seq.current;
-    setBusy(true);
-    setError(undefined);
-    try {
-      const r = await attackerApi.recon(p);
-      if (my !== seq.current) return;
-      validatedFor.current = p;
-      setRan(true);
-      setRecorded(r.recorded);
-      setMeta(r.meta);
-      setCandidates(r.candidates);
-      setPaths(r.paths);
-      setDiscarded(r.discarded);
-      setLog(r.log);
-    } catch (e) {
-      if (my === seq.current) setError(message(e));
-    } finally {
-      if (my === seq.current) setBusy(false);
-    }
-  }, [evaluation?.profile, profile]);
+  const run = useCallback(
+    async (opts?: { replay?: boolean }) => {
+      const p = evaluation?.profile ?? profile;
+      if (!p) return;
+      const my = ++seq.current;
+      setBusy(true);
+      setError(undefined);
+      try {
+        const r = await attackerApi.recon(p, opts?.replay === true);
+        if (my !== seq.current) return;
+        validatedFor.current = p;
+        setRan(true);
+        setRecorded(r.recorded);
+        setMeta(r.meta);
+        setCandidates(r.candidates);
+        setPaths(r.paths);
+        setDiscarded(r.discarded);
+        setLog(r.log);
+      } catch (e) {
+        if (my === seq.current) setError(message(e));
+      } finally {
+        if (my === seq.current) setBusy(false);
+      }
+    },
+    [evaluation?.profile, profile],
+  );
 
   // 判定結果（対策・回答の適用後のカルテ）が変わったら、候補を検証し直す
   const evalProfile = evaluation?.profile;

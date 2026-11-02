@@ -10,6 +10,7 @@
  */
 import type { ComponentType } from "react";
 import type { OverlayId } from "./schema.ts";
+import { AiAttackerSlot, ComparisonSlot, RequestSlot } from "./slot-components.tsx";
 
 export type SlotProps = {
   elapsed: number;
@@ -27,9 +28,9 @@ export const SLOT_TITLE: Record<SlotId, [string, string]> = {
 };
 
 export const SLOTS: Record<SlotId, ComponentType<SlotProps> | undefined> = {
-  "slot:attacker": undefined,
-  "slot:request": undefined,
-  "slot:comparison": undefined,
+  "slot:attacker": AiAttackerSlot,
+  "slot:request": RequestSlot,
+  "slot:comparison": ComparisonSlot,
 };
 
 export function SlotPlaceholder({ id, elapsed, seconds }: SlotProps & { id: SlotId }) {
