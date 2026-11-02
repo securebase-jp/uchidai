@@ -1,11 +1,21 @@
 /**
  * 社長向けの一枚：白い紙の上に、結論 → 何が起きるか（経路図）→ 止まる業務 → 金額 → 期限 → 対策 → 出典。
  * 専門用語と ID は出さない。数値はすべて engine の計算結果をそのまま描く。
+ * 共有リンク（内容を URL に載せた形）から開いたときは、経路図（構成グラフが要る）だけ無い一枚になる。
  */
 
 import type { OnePagerResponse } from "../lib/api.ts";
 import { RESULT_TONE, yen } from "../lib/labels.ts";
-import type { OnePagerDeadline, OnePagerMeasure } from "../lib/types.ts";
+import type { SharePayload } from "../lib/onepager-share.ts";
+import type {
+  CompanyProfile,
+  Graph,
+  MeasureDef,
+  OnePager,
+  OnePagerDeadline,
+  OnePagerMeasure,
+  Verdict,
+} from "../lib/types.ts";
 import { StaticDiagram } from "./StaticDiagram.tsx";
 import "./onepager.css";
 
@@ -21,7 +31,7 @@ const BASIS_JA: Record<OnePagerMeasure["basis"], string> = {
   quote: "見積もり待ち",
   internal: "社内ルール",
 };
-const RESULT_WORD: Record<OnePagerResponse["onePager"]["result"], string> = {
+const RESULT_WORD: Record<OnePager["result"], string> = {
   breached: "大丈夫ではない",
   mitigated: "被害は抑えられる",
   blocked: "止められる",
@@ -30,14 +40,56 @@ const RESULT_WORD: Record<OnePagerResponse["onePager"]["result"], string> = {
   out_of_scope: "対象外",
 };
 
-type Props = {
-  data: OnePagerResponse;
-  measureLabel?: (mitigation: string) => string;
-  generatedAt?: Date;
+/** 一枚の描画に要るもの。経路図（diagram）は API で作ったときだけある */
+export type OnePagerViewData = {
+  onePager: OnePager;
+  text: OnePagerResponse["text"];
+  attackVersion: string;
+  /** 入れた対策（ボタン）の名前 */
+  appliedJa: string[];
+  generatedAt: Date;
+  diagram?: { graph: Graph; verdict: Verdict; profile: CompanyProfile; measures: MeasureDef[] };
+  /** 共有リンクから開いた一枚（再計算していない旨を注記する） */
+  fromShare?: boolean;
 };
 
-export function OnePagerView({ data, measureLabel, generatedAt = new Date() }: Props) {
-  const { onePager: op, graph, verdict, profile, measures } = data;
+export function viewDataFromResponse(
+  r: OnePagerResponse,
+  now: Date = new Date(),
+): OnePagerViewData {
+  return {
+    onePager: r.onePager,
+    text: r.text,
+    attackVersion: r.verdict.attackVersion,
+    appliedJa: r.measures.map((m) => m.labelJa),
+    generatedAt: now,
+    diagram: { graph: r.graph, verdict: r.verdict, profile: r.profile, measures: r.measures },
+  };
+}
+
+export function viewDataFromShare(p: SharePayload): OnePagerViewData {
+  const t = Date.parse(p.generatedAt);
+  return {
+    onePager: p.onePager,
+    text: {
+      source: p.text.source,
+      ...(p.text.model ? { model: p.text.model } : {}),
+      ...(p.text.noteJa ? { noteJa: p.text.noteJa } : {}),
+    },
+    attackVersion: p.attackVersion,
+    appliedJa: p.appliedJa,
+    generatedAt: Number.isNaN(t) ? new Date() : new Date(t),
+    fromShare: true,
+  };
+}
+
+type Props = {
+  data: OnePagerViewData;
+  measureLabel?: (mitigation: string) => string;
+};
+
+export function OnePagerView({ data, measureLabel }: Props) {
+  const { onePager: op, diagram, generatedAt } = data;
   const tone = RESULT_TONE[op.result];
   const maxDays = Math.max(1, ...op.stopped.map((s) => s.days));
   const deadlines = [...op.deadlines].sort((a, b) => a.day - b.day);
@@ -46,7 +98,7 @@ export function OnePagerView({ data, measureLabel, generatedAt = new Date() }: P
     month: "long",
     day: "numeric",
   });
-  const appliedNames = measures.map((m) => m.labelJa);
+  const appliedNames = data.appliedJa;
 
   return (
     <article className={`op-paper tone-${tone}`} lang="ja">
@@ -75,13 +127,15 @@ export function OnePagerView({ data, measureLabel, generatedAt = new Date() }: P
       <section className="op-sec op-what">
         <div className="op-num">02</div>
         <h2 className="op-h">何が起きるか</h2>
-        <StaticDiagram
-          graph={graph}
-          verdict={verdict}
-          profile={profile}
-          applied={measures}
-          {...(measureLabel ? { measureLabel } : {})}
-        />
+        {diagram && (
+          <StaticDiagram
+            graph={diagram.graph}
+            verdict={diagram.verdict}
+            profile={diagram.profile}
+            applied={diagram.measures}
+            {...(measureLabel ? { measureLabel } : {})}
+          />
+        )}
         <ol className="op-lines">
           {op.whatHappensJa.map((line) => (
             <li key={line}>{line}</li>
@@ -222,10 +276,16 @@ export function OnePagerView({ data, measureLabel, generatedAt = new Date() }: P
               : "プログラムのテンプレート文です。"}
             {data.text.noteJa ? `（${data.text.noteJa}）` : ""}
           </li>
+          {data.fromShare && (
+            <li>
+              この一枚は共有リンクに含まれた内容をそのまま表示しています（{date}{" "}
+              時点の判定。開いた時点で再計算はしていません）。経路図は共有リンクには含めていません。
+            </li>
+          )}
         </ul>
         <p className="op-brand">
           ウチダイ　うちの会社は大丈夫？　— 攻撃の段階の対応づけは MITRE ATT&amp;CK Enterprise v
-          {verdict.attackVersion}
+          {data.attackVersion}
         </p>
       </footer>
     </article>

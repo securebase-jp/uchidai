@@ -1,95 +1,121 @@
 # ウチダイ
 
-「うちは大丈夫？」に、根拠つきで答える道具。
+**「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。**
 
-他社のサイバー被害の報道を見た社長に「うちは大丈夫？」と聞かれた中小企業の一人情シスが、数分で「結論・根拠・次の一手」を返せるようにする。報道と同じ攻撃が自社の構成をどう進むかを図で再生し、「止められます」か「大丈夫ではありませんでした」かを示す。一言で言えば **「その対策、この攻撃に効きますか？」に答える道具**。
+他社のサイバー被害の報道を見た社長に「うちは大丈夫？」と聞かれた中小企業の一人情シスが、記事を貼ると数分で「結論・根拠・次の一手」を返せるようにする。報道と同じ攻撃が自社の構成の上をどう進むかを図で再生し、「止められます」か「大丈夫ではありませんでした」かを示し、社長向けの一枚にまとめる。
 
-ハッカソン「Built with Claude: Japan 2026」（2026-11-02〜11-08）の期間中にゼロから作っている。
+ハッカソン「Built with Claude: Japan 2026」（2026-11-02〜11-08）の期間中にゼロから作っている。Securebase Inc. の OSS（MIT License）。
 
-## 状態
+## 何ができるか
 
-- [x] 評価の仕組みの骨組み（`eval/`）← 最初のコミット
-- [x] ATT&CK Enterprise v20.0 の取り込み（`knowledge/attack/`）、役割の枠（`knowledge/roles.yaml`）、日本語ラベル、共通の型（`packages/engine/src/types.ts`）、デモ用の架空企業（`examples/demo-seiko.json`）
-- [x] 記事の読解と手法IDの照合（`packages/llm`：URL・PDF・テキストの取り込み、構造化出力、ID・根拠文・型紙外・指示文の検証）。評価は 5 事例 × 知見あり／なしで実測を記録
-- [x] 構成グラフ、型紙 3 つ、判定ルール表（条件式 DSL）、経路探索、対策ボタンの再判定、AI 経路の検証、知見なし比較の振り分け（`packages/engine`、`knowledge/`）
-- [x] 経路図とアニメーション、最初の5問、自動レイアウト、担当者画面・社長画面、黒背景と攻撃者ログ（`apps/web`）
-- [x] 確認依頼と判定の更新（1 問選択式の確認依頼、送信箱と `mailto:`／SMTP、スマホ向け回答ページ、SSE による判定の更新。`apps/web/src/server/routes/requests.ts`、`packages/llm/src/writer.ts`）
-- [x] AI攻撃者（抽象化カルテ、4 点検証、記録の再生）と知見なしAIとの比較（効く／効かない／経路の外）
-- [x] 経営への影響（業務波及、時間軸、法令・実務上の期限、費用の目安）と社長向けの一枚のデータ（`packages/engine`）。一枚の描画は未実装
-- [x] 外部確認（所有確認、DNS、CT ログ、fixture、矛盾検出。`packages/recon`）。画面との接続は未実装
-- [x] デモモード（`?demo=1`）、社長向けの一枚（`#/onepager`）、ナレーション原稿と字幕・音声・結合のスクリプト。作り方は [demo/README.md](demo/README.md)
+三つの層を一本の経路でつなぐ。
 
-計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code での進め方の記録は `docs/claude-code-log.md`（作成予定）。
+| 層           | 問い                   | 材料                                                        | 誰が決めるか                                        |
+| ------------ | ---------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| 攻撃の型     | 攻撃者は何をするか     | 報道記事、MITRE ATT&CK Enterprise                           | Claude が記事を読み、プログラムが手法 ID を照合する |
+| 自社の守り   | その攻撃は自社で通るか | 外部確認（DNS・証明書の公開ログ）、会社カルテ、ベンダー回答 | プログラム（判定ルール表）                          |
+| 経営への影響 | 通ったら何が起きるか   | 業務の数値、法令・実務上の期限、費用の目安                  | プログラム（固定データ）                            |
 
-## 使い方（準備中）
+Claude がするのは「読む（記事・PDF）、言い換える（社長向け）、書く（確認依頼の文）、探す（AI攻撃者）」だけ。止まるかどうかの判定、日数と金額、期限はすべてプログラムが決定的に計算する。Claude の出力は zod で検証し、存在しない手法 ID や型紙にない手法は捨てる。記事の内容で結論を操作することはできない。
+
+画面：担当者画面（経路の再生、根拠、対策ボタンで再判定、確認依頼と送信箱、AI攻撃者、知見なし AI との比較）、社長画面（専門用語なしの自動再生）、社長向けの一枚（印刷と共有リンク）。
+
+## 動かし方
+
+Node 22.18 以上と pnpm。
 
 ```bash
 pnpm install
-cp .env.example .env   # ANTHROPIC_API_KEY を自分のキーで埋める
-pnpm dev               # 画面（5173）と API（8787）。?profile=demo-seiko で架空企業
-pnpm eval              # 評価（API キー不要）
-pnpm knowledge:check   # 知識ファイルとカルテの検証
-pnpm attack:import     # ATT&CK の再取り込み（最新版）
+cp .env.example .env   # ANTHROPIC_API_KEY を自分のキーで埋める（無くても動く。下の「キー無しでできること」）
+pnpm dev               # 画面 http://localhost:5173 と API（8787）
 ```
 
-## ベンダー回答のデモ（確認依頼 → スマホで回答 → 判定が更新される）
-
-担当者画面の「ベンダーへの確認依頼」で未確認の項目を選ぶと、1 問だけの選択式の確認依頼が作られ、送信箱に件名・本文・回答リンクが出る。ベンダーが回答リンクを開いて答えると、担当者画面の判定がその場で更新される（根拠：ベンダー回答、誰がいつ答えたかを記録）。依頼文は `ANTHROPIC_API_KEY` があれば Claude が書き、無ければテンプレートで組み立てる（どちらでも動く）。
-
-**送信の仕組み（差し替え可能）**：既定は「送信箱に積む＋メールソフトで開く `mailto:` リンク」で、実際には送らない。`.env` に `SMTP_URL`（例 `smtp://user:pass@smtp.example.com:587`）と `MAIL_FROM` を設定すると nodemailer で送る（失敗しても送信箱に理由が残る）。サーバが持つのは依頼のトークンと回答だけ（`apps/web/.data/requests.json`、git 管理外）。会社カルテは送らない。
-
-**スマホから回答リンクを開く手順（Cloudflare Tunnel）**：回答リンクは `PUBLIC_BASE_URL` を土台に作るので、手元のサーバを一時的に公開して、その URL を指定する。
-
-```bash
-# 1. 別のターミナルで手元の画面（5173）を公開し、表示される https://xxxx.trycloudflare.com を控える
-cloudflared tunnel --url http://localhost:5173
-```
-
-```bash
-# 2. 公開 URL を回答リンクの土台にして起動（.env に書いてもよい）
-PUBLIC_BASE_URL=https://xxxx.trycloudflare.com pnpm dev
-```
-
-3. ブラウザで `http://localhost:5173/?profile=demo-seiko#/staff` を開き、「管理者アカウント　M1026 特権アカウント管理」の「ベンダーに確認する」を押す
-4. 送信箱の「メールソフトで開く」でベンダー役のスマホ宛てにメールを送る（送信箱の回答リンクを直接スマホで開いてもよい）
-5. スマホで回答リンクを開き、「全 PC で共通」とお名前を入れて送る。担当者画面に「回答が届きました」と出て、判定が更新される。同じ手順で M1040（EDR）に「入っていない」と答えると、管理者権限の段階が黄から赤に変わる
-
-公開 URL は一時的なもので、トンネルを止めれば無効になる。デモが終わったら `cloudflared` を止め、`apps/web/.data/requests.json` を消せば依頼と回答も消える。録画の直前には、担当者画面の送信箱の「送信箱を空にする」ボタン（または `curl -X DELETE http://localhost:5173/api/requests`）で空にする。サーバはメモリにも依頼を持つので、ファイルを消すだけでは、サーバを再起動するまで残る。
-
-公開 URL 経由（転送ヘッダつき）の要求は、既定では回答ページの API（`/api/requests/:token` と回答の送信）だけに制限する。他の API（会社カルテを扱うもの）を公開 URL から使うのは `UCHIDAI_ALLOW_REMOTE_API=1` を設定したときだけで、デモ以外では設定しない。CORS も手元の localhost と `PUBLIC_BASE_URL` だけに許す。
-
-## Docker で動かす
-
-特定のホスティング事業者の独自機能には依存しない単一イメージです。API キーはイメージに入れず、実行時に渡します（`.env` は `.dockerignore` で除外済み）。
+Docker（単一イメージ。特定のホスティング事業者の機能に依存しない）：
 
 ```bash
 docker build -t uchidai .
 docker run --rm -p 127.0.0.1:8787:8787 --env-file .env uchidai
 ```
 
-http://localhost:8787/?profile=demo-seiko を開きます。`-p 127.0.0.1:8787:8787` で手元だけに公開してください（会社カルテを扱う API が外から見えないように）。キー無しでも、記録済みの事例・AI攻撃者の記録・比較の記録で動きます。確認依頼の保存先を残すなら `-v uchidai-data:/app/apps/web/.data` を足します。
+http://localhost:8787 を開く。`-p 127.0.0.1:8787:8787` で手元だけに公開する（会社カルテを扱う API が外から見えないように）。環境変数の一覧と細かい手順は [docs/usage.md](docs/usage.md)。
+
+## 使い方（5 段）
+
+トップ画面（`#/`）がこの順に案内し、各段の「いまの状態」を出す。
+
+1. **自社のドメインを外から見る**（任意、`#/domain`）：ドメインを入れてトークンを発行し、DNS に TXT レコード（名前 `@`、値 `uchidai-verify=<トークン>`）を追加して所有を確認する。確認できたドメインだけ、DNS の公開レコードと証明書の公開ログ（crt.sh）を参照し、VPN らしいホスト名、SPF・DMARC、メールやホームページの提供元の手がかりを集める。結果は 5 問の初期値（「外部から推定」の印つき）と、カルテの属性・矛盾になる。**対象のホストには一切アクセスしない**
+2. **最初の5問に答える**（`#/questions`）：業種、現場、仕事の置き場所、社外からのつなぎ方、バックアップ。すべて選択式で、答えるたびに構成図の枠が組み上がる
+3. **カルテの詳細を登録する**（`#/profile`）：構成要素ごとの対策の有無を「自分で答える」（1 問の選択式）か「ベンダーに聞く」（確認依頼）。人数、1 日の売上、復旧日数、個人情報の有無も入れる。未確認は決して「止まる」とは扱わないので、未確認が残る間、結論は最悪の想定か「確認中」になる。カルテは JSON で書き出し・読み込みできる
+4. **記事を貼る**（トップの手順 4）：報道記事の URL・本文・PDF を Claude が読み、攻撃の段階を ATT&CK の手法 ID に対応づける（記載／推定／不明と根拠文つき）。キーが無いサーバでは、IPA 事例集を読んだ記録済みの事例から選ぶ
+5. **結論を見る**：担当者画面（`#/staff`）で経路の再生、各段階の判定と根拠、対策ボタン、確認依頼、AI攻撃者、知見なし比較。社長画面（`#/exec`）は 30〜40 秒の自動再生。社長向けの一枚（`#/onepager`）は印刷して PDF にでき、「共有リンクをコピー」で一枚の内容を圧縮して URL に載せたリンクができる（サーバには何も保存しない。社長のスマホで開ける。内容が URL に入るので社外に送るときは中身を確かめる）
+
+確認依頼のデモ（ベンダー役のスマホで回答 → 判定がその場で更新）と、公開 URL（Cloudflare Tunnel）を使うときの注意は [docs/usage.md](docs/usage.md) に書いた。
+
+## キー無しでできること
+
+`ANTHROPIC_API_KEY` が無くても、記事の読解と文章の言い換え以外はすべて動く。
+
+- 記録済みの事例（IPA 事例集 5 件を Claude が読んだ結果の記録）で、判定・経路の再生・対策ボタン・時間軸・一枚
+- 外部確認、最初の5問、カルテの登録、確認依頼（依頼文はテンプレートで組む）、回答による判定の更新
+- AI攻撃者と知見なし比較は記録の再生
+- `pnpm eval`（評価は記録データで採点する）
+
+## データの扱い
+
+- **会社カルテはこのブラウザ（localStorage）にだけ保存する。** サーバには保存しない（判定のたびに API へ渡すが残さない）。カルテは「自社の弱点の地図」なので、書き出した JSON の扱いには注意する
+- **Claude に送るのは、記事の本文と、判定結果のうち役割名と数値だけ。** 社名・製品名・バージョン・ホスト名は送らず、プログラム側でテンプレートに差し込む。記事は信頼できないデータとして指示文と分けて渡し、出力は検証する
+- **外部に出る通信は 3 つだけ。** Claude API（記事と判定結果）、DNS（所有確認と公開レコード）、crt.sh（証明書の公開ログ。1 ドメイン 1 回、24 時間キャッシュ）。対象のホストにはつながない
+- サーバが持つのは、確認依頼のトークンと回答（`apps/web/.data/`、git 管理外）と、所有確認のトークンだけ
+- 公開 URL（`PUBLIC_BASE_URL`）経由の要求は、既定ではベンダーの回答ページの API だけに制限する
 
 ## 責任ある利用
 
-- 外部確認の対象は、DNS の TXT レコードで所有を確認した自社ドメインだけ。DNS の公開レコードと証明書の公開ログだけを参照し、対象ホストへの直接アクセス（ポートスキャン、Web ページの取得を含む）は一切行わない
+- 外部確認の対象は、DNS の TXT レコードで所有を確認した自社ドメインだけ。DNS の公開レコードと証明書の公開ログだけを参照し、ポートスキャン、Web ページの取得、ログイン画面の確認、TLS 接続は一切行わない
 - AI攻撃者は MITRE ATT&CK の手法の水準までしか扱わず、実在製品の攻撃手順・コマンド・コードは出力しない。外部通信やツール実行の権限を持たない
 - 対象は ATT&CK Enterprise のみ。制御システム（ICS）は対象外
+- 判定は型紙と判定ルール表の範囲に限る。記事に入口が書かれていないときは型紙の入口候補だけで判定し、別の入口から来る攻撃は含まれない（画面に注記を出す）
 - デモで使う会社（デモ精工株式会社）とそのデータはすべて架空
-- 会社カルテは「自社の弱点の地図」であり、利用者の手元にだけ保存する。実運用では保存時の暗号化、限定されたアクセス権、操作記録を前提とする（本MVPでは未実装）
+- 実運用では、カルテの保存時の暗号化、限定されたアクセス権、操作記録を前提とする（本 MVP では未実装）
+
+## 評価
+
+```bash
+pnpm eval              # 記録データで採点（API キー不要）。結果は eval/RESULTS.md に 1 行追記
+pnpm eval --live       # Claude を呼んで記録を更新してから採点
+pnpm eval:attacker     # AI攻撃者と知見なし比較
+pnpm eval:articles     # 実在の報道記事での読解と型紙への対応づけ
+```
+
+観点は、段階の抽出、記載／推定の区別、手法 ID、根拠文、最終判定（[eval/README.md](eval/README.md)）。点数の推移は [eval/RESULTS.md](eval/RESULTS.md)。変更のたびに実行して記録する。
+
+## 開発
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test   # 型検査、Biome、Vitest
+pnpm knowledge:check                        # 知識ファイルとカルテの検証、JSON Schema の書き出し
+pnpm secrets                                # gitleaks（コミット前にも lefthook で実行）
+pnpm attack:import                          # ATT&CK の再取り込み
+```
+
+知見（型紙、判定ルール、質問表、対策と費用、期限）の足し方は [CONTRIBUTING.md](CONTRIBUTING.md)。計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code でどう進めたかの記録は [docs/claude-code-log.md](docs/claude-code-log.md)。
+
+## デモ動画の作り方
+
+`?profile=demo-seiko&demo=1` でデモモード（架空の会社で 9 場面が自動で進む）が動く。原稿、字幕、音声（VOICEVOX）、結合（ffmpeg）の手順は [demo/README.md](demo/README.md)。
 
 ## 出典
 
-- MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は `NOTICE` に記載。日本語ラベルは本プロジェクト独自の訳）
-- IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）
-- 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）
-- 警察庁「サイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）
-- crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（`packages/recon/README.md`）
+- MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は [NOTICE](NOTICE)。日本語ラベルは本プロジェクト独自の訳）
+- IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの短い抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）
+- 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」「漏えい等の対応とお役立ち資料」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）
+- 警察庁「サイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）。警視庁「ビジネスメール詐欺（BEC）対策」：送金後の実務上の期限
+- crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（[packages/recon/README.md](packages/recon/README.md)）
 - CISA Known Exploited Vulnerabilities Catalog：悪用確認済み脆弱性の突き合わせ
 
 ## ライセンス
 
-MIT License。外部データは各提供元の規約に従う（`NOTICE`）。
+MIT License（[LICENSE](LICENSE)）。外部データとフォントは各提供元の規約に従う（[NOTICE](NOTICE)）。行動規範は [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
 
 ---
 
-English summary: _Uchidai_ helps a one-person IT team at a small company answer the CEO's question "Are we safe?" after a cyber-incident in the news. Claude reads the article and maps it to MITRE ATT&CK; a deterministic rule engine replays the same attack path over the company's own architecture graph, says whether each step is stopped (with evidence), and translates the outcome into business impact and legal deadlines. Built from scratch during Built with Claude: Japan 2026.
+English summary: _Uchidai_ helps a one-person IT team at a small company answer the CEO's question "Are we safe?" after a cyber-incident in the news. Claude reads the article and maps it to MITRE ATT&CK; a deterministic rule engine replays the same attack path over the company's own architecture graph, says whether each step is stopped (with evidence), and translates the outcome into business impact and legal deadlines, ending in a one-page summary for the CEO that can be shared as a self-contained link. The company profile never leaves the browser; only the article and role-level results go to Claude. Built from scratch during Built with Claude: Japan 2026.

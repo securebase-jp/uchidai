@@ -1,7 +1,14 @@
-/** はじめに：会社カルテと事例を選ぶ。記事の読解はキーがあるときだけ */
-import { useEffect, useState } from "react";
+/**
+ * はじめに（#/）：自社で使う流れを 5 段で示し、各段に「いまの状態」を出す。
+ * ① ドメインを外から見る（任意）→ ② 最初の5問 → ③ カルテの詳細 → ④ 記事を貼る（またはキー無しで記録済みの事例）→ ⑤ 結論。
+ * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
+ */
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api } from "../lib/api.ts";
+import { type HomeStep, homeSteps } from "../lib/home-status.ts";
+import { pendingCount } from "../lib/profile.ts";
+import { reconHints } from "../lib/reconHints.ts";
 
 type Recorded = { caseId: string; title: string; damageType: string };
 const DAMAGE: Record<string, string> = {
@@ -10,14 +17,32 @@ const DAMAGE: Record<string, string> = {
   data_breach: "情報漏えい",
   out_of_scope: "対象外",
 };
+const TONE_WORD: Record<HomeStep["tone"], string> = {
+  done: "済",
+  todo: "未",
+  optional: "任意",
+  warn: "要確認",
+};
+/** PDF の上限（API の base64 上限 28,000,000 文字に収まる大きさ） */
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
+
+function toBase64(buf: ArrayBuffer): string {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000)
+    bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
 
 export function Home() {
   const app = useApp();
   const [recorded, setRecorded] = useState<Recorded[]>([]);
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
-  const [reading, setReading] = useState(false);
+  const [pdfName, setPdfName] = useState<string>();
+  const [reading, setReading] = useState<"url" | "text" | "pdf">();
   const [readError, setReadError] = useState<string>();
+  const [recon] = useState(() => reconHints.load());
 
   useEffect(() => {
     api
@@ -26,11 +51,41 @@ export function Home() {
       .catch(() => {});
   }, []);
 
-  async function read(kind: "url" | "text") {
-    setReading(true);
+  const steps = useMemo(
+    () =>
+      homeSteps({
+        recon: recon
+          ? { domain: recon.domain, fixture: recon.fixture, checkedAt: recon.checkedAt }
+          : undefined,
+        profile: app.profile
+          ? {
+              companyName: app.profile.companyName,
+              fictional: app.profile.fictional,
+              pending: pendingCount(app.profile),
+            }
+          : undefined,
+        profileSource: app.profileSource,
+        theCase: app.theCase
+          ? {
+              title: app.theCase.title,
+              ...(app.caseMeta?.recorded ? { recordedId: app.caseMeta.recorded.caseId } : {}),
+            }
+          : undefined,
+      }),
+    [recon, app.profile, app.profileSource, app.theCase, app.caseMeta],
+  );
+
+  async function read(kind: "url" | "text" | "pdf", pdf?: File) {
+    setReading(kind);
     setReadError(undefined);
     try {
-      const r = await api.read(kind === "url" ? { kind: "url", url } : { kind: "text", text });
+      const input =
+        kind === "url"
+          ? ({ kind: "url", url } as const)
+          : kind === "text"
+            ? ({ kind: "text", text } as const)
+            : ({ kind: "pdf", dataBase64: toBase64(await (pdf as File).arrayBuffer()) } as const);
+      const r = await api.read(input);
       app.setCase(r.case, {
         label: r.case.title,
         sourceJa: `Claude が記事を読解（${r.model}）`,
@@ -40,174 +95,277 @@ export function Home() {
     } catch (e) {
       setReadError(e instanceof ApiError || e instanceof Error ? e.message : "読解に失敗しました");
     } finally {
-      setReading(false);
+      setReading(undefined);
     }
   }
 
+  function pickPdf(file: File | undefined) {
+    if (!file) return;
+    if (file.size > MAX_PDF_BYTES) {
+      setReadError("PDF が大きすぎます（20 MB まで）。該当ページだけを書き出してください。");
+      return;
+    }
+    setPdfName(file.name);
+    void read("pdf", file);
+  }
+
   const current = app.caseMeta?.recorded?.caseId;
+  const ready = Boolean(app.profile && app.theCase);
+
   return (
-    <div>
+    <div className="home">
       <section className="hero">
-        <h1>うちの会社は、大丈夫？</h1>
+        <h1>うちの会社は大丈夫？</h1>
+        <p className="define">「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。</p>
         <p>
-          報道と同じ攻撃が自社の構成をどう進むかを図で再生し、「止められる」か「大丈夫ではない」かを根拠つきで示します。
-          Claude
-          は記事を読むだけ。止まるかどうかの判定、日数と金額の計算はプログラムが決定的に行います。
+          他社の被害の報道を貼ると、Claude
+          が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
+          Claude は読む・言い換えるだけ。止まるかの判定、日数と金額、期限はプログラムが決めます。
         </p>
       </section>
-      <div className="cards">
-        <div className="card">
-          <h2>0. 自社のドメイン（任意）</h2>
-          <p className="muted small">
-            所有を確認したドメインについて、DNS の公開レコードと証明書の公開ログだけを参照し、VPN
-            用と推定されるホスト名や SPF・DMARC
-            を確かめます。結果は5問の初期値とカルテに反映できます。対象ホストにはアクセスしません。
-          </p>
-          <div className="row" style={{ marginTop: 10 }}>
-            <a className="btn primary" href="#/domain">
-              外部確認を始める
-            </a>
-          </div>
-        </div>
-        <div className="card">
-          <h2>1. 会社カルテ</h2>
-          {app.profile ? (
-            <p className="small">
-              いまのカルテ：<b>{app.profile.companyName}</b>
-              {app.profile.fictional && (
-                <span className="chip fiction" style={{ marginLeft: 6 }}>
-                  架空の会社
-                </span>
-              )}
-              <span className="muted">
-                （
-                {app.profileSource === "answers"
-                  ? "5問の回答から"
-                  : app.profileSource === "example"
-                    ? "架空企業の例"
-                    : "このブラウザに保存済み"}
-                ）
+
+      <ol className="steps">
+        {steps.map((s) => (
+          <li className={`card step tone-${s.tone}`} key={s.id}>
+            <div className="step-head">
+              <span className="step-n" aria-hidden="true">
+                {s.n}
               </span>
-            </p>
-          ) : (
-            <p className="muted small">まだありません。</p>
-          )}
-          <div className="row" style={{ marginTop: 10 }}>
-            <a className="btn primary" href="#/questions">
-              最初の5問に答える
-            </a>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => void app.loadExample("demo-seiko")}
-            >
-              架空の会社（デモ精工・製造業 120 名）で試す
-            </button>
-            {app.profile && (
-              <button type="button" className="btn ghost sm" onClick={app.clearProfile}>
-                カルテを消す
-              </button>
-            )}
-          </div>
-          <p className="muted small" style={{ marginTop: 10 }}>
-            カルテはこのブラウザの localStorage
-            にだけ保存されます。サーバには送られません（判定のたびに API
-            へ渡しますが保存しません）。
-          </p>
-        </div>
-        <div className="card">
-          <h2>2. 事例（報道・事例集）</h2>
-          <p className="muted small">キー無しで動く、記録済みの読解結果から選べます。</p>
-          <div style={{ marginTop: 6 }}>
-            {recorded.map((r) => (
-              <label className="opt" key={r.caseId}>
-                <input
-                  type="radio"
-                  name="case"
-                  checked={current === r.caseId}
-                  onChange={() => void app.loadRecorded(r.caseId)}
-                />
-                <span>
-                  <b>{DAMAGE[r.damageType] ?? r.damageType}</b>　{r.title}
-                  <br />
-                  <span className="muted">
-                    IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」
-                    {r.caseId.replace("ipa-case-", "被害事例 ")}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-          <details style={{ marginTop: 10 }}>
-            <summary className="small">
-              記事の URL か本文を貼って、Claude に読ませる（サーバに API キーが必要）
-            </summary>
-            <div className="stack" style={{ marginTop: 8 }}>
-              <input
-                className="in"
-                placeholder="https://…（報道記事や公的機関の事例の URL）"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn sm"
-                disabled={!url || reading}
-                onClick={() => void read("url")}
-              >
-                URL を読む
-              </button>
-              <textarea
-                className="in"
-                placeholder="記事の本文を貼り付け"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn sm"
-                disabled={text.length < 40 || reading}
-                onClick={() => void read("text")}
-              >
-                本文を読む
-              </button>
-              {reading && <p className="muted small">Claude が読んでいます…</p>}
-              {readError && <p className="err small">{readError}</p>}
-              <p className="muted small">
-                記事は信頼できないデータとして扱い、指示文と分けて渡します。存在しない手法 ID
-                や型紙にない手法は破棄します。
-              </p>
+              <h2>{s.titleJa}</h2>
+              <span className="step-status">
+                <b className={`step-tag ${s.tone}`}>{TONE_WORD[s.tone]}</b>
+                {s.statusJa}
+              </span>
             </div>
-          </details>
-        </div>
-        <div className="card">
-          <h2>3. 見る</h2>
-          <div className="row">
-            <a className="btn primary" href="#/staff">
-              担当者画面（操作型）
-            </a>
-            <a className="btn" href="#/exec">
-              社長画面（自動再生）
-            </a>
-          </div>
-          <p className="muted small" style={{ marginTop: 10 }}>
-            担当者画面では手法 ID・緩和策
-            ID・根拠の種類・記事中の根拠文を表示し、対策ボタンで再判定できます。社長画面は 30〜40
-            秒の一本の物語で、専門用語を出しません。
-          </p>
-          <p className="muted small" style={{ marginTop: 10 }}>
-            出典：MITRE ATT&amp;CK Enterprise{" "}
-            {app.knowledge ? `v${app.knowledge.attackVersion}` : ""}、IPA
-            事例集、警察庁統計（入口候補の順）。 外部確認は所有確認したドメインの DNS
-            と証明書の公開ログだけを参照し、対象ホストにはアクセスしません。ICS は対象外です。
-          </p>
-        </div>
-      </div>
+            <p className="muted small">{s.leadJa}</p>
+            {s.id === "article" ? (
+              <ArticleStep
+                recorded={recorded}
+                current={current}
+                onPick={(id) => void app.loadRecorded(id)}
+                url={url}
+                onUrl={setUrl}
+                text={text}
+                onText={setText}
+                pdfName={pdfName}
+                onPdf={pickPdf}
+                reading={reading}
+                error={readError}
+                onRead={(k) => void read(k)}
+              />
+            ) : s.id === "result" ? (
+              <div className="row" style={{ marginTop: 10 }}>
+                <Go to="/staff" disabled={!ready} primary>
+                  担当者画面（根拠と対策ボタン）
+                </Go>
+                <Go to="/exec" disabled={!ready}>
+                  社長画面（自動再生）
+                </Go>
+                <Go to="/onepager" disabled={!ready}>
+                  社長向けの一枚（印刷・共有リンク）
+                </Go>
+              </div>
+            ) : (
+              <div className="row" style={{ marginTop: 10 }}>
+                <Go
+                  to={(s.href ?? "#/").replace(/^#/, "")}
+                  disabled={s.disabled ?? false}
+                  primary={s.tone === "todo" || s.tone === "warn"}
+                >
+                  {s.actionJa}
+                </Go>
+                {s.id === "questions" && app.profile && (
+                  <button type="button" className="btn ghost sm" onClick={app.clearProfile}>
+                    カルテを消す
+                  </button>
+                )}
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      <aside className="home-aside">
+        <p className="small">
+          自社のカルテを作る前に動きを見たいときは、
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              void app.loadExample("demo-seiko");
+              location.hash = "/staff";
+            }}
+          >
+            架空の会社（デモ精工・製造業 120 名）で試す
+          </button>
+          。
+          <a className="tiny" href="?profile=demo-seiko&demo=1">
+            デモモードを再生
+          </a>
+        </p>
+      </aside>
+
+      <ul className="promises small">
+        <li>
+          <b className="promise-head">会社カルテはこのブラウザにだけ保存。</b>
+          サーバには残しません（判定のたびに API へ渡しますが保存しません）。
+        </li>
+        <li>
+          <b className="promise-head">Claude に送るのは記事と判定結果だけ。</b>
+          社名・製品名・ホスト名は送らず、出力は検証してから使います。
+        </li>
+        <li>
+          <b className="promise-head">対象ホストにはアクセスしません。</b>
+          外部確認は所有を確認したドメインの DNS と証明書の公開ログだけを参照します。
+        </li>
+      </ul>
+      <p className="muted small" style={{ marginTop: 8 }}>
+        出典：MITRE ATT&amp;CK Enterprise
+        {app.knowledge ? ` v${app.knowledge.attackVersion}` : ""}、IPA
+        事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料。ICS は対象外です。
+      </p>
       {app.error && (
         <p className="err" style={{ marginTop: 12 }}>
           {app.error}
         </p>
       )}
+    </div>
+  );
+}
+
+/** 画面へ移るボタン（前の段が済んでいないときは押せない） */
+function Go({
+  to,
+  disabled,
+  primary,
+  children,
+}: {
+  to: string;
+  disabled: boolean;
+  primary?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={`btn ${primary ? "primary" : ""}`}
+      disabled={disabled}
+      onClick={() => {
+        location.hash = to;
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+type ArticleProps = {
+  recorded: Recorded[];
+  current: string | undefined;
+  onPick(id: string): void;
+  url: string;
+  onUrl(v: string): void;
+  text: string;
+  onText(v: string): void;
+  pdfName: string | undefined;
+  onPdf(file: File | undefined): void;
+  reading: "url" | "text" | "pdf" | undefined;
+  error: string | undefined;
+  onRead(kind: "url" | "text"): void;
+};
+
+function ArticleStep(p: ArticleProps) {
+  const busy = p.reading !== undefined;
+  return (
+    <div className="article-step">
+      <div className="article-paste">
+        <h3>記事を貼る（サーバに Claude API のキーが必要）</h3>
+        <div className="stack">
+          <div className="row">
+            <input
+              className="in"
+              style={{ flex: 1, minWidth: 220 }}
+              placeholder="https://…（報道記事や公的機関の事例の URL）"
+              value={p.url}
+              onChange={(e) => p.onUrl(e.target.value)}
+              disabled={busy}
+            />
+            <button
+              type="button"
+              className="btn sm"
+              disabled={!p.url || busy}
+              onClick={() => p.onRead("url")}
+            >
+              {p.reading === "url" ? "読んでいます…" : "URL を読む"}
+            </button>
+          </div>
+          <textarea
+            className="in"
+            placeholder="記事の本文を貼り付け（40 文字以上）"
+            value={p.text}
+            onChange={(e) => p.onText(e.target.value)}
+            disabled={busy}
+          />
+          <div className="row">
+            <button
+              type="button"
+              className="btn sm"
+              disabled={p.text.length < 40 || busy}
+              onClick={() => p.onRead("text")}
+            >
+              {p.reading === "text" ? "読んでいます…" : "本文を読む"}
+            </button>
+            <label className="btn sm" aria-disabled={busy}>
+              {p.reading === "pdf" ? "読んでいます…" : "PDF を読む"}
+              <input
+                type="file"
+                accept="application/pdf,.pdf"
+                style={{ display: "none" }}
+                disabled={busy}
+                onChange={(e) => {
+                  p.onPdf(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            {p.pdfName && <span className="muted small">{p.pdfName}</span>}
+          </div>
+          {p.error && (
+            <p className="err small" role="alert">
+              {p.error}
+            </p>
+          )}
+          <p className="muted small">
+            記事は信頼できないデータとして扱い、指示文と分けて渡します。存在しない手法 ID
+            や型紙にない手法は破棄します。キーが無いサーバではその旨が出るので、下の記録済みの事例から選んでください。
+          </p>
+        </div>
+      </div>
+      <div className="article-recorded">
+        <h3>記録済みの事例から選ぶ（キー不要）</h3>
+        <p className="muted small">
+          IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」を Claude
+          が読んだ結果の記録です。
+        </p>
+        <div style={{ marginTop: 6 }}>
+          {p.recorded.map((r) => (
+            <label className="opt" key={r.caseId}>
+              <input
+                type="radio"
+                name="case"
+                checked={p.current === r.caseId}
+                onChange={() => p.onPick(r.caseId)}
+              />
+              <span>
+                <b>{DAMAGE[r.damageType] ?? r.damageType}</b>　{r.title}
+                <br />
+                <span className="muted">{r.caseId.replace("ipa-case-", "被害事例 ")}</span>
+              </span>
+            </label>
+          ))}
+          {p.recorded.length === 0 && <p className="muted small">記録を読み込んでいます…</p>}
+        </div>
+      </div>
     </div>
   );
 }
