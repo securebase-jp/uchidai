@@ -2,6 +2,7 @@
  * 経路の組み立てと判定：型紙 × 構成グラフ × 判定ルール表 → Verdict
  */
 import { ATTACKER_NODE_ID, adjacent, buildGraph, connected } from "./graph.ts";
+import { computeImpact } from "./impact.ts";
 import {
   canonicalTechnique,
   type Knowledge,
@@ -10,6 +11,7 @@ import {
   type TemplateStage,
 } from "./knowledge.ts";
 import { evaluateRule, findRule } from "./rules.ts";
+import { buildTimeline } from "./timeline.ts";
 import type {
   AttackPath,
   Case,
@@ -211,33 +213,9 @@ function entryOrder(role: string, knowledge: Knowledge): number {
   return i < 0 ? 99 : i;
 }
 
+/** 互換用：経路と会社カルテから経営への影響を計算する（本体は impact.ts の computeImpact） */
 export function buildImpact(paths: AttackPath[], profile: CompanyProfile): Impact {
-  const reached = new Set(paths.filter((p) => p.reachedCore).flatMap((p) => p.reachedAssetIds));
-  const recoverable = paths.some(
-    (p) => p.reachedCore && p.steps.some((s) => s.state === "recoverable"),
-  );
-  const stopped = profile.businesses
-    .filter((b) => b.recoveryDays > 0 && b.assetIds.some((id) => reached.has(id)))
-    .map((b) => ({
-      businessId: b.id,
-      name: b.name,
-      days:
-        recoverable && b.recoveryDaysWithBackup !== undefined
-          ? b.recoveryDaysWithBackup
-          : b.recoveryDays,
-      manualDays: b.manualDays,
-    }));
-  const downtimeDays = stopped.reduce((m, s) => Math.max(m, s.days), 0);
-  const personalDataReached = profile.personalData.filter((p) => reached.has(p.assetId));
-  return {
-    stopped,
-    downtimeDays,
-    ...(profile.dailyRevenue !== undefined && downtimeDays > 0
-      ? { revenueImpactJpy: profile.dailyRevenue * downtimeDays }
-      : {}),
-    personalDataReached,
-    reportRequired: personalDataReached.length > 0,
-  };
+  return computeImpact(paths, profile);
 }
 
 /** 経路の集合から結論を決める */
@@ -278,7 +256,7 @@ export function evaluate(
     paths: [],
     contradictions,
     timeline: [],
-    impact: buildImpact([], profile),
+    impact: computeImpact([], profile, { damageType: theCase.damageType, knowledge }),
     attackVersion: knowledge.attack.version,
   });
 
@@ -365,13 +343,23 @@ export function evaluate(
   );
 
   const result = decideResult(paths);
+  const impact = computeImpact(paths, profile, { damageType: theCase.damageType, knowledge });
+  const timeline = buildTimeline(
+    impact,
+    profile,
+    { result, paths },
+    {
+      knowledge,
+      damageType: theCase.damageType,
+    },
+  );
   return {
     result,
     headlineJa: HEADLINES[result],
     paths,
     contradictions: dedupe(contradictions),
-    timeline: [],
-    impact: buildImpact(paths, profile),
+    timeline,
+    impact,
     attackVersion: knowledge.attack.version,
   };
 }

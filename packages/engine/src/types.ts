@@ -156,6 +156,8 @@ export const CompanyProfile = z.object({
   cyberInsurance: z
     .object({ enrolled: z.boolean(), notifyWithinDays: z.number().int().positive().optional() })
     .optional(),
+  /** なりすまし送金で想定する送金額の目安（円）。経営への影響の計算に使う */
+  typicalTransferJpy: z.number().nonnegative().optional(),
   vendor: z.object({ name: z.string(), email: z.string().optional() }).optional(),
 });
 export type EvidenceKind = z.infer<typeof EvidenceKind>;
@@ -256,6 +258,10 @@ export const TimelineEvent = z.object({
   sourceJa: z.string().optional(),
   /** 対策で消える出来事かどうかの判定に使う */
   businessId: z.string().optional(),
+  /** 個人情報の出来事が紐づく資産（到達しなくなれば消える） */
+  assetId: z.string().optional(),
+  /** knowledge/deadlines.yaml の期限 ID */
+  deadlineId: z.string().optional(),
 });
 
 export const Impact = z.object({
@@ -265,14 +271,21 @@ export const Impact = z.object({
       name: z.string(),
       days: z.number(),
       manualDays: z.number(),
+      /** 取引先に影響が出始める日（手作業で回せる日数 + 1。復旧が手作業の範囲に収まれば無い） */
+      partnerDay: z.number().optional(),
+      affectsJa: z.string().optional(),
     }),
   ),
   downtimeDays: z.number(),
+  /** 取引先に影響が出始める日（止まる業務の最短） */
+  partnerImpactDay: z.number().optional(),
   revenueImpactJpy: z.number().optional(),
   moneyLossJpy: z.number().optional(),
   personalDataReached: z.array(PersonalData),
   /** 個人情報保護委員会への報告義務が生じるか */
   reportRequired: z.boolean(),
+  /** 報告義務の根拠（knowledge/deadlines.yaml の reportTriggers の labelJa） */
+  reportReasonsJa: z.array(z.string()).optional(),
 });
 
 /** 結論：止められる／抑えられる／大丈夫ではない／確認中／入口なし／対象外 */

@@ -359,6 +359,10 @@
       ],
       "additionalProperties": false
     },
+    "typicalTransferJpy": {
+      "type": "number",
+      "minimum": 0
+    },
     "vendor": {
       "type": "object",
       "properties": {
