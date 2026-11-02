@@ -6,59 +6,26 @@
     "date": "2025-06-04"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:11:03.773Z",
+  "recordedAt": "2026-11-02T14:23:06.384Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "【セキュリティ ニュース】元従業員が顧客情報持ち出し、在職者も関与 - プルデンシャル生命（1ページ目",
-    "chars": 894,
+    "chars": 536,
     "truncated": false
   },
   "raw": {
-    "title": "元従業員の依頼で在職者が顧客情報を漏洩（プルデンシャル生命）",
-    "damageType": "data_breach",
-    "clarity": "clear",
-    "steps": [
-      {
-        "tactic": "TA0001",
-        "techniques": [
-          "T1078",
-          "T1199"
-        ],
-        "source": "stated",
-        "quote": "元従業員の求めに応じて、在籍中の従業員が情報を漏洩したケースも判明している。",
-        "summaryJa": "転職した元従業員が、在籍中の従業員に依頼し、社内の顧客情報へ正規の権限でアクセスさせた"
-      },
-      {
-        "tactic": "TA0009",
-        "techniques": [
-          "T1213",
-          "T1005",
-          "T1039"
-        ],
-        "source": "stated",
-        "quote": "2021年9月まで熊本支社に在籍し、その後別の生命保険代理店に転職した元従業員が、在籍当時に担当していた顧客の契約情報を持ち出した疑いが浮上した。",
-        "summaryJa": "元従業員が、在籍当時に担当していた顧客の契約情報を取得した疑いがある"
-      },
-      {
-        "tactic": "TA0010",
-        "techniques": [
-          "T1048",
-          "T1567",
-          "T1052"
-        ],
-        "source": "stated",
-        "quote": "漏洩は2021年10月から2024年6月にかけて行われ、対象は契約者44人にのぼる。",
-        "summaryJa": "約2年8か月にわたり、契約者44人分の氏名・住所・連絡先などが社外へ漏れた"
-      }
-    ],
+    "title": "元従業員と在職者による顧客情報の持ち出し（プルデンシャル生命）",
+    "damageType": "out_of_scope",
+    "clarity": "unknown",
+    "steps": [],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 981,
-    "outputTokens": 1602,
-    "cacheReadInputTokens": 18340,
+    "inputTokens": 626,
+    "outputTokens": 79,
+    "cacheReadInputTokens": 18894,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 11690
+  "elapsedMs": 1811
 }

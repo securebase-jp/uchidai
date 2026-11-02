@@ -6,18 +6,18 @@
     "date": "2025-02-18"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:10:09.101Z",
+  "recordedAt": "2026-11-02T14:22:20.995Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "【セキュリティ ニュース】VPN経由でランサム被害 - 産業機械開発設計会社（1ページ目",
-    "chars": 765,
+    "chars": 443,
     "truncated": false
   },
   "raw": {
-    "title": "VPN機器経由で侵入されサーバが暗号化された産業機械設計会社のランサムウェア被害",
+    "title": "VPN機器経由で侵入されサーバが暗号化されたランサムウェア被害（オートメ技研）",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -34,12 +34,12 @@
         "tactic": "TA0006",
         "techniques": [
           "T1003",
-          "T1110",
-          "T1078"
+          "T1078",
+          "T1110"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "サーバのデータを暗号化するため、管理者権限などの認証情報が奪われたと推定される。"
+        "summaryJa": "社内で管理者権限に相当する認証情報を入手したと考えられる。"
       },
       {
         "tactic": "TA0008",
@@ -50,7 +50,17 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "VPNから侵入した攻撃者が社内のサーバへ広がったと推定される。"
+        "summaryJa": "侵入後に社内のサーバへ攻撃が広がったと考えられる。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1490",
+          "T1485"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "暗号化の前にバックアップなど復旧手段が妨害された可能性がある。"
       },
       {
         "tactic": "TA0040",
@@ -65,10 +75,10 @@
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 819,
-    "outputTokens": 516,
+    "inputTokens": 509,
+    "outputTokens": 582,
     "cacheReadInputTokens": 0,
-    "cacheCreationInputTokens": 18340
+    "cacheCreationInputTokens": 18894
   },
-  "elapsedMs": 4873
+  "elapsedMs": 6036
 }

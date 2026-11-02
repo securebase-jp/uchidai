@@ -2,40 +2,34 @@
   "caseId": "ipa-case-3",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:32:51.680Z",
+  "recordedAt": "2026-11-02T14:25:44.878Z",
   "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
     "title": "Webサイト改ざんによるフィッシング誘導とクレジットカード情報の漏えい",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [],
         "source": "stated",
         "quote": "ウェブサイト更新管理システムの追加機能未更新",
-        "summaryJa": "ウェブサイト更新管理システムの追加機能が更新されておらず、その弱点から侵入された。"
+        "summaryJa": "ウェブサイト更新管理システムの追加機能が古いままで、その弱点を突かれて侵入された"
       },
       {
         "tactic": "TA0040",
         "techniques": [],
         "source": "stated",
-        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された",
-        "summaryJa": "自社ウェブサイトがフィッシングサイトに改ざんされた。"
-      },
-      {
-        "tactic": "TA0009",
-        "techniques": [],
-        "source": "inferred",
-        "summaryJa": "改ざんされたページで、顧客が入力したクレジットカード情報が攻撃者に取得される状態になった。"
+        "quote": "自社ウェブサイトがフィッシ\nングサイトに改ざんされた",
+        "summaryJa": "自社のウェブサイトがフィッシングサイトに書き換えられた"
       },
       {
         "tactic": "TA0010",
         "techniques": [],
         "source": "stated",
-        "quote": "顧客のクレジットカード情報が外部に漏えいした",
-        "summaryJa": "顧客が入力したクレジットカード情報が外部に漏えいした。"
+        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された\n顧客のクレジットカード情報が外部に漏えいした",
+        "summaryJa": "顧客が入力したクレジットカード情報が外部に漏えいした"
       }
     ],
     "suspiciousInstructions": []
@@ -43,7 +37,7 @@
   "raw": {
     "title": "Webサイト改ざんによるフィッシング誘導とクレジットカード情報の漏えい",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -52,46 +46,44 @@
         ],
         "source": "stated",
         "quote": "ウェブサイト更新管理システムの追加機能未更新",
-        "summaryJa": "ウェブサイト更新管理システムの追加機能が更新されておらず、その弱点から侵入された。"
+        "summaryJa": "ウェブサイト更新管理システムの追加機能が古いままで、その弱点を突かれて侵入された"
       },
       {
         "tactic": "TA0040",
         "techniques": [
-          "T1491.002",
-          "T1565.001"
+          "T1491.002"
         ],
         "source": "stated",
-        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された",
-        "summaryJa": "自社ウェブサイトがフィッシングサイトに改ざんされた。"
+        "quote": "自社ウェブサイトがフィッシ\nングサイトに改ざんされた",
+        "summaryJa": "自社のウェブサイトがフィッシングサイトに書き換えられた"
       },
       {
         "tactic": "TA0009",
         "techniques": [
           "T1056.003",
-          "T1185"
+          "T1565.002"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "改ざんされたページで、顧客が入力したクレジットカード情報が攻撃者に取得される状態になった。"
+        "summaryJa": "改ざんされたページに顧客が入力したカード情報が攻撃者に取得された"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1041",
-          "T1567",
-          "T1048"
+          "T1567"
         ],
         "source": "stated",
-        "quote": "顧客のクレジットカード情報が外部に漏えいした",
-        "summaryJa": "顧客が入力したクレジットカード情報が外部に漏えいした。"
+        "quote": "自社ウェブサイトが改ざんされ、当該ページに入力された\n顧客のクレジットカード情報が外部に漏えいした",
+        "summaryJa": "顧客が入力したクレジットカード情報が外部に漏えいした"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
     "stepsIn": 4,
-    "stepsOut": 4,
-    "techniquesIn": 8,
+    "stepsOut": 3,
+    "techniquesIn": 6,
     "techniquesOut": 0,
     "quotesIn": 3,
     "quotesOut": 3,
@@ -99,15 +91,13 @@
     "droppedTechniques": [
       "T1190(not_in_template)",
       "T1491.002(not_in_template)",
-      "T1565.001(not_in_template)",
       "T1056.003(not_in_template)",
-      "T1185(not_in_template)",
+      "T1565.002(not_in_template)",
       "T1041(not_in_template)",
-      "T1567(not_in_template)",
-      "T1048(not_in_template)"
+      "T1567(not_in_template)"
     ],
     "droppedQuotes": 0,
     "suspiciousInstructions": 0
   },
-  "verdict": "blocked"
+  "verdict": "out_of_scope"
 }

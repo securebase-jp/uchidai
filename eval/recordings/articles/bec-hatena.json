@@ -6,29 +6,28 @@
     "date": "2026-04-24"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:10:34.609Z",
+  "recordedAt": "2026-11-02T14:22:44.584Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "はてな、11億円の資金流出　振り込め詐欺か",
-    "chars": 641,
+    "chars": 565,
     "truncated": false
   },
   "raw": {
-    "title": "はてな、不正な送金指示により約11億円の資金が流出",
+    "title": "はてな、不正な送金指示により約11億円が流出",
     "damageType": "bec",
     "clarity": "partial",
     "steps": [
       {
-        "tactic": "TA0001",
+        "tactic": "TA0043",
         "techniques": [
-          "T1078",
-          "T1566",
-          "T1133"
+          "T1589.001",
+          "T1589"
         ],
-        "source": "unknown",
+        "source": "inferred",
         "quote": null,
-        "summaryJa": "第三者がどのような方法で従業員のアカウントや送金指示の手段に入り込んだかは記事に書かれておらず、入口は不明。"
+        "summaryJa": "攻撃者が送金に必要な情報や認証情報を事前に入手していたと推定される（記事には記載なし）"
       },
       {
         "tactic": "TA0005",
@@ -38,14 +37,16 @@
         ],
         "source": "stated",
         "quote": "その従業員に確認したところ、悪意ある第三者から虚偽の送金指示があったことが分かった。",
-        "summaryJa": "悪意ある第三者が虚偽の送金指示を出し、従業員をだました。"
+        "summaryJa": "悪意ある第三者が従業員に対して虚偽の送金指示を出した"
       },
       {
         "tactic": "TA0002",
-        "techniques": [],
-        "source": "stated",
-        "quote": "4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
-        "summaryJa": "従業員のアカウントから、銀行預金が外部の口座へ送金された。"
+        "techniques": [
+          "T1204"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "従業員が虚偽の指示を信じて送金操作をしたと推定される"
       },
       {
         "tactic": "TA0040",
@@ -53,17 +54,17 @@
           "T1657"
         ],
         "source": "stated",
-        "quote": "はてなは、4月24日、不正な送金指示によって約11億円の資金が銀行口座から流出したと公表した。",
-        "summaryJa": "約11億円の資金が銀行口座から外部へ流出した。"
+        "quote": "4月21日に取引先銀行から不審な送金が行われていると連絡があり、確認すると4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
+        "summaryJa": "従業員のアカウントから銀行預金が外部口座へ送金され、約11億円が流出した"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 665,
-    "outputTokens": 493,
-    "cacheReadInputTokens": 18340,
+    "inputTokens": 621,
+    "outputTokens": 483,
+    "cacheReadInputTokens": 18894,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3358
+  "elapsedMs": 5941
 }

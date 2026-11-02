@@ -457,21 +457,56 @@ type MinimalDocument = {
  * 見出し語は行頭の一致（「関連記事GMOに…」のように見出しの直後に続くことがある）、短い語は行全体の一致で見る
  */
 const TRAILER_HEAD =
-  /^(関連記事|関連リンク|関連する記事|あわせて読みたい|合わせて読みたい|おすすめ(の)?記事|人気(の)?記事|注目(の)?記事|新着記事|この記事の著者|著者プロフィール|Copyright\s*[©(]|この記事をシェア)/i;
+  /^(関連記事|関連リンク|関連する記事|あわせて読みたい|合わせて読みたい|おすすめ(の)?記事|人気(の)?記事|注目(の)?記事|新着記事|ピックアップ|この記事の著者|著者プロフィール|Copyright\s*[©(]|この記事をシェア)/i;
 const TRAILER_WORD = /^(PR|\[PR\]|広告|Sponsored|SpecialPR|シェアする|タグ|カテゴリ[ー]?)$/i;
 
+/** 本文とみなす最小の長さ。これより前に見出し語があっても（記事の冒頭の「PR」など）切らない */
+const MIN_BODY_CHARS = 120;
+
+/**
+ * 本文の末尾に付いた関連記事などの塊を落とす。
+ * 本文が MIN_BODY_CHARS 以上あったあと、最初に現れた見出し語の行から後ろを切る
+ * （続きのページでは本文が短く、関連記事やピックアップの一覧の方が長いので、位置の割合では決められない）
+ */
 export function trimTrailer(text: string): string {
   const lines = text.split("\n");
-  const total = text.length;
   let offset = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
     const t = line.trim();
-    if (offset >= total / 2 && (TRAILER_HEAD.test(t) || TRAILER_WORD.test(t)))
+    if (offset >= MIN_BODY_CHARS && (TRAILER_HEAD.test(t) || TRAILER_WORD.test(t)))
       return lines.slice(0, i).join("\n");
     offset += line.length + 1;
   }
   return text;
+}
+
+/**
+ * メニューらしい行の連なり（短い行が 4 行以上続き、句読点がない）を落とす。
+ * 記事サイトのヘッダのメニュー（「ニュース」「脆弱性」「コラム」…）が本文の前後に混ざるのを防ぐ
+ */
+export function dropMenuRuns(text: string): string {
+  const lines = text.split("\n");
+  const menuLike = (l: string) => {
+    const t = l.trim();
+    return t.length > 0 && t.length <= 10 && !/[。、.,：:]/.test(t);
+  };
+  const keep: string[] = [];
+  let run: string[] = [];
+  const flush = () => {
+    if (run.length < 4) keep.push(...run); // 4 行未満なら本文の短い行（見出しや金額）とみなして残す
+    run = [];
+  };
+  for (const line of lines) {
+    if (menuLike(line)) run.push(line);
+    else {
+      if (line.trim() === "" && run.length > 0) continue; // メニューの行間の空行
+      flush();
+      keep.push(line);
+    }
+  }
+  flush();
+  return keep.join("\n");
 }
 
 function parseDocument(html: string): MinimalDocument {
@@ -481,13 +516,33 @@ function parseDocument(html: string): MinimalDocument {
   return document;
 }
 
+/** 本文でない部分の目印（Readability が本文を見つけられなかったときの素朴な抽出で落とす要素） */
+const CHROME_SELECTOR =
+  "nav,header,footer,aside,form,iframe,[role=navigation],[role=banner],[role=contentinfo],[role=complementary]";
+const CHROME_CLASS =
+  /(^|[-_ ])(nav|navi|menu|sidebar|side|footer|header|banner|ad|ads|advert|pr|related|recommend|pickup|ranking|share|sns|social|comment|breadcrumb|pager|pagination|copyright|search|login|tag|tags)($|[-_ ]|\d)/i;
+
+/** ナビゲーションや広告らしい要素を落とす（class / id の名前で見る。本文らしい要素は残す） */
+function removeChrome(document: MinimalDocument): void {
+  for (const el of Array.from(document.querySelectorAll(CHROME_SELECTOR))) el.remove();
+  for (const el of Array.from(document.querySelectorAll("[class],[id]"))) {
+    const name = `${el.getAttribute("class") ?? ""} ${el.getAttribute("id") ?? ""}`;
+    if (CHROME_CLASS.test(name)) el.remove();
+  }
+}
+
+/** Readability が本文とみなす最小の文字数（既定の 500 では短い続きのページで本文を見つけられない） */
+const READABILITY_CHAR_THRESHOLD = 200;
+
 /** 1 ページ分の HTML から題と本文を取り出す（本文の整形はしない） */
 function extractHtmlPage(html: string): { title: string; text: string } {
   const document = parseDocument(html);
   let title = document.querySelector("title")?.textContent?.trim() ?? "";
   let text = "";
   try {
-    const result = new Readability(document as never).parse();
+    const result = new Readability(document as never, {
+      charThreshold: READABILITY_CHAR_THRESHOLD,
+    }).parse();
     if (result?.content && result.textContent && result.textContent.trim().length > 0) {
       // content（本文の HTML）をブロック要素の境で改行しながらテキストにする
       // linkedom は <html> で包まないと body の子要素を持たない
@@ -503,10 +558,13 @@ function extractHtmlPage(html: string): { title: string; text: string } {
     // Readability が扱えない HTML は下の素朴な抽出に落とす
   }
   if (!text.trim()) {
+    // Readability が本文を見つけられなかった：ナビゲーションや広告らしい要素を落としてから全体を読む
+    removeChrome(document);
     const rootNode = document.body ?? document.documentElement;
     text = rootNode ? nodeToText(rootNode) : "";
   }
-  return { title, text: trimTrailer(tidyText(text)) };
+  // 関連記事などの見出し語で切ってから、メニューらしい行の連なりを落とす（先に落とすと見出し語ごと消えて切れなくなる）
+  return { title, text: tidyText(dropMenuRuns(trimTrailer(tidyText(text)))) };
 }
 
 /** HTML から本文を取り出す（Readability。失敗したら body のテキスト）。末尾の関連記事などは落とす */

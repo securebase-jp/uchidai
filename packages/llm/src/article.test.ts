@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
+  dropMenuRuns,
   extractHtml,
   extractPdf,
   fetchArticle,
@@ -83,14 +84,32 @@ describe.skipIf(!existsSync(ipaPdf))("extractPdf（IPA 事例集がキャッシ�
 });
 
 describe("trimTrailer / extractHtml（本文の後ろの関連記事などを落とす）", () => {
-  it("後半にある「関連記事」以降を落とし、前半の PR という語では切らない", () => {
-    const body = `${"攻撃者にVPN装置の脆弱性を悪用され、業務データが暗号化された。".repeat(8)}\nPR 担当者も確認した。\n${"バックアップも暗号化された。".repeat(8)}`;
+  it("本文のあとの「関連記事」以降を落とし、冒頭の PR や本文中の「PR 担当者」では切らない", () => {
+    const body = `PR\n${"攻撃者にVPN装置の脆弱性を悪用され、業務データが暗号化された。".repeat(8)}\nPR 担当者も確認した。\n${"バックアップも暗号化された。".repeat(8)}`;
     const text = `${body}\n（Security NEXT - 2025/01/27 ）\n\nPR\n\n関連記事GMOに身代金要求 - ランサム攻撃や情報公開を行うと脅迫\n「銀のさら」にサイバー攻撃、影響など調査`;
     const trimmed = trimTrailer(text);
     expect(trimmed).toContain("PR 担当者も確認した");
     expect(trimmed).toContain("（Security NEXT - 2025/01/27 ）");
     expect(trimmed).not.toContain("GMOに身代金要求");
     expect(trimmed).not.toContain("銀のさら");
+    expect(trimmed.startsWith("PR\n攻撃者")).toBe(true);
+  });
+  it("続きのページのように本文が短く関連記事の一覧が長くても、本文だけ残す", () => {
+    const text = `${"二次被害は確認されていないとしている。同社は委員会へ報告した。".repeat(5)}\n\n（Security NEXT - 2025/01/27 ）\n\n関連リンク\n\n日本海建設電気\n\nPR\n\n関連記事\n\n${"別の会社にランサム攻撃 - 影響など調査\n\n".repeat(20)}ピックアップ\n\n${"製品に脆弱性 - すでに悪用も\n\n".repeat(20)}`;
+    const trimmed = trimTrailer(text);
+    expect(trimmed).toContain("二次被害は確認されていない");
+    expect(trimmed).toContain("（Security NEXT - 2025/01/27 ）");
+    expect(trimmed).not.toContain("関連リンク");
+    expect(trimmed).not.toContain("別の会社にランサム攻撃");
+  });
+  it("dropMenuRuns はメニューらしい短い行の連なりを落とし、本文の短い行は残す", () => {
+    const text =
+      "本文の段落。\n\nニュース\n政府・業界動向\n脆弱性\n製品・サービス\nコラム\n\n次の段落。\n被害額\n4,600万円。";
+    const out = dropMenuRuns(text);
+    expect(out).toContain("本文の段落。");
+    expect(out).toContain("次の段落。");
+    expect(out).toContain("被害額");
+    expect(out).not.toContain("政府・業界動向");
   });
   it("extractHtml は関連記事の見出し一覧を本文に含めない", () => {
     const html = `<html><head><title>t</title></head><body><div class="main"><p>${"攻撃者にVPN装置の脆弱性を悪用され、業務データが暗号化された。".repeat(10)}</p><p>（Security NEXT - 2025/01/27 ）</p><p>関連記事<br>別の会社にランサム攻撃<br>さらに別の会社で情報流出</p></div></body></html>`;

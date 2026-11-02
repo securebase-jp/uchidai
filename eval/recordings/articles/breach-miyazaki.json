@@ -6,16 +6,16 @@
     "date": "2025-11-19"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:10:44.646Z",
+  "recordedAt": "2026-11-02T14:22:58.044Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "【セキュリティ ニュース】クラウドサービスが侵害、顧客従業員情報が流出か - ITサービス事業者（1ページ目",
-    "chars": 657,
+    "chars": 672,
     "truncated": false
   },
   "raw": {
-    "title": "ITサービス事業者のクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
+    "title": "宮崎通信のクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
     "damageType": "data_breach",
     "clarity": "unknown",
     "steps": [
@@ -24,7 +24,7 @@
         "techniques": [],
         "source": "unknown",
         "quote": null,
-        "summaryJa": "クラウドサービスへの侵入経路は記事に書かれておらず、不明。"
+        "summaryJa": "外部の攻撃者がクラウドサービスに侵入したが、入口となった手法は記事に書かれていない"
       },
       {
         "tactic": "TA0009",
@@ -35,27 +35,26 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "侵害されたクラウドサービス上の顧客従業員の情報が取得されたと推定される。"
+        "summaryJa": "侵入後、クラウドサービス上の顧客従業員の情報が取得されたと考えられる"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1567",
-          "T1041",
-          "T1537"
+          "T1041"
         ],
         "source": "stated",
-        "quote": "顧客向けに提供している情報管理のクラウドサービスが侵害されたことを2025年10月9日に確認したもの。\n外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
-        "summaryJa": "クラウドサービスが侵害され、顧客従業員の個人情報が外部に流出した可能性がある。"
+        "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
+        "summaryJa": "顧客従業員の氏名や会社メールアドレスなどが外部に流出した可能性がある"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 723,
-    "outputTokens": 409,
-    "cacheReadInputTokens": 18340,
+    "inputTokens": 724,
+    "outputTokens": 364,
+    "cacheReadInputTokens": 18894,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3081
+  "elapsedMs": 3197
 }

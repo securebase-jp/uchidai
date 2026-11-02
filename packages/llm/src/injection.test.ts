@@ -3,7 +3,7 @@
  * - プログラムの層（verifyCase / detectInstructions / wrapArticle）で守れる部分は、ここで決定的に固定する
  * - Claude が指示に従わないこと自体はプロンプトの層でしか守れないので、実際の応答の記録（fixtures/injection-vpn.recorded.json）で確認する
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadAttack, loadTemplates } from "@uchidai/engine";
@@ -162,5 +162,29 @@ describe("記録した Claude の応答（プロンプトの層）", () => {
     expect(reported).toContain("out_of_scope");
     expect(reported).toContain("blocked");
     expect(reported).toMatch(/Ignore all previous instructions/i);
+  });
+});
+
+/**
+ * 実際の報道記事（eval/.cache/articles、git 管理外。`pnpm eval:articles --fetch` で用意）に対する誤検知と、
+ * そこへ本物の注入文を足したときの見逃し。キャッシュが無い環境では飛ばす
+ */
+const articlesDir = join(here, "../../../eval/.cache/articles");
+const cachedArticles = existsSync(articlesDir)
+  ? readdirSync(articlesDir).filter((f) => f.endsWith(".txt"))
+  : [];
+describe.skipIf(cachedArticles.length === 0)("detectInstructions と実際の報道記事", () => {
+  it("「関連記事」「PR」「注意喚起」などの本来の文を指示文として誤検知しない", () => {
+    for (const f of cachedArticles) {
+      const text = readFileSync(join(articlesDir, f), "utf8");
+      expect(detectInstructions(text), f).toEqual([]);
+    }
+  });
+  it("報道記事の末尾に足した本物の注入文は見逃さない", () => {
+    for (const f of cachedArticles) {
+      const text = `${readFileSync(join(articlesDir, f), "utf8")}\n${INJECTED.join("\n")}`;
+      const hits = detectInstructions(text);
+      for (const s of INJECTED) expect(hits, `${f}: ${s}`).toContain(s);
+    }
   });
 });

@@ -6,18 +6,18 @@
     "date": "2025-11-07"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:10:18.352Z",
+  "recordedAt": "2026-11-02T14:26:27.973Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "【セキュリティ ニュース】一部サーバでランサム被害、バックアップ削除も - 新報国マテリアル（1ページ目",
-    "chars": 721,
+    "chars": 714,
     "truncated": false
   },
   "raw": {
-    "title": "新報国マテリアル、ネットワーク機器経由で侵入されサーバ暗号化・バックアップ削除",
+    "title": "新報国マテリアル、ネットワーク機器経由の侵入でランサム被害とバックアップ削除",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -27,7 +27,7 @@
         ],
         "source": "stated",
         "quote": "2025年5月21日にネットワーク機器を経由して攻撃者に外部から侵入され、内部でランサムウェアが展開、実行された。",
-        "summaryJa": "ネットワーク機器を経由して外部から社内へ侵入された。"
+        "summaryJa": "ネットワーク機器を経由して外部の攻撃者に社内へ侵入された。"
       },
       {
         "tactic": "TA0006",
@@ -38,18 +38,27 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "社内サーバを操作するため、管理者権限などの認証情報が奪われたと考えられる。"
+        "summaryJa": "社内サーバを操作できる管理者権限などの認証情報が奪われたと推定される。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021",
-          "T1021.001",
-          "T1021.002"
+          "T1021.002",
+          "T1570"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "侵入口から社内サーバへ攻撃が広がったと考えられる。"
+        "summaryJa": "侵入した端末から社内の各サーバへ攻撃が広げられたと推定される。"
+      },
+      {
+        "tactic": "TA0112",
+        "techniques": [
+          "T1112"
+        ],
+        "source": "stated",
+        "quote": "また一部の業務用端末でログイン設定を書き換えられたが、ランサムウェアによるファイルの暗号化などの被害はなかったという。",
+        "summaryJa": "一部の業務用端末でログイン設定が書き換えられた。"
       },
       {
         "tactic": "TA0040",
@@ -68,16 +77,16 @@
         ],
         "source": "stated",
         "quote": "社内サーバに保存されていた一部ファイルが暗号化されたほか、一部バックアップデータも削除されるなど被害を受けたという。",
-        "summaryJa": "社内サーバ上の一部ファイルが暗号化された。"
+        "summaryJa": "社内サーバの一部ファイルがランサムウェアで暗号化された。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 771,
-    "outputTokens": 600,
-    "cacheReadInputTokens": 18340,
+    "inputTokens": 716,
+    "outputTokens": 724,
+    "cacheReadInputTokens": 18894,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4317
+  "elapsedMs": 4950
 }
