@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSavedProfile } from "./storage.ts";
+import { parseSavedCase, parseSavedProfile } from "./storage.ts";
 
 const good = {
   id: "demo-seiko",
@@ -34,5 +34,29 @@ describe("parseSavedProfile（localStorage の検証）", () => {
     expect(parseSavedProfile(JSON.stringify({ ...good, assets: "nope" }))).toBeUndefined();
     expect(parseSavedProfile(JSON.stringify({ ...good, pattern: "retail" }))).toBeUndefined();
     expect(parseSavedProfile(JSON.stringify({ ...good, assets: [{ id: "a" }] }))).toBeUndefined();
+  });
+});
+
+describe("parseSavedCase（担当者が選んだ事例の保存）", () => {
+  const saved = {
+    case: { title: "報道の事例", damageType: "ransomware", clarity: "clear", steps: [] },
+    meta: {
+      label: "報道の事例",
+      sourceJa: "Claude が記事を読解",
+      sourceUrl: "https://example.com/a",
+    },
+  };
+  it("形が合えば読める。記録済みの事例の ID も残る", () => {
+    expect(parseSavedCase(JSON.stringify(saved))?.meta.sourceUrl).toBe("https://example.com/a");
+    const rec = {
+      ...saved,
+      meta: { label: "x", sourceJa: "y", recorded: { caseId: "ipa-case-1" } },
+    };
+    expect(parseSavedCase(JSON.stringify(rec))?.meta.recorded?.caseId).toBe("ipa-case-1");
+  });
+  it("無い・壊れている・形が違うときは undefined", () => {
+    expect(parseSavedCase(null)).toBeUndefined();
+    expect(parseSavedCase("{")).toBeUndefined();
+    expect(parseSavedCase(JSON.stringify({ case: { title: "t" }, meta: {} }))).toBeUndefined();
   });
 });
