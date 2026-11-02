@@ -9,6 +9,7 @@ import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { useDemoBridge } from "../demo/bridge.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
@@ -62,6 +63,7 @@ export function Staff({ settings }: { settings: Settings }) {
     [evaluation, knowledge],
   );
   const stage = useStage(input, { reduced: settings.reduced, autoplay: true });
+  useDemoBridge(stage?.clock); // デモモード（S8）が結論まで進める・速さを操作する
   const day = useDayCounter(stage?.clock ?? dummyClock, stage?.scene ?? dummyScene);
   const tl = useMemo(
     () => (stage ? timelineOf(stage.input.verdict, stage.input.profile) : undefined),

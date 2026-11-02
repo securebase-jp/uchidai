@@ -5,6 +5,7 @@ import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { useDemoBridge } from "../demo/bridge.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
@@ -28,6 +29,7 @@ export function Exec({ settings }: { settings: Settings }) {
   );
   // 一本の物語として 30〜40 秒：侵入の区間を半分の速さで
   const stage = useStage(input, { reduced: settings.reduced, autoplay: true, speed: 0.5 });
+  useDemoBridge(stage?.clock); // デモモード（S8）が結論まで進める・速さを操作する
 
   if (!profile || !stage || !knowledge || !theCase) {
     return (

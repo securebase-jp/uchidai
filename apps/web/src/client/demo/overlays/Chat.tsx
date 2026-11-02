@@ -1,0 +1,213 @@
+/**
+ * 社長と担当者のチャット風の演出（場面 1・2・8）。比喩は使わず、簡素に。
+ * 文字は場面の経過秒数（elapsed）から決める（一時停止すると止まる）。
+ */
+import { useApp } from "../../hooks/useApp.tsx";
+import { yen } from "../../lib/labels.ts";
+
+type Variant = "chat-boss" | "chat-staff" | "chat-reply";
+type Props = { variant: Variant; elapsed: number; seconds: number };
+
+const IPA_TITLE = "被害事例1：VPN装置の脆弱性悪用によるランサムウェア感染";
+const IPA_SUB = "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）";
+const IPA_HOST = "ipa.go.jp";
+
+/** 開始秒 from から 1 秒あたり cps 文字を打つ */
+function typed(text: string, elapsed: number, from: number, cps = 9): string {
+  if (elapsed < from) return "";
+  return text.slice(0, Math.min(text.length, Math.floor((elapsed - from) * cps)));
+}
+/** from から打ち、hold 秒で消し始める */
+function typedThenDeleted(text: string, elapsed: number, from: number, hold: number, cps = 9) {
+  const full = typed(text, elapsed, from, cps);
+  if (elapsed < hold) return full;
+  const removed = Math.floor((elapsed - hold) * cps * 2);
+  return text.slice(0, Math.max(0, text.length - removed));
+}
+
+function Bubble({
+  who,
+  children,
+  card,
+  time,
+}: {
+  who: "boss" | "staff";
+  children?: React.ReactNode;
+  card?: React.ReactNode;
+  time?: string;
+}) {
+  return (
+    <div className={`chat-msg ${who}`}>
+      <div className="chat-avatar" aria-hidden="true">
+        {who === "boss" ? "社長" : "情シス"}
+      </div>
+      <div className="chat-body">
+        <div className="chat-name">
+          {who === "boss" ? "社長" : "情シス担当"}
+          {time && <span className="chat-time">{time}</span>}
+        </div>
+        {card}
+        {children && <div className="chat-bubble">{children}</div>}
+      </div>
+    </div>
+  );
+}
+
+function LinkCard({ title, sub, host }: { title: string; sub: string; host: string }) {
+  return (
+    <div className="chat-card">
+      <div className="chat-card-host">{host}</div>
+      <div className="chat-card-title">{title}</div>
+      <div className="chat-card-sub">{sub}</div>
+    </div>
+  );
+}
+
+function Typing() {
+  return (
+    <span className="chat-typing" role="img" aria-label="入力中">
+      <i />
+      <i />
+      <i />
+    </span>
+  );
+}
+
+export function ChatOverlay({ variant, elapsed }: Props) {
+  const app = useApp();
+  const ev = app.evaluation;
+  const company = app.profile?.companyName ?? "うちの会社";
+
+  const history = (
+    <>
+      <Bubble
+        who="boss"
+        time="8:41"
+        card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+      />
+      <Bubble who="boss" time="8:41">
+        これ、うちは大丈夫？
+      </Bubble>
+    </>
+  );
+
+  return (
+    <div className="demo-overlay chat" role="dialog" aria-label="社内チャット（演出）">
+      <div className="chat-window">
+        <div className="chat-head">
+          <span>社内チャット</span>
+          <span className="muted">社長、情シス担当</span>
+        </div>
+        <div className="chat-log">
+          {variant === "chat-boss" && (
+            <>
+              {elapsed >= 1 && (
+                <Bubble
+                  who="boss"
+                  time="8:41"
+                  card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+                />
+              )}
+              {elapsed >= 4 && (
+                <Bubble who="boss" time="8:41">
+                  {typed("これ、うちは大丈夫？", elapsed, 4, 6)}
+                </Bubble>
+              )}
+              {elapsed >= 10 && (
+                <Bubble who="staff">
+                  <Typing />
+                </Bubble>
+              )}
+            </>
+          )}
+          {variant === "chat-staff" && (
+            <>
+              {history}
+              {elapsed >= 13.2 && (
+                <Bubble who="staff" time="8:53">
+                  少し時間をください。調べます。
+                </Bubble>
+              )}
+            </>
+          )}
+          {variant === "chat-reply" && (
+            <>
+              {history}
+              <Bubble who="staff" time="8:53">
+                少し時間をください。調べます。
+              </Bubble>
+              {elapsed >= 0.8 && (
+                <Bubble
+                  who="staff"
+                  time="10:12"
+                  card={
+                    <div className="chat-card onepager">
+                      <div className="chat-card-host">社長向けの一枚　／　{company}</div>
+                      <div className="chat-card-title">
+                        {ev?.verdict.headlineJa ?? "うちの会社は、大丈夫ではありませんでした"}
+                      </div>
+                      <ul className="chat-card-list">
+                        <li>
+                          止まる業務：
+                          {ev?.verdict.impact.stopped.map((s) => s.name).join("・") || "—"}（最長{" "}
+                          {ev?.verdict.impact.downtimeDays ?? 0} 日）
+                        </li>
+                        <li>売上への影響の目安：{yen(ev?.verdict.impact.revenueImpactJpy)}</li>
+                        <li>
+                          期限：
+                          {ev?.verdict.timeline
+                            .filter((e) => e.kind === "legal" || e.kind === "insurance")
+                            .slice(0, 2)
+                            .map((e) => `${e.day} 日目 ${e.labelJa.replace(/（.*$/, "")}`)
+                            .join("、") || "—"}
+                        </li>
+                        <li>必要な対策：VPN 装置の更新（保守ベンダーに依頼）ほか</li>
+                      </ul>
+                      <div className="chat-card-sub">
+                        リンクを開くとスマホでも読めます・PDF にも
+                      </div>
+                    </div>
+                  }
+                >
+                  {typed("まとめました。結論と、やることと、費用の目安です。", elapsed, 1.5, 10)}
+                </Bubble>
+              )}
+              {elapsed >= 8 && elapsed < 10.5 && (
+                <Bubble who="boss">
+                  <Typing />
+                </Bubble>
+              )}
+              {elapsed >= 10.5 && (
+                <Bubble who="boss" time="10:14">
+                  {typed("じゃあ、それやろう", elapsed, 10.5, 7)}
+                </Bubble>
+              )}
+            </>
+          )}
+        </div>
+        <div className="chat-compose">
+          {variant === "chat-staff" ? (
+            <div className="chat-input">
+              {elapsed < 13.2 ? (
+                <>
+                  {elapsed < 8.5
+                    ? typedThenDeleted("たぶん大丈夫だと思いますが…", elapsed, 1.2, 6, 6)
+                    : typed("少し時間をください。調べます。", elapsed, 9, 7)}
+                  <span className="chat-caret" aria-hidden="true" />
+                </>
+              ) : (
+                <span className="muted">メッセージを入力</span>
+              )}
+            </div>
+          ) : (
+            <div className="chat-input muted">メッセージを入力</div>
+          )}
+          <button type="button" className="btn sm" tabIndex={-1} aria-hidden="true">
+            送信
+          </button>
+        </div>
+      </div>
+      <p className="demo-fine">演出です。会社・人物・やりとりはすべて架空です。</p>
+    </div>
+  );
+}
