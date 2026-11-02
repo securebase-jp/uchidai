@@ -90,11 +90,17 @@ export const SharePayload = z.object({
   attackVersion: z.string(),
   /** 一枚を作った日時（ISO 8601） */
   generatedAt: z.string(),
+  /** 記事に入口が書かれておらず、型紙の入口候補で判定した一枚（省略時は false。古いリンクも開ける） */
+  entryUnknown: z.boolean().optional(),
 });
 export type SharePayload = z.infer<typeof SharePayload>;
 
 /** API の応答から、リンクに載せる分だけを取り出す */
-export function sharePayloadFrom(data: OnePagerResponse, now: Date = new Date()): SharePayload {
+export function sharePayloadFrom(
+  data: OnePagerResponse,
+  now: Date = new Date(),
+  opts: { entryUnknown?: boolean } = {},
+): SharePayload {
   return {
     v: SHARE_VERSION,
     onePager: toSharedOnePager(data.onePager),
@@ -106,6 +112,7 @@ export function sharePayloadFrom(data: OnePagerResponse, now: Date = new Date())
     appliedJa: data.measures.map((m) => m.labelJa),
     attackVersion: data.verdict.attackVersion,
     generatedAt: now.toISOString(),
+    ...(opts.entryUnknown ? { entryUnknown: true } : {}),
   };
 }
 

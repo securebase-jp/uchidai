@@ -51,11 +51,14 @@ export type OnePagerViewData = {
   diagram?: { graph: Graph; verdict: Verdict; profile: CompanyProfile; measures: MeasureDef[] };
   /** 共有リンクから開いた一枚（再計算していない旨を注記する） */
   fromShare?: boolean;
+  /** 記事に入口が書かれておらず、型紙の入口候補で判定した一枚 */
+  entryUnknown?: boolean;
 };
 
 export function viewDataFromResponse(
   r: OnePagerResponse,
   now: Date = new Date(),
+  opts: { entryUnknown?: boolean } = {},
 ): OnePagerViewData {
   return {
     onePager: r.onePager,
@@ -64,6 +67,7 @@ export function viewDataFromResponse(
     appliedJa: r.measures.map((m) => m.labelJa),
     generatedAt: now,
     diagram: { graph: r.graph, verdict: r.verdict, profile: r.profile, measures: r.measures },
+    ...(opts.entryUnknown ? { entryUnknown: true } : {}),
   };
 }
 
@@ -80,7 +84,15 @@ export function viewDataFromShare(p: SharePayload): OnePagerViewData {
     appliedJa: p.appliedJa,
     generatedAt: Number.isNaN(t) ? new Date() : new Date(t),
     fromShare: true,
+    ...(p.entryUnknown ? { entryUnknown: true } : {}),
   };
+}
+
+/** 作成日時（共有リンクから開いたときは時刻まで：「いつ時点の判定か」を明記する） */
+export function generatedAtJa(d: Date, withTime: boolean): string {
+  const date = d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+  if (!withTime) return date;
+  return `${date} ${d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 type Props = {
@@ -93,11 +105,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
   const tone = RESULT_TONE[op.result];
   const maxDays = Math.max(1, ...op.stopped.map((s) => s.days));
   const deadlines = [...op.deadlines].sort((a, b) => a.day - b.day);
-  const date = generatedAt.toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const date = generatedAtJa(generatedAt, data.fromShare === true);
   const appliedNames = data.appliedJa;
 
   return (
@@ -109,8 +117,11 @@ export function OnePagerView({ data, measureLabel }: Props) {
         </div>
         <h1 className="op-company">{op.companyName}</h1>
         <p className="op-meta">
-          {date} 作成　／　もとにした事例：{op.caseTitle || "公開された事例"}
-          {appliedNames.length > 0 && `　／　入れた対策：${appliedNames.join("、")}`}
+          {[
+            data.fromShare ? `${date} 時点の判定（共有リンクで受け取った一枚）` : `${date} 作成`,
+            `もとにした事例：${op.caseTitle || "公開された事例"}`,
+            ...(appliedNames.length > 0 ? [`入れた対策：${appliedNames.join("、")}`] : []),
+          ].join("　／　")}
         </p>
       </header>
 
@@ -276,10 +287,16 @@ export function OnePagerView({ data, measureLabel }: Props) {
               : "プログラムのテンプレート文です。"}
             {data.text.noteJa ? `（${data.text.noteJa}）` : ""}
           </li>
+          {data.entryUnknown && (
+            <li>
+              記事に攻撃の入口が書かれていないため、型紙の入口候補（VPN
+              装置、リモートデスクトップ、メールなど）で判定しています。別の入口から来る攻撃は含みません。
+            </li>
+          )}
           {data.fromShare && (
             <li>
-              この一枚は共有リンクに含まれた内容をそのまま表示しています（{date}{" "}
-              時点の判定。開いた時点で再計算はしていません）。経路図は共有リンクには含めていません。
+              出所：この一枚は共有リンクに含まれた内容をそのまま表示しています。判定は {date}{" "}
+              時点のもので、開いた時点で再計算はしていません（会社の構成や対策がその後変わっていても反映されません）。会社カルテと経路図は共有リンクに含めていません。
             </li>
           )}
         </ul>
