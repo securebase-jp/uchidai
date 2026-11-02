@@ -32,6 +32,7 @@ import {
   loadLabels,
   loadProfile,
   matchCaseSteps,
+  rankTemplates,
   repoRoot,
   type VerdictResult,
 } from "@uchidai/engine";
@@ -74,6 +75,8 @@ export const ArticleEntry = z.object({
   title: z.string(),
   expectedDamageType: DamageTypeSchema,
   expectedEntry: z.array(TechniqueId).default([]),
+  /** 想定する型紙（knowledge/templates の id）。対象外の記事や決めきれない記事は省略 */
+  expectedTemplate: z.string().optional(),
   summaryJa: z.string(),
   pages: z.number().int().positive().default(1),
 });
@@ -116,6 +119,10 @@ export type ArticleMeasure = {
   droppedQuotes: Record<string, number>;
   /** 型紙に対応づいた段階（手法まで一致したもの）と、戦術だけで当たった段階 */
   mapped: { withTechnique: string[]; tacticOnly: string[]; stages: number };
+  /** evaluate が選んだ型紙と、想定（expectedTemplate）との一致 */
+  templateId?: string;
+  expectedTemplate?: string;
+  templateMatch: boolean | null;
   entryTechnique?: string;
   expectedEntry: string[];
   entryMatch: boolean | null;
@@ -242,7 +249,10 @@ export function measure(
   const { case: c, report } = verifyCase(raw, text, knowledge.attack, verifyOpts);
   const verdict = evaluate(c, profile, { knowledge });
 
-  const template = knowledge.templates.find((t) => t.damageType === c.damageType);
+  // evaluate が選んだ型紙（複数を展開したときは最も当てはまる 1 本）で対応づけを数える
+  const template =
+    knowledge.templates.find((t) => t.id === verdict.templateId) ??
+    rankTemplates(c, knowledge)[0]?.template;
   const matched = template ? matchCaseSteps(template, c.steps, knowledge) : new Map();
   const withTechnique: string[] = [];
   const tacticOnly: string[] = [];
@@ -281,6 +291,9 @@ export function measure(
       Object.entries(tally(report.droppedQuotes, (d) => d.quote)).map(([k, v]) => [k, v.length]),
     ),
     mapped: { withTechnique, tacticOnly, stages: template?.stages.length ?? 0 },
+    ...(template ? { templateId: template.id } : {}),
+    ...(entry.expectedTemplate ? { expectedTemplate: entry.expectedTemplate } : {}),
+    templateMatch: entry.expectedTemplate ? template?.id === entry.expectedTemplate : null,
     ...(entryTechnique ? { entryTechnique } : {}),
     expectedEntry: entry.expectedEntry,
     entryMatch,
@@ -389,15 +402,16 @@ const pad = (s: string, n: number) => s.padEnd(n);
 
 function printTable(rows: ArticleMeasure[]) {
   console.log(
-    "記事                | 型（想定→実際）              | 明確さ  | 段階(出/入) | 破棄手法 | 対応づけ | 入口     | 判定         | 秒",
+    "記事                | 型（想定→実際）              | 明確さ  | 段階(出/入) | 破棄手法 | 対応づけ | 型紙                   | 入口     | 判定         | 秒",
   );
   for (const r of rows) {
     const dropped = Object.values(r.droppedTechniques).reduce((n, v) => n + v.length, 0);
     const type = `${r.expectedDamageType}→${r.damageType}${r.damageTypeMatch ? "" : " ✗"}`;
     const verdict = r.unmapped ? "out_of_scope(未対応)" : r.verdict;
     const entry = r.entryTechnique ?? "-";
+    const template = (r.templateId ?? "-") + (r.templateMatch === false ? " ✗" : "");
     console.log(
-      `${pad(r.id, 19)} | ${pad(type, 28)} | ${pad(r.clarity, 7)} | ${pad(`${r.steps.out}/${r.steps.in}`, 11)} | ${pad(`${dropped}`, 8)} | ${pad(`${r.mapped.withTechnique.length}/${r.mapped.stages}`, 8)} | ${pad(entry + (r.entryMatch === false ? " ✗" : ""), 8)} | ${pad(verdict, 12)} | ${(r.elapsedMs / 1000).toFixed(1)}`,
+      `${pad(r.id, 19)} | ${pad(type, 28)} | ${pad(r.clarity, 7)} | ${pad(`${r.steps.out}/${r.steps.in}`, 11)} | ${pad(`${dropped}`, 8)} | ${pad(`${r.mapped.withTechnique.length}/${r.mapped.stages}`, 8)} | ${pad(template, 22)} | ${pad(entry + (r.entryMatch === false ? " ✗" : ""), 8)} | ${pad(verdict, 12)} | ${(r.elapsedMs / 1000).toFixed(1)}`,
     );
   }
 }
@@ -410,6 +424,8 @@ function summarize(rows: ArticleMeasure[]) {
   const unmapped = rows.filter((r) => r.unmapped).length;
   const entryRows = rows.filter((r) => r.entryMatch !== null);
   const entryMatch = entryRows.filter((r) => r.entryMatch).length;
+  const templateRows = rows.filter((r) => r.templateMatch !== null);
+  const templateMatch = templateRows.filter((r) => r.templateMatch).length;
   const quotesDropped = rows.reduce(
     (s, r) => s + Object.values(r.droppedQuotes).reduce((a, b) => a + b, 0),
     0,
@@ -434,6 +450,8 @@ function summarize(rows: ArticleMeasure[]) {
     unmapped,
     entryMatch,
     entryEvaluated: entryRows.length,
+    templateMatch,
+    templateEvaluated: templateRows.length,
     quotesDropped,
     suspiciousInstructions: suspicious,
     tokens,
@@ -509,7 +527,7 @@ async function main() {
   printTable(rows);
   const summary = summarize(rows);
   console.log(
-    `型の一致 ${summary.damageTypeMatch}/${summary.articles}、判定できた ${summary.judgedInScope}/${summary.inScope}（型紙に未対応 ${summary.unmapped}）、入口の一致 ${summary.entryMatch}/${summary.entryEvaluated}、根拠文の破棄 ${summary.quotesDropped}、指示文の検知 ${summary.suspiciousInstructions}`,
+    `型の一致 ${summary.damageTypeMatch}/${summary.articles}、判定できた ${summary.judgedInScope}/${summary.inScope}（型紙に未対応 ${summary.unmapped}）、型紙の一致 ${summary.templateMatch}/${summary.templateEvaluated}、入口の一致 ${summary.entryMatch}/${summary.entryEvaluated}、根拠文の破棄 ${summary.quotesDropped}、指示文の検知 ${summary.suspiciousInstructions}`,
   );
   if (failures.length > 0)
     console.log(`失敗 ${failures.length} 件: ${failures.map((f) => f.id).join(", ")}`);
@@ -522,7 +540,7 @@ async function main() {
     join(dirs.results, `articles-${stamp}.json`),
     `${JSON.stringify({ recordedAt: now.toISOString(), options: opts, summary, rows, failures }, null, 2)}\n`,
   );
-  const line = `| ${now.toISOString().slice(0, 16).replace("T", " ")} | - | - | ${rows.length} | 実記事：型の一致 ${summary.damageTypeMatch}/${summary.articles}、判定できた ${summary.judgedInScope}/${summary.inScope}（型紙に未対応 ${summary.unmapped}）、入口の一致 ${summary.entryMatch}/${summary.entryEvaluated}、根拠文の破棄 ${summary.quotesDropped}、指示文の検知 ${summary.suspiciousInstructions}${notes.length > 0 ? `、${notes.join("、")}` : ""} |\n`;
+  const line = `| ${now.toISOString().slice(0, 16).replace("T", " ")} | - | - | ${rows.length} | 実記事：型の一致 ${summary.damageTypeMatch}/${summary.articles}、判定できた ${summary.judgedInScope}/${summary.inScope}（型紙に未対応 ${summary.unmapped}）、型紙の一致 ${summary.templateMatch}/${summary.templateEvaluated}、入口の一致 ${summary.entryMatch}/${summary.entryEvaluated}、根拠文の破棄 ${summary.quotesDropped}、指示文の検知 ${summary.suspiciousInstructions}${notes.length > 0 ? `、${notes.join("、")}` : ""} |\n`;
   appendFileSync(join(root, "RESULTS.md"), line);
   console.log(`記録しました: eval/results/articles-${stamp}.json, eval/RESULTS.md`);
 }
