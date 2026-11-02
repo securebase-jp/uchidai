@@ -2,75 +2,56 @@
   "caseId": "ipa-case-4",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:33:19.399Z",
+  "recordedAt": "2026-11-02T14:26:00.573Z",
   "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "取引先を装う標的型メールの添付ファイルからマルウェアに感染し、基幹システム停止と顧客情報流出が起きた事例",
+    "title": "取引先を装う標的型メールからマルウェアに感染し、顧客情報の流出と基幹システム停止に至った事例",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に届いた。"
+        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送りつけられた"
       },
       {
         "tactic": "TA0002",
         "techniques": [],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "従業員が添付ファイルを開き、端末がマルウェアに感染した。"
-      },
-      {
-        "tactic": "TA0005",
-        "techniques": [],
-        "source": "stated",
-        "quote": "導入していたマルウェア対策ソフトでは検知できない新型\nのマルウェアが使用されていた",
-        "summaryJa": "ウイルス対策ソフトで検知できない新型のマルウェアが使われた。"
-      },
-      {
-        "tactic": "TA0011",
-        "techniques": [],
-        "source": "inferred",
-        "summaryJa": "感染した端末が攻撃者の外部サーバと通信し、遠隔から操作された可能性が高い。"
+        "summaryJa": "従業員が添付ファイルを開いたため、端末がマルウェアに感染した"
       },
       {
         "tactic": "TA0008",
         "techniques": [],
         "source": "stated",
         "quote": "社内ネットワークに感染が広がった",
-        "summaryJa": "感染が社内ネットワークの他の機器に広がった。"
-      },
-      {
-        "tactic": "TA0009",
-        "techniques": [],
-        "source": "inferred",
-        "summaryJa": "顧客(契約者)の情報が端末やサーバから集められたと考えられる。"
+        "summaryJa": "感染した端末から社内ネットワークの他の機器へ感染が広がった"
       },
       {
         "tactic": "TA0010",
         "techniques": [],
         "source": "stated",
         "quote": "マルウェアの影響により、顧\n客(契約者)の情報が外\n部へ流出した",
-        "summaryJa": "顧客(契約者)の情報が外部へ流出した。"
+        "summaryJa": "マルウェアの影響で顧客（契約者）の情報が外部に流出した"
       },
       {
         "tactic": "TA0040",
         "techniques": [],
         "source": "stated",
         "quote": "基幹システムが停止し、業\n務を継続することが困難と\nなった",
-        "summaryJa": "基幹システムが停止し、数週間にわたり業務が滞った。"
+        "summaryJa": "基幹システムが停止し、業務の継続が困難になった"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "取引先を装う標的型メールの添付ファイルからマルウェアに感染し、基幹システム停止と顧客情報流出が起きた事例",
+    "title": "取引先を装う標的型メールからマルウェアに感染し、顧客情報の流出と基幹システム停止に至った事例",
     "damageType": "data_breach",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -79,7 +60,7 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に届いた。"
+        "summaryJa": "取引先を装ったメールの添付ファイルが従業員に送りつけられた"
       },
       {
         "tactic": "TA0002",
@@ -88,37 +69,18 @@
         ],
         "source": "stated",
         "quote": "従業員が取引先を装ったメールの添付ファイルを開き、端\n末がマルウェアに感染。",
-        "summaryJa": "従業員が添付ファイルを開き、端末がマルウェアに感染した。"
-      },
-      {
-        "tactic": "TA0005",
-        "techniques": [
-          "T1027"
-        ],
-        "source": "stated",
-        "quote": "導入していたマルウェア対策ソフトでは検知できない新型\nのマルウェアが使用されていた",
-        "summaryJa": "ウイルス対策ソフトで検知できない新型のマルウェアが使われた。"
-      },
-      {
-        "tactic": "TA0011",
-        "techniques": [
-          "T1071.001",
-          "T1105"
-        ],
-        "source": "inferred",
-        "quote": null,
-        "summaryJa": "感染した端末が攻撃者の外部サーバと通信し、遠隔から操作された可能性が高い。"
+        "summaryJa": "従業員が添付ファイルを開いたため、端末がマルウェアに感染した"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021.002",
-          "T1210",
-          "T1570"
+          "T1021",
+          "T1210"
         ],
         "source": "stated",
         "quote": "社内ネットワークに感染が広がった",
-        "summaryJa": "感染が社内ネットワークの他の機器に広がった。"
+        "summaryJa": "感染した端末から社内ネットワークの他の機器へ感染が広がった"
       },
       {
         "tactic": "TA0009",
@@ -128,61 +90,58 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "顧客(契約者)の情報が端末やサーバから集められたと考えられる。"
+        "summaryJa": "社内の端末やサーバから顧客（契約者）の情報が集められたと考えられる"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1041",
-          "T1567",
-          "T1048"
+          "T1048",
+          "T1567"
         ],
         "source": "stated",
         "quote": "マルウェアの影響により、顧\n客(契約者)の情報が外\n部へ流出した",
-        "summaryJa": "顧客(契約者)の情報が外部へ流出した。"
+        "summaryJa": "マルウェアの影響で顧客（契約者）の情報が外部に流出した"
       },
       {
         "tactic": "TA0040",
         "techniques": [
           "T1489",
           "T1486",
-          "T1485"
+          "T1529"
         ],
         "source": "stated",
         "quote": "基幹システムが停止し、業\n務を継続することが困難と\nなった",
-        "summaryJa": "基幹システムが停止し、数週間にわたり業務が滞った。"
+        "summaryJa": "基幹システムが停止し、業務の継続が困難になった"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
-    "stepsIn": 8,
-    "stepsOut": 8,
-    "techniquesIn": 16,
+    "stepsIn": 6,
+    "stepsOut": 5,
+    "techniquesIn": 13,
     "techniquesOut": 0,
-    "quotesIn": 6,
-    "quotesOut": 6,
+    "quotesIn": 5,
+    "quotesOut": 5,
     "replaced": [],
     "droppedTechniques": [
       "T1566.001(not_in_template)",
       "T1204.002(not_in_template)",
-      "T1027(not_in_template)",
-      "T1071.001(not_in_template)",
-      "T1105(not_in_template)",
       "T1021.002(not_in_template)",
+      "T1021(not_in_template)",
       "T1210(not_in_template)",
-      "T1570(not_in_template)",
       "T1005(not_in_template)",
       "T1039(not_in_template)",
       "T1041(not_in_template)",
-      "T1567(not_in_template)",
       "T1048(not_in_template)",
+      "T1567(not_in_template)",
       "T1489(not_in_template)",
       "T1486(not_in_template)",
-      "T1485(not_in_template)"
+      "T1529(not_in_template)"
     ],
     "droppedQuotes": 0,
     "suspiciousInstructions": 0
   },
-  "verdict": "blocked"
+  "verdict": "out_of_scope"
 }

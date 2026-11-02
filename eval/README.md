@@ -43,6 +43,11 @@ pnpm eval --no-knowledge  # 知見なし（without-knowledge）の記録だけ�
 検証前の出力は記録の `raw` に、何を何件落としたかは `verification` に残る。
 `--live` はあわせて、知見なしの Claude に「この事例への対策」を緩和策 ID つきで列挙させた結果を `recordings/mitigations/<caseId>.json` に残す（採点対象外。効く／効かない／経路の外の振り分けは判定エンジン側）。
 
+## 実際の報道記事での評価
+
+IPA の 5 事例とは別に、実際の報道記事（12 本）で読解と型紙への対応づけが機能するかを `pnpm eval:articles` で測る。
+記事の一覧と使い方は `eval/articles/README.md`、記録は `recordings/articles/`、結果は `results/articles-<日時>.json` と `RESULTS.md`（「実記事：」で始まる行）。
+
 ## 出典
 
 - IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月） https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf

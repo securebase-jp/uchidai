@@ -7,6 +7,7 @@
   "scripts": {
     "eval": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/run.ts",
     "eval:attacker": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/attacker-eval.ts",
+    "eval:articles": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/articles-eval.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

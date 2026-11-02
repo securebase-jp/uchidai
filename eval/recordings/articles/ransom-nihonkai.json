@@ -1,0 +1,84 @@
+{
+  "id": "ransom-nihonkai",
+  "source": {
+    "url": "https://www.security-next.com/166531",
+    "media": "Security NEXT",
+    "date": "2025-01-27"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:26:23.014Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】VPN経由でランサム被害、闇サイト上に取引情報 - 日本海建設電気（1ページ目",
+    "chars": 714,
+    "truncated": false
+  },
+  "raw": {
+    "title": "VPN経由でランサム被害、取引情報がリークサイトに公開（日本海建設電気）",
+    "damageType": "ransomware",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1190",
+          "T1133"
+        ],
+        "source": "stated",
+        "quote": "同社が導入しているUTMアプライアンスが最新版に更新されておらず、VPN経由で侵害されたものと見られている。",
+        "summaryJa": "最新版に更新されていないUTM機器のVPN経由で社内ネットワークに侵入されたと見られる。"
+      },
+      {
+        "tactic": "TA0006",
+        "techniques": [
+          "T1003",
+          "T1078",
+          "T1110"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "侵入後にサーバを操作できる管理者権限などの認証情報を入手したと考えられる。"
+      },
+      {
+        "tactic": "TA0008",
+        "techniques": [
+          "T1021",
+          "T1021.002",
+          "T1210"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "社内ネットワークを通じて被害に遭ったサーバへ攻撃を広げたと考えられる。"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567",
+          "T1041",
+          "T1048"
+        ],
+        "source": "stated",
+        "quote": "外部事業者が調査を行ったところ、攻撃者が運営するいわゆるリークサイト上で、個人情報を含む取引情報が公開されていることが明らかとなった。",
+        "summaryJa": "個人情報を含む取引情報が持ち出され、攻撃者のリークサイトで公開された。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486"
+        ],
+        "source": "stated",
+        "quote": "2024年9月27日朝にサーバ内部の一部データがランサムウェアにより暗号化されたことが判明した。",
+        "summaryJa": "サーバ内の一部データがランサムウェアで暗号化された。"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 721,
+    "outputTokens": 643,
+    "cacheReadInputTokens": 18894,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 4487
+}

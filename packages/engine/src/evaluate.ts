@@ -50,39 +50,49 @@ function parentOf(id: string): string {
   return id.split(".")[0] ?? id;
 }
 
-/** 型紙の段階に、記事から読み取った段階を割り当てる */
-function matchCaseSteps(
+/**
+ * 型紙の段階に、記事から読み取った段階を割り当てる。
+ * 戦術が一致し、手法が段階の典型手法（byRole）か accepts にある段階を先に割り当て、
+ * 手法の無い段階（入口不明や、検証で手法がすべて型紙外として落ちた段階）は、残った段階に戦術だけで当てる。
+ * 手法の無い段階を先に当ててしまうと、「暗号化」の段階が「バックアップを消す」に取られるなど、入れ違いが起きる
+ */
+export function matchCaseSteps(
   template: Template,
   steps: CaseStep[],
   knowledge: Knowledge,
 ): Map<string, CaseStep & { technique?: string }> {
   const used = new Set<number>();
   const matched = new Map<string, CaseStep & { technique?: string }>();
-  for (const stage of template.stages) {
-    const accepted = new Set([
+  const canonOf = (s: CaseStep) =>
+    s.techniques
+      .map((t) => canonicalTechnique(t, knowledge.attack))
+      .filter((t): t is string => t !== undefined);
+  const acceptedOf = (stage: TemplateStage) =>
+    new Set([
       ...stage.accepts,
       ...Object.values(stage.byRole).filter((t): t is string => t !== null),
     ]);
+  const pick = (stage: TemplateStage, pass: "technique" | "tactic") => {
+    const accepted = acceptedOf(stage);
     const idx = steps.findIndex((s, i) => {
       if (used.has(i) || !stage.tactics.includes(s.tactic)) return false;
-      const canon = s.techniques
-        .map((t) => canonicalTechnique(t, knowledge.attack))
-        .filter((t): t is string => t !== undefined);
-      return canon.length === 0 || canon.some((t) => accepted.has(t) || accepted.has(parentOf(t)));
+      const canon = canonOf(s);
+      if (pass === "tactic") return canon.length === 0;
+      return canon.some((t) => accepted.has(t) || accepted.has(parentOf(t)));
     });
-    if (idx < 0) continue;
+    if (idx < 0) return;
     used.add(idx);
     const s = steps[idx];
-    if (!s) continue;
-    const canon = s.techniques
-      .map((t) => canonicalTechnique(t, knowledge.attack))
-      .filter((t): t is string => t !== undefined);
+    if (!s) return;
+    const canon = canonOf(s);
     const technique =
       canon.find((t) => accepted.has(t)) ??
       canon.find((t) => accepted.has(parentOf(t))) ??
       canon[0];
     matched.set(stage.id, { ...s, ...(technique ? { technique } : {}) });
-  }
+  };
+  for (const stage of template.stages) pick(stage, "technique");
+  for (const stage of template.stages) if (!matched.has(stage.id)) pick(stage, "tactic");
   return matched;
 }
 

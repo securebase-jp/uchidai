@@ -1,0 +1,31 @@
+{
+  "id": "oos-prudential",
+  "source": {
+    "url": "https://www.security-next.com/170955",
+    "media": "Security NEXT",
+    "date": "2025-06-04"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:23:06.384Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】元従業員が顧客情報持ち出し、在職者も関与 - プルデンシャル生命（1ページ目",
+    "chars": 536,
+    "truncated": false
+  },
+  "raw": {
+    "title": "元従業員と在職者による顧客情報の持ち出し（プルデンシャル生命）",
+    "damageType": "out_of_scope",
+    "clarity": "unknown",
+    "steps": [],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 626,
+    "outputTokens": 79,
+    "cacheReadInputTokens": 18894,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 1811
+}

@@ -15,29 +15,34 @@ stages:
       entry.web: T1190
       entry.vendor_remote: T1133
       pc: T1566
+    # 記事で入口として読まれやすい手法。VPN・リモートデスクトップの正規アカウントの悪用（T1078）、
+    # フィッシングのサブ手法、水飲み場（T1189）、ソフトウェアのサプライチェーン（T1195.002）、取引先経由（T1199）
+    accepts: [T1190, T1133, T1078, T1566, T1566.001, T1566.002, T1189, T1195.002, T1199]
   - id: credentials
     labelJa: 管理者権限を奪う
     tactics: [TA0006, TA0004]
     byRole:
       admin: T1003
-    accepts: [T1003, T1078, T1110]
+    accepts: [T1003, T1078, T1110, T1110.004, T1555]
   - id: lateral
     labelJa: サーバへ広がる
     tactics: [TA0008]
     byRole:
       server: T1021
-    accepts: [T1021, T1021.001, T1021.002]
+    accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
   - id: recovery
     labelJa: バックアップを消す
     tactics: [TA0040]
     byRole:
       backup: T1490
-    accepts: [T1490]
+    # バックアップの削除は T1485（データの破壊）と読まれることが多い
+    accepts: [T1490, T1485]
     optional: true
   - id: encrypt
     labelJa: 暗号化・業務停止
     tactics: [TA0040]
     byRole:
       core: T1486
-    accepts: [T1486]
+    # 「システムが停止した」は T1489（サービス停止）と読まれることがある
+    accepts: [T1486, T1489]
     terminal: true

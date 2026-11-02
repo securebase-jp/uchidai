@@ -1,0 +1,31 @@
+{
+  "id": "oos-konekuto",
+  "source": {
+    "url": "https://www.security-next.com/174040",
+    "media": "Security NEXT",
+    "date": "2025-09-02"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-02T14:23:04.572Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】利用者の個人情報含むファイルをメールで誤送信 - 就労移行支援事業所（1ページ目",
+    "chars": 447,
+    "truncated": false
+  },
+  "raw": {
+    "title": "就労移行支援事業所が利用者の個人情報入りファイルをメールで誤送信",
+    "damageType": "out_of_scope",
+    "clarity": "unknown",
+    "steps": [],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 513,
+    "outputTokens": 79,
+    "cacheReadInputTokens": 18894,
+    "cacheCreationInputTokens": 0
+  },
+  "elapsedMs": 1526
+}
