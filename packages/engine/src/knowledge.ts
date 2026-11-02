@@ -117,6 +117,11 @@ export const TemplateStage = z.object({
   human: z.boolean().default(false),
   optional: z.boolean().default(false),
   terminal: z.boolean().default(false),
+  /**
+   * 本線から枝分かれする段階（二重恐喝の持ち出しなど）。
+   * 記事の段階に対応づいたときだけ経路に入れ、この段階が止まっても本線（暗号化など）は先へ進む
+   */
+  branch: z.boolean().default(false),
   /** 役割ごとの典型手法。null は手法を持たない段階（人の判断、到達） */
   byRole: z.record(Role, TechniqueId.nullable()),
   /** 記事に記載された手法として受け入れる ID */
@@ -127,6 +132,8 @@ export const Template = z.object({
   damageType: DamageType,
   labelJa: z.string(),
   descriptionJa: z.string(),
+  /** 同じ被害の型の型紙で、記事の段階の対応づけが同数のときに優先する順（大きいほど優先。既定 0） */
+  priority: z.number().int().default(0),
   stages: z.array(TemplateStage).min(1),
 });
 export type Template = z.infer<typeof Template>;
@@ -411,8 +418,23 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   };
 
   const templates = collect("templates", loadTemplates) ?? [];
+  const templateIds = templates.map((t) => t.id);
+  for (const id of templateIds.filter((id, i) => templateIds.indexOf(id) !== i))
+    problems.push(`templates: ${id} が重複`);
+  // 被害の型ごとに複数の型紙を持てる。同じ型で priority が同じ型紙は、記事への当てはまりが同数のとき読み込み順で決まる
+  for (const dt of ["ransomware", "bec", "data_breach"] as const)
+    if (!templates.some((t) => t.damageType === dt))
+      problems.push(`templates: 被害の型 ${dt} の型紙がない`);
   for (const t of templates) {
+    if (t.stages.filter((s) => s.entry).length !== 1)
+      problems.push(`templates/${t.id}: 入口（entry）の段階はちょうど 1 つにする`);
+    if (!t.stages.some((s) => s.terminal))
+      problems.push(`templates/${t.id}: 終点（terminal）の段階がない`);
     for (const s of t.stages) {
+      if (s.branch && s.terminal)
+        problems.push(`templates/${t.id}: 段階 ${s.id} は枝（branch）と終点を兼ねられない`);
+      if (s.branch && s.entry)
+        problems.push(`templates/${t.id}: 段階 ${s.id} は枝（branch）と入口を兼ねられない`);
       for (const [role, tech] of Object.entries(s.byRole)) {
         if (!isKnownRole(role, roles))
           problems.push(`templates/${t.id}: 段階 ${s.id} の役割 ${role} は roles.yaml にない`);

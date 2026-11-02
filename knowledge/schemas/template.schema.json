@@ -20,6 +20,12 @@
     "descriptionJa": {
       "type": "string"
     },
+    "priority": {
+      "default": 0,
+      "type": "integer",
+      "minimum": -9007199254740991,
+      "maximum": 9007199254740991
+    },
     "stages": {
       "minItems": 1,
       "type": "array",
@@ -59,6 +65,10 @@
             "default": false,
             "type": "boolean"
           },
+          "branch": {
+            "default": false,
+            "type": "boolean"
+          },
           "byRole": {
             "type": "object",
             "propertyNames": {
@@ -95,6 +105,7 @@
           "human",
           "optional",
           "terminal",
+          "branch",
           "byRole",
           "accepts"
         ],
@@ -107,6 +118,7 @@
     "damageType",
     "labelJa",
     "descriptionJa",
+    "priority",
     "stages"
   ],
   "additionalProperties": false

@@ -1,0 +1,39 @@
+# 型紙：なりすまし送金（取引先を装う偽の請求メール）
+# 社長のアカウントの乗っ取りを伴わないなりすまし。取引先や代表者を装ったメールが経理担当に直接届き、送金させる。
+# 乗っ取りの段階が記事に無いなりすまし送金は、こちらの型紙に当たる（多要素認証が完備でも「止められます」にはならない）
+id: bec-invoice
+damageType: bec
+labelJa: なりすまし送金（取引先を装う偽の請求）
+descriptionJa: 取引先や代表者の情報を集めて偽の請求メールを経理担当へ送り、振込先の変更や急な送金を指示して送金させる
+# 乗っ取りの記載がない記事で bec と同数なら、乗っ取りを前提にしないこちらを選ぶ（誤って安心させない）
+priority: 1
+stages:
+  - id: recon
+    labelJa: 取引先や取引の情報を集める
+    tactics: [TA0043]
+    entry: true
+    precondition: true
+    byRole:
+      person.accounting: T1589
+    accepts: [T1589, T1591]
+  - id: invoice
+    labelJa: 取引先や社長を装った請求・送金指示が届く
+    tactics: [TA0001, TA0005, TA0043]
+    byRole:
+      person.accounting: T1566.002
+    # リンク付き・添付付きのフィッシング、送信元の偽装、取引先や代表者のなりすまし、情報を聞き出すフィッシング
+    accepts: [T1566.002, T1566.001, T1566.004, T1684.002, T1684.001, T1598]
+  - id: human
+    labelJa: 経理担当が送金する
+    tactics: [TA0002]
+    human: true
+    byRole:
+      person.accounting: null
+    accepts: [T1204, T1204.002]
+  - id: money
+    labelJa: 資金が流出する
+    tactics: [TA0040]
+    byRole:
+      impact.money: null
+    accepts: [T1657]
+    terminal: true

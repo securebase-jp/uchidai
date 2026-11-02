@@ -29,6 +29,24 @@ rules:
         reasonJa: バージョンまたは更新の運用が未確認
       - state: breached
         reasonJa: 更新の運用がなく、脆弱性が残っている
+  - id: ransomware.entry.vpn-credentials
+    role: entry.vpn
+    # 脆弱性ではなく、流出・推測したパスワードで VPN に正規ログインする侵入
+    techniques: [T1133, T1078]
+    materialsJa: カルテ：VPN 接続の多要素認証、パスワードの使い回し防止策。外部確認：VPN装置の露出
+    mitigations: [M1042, M1032, M1027]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1042, status: present } }
+        reasonJa: VPN装置を外部に公開していない
+      - state: blocked
+        when: { control: { mitigation: M1032, status: present } }
+        reasonJa: 認証情報での侵入には多要素認証が効く（脆弱性を突く侵入とは逆で、ここでは止まる）
+      - state: unknown
+        when: { control: { mitigation: M1032, status: unknown } }
+        reasonJa: VPN 接続の多要素認証の有無が未確認
+      - state: breached
+        reasonJa: 流出・推測されたパスワードだけで VPN にログインできる（更新していても止まらない）
   - id: ransomware.entry.rdp
     role: entry.rdp
     techniques: [T1133, T1021.001]
@@ -52,20 +70,7 @@ rules:
         reasonJa: 公開の有無または多要素認証が未確認
       - state: breached
         reasonJa: 公開されたリモートデスクトップにパスワードだけで入れる
-  - id: ransomware.entry.web
-    role: entry.web
-    techniques: [T1190]
-    materialsJa: カルテ：CMS などの更新管理
-    mitigations: [M1051]
-    outcomes:
-      - state: blocked
-        when: { control: { mitigation: M1051, status: present } }
-        reasonJa: ホームページのソフトウェアが更新されている
-      - state: unknown
-        when: { control: { mitigation: M1051, status: unknown } }
-        reasonJa: ホームページの更新管理が未確認
-      - state: breached
-        reasonJa: ホームページのソフトウェアが更新されていない
+  # 公開ホームページ（entry.web）の入口は knowledge/rules/web.yaml（情報漏えいの型紙と共通）
   - id: ransomware.entry.phishing
     role: pc
     techniques: [T1566, T1566.001, T1566.002, T1204]

@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { validateAiPath } from "./ai.ts";
 import { classifyMitigations } from "./classify.ts";
-import { evaluate, matchCaseSteps } from "./evaluate.ts";
+import { evaluate, matchCaseSteps, rankTemplates, UNMAPPED_HEADLINE } from "./evaluate.ts";
 import { buildGraph, profileFromAnswers } from "./graph.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
 import { applyAnswer, applyMeasures, pendingControls } from "./measures.ts";
@@ -356,5 +356,336 @@ describe("matchCaseSteps は手法が一致する段階を先に割り当てる"
     expect(m.get("lateral")?.technique).toBe("T1570");
     expect(m.get("recovery")?.technique).toBe("T1485");
     expect(m.get("encrypt")?.technique).toBe("T1486");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// P5：被害の型ごとに複数の型紙（Web サイトへの侵入、社内への侵入と持ち出し、取引先を装う偽の請求、二重恐喝の枝）
+// ---------------------------------------------------------------------------
+const withAsset = (p: CompanyProfile, a: CompanyProfile["assets"][number]): CompanyProfile => ({
+  ...structuredClone(p),
+  assets: [...structuredClone(p.assets), a],
+});
+const setControl = (
+  p: CompanyProfile,
+  assetId: string,
+  mitigation: string,
+  status: "present" | "absent" | "unknown",
+): CompanyProfile => {
+  const next = structuredClone(p);
+  const a = next.assets.find((x) => x.id === assetId);
+  if (!a) throw new Error(assetId);
+  a.controls = [
+    ...a.controls.filter((c) => c.mitigation !== mitigation),
+    {
+      mitigation,
+      status,
+      evidence: status === "unknown" ? "none" : "registered",
+    },
+  ];
+  return next;
+};
+
+describe("型紙の選択（被害の型ごとに複数）", () => {
+  it("選んだ型紙の id と labelJa が Verdict に載る", () => {
+    const v = evaluate(case1, demo, { knowledge });
+    expect(v.templateId).toBe("ransomware");
+    expect(v.templateLabelJa).toBe("業務停止（ランサムウェア）");
+    expect(evaluate(case2, demo, { knowledge }).templateId).toBe("data_breach");
+    expect(evaluate(case5, demo, { knowledge }).templateId).toBe("bec");
+  });
+  it("記事の段階が最も多く対応づいた型紙を選び、同数なら手法の一致、さらに同数なら priority", () => {
+    const ranked = rankTemplates(case5, knowledge).map((m) => m.template.id);
+    expect(ranked[0]).toBe("bec");
+    const veltra: Case = {
+      title: "乗っ取りのないなりすまし",
+      damageType: "bec",
+      clarity: "clear",
+      suspiciousInstructions: [],
+      steps: [
+        { tactic: "TA0005", techniques: ["T1684.001", "T1684.002"], source: "stated" },
+        { tactic: "TA0002", techniques: ["T1204"], source: "stated" },
+        { tactic: "TA0040", techniques: ["T1657"], source: "stated" },
+      ],
+    };
+    const r = rankTemplates(veltra, knowledge);
+    expect(r[0]?.template.id).toBe("bec-invoice");
+    expect(r[0]?.stageMatches).toBe(r[1]?.stageMatches);
+    expect(r[0]?.techniqueMatches).toBe(r[1]?.techniqueMatches);
+    expect(r[0]?.template.priority).toBeGreaterThan(r[1]?.template.priority ?? 0);
+  });
+  it("入口が不明で当てはまりが同じ型紙が複数なら、型紙ごとの入口候補を全部出し、経路 ID に型紙 ID が入る", () => {
+    const v = evaluate(
+      {
+        title: "x",
+        damageType: "data_breach",
+        clarity: "unknown",
+        suspiciousInstructions: [],
+        steps: [
+          { tactic: "TA0001", techniques: [], source: "unknown" },
+          { tactic: "TA0010", techniques: [], source: "stated" },
+        ],
+      },
+      demo,
+      { knowledge },
+    );
+    const templates = new Set(v.paths.map((p) => p.templateId));
+    expect(templates).toEqual(new Set(["data_breach", "data-breach-intrusion"]));
+    expect(v.paths.every((p) => p.id.startsWith(`${p.templateId}:`))).toBe(true);
+    expect(v.templateId).toBeUndefined();
+    expect(v.result).toBe("breached");
+  });
+  it("どの型紙にも対応づけられなければ従来どおり対象外", () => {
+    const v = evaluate(
+      {
+        title: "x",
+        damageType: "data_breach",
+        clarity: "clear",
+        suspiciousInstructions: [],
+        steps: [{ tactic: "TA0040", techniques: ["T1499"], source: "stated" }],
+      },
+      demo,
+      { knowledge },
+    );
+    expect(v.result).toBe("out_of_scope");
+    expect(v.headlineJa).toBe(UNMAPPED_HEADLINE);
+  });
+});
+
+describe("型紙 data-breach-web（Web サイトへの侵入・改ざん）", () => {
+  const curtain: Case = {
+    title: "通販サイトの決済アプリ改ざん",
+    damageType: "data_breach",
+    clarity: "clear",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+      { tactic: "TA0003", techniques: ["T1505.003"], source: "stated" },
+      { tactic: "TA0009", techniques: ["T1056.003"], source: "inferred" },
+      { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+    ],
+  };
+  const web = (controls: CompanyProfile["assets"][number]["controls"]) =>
+    withAsset(demo, {
+      id: "web",
+      kind: "system",
+      role: "entry.web",
+      label: "ホームページ（レンタルサーバ）",
+      side: "external",
+      controls,
+      attrs: {},
+      attrEvidence: {},
+    });
+  it("デモの旧キャンペーンサイト（廃止済み）は入口にせず、入口なし", () => {
+    const v = evaluate(curtain, demo, { knowledge });
+    expect(v.templateId).toBe("data-breach-web");
+    expect(v.result).toBe("no_entry");
+  });
+  it("更新のないホームページがあれば、全段階がホームページの上で進んで漏えいに至る", () => {
+    const v = evaluate(
+      curtain,
+      web([{ mitigation: "M1051", status: "absent", evidence: "registered" }]),
+      {
+        knowledge,
+      },
+    );
+    expect(v.result).toBe("breached");
+    expect(v.paths).toHaveLength(1);
+    expect(v.paths[0]?.steps.map((s) => [s.nodeId, s.technique ?? null, s.state])).toEqual([
+      ["web", "T1190", "breached"],
+      ["web", "T1056.003", "unknown"],
+      ["web", "T1041", "breached"],
+      ["web", null, "breached"],
+    ]);
+    expect(v.paths[0]?.steps[0]?.ineffective.map((i) => i.mitigation)).toContain("M1032");
+  });
+  it("更新管理があれば入口で止まり、改ざん検知があれば被害を抑えられる", () => {
+    const updated = web([{ mitigation: "M1051", status: "present", evidence: "registered" }]);
+    expect(evaluate(curtain, updated, { knowledge }).result).toBe("blocked");
+    const detected = web([
+      { mitigation: "M1051", status: "absent", evidence: "registered" },
+      { mitigation: "M1047", status: "present", evidence: "registered" },
+    ]);
+    const v = evaluate(curtain, detected, { knowledge });
+    expect(v.result).toBe("mitigated");
+    expect(v.paths[0]?.steps[1]?.state).toBe("recoverable");
+  });
+  it("管理画面の正規アカウントでの侵入（T1078）は多要素認証で止まり、更新は効かない", () => {
+    const creds: Case = {
+      ...curtain,
+      steps: [
+        { tactic: "TA0001", techniques: ["T1078"], source: "stated" },
+        ...curtain.steps.slice(2),
+      ],
+    };
+    const mfa = web([
+      { mitigation: "M1051", status: "absent", evidence: "registered" },
+      { mitigation: "M1032", status: "present", evidence: "registered" },
+    ]);
+    const v = evaluate(creds, mfa, { knowledge });
+    expect(v.result).toBe("blocked");
+    expect(v.paths[0]?.steps[0]?.ineffective.map((i) => i.mitigation)).toContain("M1051");
+  });
+});
+
+describe("型紙 data-breach-intrusion（社内への侵入・持ち出し）", () => {
+  const intrusion: Case = {
+    title: "社内サーバから個人情報を持ち出し",
+    damageType: "data_breach",
+    clarity: "clear",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+      { tactic: "TA0009", techniques: ["T1005"], source: "inferred" },
+      { tactic: "TA0010", techniques: ["T1048"], source: "stated" },
+    ],
+  };
+  it("デモでは VPN から入って中核とファイルサーバの両方に到達し、報告義務が生じる", () => {
+    const v = evaluate(intrusion, demo, { knowledge });
+    expect(v.templateId).toBe("data-breach-intrusion");
+    expect(v.result).toBe("breached");
+    expect(v.paths.map((p) => p.steps.at(-1)?.nodeId).sort()).toEqual(["core", "file-server"]);
+    const p = v.paths[0];
+    expect(p?.steps.map((s) => [s.stageId, s.nodeId, s.state])).toEqual([
+      ["entry", "vpn", "breached"],
+      ["credentials", "admin", "unknown"],
+      ["lateral", "server", "breached"],
+      ["collect", "server", "unknown"],
+      ["exfil", "server", "unknown"],
+      ["leak", "core", "breached"],
+    ]);
+    expect(v.impact.reportRequired).toBe(true);
+    expect(v.impact.personalDataReached.map((d) => d.assetId)).toContain("core");
+  });
+  it("持ち出しの検知・遮断（DLP）があれば持ち出しで止まり、無いと確定すれば赤", () => {
+    const dlp = setControl(demo, "server", "M1057", "present");
+    const v = evaluate(intrusion, dlp, { knowledge });
+    expect(v.result).toBe("blocked");
+    expect(v.paths[0]?.steps.at(-1)).toMatchObject({ stageId: "exfil", state: "blocked" });
+    const none = setControl(
+      setControl(demo, "server", "M1057", "absent"),
+      "server",
+      "M1031",
+      "absent",
+    );
+    expect(
+      evaluate(intrusion, none, { knowledge }).paths[0]?.steps.find((s) => s.stageId === "exfil")
+        ?.state,
+    ).toBe("breached");
+  });
+  it("アクセス権の最小化と監査が揃っても収集は止まらず黄、片方でも無ければ赤", () => {
+    const both = setControl(
+      setControl(demo, "server", "M1022", "present"),
+      "server",
+      "M1047",
+      "present",
+    );
+    const collect = (p: CompanyProfile) =>
+      evaluate(intrusion, p, { knowledge }).paths[0]?.steps.find((s) => s.stageId === "collect");
+    expect(collect(both)?.state).toBe("unknown");
+    expect(collect(both)?.reasonJa).toContain("抑えられる");
+    expect(collect(setControl(demo, "server", "M1022", "absent"))?.state).toBe("breached");
+  });
+});
+
+describe("型紙 bec-invoice（取引先を装う偽の請求メール）", () => {
+  const veltra: Case = {
+    title: "代表者を装った送金指示",
+    damageType: "bec",
+    clarity: "clear",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0005", techniques: ["T1684.001", "T1684.002"], source: "stated" },
+      { tactic: "TA0002", techniques: ["T1204"], source: "stated" },
+      { tactic: "TA0040", techniques: ["T1657"], source: "stated" },
+    ],
+  };
+  it("デモの経理担当は研修のみで人次第なので「大丈夫ではない」。社長アカウントの段階は無い", () => {
+    const v = evaluate(veltra, demo, { knowledge });
+    expect(v.templateId).toBe("bec-invoice");
+    expect(v.result).toBe("breached");
+    const steps = v.paths[0]?.steps ?? [];
+    expect(steps.map((s) => [s.role, s.state])).toEqual([
+      ["person.accounting", "breached"],
+      ["person.accounting", "human"],
+      ["person.accounting", "human"],
+      ["impact.money", "breached"],
+    ]);
+    expect(steps[0]?.precondition).toBe(true);
+    expect(steps[1]?.ineffective.map((i) => i.mitigation)).toContain("M1054");
+    expect(steps.some((s) => s.role === "cloud.mail_account.exec")).toBe(false);
+    expect(v.impact.moneyLossJpy).toBe(5_000_000);
+  });
+  it("「送金時の折り返し確認ルール」で止まる。社長の多要素認証では止まらない", () => {
+    expect(
+      evaluate(veltra, applyMeasures(demo, [measure("transfer-callback")]), { knowledge }).result,
+    ).toBe("blocked");
+    expect(evaluate(veltra, applyMeasures(demo, [measure("exec-mfa")]), { knowledge }).result).toBe(
+      "breached",
+    );
+  });
+  it("乗っ取りの段階が記事にある事例 5 は従来の型紙 bec のまま", () => {
+    expect(evaluate(case5, demo, { knowledge }).templateId).toBe("bec");
+  });
+});
+
+describe("ransomware の持ち出しの枝（二重恐喝）と VPN の認証情報での侵入", () => {
+  const nihonkai: Case = {
+    ...case1,
+    title: "リークサイトに取引情報",
+    steps: [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated" },
+      { tactic: "TA0010", techniques: ["T1567"], source: "stated", quote: "リークサイトで公開" },
+      { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+    ],
+  };
+  it("記事に持ち出しがあれば、サーバの段階の後に持ち出しの段階が入る。無い記事（事例 1）では入らない", () => {
+    const v = evaluate(nihonkai, demo, { knowledge });
+    expect(v.paths[0]?.steps.map((s) => s.stageId)).toEqual([
+      "entry",
+      "credentials",
+      "lateral",
+      "exfil",
+      "recovery",
+      "encrypt",
+    ]);
+    expect(v.paths[0]?.steps[3]).toMatchObject({
+      nodeId: "server",
+      technique: "T1567",
+      state: "unknown",
+    });
+    expect(
+      evaluate(case1, demo, { knowledge }).paths[0]?.steps.map((s) => s.stageId),
+    ).not.toContain("exfil");
+  });
+  it("持ち出しが止まっても暗号化の本線は進む（枝）", () => {
+    const v = evaluate(nihonkai, setControl(demo, "server", "M1057", "present"), { knowledge });
+    expect(v.paths[0]?.steps.find((s) => s.stageId === "exfil")?.state).toBe("blocked");
+    expect(v.paths[0]?.reachedCore).toBe(true);
+    expect(v.result).toBe("breached");
+  });
+  it("VPN への認証情報での侵入（T1133）は、多要素認証があれば止まり、無ければ更新していても赤", () => {
+    const creds: Case = {
+      ...case1,
+      steps: [
+        {
+          tactic: "TA0001",
+          techniques: ["T1133", "T1078"],
+          source: "stated",
+          quote: "VPN装置の脆弱性",
+        },
+        ...case1.steps.slice(1),
+      ],
+    };
+    const v = evaluate(creds, demo, { knowledge });
+    const vpn = v.paths.find((p) => p.steps[0]?.nodeId === "vpn")?.steps[0];
+    expect(vpn).toMatchObject({ technique: "T1133", state: "breached", source: "stated" });
+    expect(vpn?.ruleId).toBe("ransomware.entry.vpn-credentials");
+    const mfa = evaluate(creds, applyMeasures(demo, [measure("vpn-mfa")]), { knowledge });
+    expect(mfa.paths.find((p) => p.steps[0]?.nodeId === "vpn")?.steps[0]?.state).toBe("blocked");
+    const updated = evaluate(creds, applyMeasures(demo, [measure("vpn-update")]), { knowledge });
+    expect(updated.paths.find((p) => p.steps[0]?.nodeId === "vpn")?.steps[0]?.state).toBe(
+      "breached",
+    );
   });
 });

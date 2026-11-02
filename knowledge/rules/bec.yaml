@@ -67,3 +67,32 @@ rules:
     outcomes:
       - state: breached
         reasonJa: 資金が流出する。送金額の目安を表示する
+  # --- 取引先を装う偽の請求メール（型紙 bec-invoice。乗っ取りなし）。人の段階と資金の流出は上の bec.human / money.reached を使う ---
+  - id: bec_invoice.recon
+    role: person.accounting
+    techniques: [T1589, T1591]
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 前提条件として表示する段階。取引先の名前や請求の時期は公開情報や過去のやり取りから集められる
+  - id: bec_invoice.mail
+    role: person.accounting
+    techniques: [T1566.001, T1566.002, T1566.004, T1684.002, T1598]
+    materialsJa: カルテ：送金・振込先変更の手順（折り返し確認・二人承認）、研修
+    mitigations: [UD-01, M1017]
+    ineffective:
+      - mitigation: M1054
+        reasonJa: SPF・DKIM・DMARC は自社ドメインの偽装を受信側が見分けるための設定で、取引先を装った別のドメイン（よく似た綴りなど）から届くメールには効きません
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: UD-01, status: present } }
+        reasonJa: 振込先変更や急な送金は、登録済みの連絡先へ折り返して確認する、または二人で承認する手順があるので、偽の請求でも止まる
+      - state: human
+        when: { control: { mitigation: M1017, status: present } }
+        reasonJa: 研修のみ。本物に見える請求にだまされても仕組みで止まる手順がない
+      - state: unknown
+        when: { control: { mitigation: UD-01, status: unknown } }
+        reasonJa: 送金の手順が未確認
+      - state: breached
+        reasonJa: 手順も研修もなく、届いた請求どおりに送金される
