@@ -46,9 +46,12 @@ function loadCases(): GoldCase[] {
 
 function loadRecordings(): Recording[] {
   if (!existsSync(dirs.recordings)) return [];
-  return readdirSync(dirs.recordings)
-    .filter((f) => f.endsWith(".json"))
-    .map((f) => RecordingSchema.parse(JSON.parse(readFileSync(join(dirs.recordings, f), "utf8"))));
+  return (
+    readdirSync(dirs.recordings)
+      // 読解の記録だけ（AI攻撃者 attacker.*.json と知見なし比較 compare.*.json は eval:attacker が読む）
+      .filter((f) => /\.(with|without)-knowledge\.json$/.test(f))
+      .map((f) => RecordingSchema.parse(JSON.parse(readFileSync(join(dirs.recordings, f), "utf8"))))
+  );
 }
 
 function loadArticle(caseId: string): string | undefined {

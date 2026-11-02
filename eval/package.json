@@ -6,6 +6,7 @@
   "description": "専門家の正解データに対する読解・判定の一致度を採点する",
   "scripts": {
     "eval": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/run.ts",
+    "eval:attacker": "node --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/attacker-eval.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
