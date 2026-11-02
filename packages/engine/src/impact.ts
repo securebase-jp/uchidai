@@ -32,9 +32,13 @@ export function reachedAssets(paths: AttackPath[]): Set<string> {
   return new Set(paths.filter((p) => p.reachedCore).flatMap((p) => p.reachedAssetIds));
 }
 
-/** 到達した経路に「復旧できる」段階（切り離したバックアップなど）があるか */
+/**
+ * 到達した経路のすべてに「復旧できる」段階（切り離したバックアップなど）があるか。
+ * 復旧できない経路が一つでも残れば、停止日数は通常の復旧日数で見る（結論 mitigated の条件と同じ）
+ */
 export function hasRecoverableStep(paths: AttackPath[]): boolean {
-  return paths.some((p) => p.reachedCore && p.steps.some((s) => s.state === "recoverable"));
+  const reached = paths.filter((p) => p.reachedCore);
+  return reached.length > 0 && reached.every((p) => p.steps.some((s) => s.state === "recoverable"));
 }
 
 /** 経路の型紙 ID から事例の種類を引く（型紙 ID は damageType と同名） */
@@ -136,13 +140,16 @@ export function computeImpact(
   };
 }
 
-/** 金額の表示（円）：1 億円以上は億、1 万円以上は万で丸める。社長向けの文に使う */
+/**
+ * 金額の表示（円）：1 億円以上は億、1 万円以上は万で小数 1 桁に丸める（約 1 億円、約 2,000 万円、約 158.4 万円）。
+ * 万で丸めて 1 億円に届けば億で表示する。社長向けの文に使う
+ */
 export function formatJpy(n: number): string {
-  const fmt = (v: number) => {
-    const r = Math.round(v * 10) / 10;
-    return Number.isInteger(r) ? String(r) : r.toFixed(1);
-  };
-  if (n >= 100_000_000) return `約 ${fmt(n / 100_000_000)} 億円`;
-  if (n >= 10_000) return `約 ${fmt(n / 10_000).replace(/\.0$/, "")} 万円`;
-  return `${n.toLocaleString("ja-JP")} 円`;
+  const round1 = (v: number) => Math.round(v * 10) / 10;
+  const fmt = (v: number) =>
+    v.toLocaleString("ja-JP", { minimumFractionDigits: 0, maximumFractionDigits: 1 });
+  if (n < 10_000) return `${Math.round(n).toLocaleString("ja-JP")} 円`;
+  const man = round1(n / 10_000);
+  if (n >= 100_000_000 || man >= 10_000) return `約 ${fmt(round1(n / 100_000_000))} 億円`;
+  return `約 ${fmt(man)} 万円`;
 }
