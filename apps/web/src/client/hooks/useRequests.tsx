@@ -41,7 +41,8 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string>();
   const [lastAnswer, setLastAnswer] = useState<AnswerEvent>();
   const applied = useRef(new Set<string>());
-  const appliedFor = useRef<string | undefined>(undefined);
+  /** 適用済みの記録が対応するカルテ（オブジェクト）。useApp.setProfile は新しいオブジェクトを作り answers を空にする */
+  const appliedFor = useRef<unknown>(undefined);
   const profileId = profile?.id;
   const replayOld = !isDemoMode();
 
@@ -56,19 +57,19 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // 回答済みの依頼（同じカルテ）を一度だけ適用する（デモモードでは前回の回答を引きずらない）。
-  // カルテが入れ替わったら（useApp.setProfile が answers を空にする）、適用済みの記録も忘れる
+  // カルテが置き換わったら（同じ ID でも。useApp.setProfile は answers を空にする）、適用済みの記録も忘れる
   useEffect(() => {
-    if (appliedFor.current !== profileId) {
-      appliedFor.current = profileId;
+    if (appliedFor.current !== profile) {
+      appliedFor.current = profile;
       applied.current = new Set();
     }
-    if (!profileId || !replayOld) return;
+    if (!profile || !replayOld) return;
     for (const it of items) {
-      if (!it.answer || it.profileId !== profileId || applied.current.has(it.id)) continue;
+      if (!it.answer || it.profileId !== profile.id || applied.current.has(it.id)) continue;
       applied.current.add(it.id);
       addAnswer(it.answer.input);
     }
-  }, [items, profileId, addAnswer, replayOld]);
+  }, [items, profile, addAnswer, replayOld]);
 
   useEffect(() => {
     void refresh();

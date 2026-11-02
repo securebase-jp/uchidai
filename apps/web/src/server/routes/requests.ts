@@ -65,7 +65,11 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): RequestDeps {
   return {
     store: new RequestStore({ file: env.UCHIDAI_REQUESTS_FILE ?? defaultStoreFile }),
     mailer: mailerFromEnv(env),
-    publicBaseUrl: (env.PUBLIC_BASE_URL ?? "http://localhost:5173").replace(/\/+$/, ""),
+    // 既定は手元の Vite（WEB_PORT を変えて起動したときはその番号）
+    publicBaseUrl: (env.PUBLIC_BASE_URL ?? `http://localhost:${env.WEB_PORT ?? 5173}`).replace(
+      /\/+$/,
+      "",
+    ),
   };
 }
 
