@@ -219,6 +219,35 @@ async function draftWithClaude(
   return { draft: r.value, model: r.model };
 }
 
+/** 確認依頼で Claude に渡す資料（役割名・質問・選択肢・ID・期限だけ。固有名詞は渡さない） */
+export function vendorRequestData(input: VendorRequestInput): Record<string, unknown> {
+  return {
+    assetRoleLabel: input.assetRoleLabel,
+    question: input.question,
+    choices: input.choices,
+    mitigationId: input.mitigationId,
+    mitigationLabel: input.mitigationLabel,
+    techniqueId: input.techniqueId ?? null,
+    techniqueLabel: input.techniqueLabel ?? null,
+    materialsJa: input.materialsJa ?? null,
+    deadline: input.deadline,
+  };
+}
+
+/** 対策依頼で Claude に渡す資料（役割名・対策名・ID・費用の目安・期限だけ） */
+export function measureRequestData(input: MeasureRequestInput): Record<string, unknown> {
+  return {
+    assetRoleLabel: input.assetRoleLabel,
+    measureLabel: input.measureLabel,
+    mitigationId: input.mitigationId,
+    mitigationLabel: input.mitigationLabel,
+    techniqueId: input.techniqueId ?? null,
+    techniqueLabel: input.techniqueLabel ?? null,
+    costJa: input.costJa ?? null,
+    deadline: input.deadline,
+  };
+}
+
 /** Claude の下書きが契約を満たすか（プレースホルダ、質問の原文、URL の捏造なし） */
 export function validateVendorDraft(
   draft: { subject: string; body: string },
@@ -246,43 +275,33 @@ export function validateMeasureDraft(
   return undefined;
 }
 
+/** プレースホルダを実名に置き換えて WrittenMail にする */
+function finish(
+  d: { subject: string; body: string },
+  names: Names & { answerUrl?: string },
+  rest: Omit<WrittenMail, "subject" | "text">,
+): WrittenMail {
+  return { subject: fillNames(d.subject, names), text: fillNames(d.body, names), ...rest };
+}
+
 /** 確認依頼のメール文。Claude が使えなければ（または検証に落ちれば）テンプレート */
 export async function writeVendorRequest(
   input: VendorRequestInput,
   opts: WriterOptions = {},
 ): Promise<WrittenMail> {
-  const finish = (
-    d: { subject: string; body: string },
-    rest: Omit<WrittenMail, "subject" | "text">,
-  ) =>
-    ({
-      subject: fillNames(d.subject, input),
-      text: fillNames(d.body, input),
-      ...rest,
-    }) as WrittenMail;
-  if (!useClaude(opts)) return finish(vendorRequestTemplate(input), { writer: "template" });
+  if (!useClaude(opts)) return finish(vendorRequestTemplate(input), input, { writer: "template" });
   try {
-    const { draft, model } = await draftWithClaude(opts, VENDOR_RULES, {
-      assetRoleLabel: input.assetRoleLabel,
-      question: input.question,
-      choices: input.choices,
-      mitigationId: input.mitigationId,
-      mitigationLabel: input.mitigationLabel,
-      techniqueId: input.techniqueId ?? null,
-      techniqueLabel: input.techniqueLabel ?? null,
-      materialsJa: input.materialsJa ?? null,
-      deadline: input.deadline,
-    });
+    const { draft, model } = await draftWithClaude(opts, VENDOR_RULES, vendorRequestData(input));
     const problem = validateVendorDraft(draft, input);
     if (problem)
-      return finish(vendorRequestTemplate(input), {
+      return finish(vendorRequestTemplate(input), input, {
         writer: "template",
         model,
         fallbackReasonJa: problem,
       });
-    return finish(draft, { writer: "claude", model });
+    return finish(draft, input, { writer: "claude", model });
   } catch (e) {
-    return finish(vendorRequestTemplate(input), {
+    return finish(vendorRequestTemplate(input), input, {
       writer: "template",
       fallbackReasonJa: e instanceof Error ? e.message : String(e),
     });
@@ -294,37 +313,19 @@ export async function writeMeasureRequest(
   input: MeasureRequestInput,
   opts: WriterOptions = {},
 ): Promise<WrittenMail> {
-  const finish = (
-    d: { subject: string; body: string },
-    rest: Omit<WrittenMail, "subject" | "text">,
-  ) =>
-    ({
-      subject: fillNames(d.subject, input),
-      text: fillNames(d.body, input),
-      ...rest,
-    }) as WrittenMail;
-  if (!useClaude(opts)) return finish(measureRequestTemplate(input), { writer: "template" });
+  if (!useClaude(opts)) return finish(measureRequestTemplate(input), input, { writer: "template" });
   try {
-    const { draft, model } = await draftWithClaude(opts, MEASURE_RULES, {
-      assetRoleLabel: input.assetRoleLabel,
-      measureLabel: input.measureLabel,
-      mitigationId: input.mitigationId,
-      mitigationLabel: input.mitigationLabel,
-      techniqueId: input.techniqueId ?? null,
-      techniqueLabel: input.techniqueLabel ?? null,
-      costJa: input.costJa ?? null,
-      deadline: input.deadline,
-    });
+    const { draft, model } = await draftWithClaude(opts, MEASURE_RULES, measureRequestData(input));
     const problem = validateMeasureDraft(draft, input);
     if (problem)
-      return finish(measureRequestTemplate(input), {
+      return finish(measureRequestTemplate(input), input, {
         writer: "template",
         model,
         fallbackReasonJa: problem,
       });
-    return finish(draft, { writer: "claude", model });
+    return finish(draft, input, { writer: "claude", model });
   } catch (e) {
-    return finish(measureRequestTemplate(input), {
+    return finish(measureRequestTemplate(input), input, {
       writer: "template",
       fallbackReasonJa: e instanceof Error ? e.message : String(e),
     });

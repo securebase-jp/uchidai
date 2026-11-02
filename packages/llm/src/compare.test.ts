@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildGraph,
@@ -13,10 +14,7 @@ import { caseAsArticle, compareGenericMitigations } from "./compare.ts";
 const k = loadKnowledge();
 const profile = loadProfile(join(repoRoot, "examples", "demo-seiko.json"));
 const rec = JSON.parse(
-  require("node:fs").readFileSync(
-    join(repoRoot, "eval", "recordings", "ipa-case-1.with-knowledge.json"),
-    "utf8",
-  ),
+  readFileSync(join(repoRoot, "eval", "recordings", "ipa-case-1.with-knowledge.json"), "utf8"),
 ) as { output: Case };
 
 describe("compareGenericMitigations", () => {

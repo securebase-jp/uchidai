@@ -145,3 +145,117 @@ describe("detectInstructions", () => {
     ).toEqual([]);
   });
 });
+
+describe("verifyCase（検証の抜け）", () => {
+  const base = {
+    title: "x",
+    damageType: "ransomware",
+    clarity: "partial",
+    suspiciousInstructions: [],
+  };
+  const step = (over: Record<string, unknown>) => ({
+    tactic: "TA0001",
+    techniques: ["T1190"],
+    source: "stated",
+    quote: null,
+    summaryJa: "s",
+    ...over,
+  });
+
+  it("長すぎる根拠文（記事の丸写し）は捨てて inferred に落とす", () => {
+    const quote = article.repeat(3);
+    const text = article.repeat(3);
+    const { case: c, report } = verifyCase({ ...base, steps: [step({ quote })] }, text, attack);
+    expect(report.droppedQuotes[0]?.reason).toBe("too_long");
+    expect(report.droppedQuotes[0]?.quote.length).toBeLessThanOrEqual(201);
+    expect(c.steps[0]?.source).toBe("inferred");
+    expect(c.steps[0]?.quote).toBeUndefined();
+  });
+
+  it("inferred / unknown の段階に付いた根拠文は、原文にあっても消す（根拠文があるのは stated だけ）", () => {
+    const { case: c, report } = verifyCase(
+      {
+        ...base,
+        steps: [
+          step({ source: "inferred", quote: "クラウドに保存したバックアップデータも暗号化され" }),
+          step({ source: "unknown", techniques: [], quote: "業務データが暗号化された" }),
+        ],
+      },
+      article,
+      attack,
+    );
+    expect(report.droppedQuotes.map((d) => d.reason)).toEqual([
+      "source_not_stated",
+      "source_not_stated",
+    ]);
+    expect(c.steps[0]?.source).toBe("inferred");
+    expect(c.steps[0]?.quote).toBeUndefined();
+    expect(c.steps[1]?.source).toBe("unknown");
+  });
+
+  it("推定の段階が型紙にない手法だけでできていれば段階ごと捨てる。unknown の段階（入口不明）は残す", () => {
+    const { case: c, report } = verifyCase(
+      {
+        ...base,
+        steps: [
+          step({ tactic: "TA0011", source: "inferred", techniques: ["T1071.001", "T1105"] }),
+          step({ tactic: "TA0001", source: "unknown", techniques: [] }),
+          step({ tactic: "TA0006", source: "inferred", techniques: ["T1003"] }),
+        ],
+      },
+      article,
+      attack,
+      { allowedTechniques: ["T1190", "T1003", "T1486"] },
+    );
+    expect(report.droppedSteps).toEqual([
+      { index: 0, tactic: "TA0011", reason: "inferred_outside_template" },
+    ]);
+    expect(c.steps.map((s) => s.tactic)).toEqual(["TA0001", "TA0006"]);
+    expect(report.counts.stepsOut).toBe(2);
+  });
+
+  it("推定の段階でも、手法が最初から空なら（型紙外で消えたのでなければ）残す", () => {
+    const { case: c } = verifyCase(
+      { ...base, steps: [step({ tactic: "TA0006", source: "inferred", techniques: [] })] },
+      article,
+      attack,
+      { allowedTechniques: ["T1190"] },
+    );
+    expect(c.steps).toHaveLength(1);
+  });
+
+  it("段階が 0 件、または手法が全部型紙外なら注意を出す", () => {
+    const empty = verifyCase({ ...base, steps: [] }, article, attack);
+    expect(empty.report.warnings.some((w) => w.includes("1 つも"))).toBe(true);
+    const outside = verifyCase(
+      { ...base, damageType: "bec", steps: [step({ techniques: ["T1486"] })] },
+      article,
+      attack,
+      { allowedTechniques: ["T1657"] },
+    );
+    expect(outside.report.warnings.some((w) => w.includes("型紙にありません"))).toBe(true);
+    expect(outside.report.warnings[0]).toContain("bec");
+  });
+
+  it("題と一行の説明は長さを切る", () => {
+    const { case: c } = verifyCase(
+      { ...base, title: "あ".repeat(500), steps: [step({ summaryJa: "い".repeat(1000) })] },
+      article,
+      attack,
+    );
+    expect(c.title.length).toBe(201);
+    expect(c.steps[0]?.summaryJa?.length).toBe(301);
+  });
+
+  it("想定外の値（source の未知の値、techniques が文字列）は zod で弾く", () => {
+    expect(() =>
+      verifyCase({ ...base, steps: [step({ source: "guessed" })] }, article, attack),
+    ).toThrow();
+    expect(() =>
+      verifyCase({ ...base, steps: [step({ techniques: "T1190" })] }, article, attack),
+    ).toThrow();
+    expect(() =>
+      verifyCase({ ...base, damageType: "phishing", steps: [] }, article, attack),
+    ).toThrow();
+  });
+});

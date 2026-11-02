@@ -5,8 +5,9 @@
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { repoRoot } from "@uchidai/engine";
+import { type AiPathCandidate, repoRoot } from "@uchidai/engine";
 import { z } from "zod";
+import { type DiscardedCandidate, screenCandidate } from "./attacker.ts";
 import type { GenericMitigation } from "./reader.ts";
 
 export const AttackerRecording = z.object({
@@ -90,6 +91,55 @@ export function loadAttackerRecording(profileId: string): AttackerRecording | un
   const p = attackerRecordingPath(profileId);
   if (!existsSync(p)) return undefined;
   return AttackerRecording.parse(JSON.parse(readFileSync(p, "utf8")));
+}
+
+/** 記録の候補 1 件の形（記録時に安全検査・スキーマ検証を通ったはずのもの。再生時にもう一度検査する） */
+const RecordedCandidate = z.object({
+  titleJa: z.string().optional(),
+  steps: z.array(z.object({ role: z.string(), technique: z.string(), reasonJa: z.string() })),
+});
+const RecordedDiscarded = z.object({
+  titleJa: z.string().optional(),
+  stage: z.enum(["safety", "schema", "validation"]),
+  reasons: z.array(z.string()),
+  steps: z.array(z.object({ role: z.string(), technique: z.string() })),
+});
+
+/**
+ * 記録の候補を再生する前に、安全検査とスキーマ検証をやり直す。
+ * 記録ファイルが改ざんされていても（禁止語の挿入、形の崩れ）、検査を通らない候補は再生されない。
+ * 存在しない手法 ID や構成に無い役割は、この後の engine の 4 点検証（validateCandidates）が落とす
+ */
+export function screenRecording(
+  rec: Pick<AttackerRecording, "candidates" | "screened">,
+  extraBannedTerms: readonly string[] = [],
+): { candidates: AiPathCandidate[]; screened: DiscardedCandidate[] } {
+  const candidates: AiPathCandidate[] = [];
+  const screened: DiscardedCandidate[] = [];
+  for (const raw of rec.screened) {
+    const d = RecordedDiscarded.safeParse(raw);
+    if (!d.success) continue;
+    const { titleJa, ...rest } = d.data;
+    screened.push(titleJa !== undefined ? { titleJa, ...rest } : rest);
+  }
+  for (const raw of rec.candidates) {
+    const parsed = RecordedCandidate.safeParse(raw);
+    if (!parsed.success) {
+      screened.push({
+        stage: "schema",
+        reasons: ["記録の候補の形が崩れている"],
+        steps: [],
+      });
+      continue;
+    }
+    const r = screenCandidate(
+      { titleJa: parsed.data.titleJa ?? "", steps: parsed.data.steps },
+      extraBannedTerms,
+    );
+    if (r.ok) candidates.push(r.candidate);
+    else screened.push({ ...r.discarded, reasons: ["記録の再検査：", ...r.discarded.reasons] });
+  }
+  return { candidates, screened };
 }
 
 export function toGenericMitigations(items: CompareRecording["items"]): GenericMitigation[] {

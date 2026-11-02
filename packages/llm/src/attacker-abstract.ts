@@ -223,8 +223,12 @@ export function leakedTerms(profile: CompanyProfile, rendered: string): string[]
     for (const [k, v] of Object.entries(a.attrs)) {
       if (typeof v === "string" && !(k in ENUM_ATTRS) && k !== "connectsTo") add(v);
     }
+    for (const c of a.controls) add(c.noteJa);
   }
+  for (const b of profile.businesses) add(b.name);
+  for (const p of profile.personalData) add(p.descriptionJa);
   const leaked = [...terms].filter((t) => rendered.includes(t));
   if (/CVE-\d{4}-\d+/i.test(rendered)) leaked.push("CVE");
+  if (/[\w.+-]+@[\w-]+\.[\w.-]+/.test(rendered)) leaked.push("メールアドレス");
   return leaked;
 }
