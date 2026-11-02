@@ -1,4 +1,5 @@
 import { TopBar } from "./components/TopBar.tsx";
+import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
 import { AppProvider, useApp } from "./hooks/useApp.tsx";
 import { useRoute } from "./hooks/useRoute.ts";
 import { useSettings } from "./hooks/useSettings.ts";
@@ -32,7 +33,9 @@ function Shell() {
 export function App() {
   return (
     <AppProvider>
-      <Shell />
+      <AiAttackerProvider>
+        <Shell />
+      </AiAttackerProvider>
     </AppProvider>
   );
 }

@@ -31,6 +31,7 @@ import {
   loadCompareRecording,
   profileBannedTerms,
   reconnoiter,
+  toGenericMitigations,
   validateCandidates,
 } from "@uchidai/llm";
 import { Hono } from "hono";
@@ -192,6 +193,12 @@ attackerRoutes.post("/validate", async (c) => {
   return c.json({ paths: sortPaths(validated.paths), discarded: validated.discarded });
 });
 
+const GenericItem = z.object({
+  mitigationId: z.string().optional(),
+  rejectedId: z.string().optional(),
+  nameJa: z.string().max(200),
+  reasonJa: z.string().max(500),
+});
 const CompareInput = z.object({
   caseId: z
     .string()
@@ -199,10 +206,21 @@ const CompareInput = z.object({
     .optional(),
   case: Case.optional(),
   verdict: Verdict,
+  /** 取り寄せ済みの一覧。渡されたら振り分けだけを行う（Claude は呼ばない） */
+  items: z.array(GenericItem).max(30).optional(),
 });
 attackerRoutes.post("/compare", async (c) => {
   const body = CompareInput.parse(await c.req.json());
   const k = loadKnowledge();
+  if (body.items) {
+    const items = toGenericMitigations(body.items);
+    return c.json({
+      comparison: compareGenericMitigations(items, body.verdict, k.labels),
+      items,
+      recorded: true,
+      meta: {},
+    });
+  }
   const rec = body.caseId ? loadCompareRecording(body.caseId) : undefined;
   if (rec) {
     return c.json({

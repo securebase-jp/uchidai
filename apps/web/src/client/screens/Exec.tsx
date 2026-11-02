@@ -5,6 +5,7 @@ import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
@@ -13,18 +14,19 @@ import { Legend } from "./Staff.tsx";
 export function Exec({ settings }: { settings: Settings }) {
   const app = useApp();
   const { knowledge, profile, theCase, measureIds, evaluation, busy } = app;
+  const aiPaths = useAiAttacker().paths;
   const input = useMemo<StageInput | undefined>(
     () =>
       evaluation && knowledge
         ? {
             graph: evaluation.graph,
-            verdict: evaluation.verdict,
+            verdict: withAiPaths(evaluation.verdict, aiPaths),
             profile: evaluation.profile,
             applied: evaluation.measures,
             labels: knowledge.labels,
           }
         : undefined,
-    [evaluation, knowledge],
+    [evaluation, knowledge, aiPaths],
   );
   // 一本の物語として 30〜40 秒：侵入の区間を半分の速さで
   const stage = useStage(input, { reduced: settings.reduced, autoplay: true, speed: 0.5 });
@@ -110,6 +112,22 @@ export function Exec({ settings }: { settings: Settings }) {
           動きを減らす
         </label>
       </div>
+      {scene.concluded && aiPaths.some((p) => p.reachedCore) && (
+        <p className="err" style={{ textAlign: "center" }}>
+          {measureIds.length > 0 ? "いまの対策をしても、" : ""}
+          報道にない別の入口（
+          {[
+            ...new Set(
+              aiPaths
+                .filter((p) => p.reachedCore)
+                .map(
+                  (p) => stage.input.graph.nodes.find((n) => n.id === p.steps[0]?.nodeId)?.label,
+                ),
+            ),
+          ].join("、")}
+          ）がまだ開いています
+        </p>
+      )}
       {scene.concluded && (
         <MeasurePanel
           measures={plainMeasures}

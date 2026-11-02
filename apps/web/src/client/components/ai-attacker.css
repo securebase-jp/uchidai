@@ -1,0 +1,160 @@
+/* AI攻撃者の枠と、一般的な AI との比較の枠 */
+.ai-panel {
+  border-color: color-mix(in srgb, var(--violet) 55%, var(--edge));
+}
+.ai-panel h2 {
+  color: var(--violet);
+}
+.ai-term {
+  margin-top: 10px;
+  max-height: 260px;
+  overflow: auto;
+  min-height: 0;
+}
+.ai-term .ln {
+  color: var(--term-ink);
+}
+.ai-term .ln.tone-green {
+  color: var(--green);
+}
+.ai-term .ln.tone-red {
+  color: var(--red);
+}
+.ai-term .ln.tone-amber {
+  color: var(--amber);
+}
+.ai-term .ln.tone-violet {
+  color: var(--violet);
+}
+.ai-verdict {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  border: 1px solid var(--edge);
+}
+.ai-verdict.tone-red {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 60%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+.ai-verdict.tone-green {
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 60%, transparent);
+  background: color-mix(in srgb, var(--green) 10%, transparent);
+}
+.ai-verdict.tone-amber {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 60%, transparent);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+}
+.ai-paths {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-paths li {
+  border-left: 3px solid var(--violet);
+  padding: 4px 10px;
+}
+.ai-paths .chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.ai-paths .chain .arrow {
+  color: var(--ink-2);
+}
+.ai-paths .why {
+  color: var(--ink-2);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.ai-paths code,
+.cmp code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ai-discarded {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.ai-discarded summary {
+  cursor: pointer;
+}
+.ai-discarded li {
+  margin: 4px 0 4px 16px;
+}
+
+.cmp-cols {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 10px;
+}
+.cmp-col {
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.cmp-col h3 {
+  font-size: 14px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.cmp-col h3 .n {
+  font-family: var(--mono);
+  font-size: 18px;
+}
+.cmp-col.green {
+  border-color: color-mix(in srgb, var(--green) 60%, var(--edge));
+}
+.cmp-col.green h3 {
+  color: var(--green);
+}
+.cmp-col.red {
+  border-color: color-mix(in srgb, var(--red) 60%, var(--edge));
+}
+.cmp-col.red h3 {
+  color: var(--red);
+}
+.cmp-col.ink h3 {
+  color: var(--ink-2);
+}
+.cmp-item {
+  padding: 8px 0;
+  border-top: 1px dashed var(--edge);
+  font-size: 13px;
+}
+.cmp-item:first-of-type {
+  border-top: 0;
+}
+.cmp-item .name {
+  font-weight: 700;
+}
+.cmp-item .who {
+  display: block;
+  color: var(--ink-2);
+  font-size: 12px;
+  margin-top: 3px;
+}
+.cmp-item .who b {
+  color: var(--ink);
+  font-weight: 700;
+}
+.cmp-item .who.red b {
+  color: var(--red);
+}
+.cmp-item .who.green b {
+  color: var(--green);
+}

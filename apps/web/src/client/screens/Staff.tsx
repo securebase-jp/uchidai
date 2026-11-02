@@ -1,6 +1,8 @@
 /** 担当者画面（操作型）：経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
 import { useMemo } from "react";
+import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
+import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { EvidencePanel } from "../components/EvidencePanel.tsx";
@@ -9,6 +11,7 @@ import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
@@ -48,18 +51,19 @@ export function Legend() {
 export function Staff({ settings }: { settings: Settings }) {
   const app = useApp();
   const { knowledge, profile, theCase, caseMeta, measureIds, evaluation, busy, error } = app;
+  const aiPaths = useAiAttacker().paths;
   const input = useMemo<StageInput | undefined>(
     () =>
       evaluation && knowledge
         ? {
             graph: evaluation.graph,
-            verdict: evaluation.verdict,
+            verdict: withAiPaths(evaluation.verdict, aiPaths),
             profile: evaluation.profile,
             applied: evaluation.measures,
             labels: knowledge.labels,
           }
         : undefined,
-    [evaluation, knowledge],
+    [evaluation, knowledge, aiPaths],
   );
   const stage = useStage(input, { reduced: settings.reduced, autoplay: true });
   const day = useDayCounter(stage?.clock ?? dummyClock, stage?.scene ?? dummyScene);
@@ -164,6 +168,18 @@ export function Staff({ settings }: { settings: Settings }) {
               onClear={app.clearMeasures}
               disabled={busy}
             />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <AiAttackerPanel
+              graph={stage.input.graph}
+              verdict={evaluation?.verdict ?? stage.input.verdict}
+              labels={knowledge.labels}
+              measures={knowledge.measures}
+              reduced={settings.reduced}
+            />
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <ComparisonPanel />
           </div>
           <div style={{ marginTop: 12 }}>
             <EvidencePanel
