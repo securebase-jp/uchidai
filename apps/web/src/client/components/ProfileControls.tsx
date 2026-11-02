@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
 import { useRequests } from "../hooks/useRequests.tsx";
 import { hostStatusLines } from "../lib/hostStatus.ts";
+import type { KevMatch } from "../lib/kevApi.ts";
 import { EVIDENCE_LABEL } from "../lib/labels.ts";
 import type { PendingItem } from "../lib/pending.ts";
 import {
@@ -16,7 +17,8 @@ import {
   questionForRole,
   type StaffAnswer,
 } from "../lib/profile.ts";
-import type { CompanyProfile, LabelsFile, RoleDef } from "../lib/types.ts";
+import type { CompanyProfile, Contradiction, LabelsFile, RoleDef } from "../lib/types.ts";
+import { KevPanel } from "./KevPanel.tsx";
 
 type Asset = CompanyProfile["assets"][number];
 
@@ -44,6 +46,8 @@ type Props = {
   now: Date;
   onAnswer(a: StaffAnswer): void;
   onProduct(assetId: string, product: string | undefined, version: string | undefined): void;
+  /** 悪用確認済み脆弱性（KEV）との突き合わせを反映したカルテ（保存は呼び出し側） */
+  onKevApplied?(profile: CompanyProfile, match: KevMatch, contradictions: Contradiction[]): void;
 };
 
 /** 経路で問われている資産を先頭に（資産の中では問われている行を先頭に）。それ以外の順は変えない */
@@ -89,6 +93,7 @@ export function ProfileControls(p: Props) {
       {orderByPath(p.profile.assets, onPath).map((a) => (
         <AssetCard
           key={a.id}
+          profile={p.profile}
           asset={a}
           roleLabel={roleLabel(a.role)}
           mit={mit}
@@ -99,6 +104,7 @@ export function ProfileControls(p: Props) {
           now={p.now}
           onAnswer={p.onAnswer}
           onProduct={p.onProduct}
+          {...(p.onKevApplied ? { onKevApplied: p.onKevApplied } : {})}
         />
       ))}
     </div>
@@ -106,6 +112,7 @@ export function ProfileControls(p: Props) {
 }
 
 type CardProps = {
+  profile: CompanyProfile;
   asset: Asset;
   roleLabel: string;
   mit(id: string): string;
@@ -116,10 +123,15 @@ type CardProps = {
   now: Date;
   onAnswer(a: StaffAnswer): void;
   onProduct(assetId: string, product: string | undefined, version: string | undefined): void;
+  onKevApplied?(profile: CompanyProfile, match: KevMatch, contradictions: Contradiction[]): void;
 };
 
-/** 製品名と版を入れる資産（判定ルールが版を見るのは入口の機器だけ） */
-const PRODUCT_ROLES = new Set(["entry.vpn", "entry.rdp"]);
+/**
+ * 製品名と版を入れる資産（外部に面した入口の機器・サーバ）。
+ * 判定ルールが版と knownExploited を見るのは VPN 装置だが、リモートデスクトップと社内に置いたホームページにも
+ * 同じ属性（悪用確認済みの脆弱性に該当）を公開情報から付けられるようにする
+ */
+export const PRODUCT_ROLES = new Set(["entry.vpn", "entry.rdp", "entry.web"]);
 
 function AssetCard(p: CardProps) {
   const { asset } = p;
@@ -171,6 +183,16 @@ function AssetCard(p: CardProps) {
             </span>
           </label>
         </div>
+      )}
+      {PRODUCT_ROLES.has(asset.role) && p.onKevApplied && (
+        <KevPanel
+          profile={p.profile}
+          assetId={asset.id}
+          product={product}
+          version={version}
+          roleLabel={p.roleLabel}
+          onApplied={p.onKevApplied}
+        />
       )}
       {asset.controls.length === 0 ? (
         <p className="muted">この構成要素に確認する緩和策はありません。</p>

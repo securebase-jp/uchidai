@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "checkedAt": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "kevCatalogUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "products": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "aliases": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "kev": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "vendorProject": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "productPattern": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "vendorProject",
+                "productPattern"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "kevCves": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^CVE-\\d{4}-\\d{4,}$"
+            }
+          },
+          "versionScheme": {
+            "default": "dotted",
+            "type": "string",
+            "enum": [
+              "dotted",
+              "r-release"
+            ]
+          },
+          "versionHintJa": {
+            "type": "string"
+          },
+          "ranges": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cve": {
+                  "type": "string",
+                  "pattern": "^CVE-\\d{4}-\\d{4,}$"
+                },
+                "authBypass": {
+                  "type": "boolean"
+                },
+                "kindJa": {
+                  "type": "string"
+                },
+                "affected": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "to": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "below": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "fixedJa": {
+                  "type": "string"
+                },
+                "sourceUrl": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "checkedAt": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "noteJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cve",
+                "kindJa",
+                "affected",
+                "fixedJa",
+                "sourceUrl",
+                "checkedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "unverified": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cve": {
+                  "type": "string",
+                  "pattern": "^CVE-\\d{4}-\\d{4,}$"
+                },
+                "noteJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "cve",
+                "noteJa"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "aliases",
+          "kev",
+          "kevCves",
+          "versionScheme",
+          "ranges",
+          "unverified"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "checkedAt",
+    "kevCatalogUrl",
+    "products"
+  ],
+  "additionalProperties": false
+}

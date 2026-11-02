@@ -6,6 +6,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
+import { compareVersions, KevProductsFile, loadKevProducts } from "./kev.ts";
 import {
   AttackData,
   AttrValue,
@@ -575,6 +576,29 @@ export function checkKnowledge(profilePaths: string[]): string[] {
         problems.push(`costs: 単価 ${u.id} の出典ページ（PDF n ページ）が未記入`);
   }
 
+  // KEV の対応表：製品 ID と別名の重複、範囲の向き（from <= to / below）、CVE の重複
+  const kev = collect("kev/products", loadKevProducts);
+  if (kev) {
+    const ids = new Set<string>();
+    for (const p of kev.products) {
+      if (ids.has(p.id)) problems.push(`kev/products: 製品 ${p.id} が重複`);
+      ids.add(p.id);
+      const cves = new Set<string>();
+      for (const r of p.ranges) {
+        if (cves.has(r.cve)) problems.push(`kev/products/${p.id}: ${r.cve} の範囲が重複`);
+        cves.add(r.cve);
+        for (const a of r.affected) {
+          const upper = a.to ?? a.below;
+          if (a.from && upper && compareVersions(a.from, upper) > 0)
+            problems.push(`kev/products/${p.id}: ${r.cve} の範囲 ${a.from} 〜 ${upper} が逆向き`);
+        }
+      }
+      for (const u of p.unverified)
+        if (cves.has(u.cve))
+          problems.push(`kev/products/${p.id}: ${u.cve} は範囲表にあるのに未確認にも書かれている`);
+    }
+  }
+
   for (const path of profilePaths) {
     const profile = collect(path, () => loadProfile(path));
     if (!profile) continue;
@@ -616,4 +640,5 @@ export const schemaExports = {
   "entry-candidates.schema.json": EntryCandidates,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
+  "kev-products.schema.json": KevProductsFile,
 } as const;

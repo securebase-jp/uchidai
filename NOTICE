@@ -22,9 +22,16 @@ ATT&CK の手法・戦術・緩和策の日本語ラベル（`knowledge/labels.j
 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
 https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
 
-## CISA Known Exploited Vulnerabilities Catalog
+## CISA Known Exploited Vulnerabilities (KEV) Catalog
 
-悪用確認済み脆弱性の突き合わせに使う。https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+悪用確認済み脆弱性の突き合わせに使う。カタログの JSON（https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json ）は利用者の手元のサーバが取得して `apps/web/.data/kev.json` に保存するもので、リポジトリには含めない。
+
+出典：CISA（米国サイバーセキュリティ・インフラセキュリティ庁）Known Exploited Vulnerabilities Catalog
+https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+
+利用条件：KEV のデータは Creative Commons 0 1.0 Universal（CC0 1.0）で配布されている（https://www.cisa.gov/sites/default/files/licenses/kev/license.txt 、2026-11-03 確認）。カタログ中の第三者へのリンク先はそれぞれの規約に従う。CISA・DHS のロゴの利用や、CISA による推奨・保証を示唆することは認められていない。
+
+影響を受ける版の範囲（`knowledge/kev/products.yaml`）は KEV には含まれないため、各ベンダーの公表資料（PSIRT）を本プロジェクトが確認して転記したもので、出典の URL と確認日を項目ごとに書いている。
 
 ## フォント
 
