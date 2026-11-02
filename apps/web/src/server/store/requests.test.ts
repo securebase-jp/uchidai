@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -133,6 +133,26 @@ describe("RequestStore", () => {
     expect(() => b.answer(it.token, { choice: "shared", answeredBy: "x" })).toThrow(
       AlreadyAnsweredError,
     );
+  });
+  it("壊れた保存ファイルは形の合う項目だけ読み、残りは捨てる", () => {
+    const dir = mkdtempSync(join(tmpdir(), "uchidai-req-"));
+    dirs.push(dir);
+    mkdirSync(join(dir, "d"));
+    const file = join(dir, "d", "requests.json");
+    const good = sample();
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        items: [good, { id: "broken" }, { ...sample(), token: "short" }, null, 42],
+      }),
+    );
+    const store = new RequestStore({ file });
+    expect(store.size).toBe(1);
+    expect(store.byToken(good.token)?.id).toBe(good.id);
+    // JSON として読めないファイルは空で始める
+    writeFileSync(file, "{not json");
+    expect(new RequestStore({ file }).size).toBe(0);
   });
   it("一覧は新しい順", () => {
     const store = new RequestStore();

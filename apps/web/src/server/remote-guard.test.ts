@@ -1,0 +1,52 @@
+import { Hono } from "hono";
+import { describe, expect, it } from "vitest";
+import { allowedRemotely, remoteGuard } from "./remote-guard.ts";
+
+const TOKEN = "a".repeat(43);
+
+function build(allowAll = false) {
+  const app = new Hono();
+  app.use("/api/*", remoteGuard({ allowAll }));
+  app.get("/api/health", (c) => c.json({ ok: true }));
+  app.get("/api/requests", (c) => c.json({ items: [] }));
+  app.get("/api/requests/:token", (c) => c.json({ token: c.req.param("token") }));
+  app.post("/api/requests/:token/answer", (c) => c.json({ ok: true }));
+  app.post("/api/evaluate", (c) => c.json({ ok: true }));
+  return app;
+}
+
+describe("remoteGuard", () => {
+  it("転送ヘッダが無ければ（手元の Vite 経由）すべて通す", async () => {
+    const app = build();
+    expect((await app.request("/api/requests")).status).toBe(200);
+    expect((await app.request("/api/evaluate", { method: "POST" })).status).toBe(200);
+  });
+  it("公開 URL 経由（cf-connecting-ip / x-forwarded-for）は回答に要る API だけ", async () => {
+    const app = build();
+    const h = { "cf-connecting-ip": "203.0.113.5" };
+    expect((await app.request("/api/health", { headers: h })).status).toBe(200);
+    expect((await app.request(`/api/requests/${TOKEN}`, { headers: h })).status).toBe(200);
+    expect(
+      (await app.request(`/api/requests/${TOKEN}/answer`, { method: "POST", headers: h })).status,
+    ).toBe(200);
+    const list = await app.request("/api/requests", { headers: { "x-forwarded-for": "1.2.3.4" } });
+    expect(list.status).toBe(403);
+    expect(((await list.json()) as { error: string }).error).toContain("手元");
+    expect((await app.request("/api/evaluate", { method: "POST", headers: h })).status).toBe(403);
+    expect((await app.request("/api/requests/short", { headers: h })).status).toBe(403);
+  });
+  it("UCHIDAI_ALLOW_REMOTE_API 相当で全面許可にできる", async () => {
+    const app = build(true);
+    const h = { "x-forwarded-for": "1.2.3.4" };
+    expect((await app.request("/api/requests", { headers: h })).status).toBe(200);
+  });
+  it("allowedRemotely は回答の GET/POST だけ", () => {
+    expect(allowedRemotely("GET", `/api/requests/${TOKEN}`)).toBe(true);
+    expect(allowedRemotely("POST", `/api/requests/${TOKEN}`)).toBe(false);
+    expect(allowedRemotely("POST", `/api/requests/${TOKEN}/answer`)).toBe(true);
+    expect(allowedRemotely("GET", `/api/requests/${TOKEN}/answer`)).toBe(false);
+    expect(allowedRemotely("GET", "/api/requests/events")).toBe(false);
+    expect(allowedRemotely("POST", "/api/requests/measure-draft")).toBe(false);
+    expect(allowedRemotely("GET", "/api/knowledge")).toBe(false);
+  });
+});

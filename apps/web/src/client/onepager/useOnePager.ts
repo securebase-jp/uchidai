@@ -2,7 +2,7 @@
  * 一枚のデータを集める：URL の指定（profile / case / measures）があればそれを、無ければ画面の状態を使い、
  * POST /api/onepager に渡す。判定と計算はサーバ（engine）。
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api, type OnePagerResponse } from "../lib/api.ts";
 import type { Case, CompanyProfile } from "../lib/types.ts";
@@ -82,5 +82,5 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
     };
   }, [params.profile, params.case, params.rewrite, measuresKey, answersKey, appProfile, appCase]);
 
-  return useMemo(() => state, [state]);
+  return state;
 }

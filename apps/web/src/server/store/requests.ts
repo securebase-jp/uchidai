@@ -5,6 +5,7 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { z } from "zod";
 import type { AnswerInput } from "../../shared/api.ts";
 import type { AnswerEvent, RequestView } from "../../shared/requests.ts";
 import type { Choice } from "../requests/questions.ts";
@@ -36,6 +37,31 @@ export function newId(): string {
 }
 export const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
+/**
+ * 保存ファイルから読むときの最低限の形。壊れた項目は捨てて、残りで始める。
+ * （回答ページとトークン照合が使う項目だけ厳しく見る。他は looseObject で通す）
+ */
+const StoredShape = z.looseObject({
+  id: z.string().min(1),
+  token: z.string().regex(TOKEN_PATTERN),
+  assetId: z.string(),
+  assetLabel: z.string(),
+  mitigation: z.string(),
+  companyLabel: z.string(),
+  createdAt: z.string(),
+  question: z.looseObject({
+    textJa: z.string(),
+    choices: z.array(z.looseObject({ id: z.string(), labelJa: z.string() })),
+  }),
+  choiceMap: z.array(
+    z.looseObject({
+      id: z.string(),
+      labelJa: z.string(),
+      status: z.enum(["present", "absent", "unknown"]),
+    }),
+  ),
+});
+
 type Listener = (ev: AnswerEvent) => void;
 
 export type StoreOptions = {
@@ -59,16 +85,28 @@ export class RequestStore {
   private load(): void {
     if (!this.file || !existsSync(this.file)) return;
     try {
-      const parsed = JSON.parse(readFileSync(this.file, "utf8")) as { items?: StoredRequest[] };
-      for (const it of parsed.items ?? []) this.items.set(it.id, it);
+      const parsed = JSON.parse(readFileSync(this.file, "utf8")) as { items?: unknown[] };
+      let dropped = 0;
+      for (const raw of Array.isArray(parsed.items) ? parsed.items : []) {
+        const ok = StoredShape.safeParse(raw);
+        if (!ok.success) {
+          dropped++;
+          continue;
+        }
+        const it = ok.data as unknown as StoredRequest;
+        this.items.set(it.id, it);
+      }
+      if (dropped > 0)
+        console.error(`[requests] ${this.file}：形の壊れた依頼 ${dropped} 件を読み飛ばしました`);
     } catch (e) {
       console.error(`[requests] ${this.file} を読めません。空で始めます:`, e);
     }
   }
+  /** 一時ファイルに書いてから置き換える（途中で止まっても元のファイルは壊れない） */
   private persist(): void {
     if (!this.file) return;
     mkdirSync(dirname(this.file), { recursive: true });
-    const tmp = `${this.file}.tmp`;
+    const tmp = `${this.file}.${process.pid}.${randomBytes(3).toString("hex")}.tmp`;
     writeFileSync(tmp, JSON.stringify({ version: 1, items: [...this.items.values()] }, null, 2));
     renameSync(tmp, this.file);
   }
@@ -130,6 +168,9 @@ export class RequestStore {
   }
   get subscriberCount(): number {
     return this.listeners.size;
+  }
+  get size(): number {
+    return this.items.size;
   }
 }
 

@@ -1,17 +1,10 @@
-/** AI攻撃者と知見なし比較の API 呼び出し（キーはサーバにしかない） */
+/** AI攻撃者と知見なし比較の API 呼び出し（キーはサーバにしかない）。型は engine / llm のものを型だけ使う */
+import type { AiPathCandidate } from "@uchidai/engine";
+import type { DiscardedCandidate } from "@uchidai/llm";
 import { ApiError } from "./api.ts";
 import type { AttackPath, Case, CompanyProfile, Verdict } from "./types.ts";
 
-export type AiPathCandidate = {
-  titleJa?: string;
-  steps: { role: string; technique: string; reasonJa: string }[];
-};
-export type DiscardedCandidate = {
-  titleJa?: string;
-  stage: "safety" | "schema" | "validation";
-  reasons: string[];
-  steps: { role: string; technique: string }[];
-};
+export type { AiPathCandidate, DiscardedCandidate };
 export type ReconMeta = {
   model?: string;
   recordedAt?: string;

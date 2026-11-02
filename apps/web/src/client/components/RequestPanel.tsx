@@ -5,7 +5,7 @@
 import { useEffect, useState } from "react";
 import type { MeasureDraftView } from "../../shared/requests.ts";
 import { useApp } from "../hooks/useApp.tsx";
-import { useRequests } from "../hooks/useRequests.ts";
+import { useRequests } from "../hooks/useRequests.tsx";
 import { requestsApi } from "../lib/requestsApi.ts";
 import { OutboxPanel } from "./OutboxPanel.tsx";
 import "./requests.css";

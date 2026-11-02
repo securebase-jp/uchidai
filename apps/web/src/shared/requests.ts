@@ -72,14 +72,18 @@ export type AnswerEvent = {
 
 /** POST /api/requests：カルテは抜粋でよい（会社名、資産の id・role・label、ベンダー） */
 export const ProfileExcerpt = z.object({
-  id: z.string().optional(),
+  id: z.string().max(64).optional(),
   companyName: z.string().max(80),
   vendor: z.object({ name: z.string().max(80), email: z.string().max(200).optional() }).optional(),
-  assets: z.array(z.object({ id: z.string(), role: z.string(), label: z.string().max(120) })),
+  assets: z
+    .array(
+      z.object({ id: z.string().max(100), role: z.string().max(100), label: z.string().max(120) }),
+    )
+    .max(100),
 });
 export const CreateRequest = z.object({
   profile: ProfileExcerpt,
-  assetId: z.string(),
+  assetId: z.string().max(100),
   mitigation: z.string().regex(/^(M\d{4}|UD-\d{2})$/),
   to: z.string().max(200).optional(),
   /** 回答の希望期限（省略時は 7 日後） */
@@ -98,8 +102,8 @@ export type AnswerRequest = z.infer<typeof AnswerRequest>;
 /** POST /api/requests/measure-draft：対策依頼文の下書き（送らない） */
 export const MeasureDraftRequest = z.object({
   profile: ProfileExcerpt,
-  measureId: z.string(),
-  assetId: z.string().optional(),
+  measureId: z.string().max(64),
+  assetId: z.string().max(100).optional(),
   deadline: z.string().max(40).optional(),
   writer: z.enum(["claude", "template"]).optional(),
 });

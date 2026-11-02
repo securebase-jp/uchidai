@@ -10,32 +10,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
-import { withDemoClock } from "./bridge.ts";
+import { demoClock, withDemoClock } from "./bridge.ts";
 import { buildScenes, cueAt, type DemoScene, narration, storyboard } from "./data.ts";
 import { EndCard } from "./EndCard.tsx";
 import { ChatOverlay } from "./overlays/Chat.tsx";
 import { ReadingOverlay } from "./overlays/Reading.tsx";
+import { type DemoParams, parseDemoParams } from "./params.ts";
 import type { DemoAction, DemoAnswer, OverlayId } from "./schema.ts";
 import { SLOTS, type SlotId, SlotPlaceholder } from "./slots.tsx";
 import { useDemoPlayer } from "./useDemoPlayer.ts";
 import "./demo.css";
 
-function demoParams() {
-  const p = new URLSearchParams(location.search);
-  const n = Number(p.get("scene") ?? "1");
-  return {
-    on: p.get("demo") === "1",
-    startIndex: Number.isFinite(n) && n >= 1 ? n - 1 : 0,
-    autostart: p.get("autostart") === "1",
-    captions: p.get("captions") === "1",
-    hud: p.get("hud") === "1",
-  };
-}
-
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function DemoLayer() {
-  const params = useMemo(demoParams, []);
+  const params = useMemo(() => parseDemoParams(), []);
   if (!params.on) return null;
   return <DemoRunner {...params} />;
 }
@@ -45,7 +34,7 @@ function DemoRunner({
   autostart,
   captions: captionsDefault,
   hud: hudDefault,
-}: ReturnType<typeof demoParams>) {
+}: DemoParams) {
   const app = useApp();
   const appRef = useRef(app);
   appRef.current = app;
@@ -55,12 +44,14 @@ function DemoRunner({
   const [hud, setHud] = useState(hudDefault);
   const [ready, setReady] = useState(false);
 
-  // 音声の有無を調べてから場面を組む
+  // 音声の有無を調べてから場面を組む（原稿と絵コンテの食い違いはここで分かる）
+  const [setupError, setSetupError] = useState<string>();
   useEffect(() => {
     api
       .demoAudio()
       .then((r) => setScenes(buildScenes(r.available)))
-      .catch(() => setScenes(buildScenes({})));
+      .catch(() => setScenes(buildScenes({})))
+      .catch((e: unknown) => setSetupError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   // デモ用のカルテと事例をそろえる
@@ -150,13 +141,26 @@ function DemoRunner({
     onFinish: () => setOverlay("endcard"),
   });
 
+  // 一時停止は画面の再生時計（経路の再生）も止め、再開で元の状態に戻す
+  const clockWasPlaying = useRef(false);
+  const togglePause = useCallback(() => {
+    const clock = demoClock();
+    if (player.paused) {
+      if (clock && clockWasPlaying.current) clock.play();
+    } else {
+      clockWasPlaying.current = clock?.playing ?? false;
+      clock?.pause();
+    }
+    player.togglePause();
+  }, [player]);
+
   // キー操作
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
-        if (player.started) player.togglePause();
+        if (player.started) togglePause();
       } else if (e.key === "ArrowRight") player.next();
       else if (e.key === "ArrowLeft") player.prev();
       else if (e.key === "h" || e.key === "H") setHud((v) => !v);
@@ -164,7 +168,7 @@ function DemoRunner({
     };
     addEventListener("keydown", on);
     return () => removeEventListener("keydown", on);
-  }, [player]);
+  }, [player, togglePause]);
 
   // 自動開始
   const autostarted = useRef(false);
@@ -217,6 +221,11 @@ function DemoRunner({
             >
               {ready ? `開始（場面 ${startIndex + 1} から）` : "カルテと事例を読み込んでいます…"}
             </button>
+            {(app.error || setupError) && (
+              <p className="err small" role="alert">
+                {setupError ?? app.error}。API（pnpm dev）が動いているか確かめてください
+              </p>
+            )}
             <p className="muted small">
               Space 一時停止／再開　→ 次の場面　← 前の場面　H 右上の表示　C 字幕
             </p>

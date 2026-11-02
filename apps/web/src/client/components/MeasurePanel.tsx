@@ -25,12 +25,15 @@ export function measureEffect(
 ): MeasureEffect {
   if (!verdict) return { kind: "outside", textJa: "" };
   const steps = verdict.paths.filter((p) => p.source !== "ai").flatMap((p) => p.steps);
-  const inef = steps.find((s) => s.ineffective.some((i) => i.mitigation === m.mitigation));
+  // 対策が書き換える役割の段階だけを見る（同じ緩和策 ID でも、別の役割の対策は「効かない」にしない）
+  const roles = new Set(m.patches.map((p) => p.role));
+  const inef = steps.find(
+    (s) => roles.has(s.role) && s.ineffective.some((i) => i.mitigation === m.mitigation),
+  );
   if (inef) {
     const reason = inef.ineffective.find((i) => i.mitigation === m.mitigation)?.reasonJa ?? "";
     return { kind: "ineffective", textJa: `効かない：${reason}` };
   }
-  const roles = new Set(m.patches.map((p) => p.role));
   const eff = steps.find((s) => roles.has(s.role) && s.mitigations.includes(m.mitigation));
   if (eff) {
     if (selected)
@@ -45,6 +48,7 @@ export function measureEffect(
       };
     return { kind: "effective", textJa: `この段階に効く：${eff.labelJa ?? eff.role}` };
   }
+  if (selected) return { kind: "applied", textJa: "適用中（この経路の判定には関わらない）" };
   return { kind: "outside", textJa: "この経路の外" };
 }
 

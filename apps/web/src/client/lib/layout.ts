@@ -117,6 +117,9 @@ export function depthsFromAttacker(graph: Graph): Map<string, number> {
 
 type Column = { side: Side; depth: number; nodes: GraphNode[] };
 
+/** 一列に積める上限。超えた列は同じ距離のまま隣に分ける（仕様の上限 8 を超える構成でも重ねない） */
+const MAX_ROWS = 5;
+
 function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
   const nodes = graph.nodes.filter((n) => n.layer === "system");
   const key = (n: GraphNode) =>
@@ -132,9 +135,15 @@ function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
     col.nodes.push(n);
     map.set(k, col);
   }
-  return [...map.values()].sort(
-    (a, b) => SIDE_ORDER[a.side] - SIDE_ORDER[b.side] || a.depth - b.depth,
-  );
+  return [...map.values()]
+    .sort((a, b) => SIDE_ORDER[a.side] - SIDE_ORDER[b.side] || a.depth - b.depth)
+    .flatMap((col) => {
+      if (col.nodes.length <= MAX_ROWS) return [col];
+      const parts: Column[] = [];
+      for (let i = 0; i < col.nodes.length; i += MAX_ROWS)
+        parts.push({ ...col, nodes: col.nodes.slice(i, i + MAX_ROWS) });
+      return parts;
+    });
 }
 
 /** 縦の並び：前の列につながる相手の行の平均に近づける（線の交差と重なりを減らす） */

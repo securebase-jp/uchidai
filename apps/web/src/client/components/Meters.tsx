@@ -10,7 +10,6 @@ type Props = {
   scene: Scene;
   verdict: Verdict;
   profile: CompanyProfile;
-  compact?: boolean;
 };
 
 export function useDayCounter(clock: Clock, scene: Scene): number {
@@ -26,7 +25,7 @@ export function useDayCounter(clock: Clock, scene: Scene): number {
   return day;
 }
 
-export function Meters({ clock, scene, verdict, profile, compact }: Props) {
+export function Meters({ clock, scene, verdict, profile }: Props) {
   const day = useDayCounter(clock, scene);
   const downtime = Math.min(day, verdict.impact.downtimeDays);
   const revenue = profile.dailyRevenue !== undefined ? profile.dailyRevenue * downtime : undefined;
@@ -48,7 +47,7 @@ export function Meters({ clock, scene, verdict, profile, compact }: Props) {
           <div className="v">{yen(revenue)}</div>
         </div>
       )}
-      {money !== undefined && money > 0 && !compact && (
+      {money !== undefined && money > 0 && (
         <div className={`meter ${scene.concluded ? "hot" : ""}`}>
           <div className="k">資金の流出</div>
           <div className="v">{scene.concluded ? yen(money) : "0円"}</div>
