@@ -93,7 +93,11 @@ export class CrtShSource implements CtLogSource {
     } catch {
       throw new CtUnavailableError(`crt.sh の応答を JSON として読めない（${normalized}）`);
     }
-    const rows = z.array(CrtShRow).parse(parsed);
+    const parsedRows = z.array(CrtShRow).safeParse(parsed);
+    if (!parsedRows.success) {
+      throw new CtUnavailableError(`crt.sh の応答が想定した形ではない（${normalized}）`);
+    }
+    const rows = parsedRows.data;
     const certificates = rows
       .map((row) => normalizeRow(row, normalized))
       .filter((c): c is CtCertificate => c !== undefined);

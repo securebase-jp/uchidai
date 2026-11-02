@@ -138,3 +138,23 @@ describe("findContradictions", () => {
     expect(out[1]?.external).toContain("_dmarc.demo-seiko.example");
   });
 });
+
+describe("findContradictions の頑健さ", () => {
+  it("attrs や controls の無い資産、hostname の無い廃止済み資産でも落ちない", async () => {
+    const bare: Asset = {
+      id: "bare",
+      kind: "system",
+      role: "entry.vpn",
+      label: "名前なし",
+      attrs: { decommissioned: true },
+      attrEvidence: {},
+      controls: [],
+    };
+    const out = findContradictions(await result(), withAssets(bare));
+    expect(out.filter((c) => c.assetId === "bare")).toEqual([]);
+  });
+  it("矛盾の文は「可能性」と書き、別の正当な資産である余地を残す", async () => {
+    const out = findContradictions(await result(), withAssets(campaign));
+    expect(out[0]?.messageJa).toContain("可能性");
+  });
+});

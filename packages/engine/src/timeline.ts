@@ -7,14 +7,7 @@
 
 import { damageTypeOf, formatJpy, pathsOf } from "./impact.ts";
 import { type DeadlinesFile, type Knowledge, loadDeadlines } from "./knowledge.ts";
-import type {
-  AttackPath,
-  CompanyProfile,
-  DamageType,
-  Impact,
-  TimelineEvent,
-  Verdict,
-} from "./types.ts";
+import type { CompanyProfile, DamageType, Impact, TimelineEvent, Verdict } from "./types.ts";
 
 export type TimelineOptions = {
   knowledge?: Knowledge;
@@ -31,7 +24,7 @@ function sourceName(deadlines: DeadlinesFile, id: string): string | undefined {
 export function buildTimeline(
   impact: Impact,
   profile: CompanyProfile,
-  verdict: Pick<Verdict, "result"> & (Pick<Verdict, "paths"> | { paths: AttackPath[] }),
+  verdict: Pick<Verdict, "result" | "paths">,
   options: TimelineOptions = {},
 ): TimelineEvent[] {
   if (
@@ -119,10 +112,13 @@ export function buildTimeline(
       case "report": {
         if (!impact.reportRequired || d.days === undefined) break;
         const day = d.daysIfUnauthorized ?? d.days;
+        // 法令に日数の定めがある期限だけ「◯ 日以内」を添える。目安で置く期限（本人通知）はラベルのまま
         const range =
           d.daysFrom !== undefined && d.daysFrom !== d.days
             ? `${d.daysFrom}〜${d.days} 日以内`
-            : `${day} 日以内`;
+            : d.daysIfUnauthorized !== undefined
+              ? `${day} 日以内`
+              : undefined;
         const who = impact.personalDataReached
           .map(
             (p) =>
@@ -132,7 +128,7 @@ export function buildTimeline(
         push({
           ...base,
           day,
-          labelJa: `${d.labelJa}（${range}）`,
+          labelJa: range ? `${d.labelJa}（${range}）` : d.labelJa,
           detailJa: `${who}。${(impact.reportReasonsJa ?? []).join("。")}${d.daysIfUnauthorized !== undefined ? `。不正アクセス由来のため ${d.daysIfUnauthorized} 日以内` : ""}`,
           ...(firstPersonal ? { assetId: firstPersonal.assetId } : {}),
         });
@@ -142,7 +138,16 @@ export function buildTimeline(
         const ins = profile.cyberInsurance;
         if (!ins?.enrolled) break;
         const day = d.daysFromProfile ? ins.notifyWithinDays : d.days;
-        if (day === undefined) break;
+        if (day === undefined) {
+          // 加入しているが通知期限がカルテに無い：期限は示せないので、発覚当日に「要確認」として置く
+          push({
+            ...base,
+            day: 0,
+            labelJa: `${d.labelJa}（期限はカルテ未登録。保険証券で確認）`,
+            detailJa: `${d.basisJa}。日数が登録されていないため、発覚当日に置いた（要確認）`,
+          });
+          break;
+        }
         push({
           ...base,
           day,

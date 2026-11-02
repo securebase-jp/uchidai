@@ -7,7 +7,24 @@
 import { z } from "zod";
 import { formatJpy } from "./impact.ts";
 import type { Knowledge, MeasureDef } from "./knowledge.ts";
+import { resolveControl } from "./rules.ts";
 import { type CompanyProfile, type Verdict, VerdictResult } from "./types.ts";
+
+const ID_PATTERN = String.raw`(?:TA\d{4}|T\d{4}(?:\.\d{3})?|M\d{4}|UD-\d{2})`;
+const PAREN_IDS = new RegExp(
+  String.raw`\s*[（(]\s*${ID_PATTERN}(?:\s*[、,／/]\s*${ID_PATTERN})*\s*[）)]`,
+  "g",
+);
+const BARE_ID = new RegExp(String.raw`\s*(?<![A-Za-z0-9-])${ID_PATTERN}(?![A-Za-z0-9-])`, "g");
+
+/** 判定ルールや知識ファイルの文に混じる手法 ID・緩和策 ID を取り除く（社長向けの一枚には ID を出さない） */
+export function stripIds(text: string): string {
+  return text
+    .replace(PAREN_IDS, "")
+    .replace(BARE_ID, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 export const OnePagerStopped = z.object({
   name: z.string(),
@@ -21,6 +38,8 @@ export const OnePagerDeadline = z.object({
   kind: z.enum(["legal", "insurance", "partner", "police", "money"]),
   labelJa: z.string(),
   sourceJa: z.string().optional(),
+  /** knowledge/deadlines.yaml の期限 ID（出典の絞り込みに使う） */
+  deadlineId: z.string().optional(),
 });
 export const OnePagerMeasure = z.object({
   id: z.string(),
@@ -96,9 +115,8 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     const where = stop
       ? `「${stop.labelJa ?? "途中"}」の段階（${nodeLabel(stop.nodeId, stop.role, profile, knowledge)}）`
       : "途中";
-    lines.push(
-      `この攻撃は${where}で止まります。${stop?.reasonJa ? `理由：${stop.reasonJa}。` : ""}`,
-    );
+    const reason = stop?.reasonJa ? stripIds(stop.reasonJa) : "";
+    lines.push(`この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`);
     if (verdict.result === "pending")
       lines.push(
         "ただし、確認が取れていない項目が残っています。回答が届き次第、判定を更新します。",
@@ -114,28 +132,61 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   return lines;
 }
 
-/** 経路のどこかで効く対策（効かない対策、経路の外の対策は載せない） */
+/** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
+function alreadyApplied(m: MeasureDef, profile: CompanyProfile): boolean {
+  return m.patches.every((p) => {
+    const targets = profile.assets.filter((a) => a.role === p.role);
+    return (
+      targets.length > 0 &&
+      targets.every(
+        (a) =>
+          resolveControl(a, p.mitigation)?.status === p.status &&
+          Object.entries(p.attrs ?? {}).every(([k, v]) => a.attrs[k] === v),
+      )
+    );
+  });
+}
+
+/**
+ * 経路のどこかで効く対策（効かない対策、経路の外の対策、AI が見つけた経路だけに効く対策は載せない）。
+ * 並び順は、攻撃を早い段階で止める対策が先（経路の何段目で効くか）。同じ段なら measures.yaml の順。
+ * profile を渡すと、既に講じてある対策（切り離したバックアップ済みなど）は除く
+ */
 export function effectiveMeasures(
   verdict: Verdict,
   measures: MeasureDef[],
+  profile?: CompanyProfile,
 ): { measure: MeasureDef; stageJa?: string }[] {
   const steps = verdict.paths
     .filter((p) => p.source !== "ai")
-    .flatMap((p) => p.steps)
-    .filter((s) => s.state !== "blocked");
-  const out: { measure: MeasureDef; stageJa?: string }[] = [];
-  for (const m of measures) {
+    .flatMap((p) => p.steps.filter((s) => !s.precondition).map((s, index) => ({ s, index })))
+    .filter(({ s }) => s.state !== "blocked");
+  const out: { measure: MeasureDef; stageJa?: string; index: number; order: number }[] = [];
+  measures.forEach((m, order) => {
+    if (profile && alreadyApplied(m, profile)) return;
     const mitigations = new Set([m.mitigation, ...m.patches.map((p) => p.mitigation)]);
     const roles = new Set(m.patches.map((p) => p.role));
-    const hit = steps.find(
-      (s) =>
+    const hits = steps.filter(
+      ({ s }) =>
         roles.has(s.role) &&
         s.mitigations.some((x) => mitigations.has(x)) &&
         !s.ineffective.some((i) => mitigations.has(i.mitigation)),
     );
-    if (hit) out.push({ measure: m, ...(hit.labelJa ? { stageJa: hit.labelJa } : {}) });
-  }
-  return out;
+    const first = hits.reduce<(typeof hits)[number] | undefined>(
+      (best, h) => (best === undefined || h.index < best.index ? h : best),
+      undefined,
+    );
+    if (first)
+      out.push({
+        measure: m,
+        ...(first.s.labelJa ? { stageJa: first.s.labelJa } : {}),
+        index: first.index,
+        order,
+      });
+  });
+  return out
+    .sort((a, b) => a.index - b.index || a.order - b.order)
+    .map(({ measure, stageJa }) => ({ measure, ...(stageJa ? { stageJa } : {}) }));
 }
 
 /** 対策の費用の目安（knowledge/costs.yaml と カルテの人数から）。画面の対策ボタンでも使う */
@@ -204,7 +255,9 @@ export function buildOnePager(
   const whatHappens = describePath(verdict, profile, knowledge);
   if (stopped.length > 0) {
     const names = stopped.map((s) => `「${s.name}」`).join("、");
-    whatHappens.push(`${names}が止まり、復旧まで最長 ${impact.downtimeDays} 日かかります。`);
+    whatHappens.push(
+      `${names}が止まり、復旧まで最長 ${impact.downtimeDays} 日かかる見込みです（会社カルテに登録した復旧日数の目安）。`,
+    );
   }
   const partnerBiz = stopped.find((s) => s.partnerDay === impact.partnerImpactDay);
   const partnerImpactJa =
@@ -231,25 +284,32 @@ export function buildOnePager(
     .map((e) => ({
       day: e.day,
       kind: e.kind,
-      labelJa: e.labelJa,
+      labelJa: stripIds(e.labelJa),
       ...(e.sourceJa ? { sourceJa: e.sourceJa } : {}),
+      ...(e.deadlineId ? { deadlineId: e.deadlineId } : {}),
     }));
 
-  const measures: OnePagerMeasure[] = effectiveMeasures(verdict, knowledge.measures).map(
+  const measures: OnePagerMeasure[] = effectiveMeasures(verdict, knowledge.measures, profile).map(
     ({ measure: m, stageJa }) => ({
       id: m.id,
-      labelJa: m.labelJa,
-      ...(stageJa ? { stageJa } : {}),
+      labelJa: stripIds(m.labelJa),
+      ...(stageJa ? { stageJa: stripIds(stageJa) } : {}),
       ...(m.requestToJa ? { requestToJa: m.requestToJa } : {}),
       ...measureCost(m, profile, knowledge),
     }),
   );
 
+  // 出典は、この一枚で実際に使った期限の出典だけを載せる（事例の種類に関係ない出典は載せない）
+  const usedSourceIds = new Set(
+    deadlines
+      .map((d) => knowledge.deadlines.deadlines.find((x) => x.id === d.deadlineId)?.sourceId)
+      .filter((id): id is string => id !== undefined),
+  );
   const sources = [
     `${knowledge.costs.sourceJa}（${knowledge.costs.sourceUrl}）`,
     `MITRE ATT&CK Enterprise v${verdict.attackVersion}（攻撃の段階の対応づけ）`,
     ...knowledge.deadlines.sources
-      .filter((s) => s.url)
+      .filter((s) => s.url && usedSourceIds.has(s.id))
       .map((s) => `${s.nameJa}（${s.url}、${s.checkedAt} 確認）`),
   ];
   const notes = [
@@ -265,7 +325,7 @@ export function buildOnePager(
     caseTitle: options.caseTitle ?? "",
     result: verdict.result,
     headlineJa: verdict.headlineJa,
-    whatHappensJa: whatHappens,
+    whatHappensJa: whatHappens.map(stripIds),
     stopped,
     downtimeDays: impact.downtimeDays,
     ...(impact.partnerImpactDay !== undefined ? { partnerImpactDay: impact.partnerImpactDay } : {}),

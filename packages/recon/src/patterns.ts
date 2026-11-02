@@ -17,7 +17,12 @@ export const IPA_VULN_CASES = {
   rdpExposed: [12, 13],
   /** なりすましメール対策（SPF／DMARC） */
   mailAuth: [19, 20],
+  /** 証明書の期限切れ */
+  certExpired: [16],
 } as const;
+
+/** 把握していない資産（事例集のコラム。番号のある事例ではない） */
+export const IPA_UNKNOWN_ASSETS_JA = "事例集のコラム（把握していない資産）";
 
 export const IPA_SOURCE_JA =
   "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）";
@@ -27,21 +32,39 @@ export interface HostPattern {
   kind: RemoteAccessKind;
   /** ホスト名のラベル（ドット区切りの 1 要素）に対して評価する */
   test: RegExp;
+  /** 同じラベルにこの語があれば当てない（mail-gw、api-gateway のような別用途の装置） */
+  exclude?: RegExp;
   labelJa: string;
 }
 
 /** ラベル単位で評価する。`vpn-tokyo`、`tokyo-vpn2` のようにハイフン区切りの一部でも当てる */
-const label = (words: string, kind: RemoteAccessKind, name: string, labelJa: string) => ({
+const label = (
+  words: string,
+  kind: RemoteAccessKind,
+  name: string,
+  labelJa: string,
+  exclude?: string,
+): HostPattern => ({
   name,
   kind,
   test: new RegExp(`(^|-)(${words})\\d*(-|$)`),
+  ...(exclude ? { exclude: new RegExp(`(^|-)(${exclude})\\d*(-|$)`) } : {}),
   labelJa,
 });
+
+/** ゲートウェイ・ファイアウォールの語と並ぶと別用途（メール、API、Web、電話）と分かる語 */
+const OTHER_GATEWAY_USES = "mail|smtp|mx|api|web|www|proxy|sip|voip|pbx|iot|pay|sms|dns|ntp";
 
 export const REMOTE_ACCESS_PATTERNS: readonly HostPattern[] = [
   label("vpn|sslvpn|ssl-vpn|ipsec|openvpn|wireguard", "vpn", "vpn", "VPN を表す語"),
   label("remote|ras|access", "vpn", "remote-access", "社外接続を表す語"),
-  label("gw|gateway|fw|firewall|utm", "vpn", "gateway", "ゲートウェイ・ファイアウォールを表す語"),
+  label(
+    "gw|gateway|fw|firewall|utm",
+    "vpn",
+    "gateway",
+    "ゲートウェイ・ファイアウォールを表す語",
+    OTHER_GATEWAY_USES,
+  ),
   label("ssl", "vpn", "ssl", "SSL-VPN の略称としてよく使われる語"),
   label("forti|fortigate|fortinet", "vpn", "fortinet", "VPN 機能を持つ装置の製品名"),
   label(
@@ -72,6 +95,7 @@ export function matchRemoteAccessHost(hostname: string, domain: string): HostMat
   for (const part of sub.split(".")) {
     if (part === "*" || part === "") continue;
     for (const pattern of REMOTE_ACCESS_PATTERNS) {
+      if (pattern.exclude?.test(part)) continue;
       if (pattern.test.test(part)) return { pattern, label: part };
     }
   }

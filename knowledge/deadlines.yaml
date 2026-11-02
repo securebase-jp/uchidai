@@ -67,7 +67,7 @@ deadlines:
     status: confirmed
   - id: ppc-notify
     kind: legal
-    labelJa: 本人への通知
+    labelJa: 本人への通知（速やかに。速報と同じ時期が目安）
     days: 5
     appliesTo: report
     basisJa: 法第26条第2項。「当該事態の状況に応じて速やかに」（日数の定めはない。速報と同じ時期を目安に置く）

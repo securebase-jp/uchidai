@@ -111,3 +111,40 @@ describe("reconToAssetHints / applyAssetHints", () => {
     );
   });
 });
+
+describe("applyAssetHints と根拠の優先順位", () => {
+  it("担当者登録・ベンダー回答の緩和策は残し、前回の外部確認の記録だけを置き換える（矛盾は engine が拾う）", async () => {
+    const hints = reconToAssetHints(await result());
+    const registered: CompanyProfile = {
+      ...demoProfile,
+      assets: demoProfile.assets.map((a) =>
+        a.id === "vpn"
+          ? {
+              ...a,
+              controls: [
+                {
+                  mitigation: "M1042",
+                  status: "present",
+                  evidence: "registered",
+                  noteJa: "非公開のつもり",
+                },
+                {
+                  mitigation: "M1042",
+                  status: "present",
+                  evidence: "external",
+                  noteJa: "古い外部確認",
+                },
+              ],
+            }
+          : a,
+      ),
+    };
+    const updated = applyAssetHints(registered, hints);
+    const vpn = updated.assets.find((a) => a.id === "vpn");
+    const m1042 = vpn?.controls.filter((c) => c.mitigation === "M1042") ?? [];
+    expect(m1042).toHaveLength(2);
+    expect(m1042.map((c) => c.evidence).sort()).toEqual(["external", "registered"]);
+    expect(m1042.find((c) => c.evidence === "external")?.status).toBe("absent");
+    expect(m1042.find((c) => c.evidence === "registered")?.status).toBe("present");
+  });
+});
