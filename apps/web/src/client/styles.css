@@ -215,6 +215,31 @@ p {
 .chip.mono {
   font-family: var(--mono);
 }
+/* 会社名のチップに付ける小さな「架空」 */
+.chip .chip-mark {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  padding: 0 5px;
+  vertical-align: 1px;
+}
+/* 事例名のチップ：長ければ省略し、押すと全文 */
+.chip-btn {
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.chip-btn:hover {
+  border-color: var(--edge-strong);
+  color: var(--ink);
+}
+.chip-btn.open {
+  white-space: normal;
+  text-align: left;
+}
 /* 狭い画面（スマホ）：ナビは折り返して二段、チップは幅に収める */
 @media (max-width: 720px) {
   .wrap {
