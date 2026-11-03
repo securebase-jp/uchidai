@@ -4,7 +4,7 @@
 }
 :root[data-demo="1"] .wrap {
   max-width: 1760px;
-  padding-top: 18px;
+  padding: 18px 20px 32px; /* 録画の配置を変えないため、通常画面の広い余白は使わない */
 }
 :root[data-demo="1"] body {
   overflow-x: hidden;

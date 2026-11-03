@@ -127,10 +127,11 @@ p {
   margin: 0;
 }
 
+/* 画面の横いっぱいに広げない。左右に幅の 4%（最小 20px、最大 56px）の余白を取り、中央に寄せる */
 .wrap {
-  max-width: 1480px;
+  max-width: 1320px;
   margin: 0 auto;
-  padding: 14px 20px 32px;
+  padding: 14px clamp(20px, 4vw, 56px) 40px;
 }
 
 /* 上部バー */
