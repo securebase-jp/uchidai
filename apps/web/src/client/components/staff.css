@@ -276,14 +276,13 @@
     padding: 6px 0;
   }
   table.evidence.stacked td {
-    display: grid;
-    grid-template-columns: 6.5em minmax(0, 1fr);
-    gap: 0 8px;
+    display: block;
     border: 0;
     padding: 3px 0;
   }
   table.evidence.stacked td::before {
     content: attr(data-label);
+    display: block;
     color: var(--ink-2);
     font-size: 12px;
   }
