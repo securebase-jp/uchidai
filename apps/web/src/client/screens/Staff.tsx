@@ -1,4 +1,4 @@
-/** 担当者画面（操作型）：経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
+/** 担当者画面（操作型）：結論カード、経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
 import { useMemo } from "react";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
@@ -7,17 +7,20 @@ import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { EvidencePanel } from "../components/EvidencePanel.tsx";
 import { IndustrySwitch } from "../components/IndustrySwitch.tsx";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import "../components/staff.css";
 import { useDemoBridge } from "../demo/bridge.ts";
 import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
+import { nextMoves, reasonSentence } from "../lib/conclusion.ts";
 import { RESULT_SHORT } from "../lib/labels.ts";
 import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
 import { timelineOf } from "../lib/timeline.ts";
@@ -26,7 +29,7 @@ export function Legend() {
   return (
     <div className="legend" aria-hidden="true">
       <span>
-        <i /> 記事に記載
+        <i /> 記事に書いてある
       </span>
       <span>
         <i className="dash" /> 推定・入口候補
@@ -51,6 +54,20 @@ export function Legend() {
       </span>
     </div>
   );
+}
+
+/** 区画の id（結論カードと目次から移動する） */
+export const STAFF_SECTION = {
+  verdict: "staff-verdict",
+  diagram: "staff-diagram",
+  measures: "staff-measures",
+  evidence: "staff-evidence",
+  requests: "staff-requests",
+} as const;
+
+/** ページ内の区画へ移動する（ハッシュは画面の切り替えに使っているので、アンカーの href は使わない） */
+export function jumpTo(id: string): void {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function Staff({ settings }: { settings: Settings }) {
@@ -114,61 +131,109 @@ export function Staff({ settings }: { settings: Settings }) {
   const onPath = ranked.filter((x) => x.onPath);
   const unknownSteps = evaluation ? unknownStepLabels(evaluation.verdict, evaluation.graph) : [];
   const result = evaluation?.verdict.result;
-  const heading = evaluation ? templateHeading(evaluation.verdict, knowledge.templates) : "";
+  const heading = evaluation
+    ? templateHeading(evaluation.verdict, knowledge.templates).replace(/^型紙/, "攻撃の型（型紙）")
+    : "";
+
+  // 結論カードの材料：理由の一文と次の一手（いまの判定で。巻き戻し中は直前の判定）
+  const verdictNow = evaluation?.verdict ?? stage.input.verdict;
+  const graphNow = evaluation?.graph ?? stage.input.graph;
+  const reason = reasonSentence(verdictNow, graphNow, knowledge.labels.techniques);
+  const moves = nextMoves(knowledge.measures, verdictNow, measureIds);
 
   return (
-    <div>
-      {pending > 0 && (
-        <div className="panel warn" style={{ marginBottom: 10 }}>
-          <p className="small">
-            <b>未確認の項目が {pending} 件あります。</b>
-            {onPath.length > 0 ? (
-              <>
-                うち、この攻撃の経路で問われているのは {onPath.length} 件（
-                {[...new Set(onPath.map((x) => x.assetLabel))].join("、")}）。
-              </>
-            ) : (
-              "この攻撃の経路で問われている項目はありません。"
+    <div className="staff">
+      <VerdictBanner
+        verdict={stage.input.verdict}
+        scene={scene}
+        script={script}
+        graph={stage.input.graph}
+        fired={clock.fired}
+        caseTitle={theCase.title}
+        swapping={stage.swapping || busy}
+        conclusionFirst
+        reasonJa={reason}
+        info={
+          <InfoButton title="結論の読み方" align="end">
+            <p>
+              結論は「止められます」「侵入は防げませんが被害は抑えられます」「大丈夫ではありませんでした」「確認中」の
+              4
+              種類です。報道と同じ攻撃が御社の構成に来たとき、どの段階で止まるかをプログラムが判定ルールで決めています。
+            </p>
+            {pending > 0 && (
+              <p>
+                未確認の項目が {pending} 件あります。
+                {onPath.length > 0
+                  ? `うち、この攻撃の経路で問われているのは ${onPath.length} 件（${[...new Set(onPath.map((x) => x.assetLabel))].join("、")}）です。`
+                  : "この攻撃の経路で問われている項目はありません。"}
+                {result === "breached" &&
+                  unknownSteps.length > 0 &&
+                  `いまの結論「${RESULT_SHORT.breached}」は、未確認の段階（${unknownSteps.join("、")}）を「突破される」とみなした最悪の想定です。未確認は「止まる」とは扱いません。`}
+                {result === "pending" &&
+                  `いまの結論は「${RESULT_SHORT.pending}」です。未確認の段階（${unknownSteps.join("、")}）が決まると結論が決まります。`}
+                {result !== "breached" &&
+                  result !== "pending" &&
+                  onPath.length === 0 &&
+                  "この攻撃の結論は未確認の段階を通らずに出ています。残りの未確認は別の攻撃で問われることがあります。"}
+                {onPath.length > 0 &&
+                  "経路の項目から答える（またはベンダーに確認する）と、結論が変わりやすくなります。"}
+                <a href="#/profile">
+                  {onPath.length > 0
+                    ? `カルテで経路の ${onPath.length} 件から答える`
+                    : "カルテに詳細を登録する"}
+                </a>
+                こともできます。
+                {profile.companyName === "うちの会社" && "会社名もカルテで登録できます。"}
+              </p>
             )}
-            {result === "breached" && unknownSteps.length > 0 && (
-              <>
-                いまの結論「{RESULT_SHORT.breached}」は、未確認の段階（{unknownSteps.join("、")}
-                ）を「突破される」とみなした<b>最悪の想定</b>
-                です。未確認は「止まる」とは扱いません。
-              </>
+            {theCase.clarity === "unknown" && (
+              <p>
+                記事に入口が書かれていません。攻撃の型（型紙）の入口候補（VPN
+                装置、リモートデスクトップ、メールなど）だけで判定しています。別の入口から来る攻撃は判定に含まれないので、結論が「止められます」でも、この型紙の入口候補について止められる、という意味に留めてください。
+              </p>
             )}
-            {result === "pending" && (
-              <>
-                いまの結論は「{RESULT_SHORT.pending}」です。未確認の段階（{unknownSteps.join("、")}
-                ）が決まると結論が決まります。
-              </>
+            <p>
+              再生中は、いまどの段階まで進んだかをこの枠の中に小さく出します。再生が終わると結論だけに戻ります。
+            </p>
+          </InfoButton>
+        }
+      >
+        {(moves.length > 0 || pending > 0) && (
+          <div className="verdict-actions">
+            {moves.length > 0 && <span className="lab">次の一手</span>}
+            {moves.map((m) => (
+              <button
+                type="button"
+                key={m.measure.id}
+                className="btn sm"
+                disabled={busy}
+                onClick={() => app.toggleMeasure(m.measure.id)}
+                title={m.stageJa ? `この段階に効く：${m.stageJa}` : undefined}
+              >
+                {m.measure.labelJa}
+              </button>
+            ))}
+            {pending > 0 && (
+              <button
+                type="button"
+                className="btn sm ghost pending"
+                onClick={() => jumpTo(STAFF_SECTION.requests)}
+              >
+                未確認 {pending} 件
+              </button>
             )}
-            {result !== "breached" && result !== "pending" && onPath.length === 0 && (
-              <>
-                この攻撃の結論は未確認の段階を通らずに出ています。残りの未確認は別の攻撃で問われることがあります。
-              </>
-            )}
-            {onPath.length > 0 &&
-              " 経路の項目から答える（またはベンダーに確認する）と、結論が変わりやすくなります。"}
-            {profile.companyName === "うちの会社" && " 会社名もカルテで登録できます。"}
-            <a className="btn sm" href="#/profile" style={{ marginLeft: 10 }}>
-              {onPath.length > 0
-                ? `カルテで経路の ${onPath.length} 件から答える`
-                : "カルテに詳細を登録する"}
-            </a>
-          </p>
-        </div>
+          </div>
+        )}
+      </VerdictBanner>
+      {error && (
+        <p className="err small" style={{ marginTop: 6 }}>
+          {error}
+        </p>
       )}
-      {theCase.clarity === "unknown" && (
-        <div className="panel warn" style={{ marginBottom: 10 }}>
-          <p className="small">
-            <b>記事に入口が書かれていません。</b>
-            型紙の入口候補（VPN
-            装置、リモートデスクトップ、メールなど）だけで判定しています。別の入口から来る攻撃は判定に含まれないので、結論が「止められます」でも、この型紙の入口候補について止められる、という意味に留めてください。
-          </p>
-        </div>
-      )}
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+      <div
+        className="row"
+        style={{ justifyContent: "space-between", alignItems: "flex-start", marginTop: 12 }}
+      >
         <div>
           <p className="muted">
             {caseMeta?.sourceJa}
@@ -183,22 +248,6 @@ export function Staff({ settings }: { settings: Settings }) {
           profile={stage.input.profile}
         />
       </div>
-      <div style={{ marginTop: 10 }}>
-        <VerdictBanner
-          verdict={stage.input.verdict}
-          scene={scene}
-          script={script}
-          graph={stage.input.graph}
-          fired={clock.fired}
-          caseTitle={theCase.title}
-          swapping={stage.swapping || busy}
-        />
-      </div>
-      {error && (
-        <p className="err small" style={{ marginTop: 6 }}>
-          {error}
-        </p>
-      )}
       <div className="layout-main">
         <div>
           <div className="stage">
@@ -265,7 +314,7 @@ export function Staff({ settings }: { settings: Settings }) {
               templates={knowledge.templates}
             />
           </div>
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} id={STAFF_SECTION.requests}>
             <RequestPanel />
           </div>
         </div>

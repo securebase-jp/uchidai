@@ -1,5 +1,9 @@
-/** 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明 */
+/**
+ * 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明。
+ * conclusionFirst（担当者画面）では結論を常に出し、再生中の進み（「◯◯が突破されました」）は同じ枠の中に小さく出す
+ */
 import { AnimatePresence, motion } from "motion/react";
+import type { ReactNode } from "react";
 import { PLAIN_STATE, RESULT_TONE, STATE_LABEL, yen } from "../lib/labels.ts";
 import { unknownStepLabels } from "../lib/pending.ts";
 import type { Scene, Script } from "../lib/playback.ts";
@@ -15,6 +19,14 @@ type Props = {
   plain?: boolean;
   big?: boolean;
   swapping?: boolean;
+  /** 結論を常に大見出しに出し、再生の進みは小さく添える（担当者画面） */
+  conclusionFirst?: boolean;
+  /** 理由の一文（結論の下） */
+  reasonJa?: string;
+  /** 見出しの横に置く情報ボタンなど */
+  info?: ReactNode;
+  /** 次の一手・未確認の件数など、結論の下に置くもの */
+  children?: ReactNode;
 };
 
 function progressText(
@@ -67,14 +79,51 @@ export function VerdictBanner({
   plain = false,
   big = false,
   swapping = false,
+  conclusionFirst = false,
+  reasonJa,
+  info,
+  children,
 }: Props) {
   const concluded = scene.concluded;
-  const tone = concluded ? RESULT_TONE[verdict.result] : "";
   const [head, sub] = swapping
     ? ["時間を巻き戻しています", "同じ攻撃を、条件を変えてもう一度走らせます。"]
     : concluded
       ? [verdict.headlineJa, summary(verdict, plain, graph)]
       : progressText(script, graph, fired, plain);
+
+  if (conclusionFirst) {
+    const tone = RESULT_TONE[verdict.result];
+    const impact = summary(verdict, plain);
+    const running = swapping || !concluded;
+    return (
+      <section className={`verdict verdict-card tone-${tone}`} aria-live="polite">
+        <div className="verdict-head">
+          <p className="t">{verdict.headlineJa}</p>
+          {info}
+        </div>
+        {reasonJa && <p className="s">{reasonJa}</p>}
+        {impact && <p className="s verdict-impact">{impact}</p>}
+        <AnimatePresence mode="wait">
+          {running && (
+            <motion.p
+              key={head}
+              className="verdict-progress"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <span className="verdict-progress-head">{head}</span>
+              {sub && <span className="verdict-progress-sub">　{sub}</span>}
+            </motion.p>
+          )}
+        </AnimatePresence>
+        {children}
+      </section>
+    );
+  }
+
+  const tone = concluded ? RESULT_TONE[verdict.result] : "";
   return (
     <section
       className={`verdict ${tone ? `tone-${tone}` : ""}${big && concluded ? " big" : ""}`}

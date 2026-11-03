@@ -1,0 +1,97 @@
+/* 担当者画面：結論から読める並びと、文字を減らした区画。共通の見た目は styles.css */
+
+/* 結論カード（先頭） */
+.verdict-card {
+  margin-top: 10px;
+  scroll-margin-top: 8px;
+}
+.verdict-card .verdict-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.verdict-card .verdict-head .t {
+  flex: 1;
+  min-width: 0;
+}
+.verdict-card .verdict-head .info {
+  margin-top: 8px;
+}
+.verdict-card .verdict-impact {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.verdict-progress {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--edge-strong);
+  display: inline-block;
+  max-width: 100%;
+}
+.verdict-progress-head {
+  font-weight: 700;
+  color: var(--ink);
+}
+.verdict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+.verdict-actions .lab {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.verdict-actions .btn.pending {
+  margin-left: auto;
+}
+@media (max-width: 720px) {
+  .verdict-card {
+    padding: 12px 14px 12px 20px;
+  }
+  .verdict-card .t {
+    font-size: 22px;
+  }
+  .verdict-actions .btn.pending {
+    margin-left: 0;
+  }
+}
+
+/* 凡例を情報ボタンの中に置いたとき（.stage の外） */
+.info-body .legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 6px;
+}
+.info-body .legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.info-body .legend i {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 2px solid var(--ink-2);
+}
+.info-body .legend i.dash {
+  border-top-style: dashed;
+}
+.info-body .legend i.dot {
+  border-top-style: dotted;
+  border-color: var(--violet);
+}
+.info-body .legend b {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
