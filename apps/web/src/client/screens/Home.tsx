@@ -205,9 +205,10 @@ export function Home() {
   return (
     <div className="home">
       <section className="hero">
-        <h1>うちの会社は大丈夫？</h1>
+        <p className="eyebrow">サイバー攻撃対策の簡易評価ツール</p>
+        <h1>うちの会社は大丈夫か？</h1>
         <div className="define">
-          「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。
+          社長からの突然の質問に、根拠つきで答えます。
           <InfoButton title="この道具の仕組み">
             <p>
               他社の被害の報道を貼ると、Claude

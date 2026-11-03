@@ -1089,6 +1089,12 @@ table.evidence code {
 .hero {
   padding: 40px 0 24px;
 }
+.hero .eyebrow {
+  color: var(--ink-2);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+}
 .hero h1 {
   font-family: var(--serif);
   font-size: clamp(32px, 5vw, 56px);
