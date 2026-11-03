@@ -110,6 +110,43 @@ describe("layoutGraph の端", () => {
     };
     noOverlap(g);
   });
+  it("列が多いときだけ箱の幅を縮め（下限 110px）、それでも重ならない", () => {
+    // 社外に距離の違う列を 5 本作る（攻撃者 → a1 → a2 → … → a5）＋ 社内 2 列 ＋ 人 ＝ 9 列
+    const chain = Array.from({ length: 5 }, (_, i) => `a${i + 1}`);
+    const g: Graph = {
+      nodes: [
+        node("attacker", "system", "external"),
+        ...chain.map((id) => node(id, "system", "external")),
+        node("vpn", "system", "internal", "entry.vpn"),
+        node("core", "system", "internal"),
+        node("exec", "system", "person"),
+      ],
+      edges: [
+        edge("attacker", "a1"),
+        ...chain.slice(1).map((id, i) => edge(chain[i] ?? "", id)),
+        edge("a5", "vpn"),
+        edge("vpn", "core"),
+      ],
+    };
+    const l = noOverlap(g);
+    const widths = new Set(Object.values(l.nodes).map((p) => p.w));
+    expect(widths.size).toBe(1);
+    const w = [...widths][0] ?? 0;
+    expect(w).toBeGreaterThanOrEqual(110);
+    expect(w).toBeLessThan(134);
+    // 7 列までは 134px のまま
+    const l7 = layoutGraph({
+      nodes: g.nodes.filter((n) => !["a4", "a5"].includes(n.id)),
+      edges: [
+        edge("attacker", "a1"),
+        edge("a1", "a2"),
+        edge("a2", "a3"),
+        edge("a3", "vpn"),
+        edge("vpn", "core"),
+      ],
+    });
+    expect(new Set(Object.values(l7.nodes).map((p) => p.w))).toEqual(new Set([134]));
+  });
   it("攻撃者ノードが無いグラフ（5問の途中など）でも置ける", () => {
     const g: Graph = {
       nodes: [node("core", "system", "internal"), node("pc", "system", "internal")],

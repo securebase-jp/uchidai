@@ -59,6 +59,15 @@ const NODE_SIZE: Record<Layer, { w: number; h: number }> = {
   business: { w: 150, h: 58 },
   management: { w: 212, h: 58 },
 };
+/** 列の間に最低限空ける幅と、箱の幅の下限（ラベルは 2 行に折り返すので文字は小さくしない） */
+const COL_GAP = 16;
+const MIN_BOX_W = 110;
+/** 箱の幅：列が多くて 1 列が「箱＋間隔」より狭いときだけ縮める（面の上辺の幅で判断） */
+function boxWidth(layer: Layer, columns: number): number {
+  const w = NODE_SIZE[layer].w;
+  const colW = (PLANE_SPEC[layer].topW * USABLE) / Math.max(1, columns);
+  return colW >= w + COL_GAP ? w : Math.max(MIN_BOX_W, Math.floor(colW - COL_GAP));
+}
 /** システムの箱の高さ：行が多い列だけ詰める（2 行のラベル＋状態の行が入る下限） */
 function systemBoxHeight(rows: number): number {
   return rows >= 6 ? 40 : rows >= 5 ? 48 : NODE_SIZE.system.h;
@@ -198,15 +207,22 @@ function clipToRect(p: Placed, tx: number, ty: number): { x: number; y: number }
 export function layoutGraph(graph: Graph): Layout {
   const depth = depthsFromAttacker(graph);
   const nodes: Record<string, Placed> = {};
-  const place = (n: GraphNode, u: number, v: number, col: number, row: number, rows: number) => {
-    const size = NODE_SIZE[n.layer];
-    const h = n.layer === "system" ? systemBoxHeight(rows) : size.h;
+  const place = (
+    n: GraphNode,
+    u: number,
+    v: number,
+    col: number,
+    row: number,
+    rows: number,
+    columns: number,
+  ) => {
+    const h = n.layer === "system" ? systemBoxHeight(rows) : NODE_SIZE[n.layer].h;
     const { x, y } = project(n.layer, u, v);
     nodes[n.id] = {
       id: n.id,
       x,
       y,
-      w: size.w,
+      w: boxWidth(n.layer, columns),
       h,
       layer: n.layer,
       side: n.side,
@@ -224,7 +240,7 @@ export function layoutGraph(graph: Graph): Layout {
     const u = (ci + 0.5) / n;
     const vs = rowCenters("system", col.nodes.length, systemBoxHeight(col.nodes.length));
     col.nodes.forEach((node, ri) => {
-      place(node, u, vs[ri] ?? 0.5, ci, ri, col.nodes.length);
+      place(node, u, vs[ri] ?? 0.5, ci, ri, col.nodes.length, n);
     });
   });
   const dividers: Layout["dividers"] = [];
@@ -236,7 +252,7 @@ export function layoutGraph(graph: Graph): Layout {
   // 業務の層：一列（上限 5）
   const biz = graph.nodes.filter((x) => x.layer === "business").slice(0, 5);
   biz.forEach((node, i) => {
-    place(node, (i + 0.5) / biz.length, 0.5, i, 0, 1);
+    place(node, (i + 0.5) / biz.length, 0.5, i, 0, 1, biz.length);
   });
 
   // 経営の層：社外は一つずつ列に、社内（資金の流出・売上影響）は同じ列に縦に並べる
@@ -247,7 +263,15 @@ export function layoutGraph(graph: Graph): Layout {
   mcols.forEach((group, ci) => {
     const u = (ci + 0.5) / mcols.length;
     group.forEach((node, ri) => {
-      place(node, u, group.length === 1 ? 0.5 : 0.31 + 0.38 * ri, ci, ri, group.length);
+      place(
+        node,
+        u,
+        group.length === 1 ? 0.5 : 0.31 + 0.38 * ri,
+        ci,
+        ri,
+        group.length,
+        mcols.length,
+      );
     });
   });
 
