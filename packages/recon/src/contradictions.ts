@@ -6,14 +6,31 @@ import type { Asset, CompanyProfile, Contradiction } from "@uchidai/engine";
 import type { HostnameEntry, ReconResult } from "./types.ts";
 
 /** 資産に登録されたホスト名（attrs.hostname／hostnames。空白・読点区切り、小文字に正規化） */
-export function assetHostnames(asset: Asset): string[] {
+/**
+ * カルテのドメインと外部確認のドメインが違うとき（架空のカルテを実ドメインで試す、ドメインを移した）に、
+ * 資産のホスト名をカルテのドメインから外部確認のドメインへ付け替える対応
+ */
+export type DomainMapping = { from: string | undefined; to: string };
+
+/** `campaign2019.demo-seiko.example` を from→to で `campaign2019.exe-com.com` に。付け替えなければそのまま */
+export function mapHostname(name: string, mapping?: DomainMapping): string {
+  if (!mapping?.from) return name;
+  const from = mapping.from.toLowerCase().replace(/\.$/, "");
+  const to = mapping.to.toLowerCase().replace(/\.$/, "");
+  if (!from || from === to) return name;
+  if (name === from) return to;
+  if (name.endsWith(`.${from}`)) return `${name.slice(0, -from.length)}${to}`;
+  return name;
+}
+
+export function assetHostnames(asset: Asset, mapping?: DomainMapping): string[] {
   const names: string[] = [];
   for (const key of ["hostname", "hostnames"]) {
     const value = asset.attrs[key];
     if (typeof value !== "string") continue;
     for (const part of value.split(/[\s,、]+/)) {
       const name = part.trim().toLowerCase().replace(/\.$/, "");
-      if (name) names.push(name);
+      if (name) names.push(mapHostname(name, mapping));
     }
   }
   return names;
@@ -40,13 +57,14 @@ export function aliveExternally(entry: HostnameEntry): boolean {
 export function findContradictions(result: ReconResult, profile: CompanyProfile): Contradiction[] {
   const out: Contradiction[] = [];
   const byName = new Map(result.hostnames.map((h) => [h.name, h]));
+  const mapping: DomainMapping = { from: profile.domain, to: result.domain };
   // 今も使われている形跡のある VPN 用ホスト名だけを材料にする（過去の痕跡は矛盾の根拠にしない）
   const vpnHosts = result.remoteAccessCandidates.filter((c) => c.kind === "vpn" && c.current);
 
   for (const asset of profile.assets) {
     // 1. 廃止済みのホスト名が DNS／CT に残っている
     if (asset.attrs.decommissioned === true) {
-      for (const name of assetHostnames(asset)) {
+      for (const name of assetHostnames(asset, mapping)) {
         const entry = byName.get(name);
         if (entry && aliveExternally(entry)) {
           out.push({

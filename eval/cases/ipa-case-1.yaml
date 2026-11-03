@@ -1,7 +1,7 @@
-# 正解データ（叩き台）。手法IDと区別は開発者が確定する。本文は含めない
+# 正解データ。2026-11-03 に開発者がレビューして確定（Issue #16）。本文は含めない
 id: ipa-case-1
 title: 被害事例1：VPN装置の脆弱性悪用によるランサムウェア感染
-status: draft
+status: confirmed
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
@@ -12,15 +12,18 @@ source:
     社内のサーバとクラウド同期していたバックアップまで暗号化された。想定被害額4,600万円。
 expected:
   damageType: ransomware
-  clarity: partial
+  # 入口（VPN）と被害（暗号化）が本文に明記。途中の段階が推定でも clear（読解プロンプトの定義に合わせた）
+  clarity: clear
   usedInDemo: true
   verdict: breached
   steps:
     - label: VPN装置から侵入
       tactic: TA0001
-      techniques: [T1190]
+      # VPN 経由の侵入は外部リモートサービス（T1133）としても正解に認める
+      techniques: [T1190, T1133]
       source: stated
       quoteHint: VPN
+    # 段階 2・3 は本文に記載がない。ランサムウェアの典型経路として推定で補う
     - label: 管理者権限を奪う
       tactic: TA0006
       techniques: [T1003, T1078]
@@ -29,7 +32,8 @@ expected:
       tactic: TA0008
       techniques: [T1021]
       source: inferred
-    - label: バックアップを消す・暗号化する
+    # 本文は「バックアップも暗号化され、復旧困難」。消去ではないのでラベルを本文に寄せ、ID は復旧の妨害（T1490）のみ
+    - label: バックアップも暗号化され復旧困難
       tactic: TA0040
       techniques: [T1490]
       source: stated

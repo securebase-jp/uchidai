@@ -4,7 +4,12 @@
  * - reconToAssetHints：資産の役割ごとに当てはめる属性と緩和策（根拠は external）
  */
 import type { Asset, CompanyProfile, Control, ProfileAnswers, Role } from "@uchidai/engine";
-import { aliveExternally, assetHostnames } from "./contradictions.ts";
+import {
+  aliveExternally,
+  assetHostnames,
+  type DomainMapping,
+  mapHostname,
+} from "./contradictions.ts";
 import type { HostnameEntry, ReconResult } from "./types.ts";
 
 export type InferredAnswerKey = "hosting.mail" | "hosting.web" | "remoteAccess";
@@ -162,7 +167,10 @@ export function reconToAssetHints(result: ReconResult): AssetHint[] {
 }
 
 /** 外部確認の結果のうち、資産のホスト名と突き合わせる分（証明書の公開ログに載る名前と確認日時） */
-export type ExternalHostnames = Pick<ReconResult, "hostnames" | "checkedAt">;
+export type ExternalHostnames = Pick<ReconResult, "hostnames" | "checkedAt"> & {
+  /** 外部確認のドメイン。カルテのドメインと違えば、資産のホスト名を付け替えて突き合わせる */
+  domain?: string | undefined;
+};
 
 /** 廃止済みの資産に付ける属性（外部にホスト名が残っているか）。廃止済みの資産に重ねるのはこの 3 つだけ */
 const DECOMMISSIONED_ATTRS = ["externallySeen", "externallySeenAt", "lastCertExpiry"] as const;
@@ -188,8 +196,12 @@ function withExternal(asset: Asset, attrs: Asset["attrs"]): Asset {
 }
 
 /** 資産のホスト名に当たる公開ログの名前。同じ名前が無ければ、親のワイルドカード（*.example.jp）を当てる */
-function entriesFor(asset: Asset, byName: Map<string, HostnameEntry>): HostnameEntry[] {
-  const names = assetHostnames(asset);
+function entriesFor(
+  asset: Asset,
+  byName: Map<string, HostnameEntry>,
+  mapping?: DomainMapping,
+): HostnameEntry[] {
+  const names = assetHostnames(asset, mapping);
   const exact = names.map((n) => byName.get(n)).filter((e): e is HostnameEntry => e !== undefined);
   if (exact.length > 0) return exact;
   return names
@@ -213,8 +225,9 @@ function markDecommissioned(
   asset: Asset,
   byName: Map<string, HostnameEntry>,
   checkedAt: string,
+  mapping?: DomainMapping,
 ): Asset {
-  const names = assetHostnames(asset);
+  const names = assetHostnames(asset, mapping);
   if (names.length === 0) return asset;
   const entries = names
     .map((n) => byName.get(n))
@@ -229,10 +242,14 @@ function markDecommissioned(
 }
 
 /** 現役の資産：ホスト名に当たる証明書の最後の期限（参考情報。期限が近い・切れているかは画面が日付で見る） */
-function markCertificate(asset: Asset, byName: Map<string, HostnameEntry>): Asset {
+function markCertificate(
+  asset: Asset,
+  byName: Map<string, HostnameEntry>,
+  mapping?: DomainMapping,
+): Asset {
   if (assetHostnames(asset).length === 0) return asset;
   const base = dropExternal(asset, CERT_ATTRS);
-  const entries = entriesFor(asset, byName);
+  const entries = entriesFor(asset, byName, mapping);
   const expiry = latestExpiry(entries);
   if (!expiry) return base;
   return withExternal(base, {
@@ -258,9 +275,23 @@ export function applyAssetHints(
   external?: ExternalHostnames,
 ): CompanyProfile {
   const byName = new Map((external?.hostnames ?? []).map((h) => [h.name, h]));
+  // カルテのドメインと外部確認のドメインが違えば、資産のホスト名を付け替えて突き合わせ、カルテ側の名前も更新する
+  const mapping: DomainMapping | undefined =
+    external?.domain && profile.domain && external.domain !== profile.domain
+      ? { from: profile.domain, to: external.domain }
+      : undefined;
+  const renamed = (asset: Asset): Asset => {
+    if (!mapping || typeof asset.attrs.hostname !== "string") return asset;
+    const next = mapHostname(asset.attrs.hostname.toLowerCase(), mapping);
+    return next === asset.attrs.hostname
+      ? asset
+      : { ...asset, attrs: { ...asset.attrs, hostname: next } };
+  };
   const assets = profile.assets.map((asset) => {
     if (asset.attrs.decommissioned === true) {
-      return external ? markDecommissioned(asset, byName, external.checkedAt) : asset;
+      return external
+        ? renamed(markDecommissioned(asset, byName, external.checkedAt, mapping))
+        : asset;
     }
     const matching = hints.filter((h) => h.role === asset.role);
     let next: Asset = {
@@ -285,7 +316,7 @@ export function applyAssetHints(
       };
     }
     if (matching.length === 0 && !external) return asset;
-    return external ? markCertificate(next, byName) : next;
+    return external ? renamed(markCertificate(next, byName, mapping)) : next;
   });
   return { ...profile, assets };
 }

@@ -60,11 +60,13 @@ describe("CrtShSource", () => {
     });
     await expect(broken.listCertificates("example.jp")).rejects.toBeInstanceOf(CtUnavailableError);
   });
-  it("空の応答は 0 件", async () => {
-    const source = new CrtShSource({
-      fetch: async () => new Response("", { status: 200 }),
-      cache: new MemoryCache(),
-    });
+  it("空の応答は 0 件。キャッシュせず、次回はもう一度取得する", async () => {
+    const fake = vi.fn(async () => new Response("", { status: 200 }));
+    const cache = new MemoryCache();
+    const source = new CrtShSource({ fetch: fake, cache });
     expect(await source.listCertificates("example.jp")).toEqual([]);
+    expect(await cache.get("crtsh:example.jp")).toBeUndefined();
+    expect(await source.listCertificates("example.jp")).toEqual([]);
+    expect(fake).toHaveBeenCalledTimes(2);
   });
 });

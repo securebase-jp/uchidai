@@ -158,3 +158,21 @@ describe("findContradictions の頑健さ", () => {
     expect(out[0]?.messageJa).toContain("可能性");
   });
 });
+
+describe("カルテのドメインと外部確認のドメインが違うとき（架空のカルテを実ドメインで試す）", () => {
+  it("資産のホスト名をカルテのドメインから外部確認のドメインへ付け替えて突き合わせる", async () => {
+    const r = await result();
+    // 実ドメイン exe-com.com で確認した体にする（名前の末尾を付け替えた写し）
+    const swapped = {
+      ...r,
+      domain: "exe-com.com",
+      hostnames: r.hostnames.map((h) => ({
+        ...h,
+        name: h.name.replace(/demo-seiko\.example$/, "exe-com.com"),
+      })),
+    };
+    const out = findContradictions(swapped, demoProfile);
+    expect(out.map((c) => c.assetId)).toEqual(["campaign-site"]);
+    expect(out[0]?.messageJa).toContain("campaign2019.exe-com.com");
+  });
+});
