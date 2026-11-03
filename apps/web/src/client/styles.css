@@ -1755,6 +1755,21 @@ textarea.in {
   }
 }
 /* 赤の結論に達した瞬間、構成図の全面がひと呼吸だけ赤く光る（面の flash と同じ動き） */
+/* 開始前の覆い（社長画面）：平時の粒は透けて見え、中央の大きな「再生する」で始める */
+.exec .stage .stage-start {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 35%, transparent);
+  z-index: 3;
+}
+.exec .stage .stage-start-btn {
+  font-size: 24px;
+  padding: 18px 44px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--cyan) 25%, transparent);
+}
 .exec .stage .stage-flash {
   position: absolute;
   inset: 0;

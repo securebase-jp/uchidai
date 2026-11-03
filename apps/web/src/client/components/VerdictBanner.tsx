@@ -33,6 +33,8 @@ type Props = {
    * 「動きを減らす」設定では点滅せず、赤い縁と札だけになる。担当者画面は渡さないので従来どおり
    */
   alert?: boolean;
+  /** 再生を始める前（社長画面の「再生する」待ち）。平時の見出しを出す */
+  idle?: boolean;
 };
 
 function progressText(
@@ -90,13 +92,16 @@ export function VerdictBanner({
   info,
   children,
   alert = false,
+  idle = false,
 }: Props) {
   const concluded = scene.concluded;
   const [head, sub] = swapping
     ? ["時間を巻き戻しています", "同じ攻撃を、条件を変えてもう一度走らせます。"]
-    : concluded
-      ? [verdict.headlineJa, summary(verdict, plain, graph)]
-      : progressText(script, graph, fired, plain);
+    : idle && !concluded
+      ? ["いまは平時です", "「再生する」を押すと、報道と同じ攻撃が来ます。"]
+      : concluded
+        ? [verdict.headlineJa, summary(verdict, plain, graph)]
+        : progressText(script, graph, fired, plain);
 
   if (conclusionFirst) {
     const tone = RESULT_TONE[verdict.result];

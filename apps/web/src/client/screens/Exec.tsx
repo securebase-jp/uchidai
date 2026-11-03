@@ -8,7 +8,7 @@ import { Meters } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { VerdictBanner } from "../components/VerdictBanner.tsx";
 import { useDemoBridge } from "../demo/bridge.ts";
-import { isDemoMode } from "../demo/params.ts";
+import { isDemoMode, parseDemoParams } from "../demo/params.ts";
 import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { useFitScale } from "../hooks/useFitScale.ts";
@@ -35,8 +35,12 @@ export function Exec({ settings }: { settings: Settings }) {
         : undefined,
     [evaluation, knowledge, aiPaths],
   );
-  // 一本の物語として 30〜40 秒：侵入の区間を半分の速さで
-  const stage = useStage(input, { reduced: settings.reduced, autoplay: true, speed: 0.5 });
+  // 開くと同時には動かさず、舞台の中央の「再生する」で始める（?autostart=1 のときだけ自動で始める。デモ・録画用）。
+  // 一度始めたら、対策の再判定や会社・事例の切り替えでは従来どおり自動で再生する
+  const autostart = useMemo(() => parseDemoParams().autostart, []);
+  const [started, setStarted] = useState(autostart);
+  // 一本の物語として 30〜40 秒：侵入の区間をやや遅めに
+  const stage = useStage(input, { reduced: settings.reduced, autoplay: started, speed: 0.4 });
   useDemoBridge(stage?.clock); // デモモード（S8）が結論まで進める・速さを操作する
   // 舞台を画面の幅と高さに合わせて縮める。デモモード（録画は 1920×1080）では台本の座標を変えないよう等倍に固定
   const fitOuter = useRef<HTMLDivElement>(null);
@@ -102,6 +106,12 @@ export function Exec({ settings }: { settings: Settings }) {
   }
   const { layout, scene, script, clock } = stage;
   const plainMeasures = knowledge.measures;
+  // 開始前の覆い。「動きを減らす」では出さず、従来どおり結論を静止表示する
+  const waiting = !started && !settings.reduced;
+  const start = () => {
+    setStarted(true);
+    clock.play();
+  };
   // 赤の結論に達した瞬間だけの警告（帯の点滅、数字の赤、構成図のひと呼吸の赤）
   const alarm =
     scene.concluded &&
@@ -154,7 +164,7 @@ export function Exec({ settings }: { settings: Settings }) {
           <p>
             報道と同じ攻撃が、{profile.companyName}
             {profile.fictional ? "（架空の会社）" : ""}
-            に来たらどうなるかを、一本の物語として自動で再生します。結論が出ると、帯の色と計器の数字が変わります。
+            に来たらどうなるかを、一本の物語として再生します。開いた直後は平時の流れだけが動いていて、「再生する」を押すと攻撃が始まります。結論が出ると、帯の色と計器の数字が変わります。
           </p>
           <p>
             会社と数値は
@@ -185,6 +195,7 @@ export function Exec({ settings }: { settings: Settings }) {
               big
               swapping={stage.swapping || busy}
               alert
+              idle={waiting}
             />
             <div className="stage">
               <Diagram
@@ -207,6 +218,13 @@ export function Exec({ settings }: { settings: Settings }) {
               />
               <Legend />
               {alarm && <div className="stage-flash" aria-hidden="true" />}
+              {waiting && (
+                <div className="stage-start">
+                  <button type="button" className="btn primary stage-start-btn" onClick={start}>
+                    再生する
+                  </button>
+                </div>
+              )}
               <div className="controls overlay">
                 <button
                   type="button"
