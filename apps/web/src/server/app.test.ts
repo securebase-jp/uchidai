@@ -70,6 +70,50 @@ describe("記録済みの事例と架空企業", () => {
     expect((await app.request("/api/case/recorded/nope")).status).toBe(404);
     expect((await app.request("/api/examples/..%2Fpackage")).status).toBe(400);
   });
+  it("GET /api/examples は架空の会社 3 社を会社名・業種・人数つきで返す", async () => {
+    const body = await loose(app.request("/api/examples"));
+    expect(body.items.map((i: { id: string }) => i.id)).toEqual([
+      "demo-bussan",
+      "demo-clinic",
+      "demo-seiko",
+    ]);
+    const seiko = body.items.find((i: { id: string }) => i.id === "demo-seiko");
+    expect(seiko).toEqual({
+      id: "demo-seiko",
+      companyName: "デモ精工株式会社",
+      patternLabelJa: "製造業（工場あり）",
+      employees: 120,
+      fictional: true,
+    });
+    const clinic = body.items.find((i: { id: string }) => i.id === "demo-clinic");
+    expect(clinic.patternLabelJa).toBe("医療・福祉");
+    expect(clinic.employees).toBe(40);
+    // 一覧にはカルテの中身（資産）を入れない
+    expect(seiko.assets).toBeUndefined();
+  });
+  it("3 社 × 事例 1・2・5 の結論が examples/README.md の表どおり", async () => {
+    const expected: Record<string, Record<string, string>> = {
+      "demo-seiko": { "ipa-case-1": "breached", "ipa-case-2": "blocked", "ipa-case-5": "breached" },
+      "demo-bussan": {
+        "ipa-case-1": "no_entry",
+        "ipa-case-2": "breached",
+        "ipa-case-5": "blocked",
+      },
+      "demo-clinic": {
+        "ipa-case-1": "mitigated",
+        "ipa-case-2": "no_entry",
+        "ipa-case-5": "pending",
+      },
+    };
+    for (const [id, cases] of Object.entries(expected)) {
+      const { profile } = await loose(app.request(`/api/examples/${id}`));
+      for (const [caseId, result] of Object.entries(cases)) {
+        const { case: theCase } = await loose(app.request(`/api/case/recorded/${caseId}`));
+        const ev = await loose(json("/api/evaluate", { case: theCase, profile }));
+        expect(`${id} × ${caseId}: ${ev.verdict.result}`).toBe(`${id} × ${caseId}: ${result}`);
+      }
+    }
+  });
   it("demo-seiko は架空の会社としてカルテとグラフを返す", async () => {
     const body = await loose(app.request("/api/examples/demo-seiko"));
     expect(body.profile.fictional).toBe(true);
