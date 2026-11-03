@@ -14,7 +14,8 @@
 ## 報告の方法
 
 - **公開の Issue や Pull Request には書かない。** 修正前に手口が見える状態になるのを避けるため
-- リポジトリが公開になった後は、GitHub の「Security」タブからの非公開の脆弱性報告（Private vulnerability reporting）も受け付ける予定
+- GitHub の「Security」タブ →「Report a vulnerability」（非公開の脆弱性報告、Private vulnerability reporting）から送る。管理者だけが読める
+- その入口がまだ無いとき（リポジトリが非公開のうちは使えない）は、手口や影響を書かずに「セキュリティの報告がある」とだけ Issue に書くか、GitHub 上で管理者 `@securebase-jp` に連絡する。管理者から非公開の連絡手段を返す
 - 本文に含めてほしいこと
   - 影響を受ける箇所（ファイル、画面、API のパス）とコミット ID
   - 再現の手順。実在の企業や第三者のホストを使わず、架空企業 `examples/demo-seiko.json` か自分の環境で再現できる形にする
@@ -63,7 +64,7 @@
 - 万一キーがコミットされたら、履歴の削除より先に Anthropic Console でキーを無効化する
 - Claude の出力は zod で検証し、存在しない手法 ID や型紙にない手法は破棄する。記事や PDF は信頼できないデータとして、指示文と分けて渡す
 - リポジトリを公開にした直後に、GitHub 側で次を有効にする（非公開のうちは無料プランで使えない）
+  - 非公開の脆弱性報告（Private vulnerability reporting）。これが報告の正式な入口になる
   - シークレットスキャンとプッシュ保護（Settings → Advanced Security）
-  - 非公開の脆弱性報告（Private vulnerability reporting）
   - コードスキャン（CodeQL の既定設定）
   - `main` のブランチ保護（PR 経由のみ、CI の通過を必須、強制プッシュと削除の禁止）
