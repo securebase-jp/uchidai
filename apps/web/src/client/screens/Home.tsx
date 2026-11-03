@@ -207,10 +207,7 @@ export function Home() {
       <section className="hero">
         <div className="define lead">
           <span className="lead-line">
-            サイバー攻撃被害のニュースを見て、「うちの会社は大丈夫か？」と、社長が聞く。
-          </span>
-          <span className="lead-line">
-            日本企業ではよくある風習ですが、情シス担当はその都度、調査に大忙しです。
+            サイバー攻撃被害のニュースを見て、「うちの会社は大丈夫か？」と、社長が聞く。日本企業ではよくある風習ですが、情シス担当はその都度、調査に大忙しです。
           </span>
           <span className="lead-line">
             ウチダイは「社長向けの一枚」をもって、情シス担当による説明を支援します。

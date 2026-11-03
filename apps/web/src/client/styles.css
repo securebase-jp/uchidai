@@ -1117,7 +1117,7 @@ table.evidence code {
 
 /* ホーム */
 .hero {
-  padding: 40px 0 24px;
+  padding: 12px 0 20px;
 }
 /* 見出しを置かない導入文：一行目として少し大きく */
 /* 導入文：3 行の短い段落。見出しではないので本文より少し大きい程度に */
@@ -1127,7 +1127,6 @@ table.evidence code {
   font-weight: 500;
   line-height: 1.9;
   color: var(--ink-2);
-  max-width: 60ch;
 }
 .hero .lead-line {
   display: block;
