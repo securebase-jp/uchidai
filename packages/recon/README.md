@@ -92,7 +92,7 @@ if (check.ok) {
 - **ネットワークに出る経路は 2 つだけ**：DNS（`src/dns-node.ts`、Node 標準 `dns/promises`）と crt.sh（`src/safe-fetch.ts` の `restrictedFetch`）
 - **宛先の限定**：`restrictedFetch` は `https://crt.sh/?q=%25.<domain>&output=json` の形以外を `ForbiddenDestinationError` で拒否する。別ホスト、別パス、余分なパラメータ、認証情報、フラグメント、http を含む。リダイレクトは追わない（`redirect: "error"`）。GET のみ
 - **コード上の固定**：`src/safety.test.ts` が、`node:http`／`node:https`／`node:net`／`node:tls`／`node:child_process` などを import しないこと、`fetch` を呼ぶのが `proxy.ts` と `safe-fetch.ts` だけであること、`recon()` が最初に `assertVerified` を通すことをソース走査で確かめる
-- **キャッシュ**：crt.sh の応答は既定で `packages/recon/.cache/`（gitignore 済み）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない
+- **キャッシュ**：crt.sh の応答は既定で `packages/recon/.cache/`（gitignore 済み）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない。0 件の応答は保存しない（発行したばかりの証明書が公開ログに載るまで数時間かかるため、やり直せば拾える）
 - **プロキシ**：`HTTPS_PROXY` が設定された環境では undici の `EnvHttpProxyAgent` を使う（`packages/llm/src/proxy.ts` と同じ方針）
 
 実ネットワークのテストは書かない（CI では fixture だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。

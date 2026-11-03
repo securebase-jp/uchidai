@@ -101,7 +101,9 @@ export class CrtShSource implements CtLogSource {
     const certificates = rows
       .map((row) => normalizeRow(row, normalized))
       .filter((c): c is CtCertificate => c !== undefined);
-    await this.cache.set(key, JSON.stringify(certificates));
+    // 0 件は保存しない。発行したばかりの証明書が公開ログに載るまで数時間かかることがあり、
+    // 空の応答を 24 時間覚えると、その間はやり直しても同じ結果になってしまう
+    if (certificates.length > 0) await this.cache.set(key, JSON.stringify(certificates));
     return certificates;
   }
 }
