@@ -1723,12 +1723,23 @@ textarea.in {
   .exec .numbers .meter .v {
     font-size: clamp(26px, 2vw, 38px);
   }
-  .exec .verdict.big .t {
-    font-size: clamp(24px, 2.2vw, 36px);
-  }
-  /* 帯の高さを結論の前後で揃え、結論の瞬間に倍率が変わらないようにする */
+  /*
+   * 帯の高さを結論の前後で揃え、結論の瞬間に倍率が変わらないようにする。
+   * 結論後（見出し 1 行＋説明 2 行）が 120px に収まるよう、上下の余白と行間を詰め、見出しは 32px まで
+   */
   .exec .verdict {
-    min-height: 110px;
+    min-height: 120px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+  .exec .verdict .t {
+    line-height: 1.2;
+  }
+  .exec .verdict.big .t {
+    font-size: clamp(24px, 2.2vw, 32px);
+  }
+  .exec .verdict .s {
+    line-height: 1.5;
   }
   /* 構成図が狭くなるので凡例は小さく一列に */
   .exec .stage .legend {
