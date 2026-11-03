@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
+import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
@@ -106,15 +107,7 @@ export function Staff({ settings }: { settings: Settings }) {
   if (!profile) {
     return (
       <div className="panel" style={{ marginTop: 16 }}>
-        <h2>会社カルテがありません</h2>
-        <p className="row" style={{ marginTop: 8 }}>
-          <a className="btn primary" href="#/questions">
-            最初の5問に答える
-          </a>
-          <button type="button" className="btn" onClick={() => void app.loadExample("demo-seiko")}>
-            架空の会社（デモ精工）で試す
-          </button>
-        </p>
+        <CompanyChoiceList />
       </div>
     );
   }

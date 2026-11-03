@@ -5,6 +5,7 @@
  * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
  */
 import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api } from "../lib/api.ts";
@@ -288,7 +289,7 @@ export function Home() {
                 >
                   {s.actionJa}
                 </Go>
-                {s.id === "questions" && app.profile && (
+                {s.id === "questions" && app.profile && app.profileSource !== "example" && (
                   <button type="button" className="btn ghost sm" onClick={app.clearProfile}>
                     カルテを消す
                   </button>
@@ -300,19 +301,9 @@ export function Home() {
       </ol>
 
       <aside className="home-aside">
+        {!app.profile && <CompanyChoiceList leadJa="会社を選ぶ" />}
         <p className="small">
-          自社のカルテを作る前に動きを見たいときは、
-          <button
-            type="button"
-            className="link"
-            onClick={() => {
-              void app.loadExample("demo-seiko");
-              location.hash = "/staff";
-            }}
-          >
-            架空の会社（デモ精工・製造業 120 名）で試す
-          </button>
-          。
+          架空の会社は上部の会社のチップからも選べます。
           <a className="tiny" href="?profile=demo-seiko&demo=1">
             デモモードを再生
           </a>

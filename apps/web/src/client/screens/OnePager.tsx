@@ -5,6 +5,7 @@
  * 共有リンク（ID 形式。架空の会社の記録向け）：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import {
@@ -238,19 +239,18 @@ export function OnePager() {
       )}
       {state.status === "missing" && (
         <div className="panel">
-          <p>{state.reasonJa}</p>
-          <p className="row" style={{ marginTop: 8 }}>
-            <a className="btn primary" href="#/">
-              はじめにへ
-            </a>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => (location.hash = "#/onepager?profile=demo-seiko&case=ipa-case-1")}
-            >
-              架空の会社（デモ精工）の一枚を見る
-            </button>
-          </p>
+          {state.missing === "profile" ? (
+            <CompanyChoiceList />
+          ) : (
+            <>
+              <p>{state.reasonJa}</p>
+              <p className="row" style={{ marginTop: 8 }}>
+                <a className="btn primary" href="#/">
+                  はじめにへ
+                </a>
+              </p>
+            </>
+          )}
         </div>
       )}
       {state.status === "error" && (

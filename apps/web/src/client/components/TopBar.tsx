@@ -1,20 +1,20 @@
 /**
- * 上部バー：ロゴとその下の一行（名前の由来と用途）、画面の切り替え、会社名（架空なら小さく「架空」）、事例名、明るさの切り替え。
+ * 上部バー：ロゴとその下の一行（名前の由来と用途）、画面の切り替え、会社と事例のチップ（押すと選べる）、明るさの切り替え。
+ * チップは呼ぶ側（App の Shell）が渡す。共有リンクの一枚や回答ページでは渡さない（カルテも事例も読まない画面）。
  * ATT&CK の版は常時出さず、情報ボタン（判定に使っている分類）の中に出す
  */
-import { useState } from "react";
+import type { ReactNode } from "react";
 import type { Route } from "../hooks/useRoute.ts";
-import type { CompanyProfile } from "../lib/types.ts";
 import { InfoButton } from "./InfoButton.tsx";
 import { Logo } from "./Logo.tsx";
 
 type Props = {
   route: Route;
-  profile?: CompanyProfile;
   attackVersion?: string;
   theme: "dark" | "light";
   onToggleTheme(): void;
-  caseLabel?: string;
+  /** 会社と事例のチップ（CompanyChip と CaseChip） */
+  chips?: ReactNode;
 };
 
 const NAV: [Route, string][] = [
@@ -27,12 +27,7 @@ const NAV: [Route, string][] = [
   ["onepager", "社長向けの一枚"],
 ];
 
-/** 事例名のチップに出す長さ（これより長ければ省略し、押すと全文を出す） */
-const CASE_MAX = 16;
-
-export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, caseLabel }: Props) {
-  const [caseOpen, setCaseOpen] = useState(false);
-  const caseLong = (caseLabel?.length ?? 0) > CASE_MAX;
+export function TopBar({ route, attackVersion, theme, onToggleTheme, chips }: Props) {
   return (
     <header className="topbar">
       <div className="brand-block">
@@ -67,26 +62,7 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
         {theme === "dark" ? "明るい画面" : "暗い画面"}
       </button>
       <div className="chips topbar-chips">
-        {profile && (
-          <span className="chip">
-            {profile.companyName}
-            {profile.fictional && <small className="chip-mark">架空</small>}
-          </span>
-        )}
-        {caseLabel &&
-          (caseLong ? (
-            <button
-              type="button"
-              className={`chip chip-btn ${caseOpen ? "open" : ""}`}
-              aria-expanded={caseOpen}
-              title={caseLabel}
-              onClick={() => setCaseOpen((v) => !v)}
-            >
-              事例：{caseOpen ? caseLabel : `${caseLabel.slice(0, CASE_MAX)}…`}
-            </button>
-          ) : (
-            <span className="chip">事例：{caseLabel}</span>
-          ))}
+        {chips}
         <InfoButton title="判定に使っている分類" align="end">
           <p>
             攻撃の手法と対策の分類には MITRE ATT&amp;CK Enterprise

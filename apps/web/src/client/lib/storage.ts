@@ -8,6 +8,8 @@ import type { Case, CompanyProfile } from "./types.ts";
 
 const KEY = "uchidai.profile.v1";
 const CASE_KEY = "uchidai.case.v1";
+/** 上部バーで選んだ架空の会社の ID（自社のカルテとは別に覚える。自社の保存は消さない） */
+const EXAMPLE_KEY = "uchidai.example.v1";
 const THEME_KEY = "uchidai.theme";
 const MOTION_KEY = "uchidai.reduceMotion";
 
@@ -73,6 +75,8 @@ export function parseSavedCase(raw: string | null): SavedCase | undefined {
 }
 
 const Theme = z.enum(["dark", "light"]);
+/** サーバの SafeId と同じ形（examples/<id>.json） */
+const ExampleId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
 export const storage = {
   loadProfile: (): CompanyProfile | undefined =>
@@ -94,6 +98,13 @@ export const storage = {
   saveCase: (c: SavedCase) =>
     safe(() => localStorage.setItem(CASE_KEY, JSON.stringify(c)), undefined),
   clearCase: () => safe(() => localStorage.removeItem(CASE_KEY), undefined),
+  loadExampleId: (): string | undefined =>
+    safe(() => {
+      const v = ExampleId.safeParse(localStorage.getItem(EXAMPLE_KEY));
+      return v.success ? v.data : undefined;
+    }, undefined),
+  saveExampleId: (id: string) => safe(() => localStorage.setItem(EXAMPLE_KEY, id), undefined),
+  clearExampleId: () => safe(() => localStorage.removeItem(EXAMPLE_KEY), undefined),
   theme: (): "dark" | "light" | undefined =>
     safe(() => {
       const t = Theme.safeParse(localStorage.getItem(THEME_KEY));

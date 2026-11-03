@@ -1,6 +1,9 @@
 /**
  * 画面の状態：知識、会社カルテ、事例、対策、判定結果。
  * カルテは localStorage だけに保存する。判定は必ず API（engine）に頼む。
+ * 会社は「自社のカルテ（このブラウザに保存）」と「架空の会社（examples/）」から上部バーで選ぶ。
+ * 架空の会社を読んでも自社の保存は消さない（選んだ架空の会社の ID だけを別に覚える）。
+ * 初回は会社を空のままにし、架空の会社を黙って読み込まない（URL の ?profile= とデモモードは別）
  */
 import {
   createContext,
@@ -17,6 +20,7 @@ import {
   ApiError,
   api,
   type Evaluation,
+  type ExampleSummary,
   type KnowledgeView,
   type RecordedCaseMeta,
 } from "../lib/api.ts";
@@ -35,6 +39,12 @@ export type AppState = {
   knowledge: KnowledgeView | undefined;
   profile: CompanyProfile | undefined;
   profileSource: ProfileSource | undefined;
+  /** このブラウザに保存してある自社のカルテ（架空の会社を見ている間も保持する） */
+  ownProfile: CompanyProfile | undefined;
+  /** 架空の会社の一覧（GET /api/examples） */
+  examples: ExampleSummary[];
+  /** 上部バーの会社の選択：自社のカルテに戻す、または架空の会社を読む */
+  selectCompany(choice: { kind: "own" } | { kind: "example"; id: string }): Promise<void>;
   theCase: Case | undefined;
   caseMeta: CaseMeta | undefined;
   /** 事例を担当者が選んだ（記事を読ませた、または記録済みの事例を選んだ）か。false なら既定の事例 1 を使っている */
@@ -66,8 +76,17 @@ const urlProfileId = () => new URLSearchParams(location.search).get("profile");
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [knowledge, setKnowledge] = useState<KnowledgeView>();
-  const [profile, setProfileState] = useState<CompanyProfile | undefined>(() =>
+  const [examples, setExamples] = useState<ExampleSummary[]>([]);
+  // 自社のカルテは保存から復元する。前回、架空の会社を選んでいたときはその会社を読み直す（下の effect）
+  const [ownProfile, setOwnProfile] = useState<CompanyProfile | undefined>(() =>
     urlProfileId() ? undefined : storage.loadProfile(),
+  );
+  const rememberedExample = useMemo(
+    () => (urlProfileId() ? undefined : storage.loadExampleId()),
+    [],
+  );
+  const [profile, setProfileState] = useState<CompanyProfile | undefined>(() =>
+    rememberedExample ? undefined : ownProfile,
   );
   const [profileSource, setProfileSource] = useState<ProfileSource | undefined>(() =>
     profile ? "saved" : undefined,
@@ -92,17 +111,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     api.knowledge().then(setKnowledge).catch(fail);
+    // 一覧が読めなくても画面は動く（会社のチップに架空の会社が並ばないだけ）
+    api
+      .examples()
+      .then((r) => setExamples(r.items))
+      .catch(() => {});
   }, [fail]);
 
+  // 自社のカルテ（5 問の回答、カルテ画面の保存）は localStorage に保存する。架空の会社は保存しない
   const setProfile = useCallback((p: CompanyProfile, source: ProfileSource) => {
     setProfileState(p);
     setProfileSource(source);
-    storage.saveProfile(p);
+    if (source !== "example") {
+      storage.saveProfile(p);
+      storage.clearExampleId();
+      setOwnProfile(p);
+    }
     setMeasureIds([]);
     setAnswers([]);
   }, []);
   const clearProfile = useCallback(() => {
     storage.clearProfile();
+    storage.clearExampleId();
+    setOwnProfile(undefined);
     setProfileState(undefined);
     setProfileSource(undefined);
     setEvaluation(undefined);
@@ -114,11 +145,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const { profile: p } = await api.example(id);
         setProfile(p, "example");
+        // 次に開いたときも同じ架空の会社にする。URL の ?profile=（デモ）では覚えない
+        if (!urlProfileId()) storage.saveExampleId(id);
       } catch (e) {
         fail(e);
       }
     },
     [setProfile, fail],
+  );
+  const selectCompany = useCallback(
+    async (choice: { kind: "own" } | { kind: "example"; id: string }) => {
+      if (choice.kind === "example") return loadExample(choice.id);
+      if (!ownProfile) return;
+      storage.clearExampleId();
+      setProfileState(ownProfile);
+      setProfileSource("saved");
+      setMeasureIds([]);
+      setAnswers([]);
+    },
+    [loadExample, ownProfile],
   );
   const setCase = useCallback((c: Case, meta: CaseMeta, chosen = true) => {
     setCaseState(c);
@@ -153,11 +198,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [setCase, fail],
   );
 
-  // URL の ?profile=demo-seiko で架空企業のカルテを読む
+  // URL の ?profile=demo-seiko で架空企業のカルテを読む。無ければ、前回上部バーで選んだ架空の会社を読み直す
   useEffect(() => {
-    const id = urlProfileId();
+    const id = urlProfileId() ?? rememberedExample;
     if (id) void loadExample(id);
-  }, [loadExample]);
+  }, [loadExample, rememberedExample]);
 
   // 事例が無ければ記録済みの事例 1 を使う（デモとキー無しの動作確認用）。担当者が選んだ事例ではない
   useEffect(() => {
@@ -202,6 +247,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       knowledge,
       profile,
       profileSource,
+      ownProfile,
+      examples,
+      selectCompany,
       theCase,
       caseMeta,
       caseChosen,
@@ -225,6 +273,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       knowledge,
       profile,
       profileSource,
+      ownProfile,
+      examples,
+      selectCompany,
       theCase,
       caseMeta,
       caseChosen,
