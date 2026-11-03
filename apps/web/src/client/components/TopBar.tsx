@@ -1,6 +1,7 @@
 /** 上部バー：画面の切り替え、架空の会社の明記、ATT&CK のバージョン、明るさ */
 import type { Route } from "../hooks/useRoute.ts";
 import type { CompanyProfile } from "../lib/types.ts";
+import { Logo } from "./Logo.tsx";
 
 type Props = {
   route: Route;
@@ -25,7 +26,8 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
   return (
     <header className="topbar">
       <a className="brand" href="#/">
-        <b>ウチダイ</b>うちの会社は大丈夫？
+        <Logo />
+        <span className="brand-tag">うちの会社は大丈夫？</span>
       </a>
       <nav aria-label="画面">
         {NAV.map(([r, label]) => (
