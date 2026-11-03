@@ -678,6 +678,9 @@ p {
   font: 700 12px var(--sans);
   fill: var(--ink-2);
 }
+.node .tag.tight {
+  font-size: 10px;
+}
 .node .tid {
   font: 700 12px var(--mono);
   fill: var(--ink-3);

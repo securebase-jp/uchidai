@@ -110,6 +110,76 @@ describe("layoutGraph の端", () => {
     };
     noOverlap(g);
   });
+  it("列が多いときだけ箱の幅を縮め（下限 110px）、それでも重ならない", () => {
+    // 社外に距離の違う列を 5 本（各 2 ノード）＋ 攻撃者 ＋ 社内 2 列 ＋ 人 ＝ 9 列
+    const pairs = Array.from({ length: 5 }, (_, i) => [`a${i + 1}`, `b${i + 1}`] as const);
+    const chain = (ids: readonly (readonly [string, string])[]) => [
+      ...ids.flatMap(([a, b]) => [node(a, "system", "external"), node(b, "system", "external")]),
+    ];
+    const links = (ids: readonly (readonly [string, string])[]) =>
+      ids.flatMap(([a, b], i) => {
+        const prev = ids[i - 1];
+        return prev
+          ? [edge(prev[0], a), edge(prev[1], b)]
+          : [edge("attacker", a), edge("attacker", b)];
+      });
+    const tail = (last: string) => [
+      node("vpn", "system", "internal", "entry.vpn"),
+      node("core", "system", "internal"),
+      node("exec", "system", "person"),
+      edge(last, "vpn"),
+      edge("vpn", "core"),
+    ];
+    const g: Graph = {
+      nodes: [
+        node("attacker", "system", "external"),
+        ...chain(pairs),
+        ...tail("a5").filter((x) => "layer" in x),
+      ],
+      edges: [...links(pairs), ...tail("a5").filter((x) => "from" in x)],
+    } as Graph;
+    const l = noOverlap(g);
+    const widths = new Set(Object.values(l.nodes).map((p) => p.w));
+    expect(widths.size).toBe(1);
+    const w = [...widths][0] ?? 0;
+    expect(w).toBeGreaterThanOrEqual(110);
+    expect(w).toBeLessThan(134);
+    // 7 列までは 134px のまま
+    const short = pairs.slice(0, 3);
+    const l7 = layoutGraph({
+      nodes: [
+        node("attacker", "system", "external"),
+        ...chain(short),
+        ...tail("a3").filter((x) => "layer" in x),
+      ],
+      edges: [...links(short), ...tail("a3").filter((x) => "from" in x)],
+    } as Graph);
+    expect(new Set(Object.values(l7.nodes).map((p) => p.w))).toEqual(new Set([134]));
+  });
+  it("列が 6 本以下なら一人ぼっちの列も合流させない", () => {
+    // 攻撃者 / 社外 a1 / 社外 a2（1 つ）/ 社内 vpn / 社内 core / 人 ＝ 6 列
+    const g: Graph = {
+      nodes: [
+        node("attacker", "system", "external"),
+        node("a1", "system", "external"),
+        node("a1b", "system", "external"),
+        node("a2", "system", "external"),
+        node("vpn", "system", "internal", "entry.vpn"),
+        node("core", "system", "internal"),
+        node("exec", "system", "person"),
+      ],
+      edges: [
+        edge("attacker", "a1"),
+        edge("attacker", "a1b"),
+        edge("a1", "a2"),
+        edge("a2", "vpn"),
+        edge("vpn", "core"),
+      ],
+    };
+    const l = noOverlap(g);
+    expect(new Set(Object.values(l.nodes).map((p) => p.col)).size).toBe(6);
+    expect(l.nodes.a2?.col).not.toBe(l.nodes.a1?.col);
+  });
   it("攻撃者ノードが無いグラフ（5問の途中など）でも置ける", () => {
     const g: Graph = {
       nodes: [node("core", "system", "internal"), node("pc", "system", "internal")],

@@ -17,6 +17,8 @@ export type Placed = {
   side: Side;
   col: number;
   row: number;
+  /** 同じ列に積まれた箱の数（行が多い列では箱の上に飾りを置く余白が無い） */
+  rows: number;
   depth: number;
 };
 export type Plane = {
@@ -43,20 +45,35 @@ export type Layout = {
 
 export const WIDTH = 1240;
 export const HEIGHT = 780;
-const GUTTER = 108;
+/** 左の余白。層の見出しは面の左上に重ねるので、対策の盾が出る分だけ空ける */
+const GUTTER = 40;
 const USABLE = WIDTH - GUTTER - 16;
 const CX = GUTTER + USABLE / 2;
 
+/** 面は奥（上辺）が狭く手前（下辺）が広い台形。幅は USABLE に対する比 */
 const PLANE_SPEC: Record<Layer, { top: number; bottom: number; topW: number; botW: number }> = {
-  system: { top: 34, bottom: 322, topW: 0.76, botW: 0.86 },
-  business: { top: 364, bottom: 484, topW: 0.86, botW: 0.91 },
-  management: { top: 526, bottom: 704, topW: 0.91, botW: 0.985 },
+  system: { top: 34, bottom: 322, topW: 0.9, botW: 0.95 },
+  business: { top: 364, bottom: 484, topW: 0.95, botW: 0.975 },
+  management: { top: 526, bottom: 704, topW: 0.975, botW: 1 },
 };
 const NODE_SIZE: Record<Layer, { w: number; h: number }> = {
-  system: { w: 134, h: 50 },
-  business: { w: 150, h: 50 },
+  system: { w: 134, h: 58 },
+  business: { w: 150, h: 58 },
   management: { w: 212, h: 58 },
 };
+/** 列の間に最低限空ける幅と、箱の幅の下限（ラベルは 2 行に折り返すので文字は小さくしない） */
+const COL_GAP = 16;
+const MIN_BOX_W = 110;
+/** 箱の幅：列が多くて 1 列が「箱＋間隔」より狭いときだけ縮める（面の上辺の幅で判断） */
+function boxWidth(layer: Layer, columns: number): number {
+  const w = NODE_SIZE[layer].w;
+  const colW = (PLANE_SPEC[layer].topW * USABLE) / Math.max(1, columns);
+  return colW >= w + COL_GAP ? w : Math.max(MIN_BOX_W, Math.floor(colW - COL_GAP));
+}
+/** システムの箱の高さ：行が多い列だけ詰める（2 行のラベル＋状態の行が入る下限） */
+function systemBoxHeight(rows: number): number {
+  return rows >= 6 ? 40 : rows >= 5 ? 48 : NODE_SIZE.system.h;
+}
 const SIDE_ORDER: Record<Side, number> = { external: 0, internal: 1, person: 2 };
 
 export function project(layer: Layer, u: number, v: number): { x: number; y: number } {
@@ -118,7 +135,38 @@ export function depthsFromAttacker(graph: Graph): Map<string, number> {
 type Column = { side: Side; depth: number; nodes: GraphNode[] };
 
 /** 一列に積める上限。超えた列は同じ距離のまま隣に分ける（仕様の上限 8 を超える構成でも重ねない） */
-const MAX_ROWS = 5;
+const MAX_ROWS = 6;
+/** 列がこの本数以上のとき、社外側の一人ぼっちの列を隣に合流させる */
+const MERGE_FROM_COLUMNS = 7;
+
+/**
+ * 社外側で 1 ノードだけの列（攻撃者の列は除く）を、同じ側の隣の列に合流させて列を減らす。
+ * 合流先は空きのある隣（行が少ない方、同じなら攻撃者に近い方）。列の並び（攻撃者に近い順）は変えない。
+ */
+function mergeLoneColumns(cols: Column[]): Column[] {
+  const out = cols.map((c) => ({ ...c, nodes: [...c.nodes] }));
+  const mergeable = (c: Column | undefined) =>
+    c !== undefined && c.side === "external" && !c.nodes.some((n) => n.role === "attacker");
+  for (;;) {
+    if (out.length < MERGE_FROM_COLUMNS) return out;
+    let done = false;
+    for (let i = 0; i < out.length; i++) {
+      const col = out[i];
+      if (!col || !mergeable(col) || col.nodes.length !== 1) continue;
+      const targets = [out[i - 1], out[i + 1]].filter(
+        (c): c is Column => mergeable(c) && (c?.nodes.length ?? MAX_ROWS) < MAX_ROWS,
+      );
+      targets.sort((a, b) => a.nodes.length - b.nodes.length);
+      const target = targets[0];
+      if (!target) continue;
+      target.nodes.push(...col.nodes);
+      out.splice(i, 1);
+      done = true;
+      break;
+    }
+    if (!done) return out;
+  }
+}
 
 function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
   const nodes = graph.nodes.filter((n) => n.layer === "system");
@@ -135,7 +183,7 @@ function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
     col.nodes.push(n);
     map.set(k, col);
   }
-  return [...map.values()]
+  const cols = [...map.values()]
     .sort((a, b) => SIDE_ORDER[a.side] - SIDE_ORDER[b.side] || a.depth - b.depth)
     .flatMap((col) => {
       if (col.nodes.length <= MAX_ROWS) return [col];
@@ -144,6 +192,7 @@ function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
         parts.push({ ...col, nodes: col.nodes.slice(i, i + MAX_ROWS) });
       return parts;
     });
+  return mergeLoneColumns(cols);
 }
 
 /** 縦の並び：前の列につながる相手の行の平均に近づける（線の交差と重なりを減らす） */
@@ -166,10 +215,17 @@ function orderRows(columns: Column[], graph: Graph): void {
   }
 }
 
-function rowV(i: number, rows: number): number {
-  if (rows === 1) return 0.5;
-  const span = rows <= 2 ? 0.46 : rows === 3 ? 0.7 : 0.8;
-  return 0.5 - span / 2 + (span * i) / (rows - 1);
+/** 列の中の縦位置（v）。上端に層と区分のラベルの帯を空け、箱の間隔を保って中央に寄せる */
+const ROW_PAD = { top: 18, bottom: 6 };
+const MAX_PITCH: Record<number, number> = { 2: 132, 3: 100 };
+function rowCenters(layer: Layer, rows: number, h: number): number[] {
+  if (rows === 1) return [0.5];
+  const p = PLANE_SPEC[layer];
+  const planeH = p.bottom - p.top;
+  const avail = planeH - ROW_PAD.top - ROW_PAD.bottom;
+  const pitch = Math.min((avail - h) / (rows - 1), MAX_PITCH[rows] ?? 80);
+  const first = ROW_PAD.top + (avail - (h + pitch * (rows - 1))) / 2 + h / 2;
+  return Array.from({ length: rows }, (_, i) => (first + pitch * i) / planeH);
 }
 
 function clipToRect(p: Placed, tx: number, ty: number): { x: number; y: number } {
@@ -185,20 +241,28 @@ function clipToRect(p: Placed, tx: number, ty: number): { x: number; y: number }
 export function layoutGraph(graph: Graph): Layout {
   const depth = depthsFromAttacker(graph);
   const nodes: Record<string, Placed> = {};
-  const place = (n: GraphNode, u: number, v: number, col: number, row: number, rows: number) => {
-    const size = NODE_SIZE[n.layer];
-    const h = n.layer === "system" && rows >= 5 ? 42 : size.h;
+  const place = (
+    n: GraphNode,
+    u: number,
+    v: number,
+    col: number,
+    row: number,
+    rows: number,
+    columns: number,
+  ) => {
+    const h = n.layer === "system" ? systemBoxHeight(rows) : NODE_SIZE[n.layer].h;
     const { x, y } = project(n.layer, u, v);
     nodes[n.id] = {
       id: n.id,
       x,
       y,
-      w: size.w,
+      w: boxWidth(n.layer, columns),
       h,
       layer: n.layer,
       side: n.side,
       col,
       row,
+      rows,
       depth: depth.get(n.id) ?? 0,
     };
   };
@@ -209,8 +273,9 @@ export function layoutGraph(graph: Graph): Layout {
   const n = cols.length;
   cols.forEach((col, ci) => {
     const u = (ci + 0.5) / n;
+    const vs = rowCenters("system", col.nodes.length, systemBoxHeight(col.nodes.length));
     col.nodes.forEach((node, ri) => {
-      place(node, u, rowV(ri, col.nodes.length), ci, ri, col.nodes.length);
+      place(node, u, vs[ri] ?? 0.5, ci, ri, col.nodes.length, n);
     });
   });
   const dividers: Layout["dividers"] = [];
@@ -222,7 +287,7 @@ export function layoutGraph(graph: Graph): Layout {
   // 業務の層：一列（上限 5）
   const biz = graph.nodes.filter((x) => x.layer === "business").slice(0, 5);
   biz.forEach((node, i) => {
-    place(node, (i + 0.5) / biz.length, 0.5, i, 0, 1);
+    place(node, (i + 0.5) / biz.length, 0.5, i, 0, 1, biz.length);
   });
 
   // 経営の層：社外は一つずつ列に、社内（資金の流出・売上影響）は同じ列に縦に並べる
@@ -233,7 +298,15 @@ export function layoutGraph(graph: Graph): Layout {
   mcols.forEach((group, ci) => {
     const u = (ci + 0.5) / mcols.length;
     group.forEach((node, ri) => {
-      place(node, u, group.length === 1 ? 0.5 : 0.28 + 0.44 * ri, ci, ri, group.length);
+      place(
+        node,
+        u,
+        group.length === 1 ? 0.5 : 0.31 + 0.38 * ri,
+        ci,
+        ri,
+        group.length,
+        mcols.length,
+      );
     });
   });
 
