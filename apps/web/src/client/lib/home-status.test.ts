@@ -65,11 +65,18 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
       profile: { companyName: "デモ精工株式会社", fictional: true, pending: 4 },
       profileSource: "example",
     });
-    expect(example[1]?.statusJa).toContain("架空の会社");
-    expect(example[1]?.statusJa).toContain("自社のカルテではありません");
+    expect(example[1]?.statusJa).toBe("架空の会社：デモ精工株式会社（自社のカルテではありません）");
     // 架空の会社は未確認があっても登録を促さない
     expect(example[2]?.tone).toBe("done");
-    expect(example[2]?.statusJa).toContain("登録は要りません");
+    expect(example[2]?.statusJa).toBe("架空の会社：デモ精工株式会社（登録は要りません）");
+    // 自社のカルテ（保存）に戻すと従来どおり
+    const back = homeSteps({
+      ...empty,
+      profile: { companyName: "テスト製作所", fictional: false, pending: 2 },
+      profileSource: "saved",
+    });
+    expect(back[1]?.statusJa).toBe("このブラウザに保存済みのカルテ：テスト製作所");
+    expect(back[2]?.statusJa).toBe("未確認 2 件");
   });
 
   it("事例：記録済みか Claude の読解かを示し、カルテと揃えば 5 が押せる", () => {
