@@ -264,16 +264,14 @@ export function Diagram({
         );
       })}
       {layout.planes.map((p) => (
-        <g key={`${p.layer}-t`}>
-          <text className="layer-label" x={16} y={p.top + 28}>
-            {planeSub(p.layer)[0]}
-          </text>
-          <text className="layer-sub" x={16} y={p.top + 48}>
+        <text key={`${p.layer}-t`} className="layer-label" x={p.topL + 14} y={p.top + 25}>
+          {planeSub(p.layer)[0]}
+          <tspan className="layer-sub" dx={10}>
             {planeSub(p.layer)[1]}
-          </text>
-        </g>
+          </tspan>
+        </text>
       ))}
-      {layout.dividers.map((d) => {
+      {layout.dividers.map((d, i) => {
         const p = layout.planes.find((x) => x.layer === d.layer);
         if (!p) return null;
         const x1 = p.topL + (p.topR - p.topL) * d.u;
@@ -284,18 +282,14 @@ export function Diagram({
             <text className="divider-label" x={x1 + 6} y={p.top + 16}>
               {d.labelJa}
             </text>
+            {i === 0 && (
+              <text className="divider-label" x={x1 - 6} y={p.top + 16} textAnchor="end">
+                社外
+              </text>
+            )}
           </g>
         );
       })}
-      {layout.dividers.length > 0 && (
-        <text
-          className="divider-label"
-          x={layout.planes[0]?.topL ?? 0}
-          y={(layout.planes[0]?.top ?? 0) + 16}
-        >
-          社外
-        </text>
-      )}
       <g>
         {layout.edges
           .filter((e) => !isHidden(e.from) && !isHidden(e.to))

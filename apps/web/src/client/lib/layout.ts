@@ -43,14 +43,16 @@ export type Layout = {
 
 export const WIDTH = 1240;
 export const HEIGHT = 780;
-const GUTTER = 108;
+/** 左の余白。層の見出しは面の左上に重ねるので、対策の盾が出る分だけ空ける */
+const GUTTER = 40;
 const USABLE = WIDTH - GUTTER - 16;
 const CX = GUTTER + USABLE / 2;
 
+/** 面は奥（上辺）が狭く手前（下辺）が広い台形。幅は USABLE に対する比 */
 const PLANE_SPEC: Record<Layer, { top: number; bottom: number; topW: number; botW: number }> = {
-  system: { top: 34, bottom: 322, topW: 0.76, botW: 0.86 },
-  business: { top: 364, bottom: 484, topW: 0.86, botW: 0.91 },
-  management: { top: 526, bottom: 704, topW: 0.91, botW: 0.985 },
+  system: { top: 34, bottom: 322, topW: 0.9, botW: 0.95 },
+  business: { top: 364, bottom: 484, topW: 0.95, botW: 0.975 },
+  management: { top: 526, bottom: 704, topW: 0.975, botW: 1 },
 };
 const NODE_SIZE: Record<Layer, { w: number; h: number }> = {
   system: { w: 134, h: 58 },
