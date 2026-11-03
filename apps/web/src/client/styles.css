@@ -1659,6 +1659,23 @@ textarea.in {
 .exec .stage .controls.overlay .lab {
   font-size: 13px;
 }
+/* 計器は常に横一列（狭い画面でも縦に積まない） */
+.exec .numbers {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.exec .numbers .meter {
+  min-width: 0;
+  padding: 8px 6px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.exec .numbers .meter .v {
+  font-size: clamp(22px, 2.2vw, 34px);
+}
 /* 幅 1000px 以上：計器を結論の帯の右に横並び（帯 2：計器 1） */
 @media (min-width: 1000px) {
   .exec .exec-top {
@@ -1669,21 +1686,12 @@ textarea.in {
   .exec .verdict.big .t {
     font-size: clamp(26px, 2.7vw, 40px);
   }
-  .exec .numbers {
-    display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 8px;
-  }
-  .exec .numbers .meter {
-    min-width: 0;
-    padding: 8px 6px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .exec .numbers .meter .v {
-    font-size: clamp(22px, 2.2vw, 34px);
+}
+/* 狭い画面（スマホ）では自動で合わせるだけにし、拡大縮小と全画面のボタンは出さない */
+@media (max-width: 720px) {
+  .exec .exec-zoom,
+  .exec .exec-present {
+    display: none;
   }
 }
 /* 赤の結論に達した瞬間、構成図の全面がひと呼吸だけ赤く光る（面の flash と同じ動き） */

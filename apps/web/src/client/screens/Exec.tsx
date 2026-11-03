@@ -142,11 +142,11 @@ export function Exec({ settings }: { settings: Settings }) {
         </fieldset>
         {canPresent &&
           (presenting ? (
-            <button type="button" className="btn sm" onClick={leave}>
+            <button type="button" className="btn sm exec-present" onClick={leave}>
               戻る
             </button>
           ) : (
-            <button type="button" className="btn sm" onClick={present}>
+            <button type="button" className="btn sm exec-present" onClick={present}>
               社長に見せる（全画面）
             </button>
           ))}
