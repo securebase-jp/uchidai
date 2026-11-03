@@ -53,10 +53,14 @@ const PLANE_SPEC: Record<Layer, { top: number; bottom: number; topW: number; bot
   management: { top: 526, bottom: 704, topW: 0.91, botW: 0.985 },
 };
 const NODE_SIZE: Record<Layer, { w: number; h: number }> = {
-  system: { w: 134, h: 50 },
-  business: { w: 150, h: 50 },
+  system: { w: 134, h: 58 },
+  business: { w: 150, h: 58 },
   management: { w: 212, h: 58 },
 };
+/** システムの箱の高さ：行が多い列だけ詰める（2 行のラベル＋状態の行が入る下限） */
+function systemBoxHeight(rows: number): number {
+  return rows >= 6 ? 40 : rows >= 5 ? 48 : NODE_SIZE.system.h;
+}
 const SIDE_ORDER: Record<Side, number> = { external: 0, internal: 1, person: 2 };
 
 export function project(layer: Layer, u: number, v: number): { x: number; y: number } {
@@ -166,10 +170,17 @@ function orderRows(columns: Column[], graph: Graph): void {
   }
 }
 
-function rowV(i: number, rows: number): number {
-  if (rows === 1) return 0.5;
-  const span = rows <= 2 ? 0.46 : rows === 3 ? 0.7 : 0.8;
-  return 0.5 - span / 2 + (span * i) / (rows - 1);
+/** 列の中の縦位置（v）。上端に層と区分のラベルの帯を空け、箱の間隔を保って中央に寄せる */
+const ROW_PAD = { top: 18, bottom: 6 };
+const MAX_PITCH: Record<number, number> = { 2: 132, 3: 100 };
+function rowCenters(layer: Layer, rows: number, h: number): number[] {
+  if (rows === 1) return [0.5];
+  const p = PLANE_SPEC[layer];
+  const planeH = p.bottom - p.top;
+  const avail = planeH - ROW_PAD.top - ROW_PAD.bottom;
+  const pitch = Math.min((avail - h) / (rows - 1), MAX_PITCH[rows] ?? 80);
+  const first = ROW_PAD.top + (avail - (h + pitch * (rows - 1))) / 2 + h / 2;
+  return Array.from({ length: rows }, (_, i) => (first + pitch * i) / planeH);
 }
 
 function clipToRect(p: Placed, tx: number, ty: number): { x: number; y: number } {
@@ -187,7 +198,7 @@ export function layoutGraph(graph: Graph): Layout {
   const nodes: Record<string, Placed> = {};
   const place = (n: GraphNode, u: number, v: number, col: number, row: number, rows: number) => {
     const size = NODE_SIZE[n.layer];
-    const h = n.layer === "system" && rows >= 5 ? 42 : size.h;
+    const h = n.layer === "system" ? systemBoxHeight(rows) : size.h;
     const { x, y } = project(n.layer, u, v);
     nodes[n.id] = {
       id: n.id,
@@ -209,8 +220,9 @@ export function layoutGraph(graph: Graph): Layout {
   const n = cols.length;
   cols.forEach((col, ci) => {
     const u = (ci + 0.5) / n;
+    const vs = rowCenters("system", col.nodes.length, systemBoxHeight(col.nodes.length));
     col.nodes.forEach((node, ri) => {
-      place(node, u, rowV(ri, col.nodes.length), ci, ri, col.nodes.length);
+      place(node, u, vs[ri] ?? 0.5, ci, ri, col.nodes.length);
     });
   });
   const dividers: Layout["dividers"] = [];
@@ -233,7 +245,7 @@ export function layoutGraph(graph: Graph): Layout {
   mcols.forEach((group, ci) => {
     const u = (ci + 0.5) / mcols.length;
     group.forEach((node, ri) => {
-      place(node, u, group.length === 1 ? 0.5 : 0.28 + 0.44 * ri, ci, ri, group.length);
+      place(node, u, group.length === 1 ? 0.5 : 0.31 + 0.38 * ri, ci, ri, group.length);
     });
   });
 
