@@ -18,7 +18,7 @@ export const STATE_TONE: Record<StepState, Tone> = {
   breached: "red",
 };
 export const SOURCE_LABEL: Record<PathSource, string> = {
-  stated: "記事に記載",
+  stated: "記事に書いてある",
   inferred: "推定",
   candidate: "入口候補",
   ai: "AIが見つけた経路",

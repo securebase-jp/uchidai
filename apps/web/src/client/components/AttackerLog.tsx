@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { Scene } from "../lib/playback.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 function Line({
   text,
@@ -54,7 +55,16 @@ export function AttackerLog({
   return (
     <aside className="term" ref={ref} aria-label="攻撃者の画面（再現イメージ）">
       <div className="hd">
-        <span>攻撃者の画面（再現イメージ）</span>
+        <span>
+          攻撃者の画面（再現イメージ）
+          <InfoButton title="この画面について">
+            <p>
+              動きの説明のための再現イメージです。手法は MITRE ATT&amp;CK の ID
+              と名前の水準までで、実際の攻撃手順・コマンド・製品名は含みません。
+            </p>
+            <p>AI攻撃者が見つけた経路は、プログラムが検証したものだけを別枠に流します。</p>
+          </InfoButton>
+        </span>
         <span>ATT&amp;CK v{attackVersion}</span>
       </div>
       {normal.length === 0 && (
@@ -78,10 +88,6 @@ export function AttackerLog({
           <span className="cur" aria-hidden="true" />
         </div>
       )}
-      <p className="note">
-        動きの説明のための再現イメージです。手法は MITRE ATT&amp;CK の ID
-        と名前の水準までで、実際の攻撃手順・コマンド・製品名は含みません。
-      </p>
     </aside>
   );
 }

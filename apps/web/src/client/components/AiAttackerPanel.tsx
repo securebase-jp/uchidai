@@ -7,6 +7,7 @@ import { useAiAttacker } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
 import type { AttackPath, Graph, LabelsFile, MeasureDef, Verdict } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 import "./ai-attacker.css";
 
 function toneOf(line: string): string {
@@ -86,7 +87,7 @@ export function aiSummary(
     parts.push(
       applied
         ? `${applied}を適用しても、まだ「${certain.join("」「")}」の入口が開いています`
-        : `AI が見つけた経路：「${certain.join("」「")}」から中核に到達します`,
+        : `AI が見つけた経路：「${certain.join("」「")}」から中核システムまで届きます`,
     );
   if (stopped.length > 0)
     parts.push(
@@ -122,18 +123,27 @@ export function AiAttackerPanel({
   const applied = measures.filter((m) => app.measureIds.includes(m.id));
   const summary = aiSummary(ai.paths, graph, applied, measures);
   const label = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
+  // 手法は名前を先、ID を後ろに
   const tech = (id: string | undefined) =>
-    id ? `${id} ${labels.techniques[id] ?? ""}`.trim() : "";
+    id ? (labels.techniques[id] ? `${labels.techniques[id]}（${id}）` : id) : "";
   const articleStopped = verdict.result === "blocked" || verdict.result === "mitigated";
 
   return (
     <div className="panel ai-panel" aria-live="polite">
-      <h2>AI攻撃者が見つけた経路（型紙にない入口）</h2>
-      <p className="muted small">
-        Claude に渡すのは、役割の枠に抽象化したカルテ（製品名・社名・ホスト名なし）と ATT&amp;CK
-        の手法一覧だけ。返ってきた候補は、プログラムが手法 ID・役割・つながり・判定ルールの 4
-        点で検証してから表示します。手順・コマンド・製品名は出力させません。
-      </p>
+      <h2>
+        AI攻撃者が見つけた経路（攻撃の型（型紙）にない入口）
+        <InfoButton title="AI攻撃者の仕組みと安全面">
+          <p>
+            Claude に渡すのは、役割の枠に抽象化したカルテ（製品名・社名・ホスト名なし）と ATT&amp;CK
+            の手法一覧だけです。返ってきた候補は、プログラムが手法 ID・役割・つながり・判定ルールの
+            4 点で検証してから表示します。手順・コマンド・製品名は出力させません。
+          </p>
+          <p>
+            見つかった経路は経路図に点線で描かれ、根拠の一覧にも「AIが見つけた経路」として並びます。
+            対策ボタンの効き目の判定には数えません。
+          </p>
+        </InfoButton>
+      </h2>
       <div className="row" style={{ marginTop: 8 }}>
         <button
           type="button"

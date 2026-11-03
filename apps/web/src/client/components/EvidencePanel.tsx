@@ -1,10 +1,11 @@
-/** 担当者向けの根拠：手法 ID、緩和策 ID、根拠の種類、記事中の根拠文、矛盾、未確認の一覧 */
+/** 担当者向けの根拠：手法と ID、対策（ATT&CK の緩和策）、根拠、記事中の根拠文、矛盾、未確認の一覧 */
 import { useMemo } from "react";
 import { kevHints } from "../lib/kevHints.ts";
 import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
 import { pathTemplateLabel, type TemplateRef } from "../lib/pending.ts";
 import { reconHints } from "../lib/reconHints.ts";
 import type { Case, CompanyProfile, LabelsFile, Verdict } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Props = {
   verdict: Verdict;
@@ -58,6 +59,26 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
   );
   return (
     <div className="stack">
+      <h2 className="staff-h">
+        根拠
+        <InfoButton title="根拠の読み方">
+          <p>
+            判定に使った経路を、段階ごとに並べます。段階の名前は攻撃の型（型紙）の見出しで、手法は
+            MITRE ATT&amp;CK の名前と ID
+            です。判定の色と語は、止まる・復旧できる・未確認・人次第・突破される の 5 つです。
+          </p>
+          <p>
+            「効く対策」はその段階で効く ATT&amp;CK
+            の緩和策、「効かない対策」は入れてもこの経路では効かない緩和策と
+            その理由です。「根拠」は、その段階の判定の材料がどこから来たか（外部確認・ベンダー回答・担当者登録・
+            根拠なし）と、記事に書いてある段階か推定した段階かを示します。記事中の根拠文は、Claude
+            が読み取った引用をそのまま載せています。
+          </p>
+          <p>
+            矛盾は、外部確認や公開情報と登録内容の食い違いです。未確認は、確認依頼の候補になる項目です。
+          </p>
+        </InfoButton>
+      </h2>
       {theCase.suspiciousInstructions.length > 0 && (
         <div className="panel warn">
           <h2>注意：記事の中に指示らしき文がありました（判定には使っていません）</h2>
@@ -71,100 +92,109 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
       {verdict.paths.map((p) => (
         <div className="panel" key={p.id}>
           <h2>
-            経路 {p.id}　{SOURCE_LABEL[p.source]}　{p.reachedCore ? "中核に到達" : "途中で止まる"}
+            経路 {p.id}
+            {" ／ "}
+            {SOURCE_LABEL[p.source]}
+            {" ／ "}
+            {p.reachedCore ? "中核システムまで届く" : "途中で止まる"}
             {multiTemplate && templates && pathTemplateLabel(p, templates) && (
-              <>　型紙「{pathTemplateLabel(p, templates)}」</>
+              <>
+                {" ／ "}
+                攻撃の型（型紙）「{pathTemplateLabel(p, templates)}」
+              </>
             )}
           </h2>
-          <div style={{ overflowX: "auto" }}>
-            <table className="evidence">
-              <thead>
-                <tr>
-                  <th>段階</th>
-                  <th>自社の構成要素</th>
-                  <th>手法</th>
-                  <th>判定</th>
-                  <th>効く緩和策</th>
-                  <th>効かない緩和策</th>
-                  <th>由来</th>
-                  <th>根拠の種類</th>
-                  <th>理由と記事中の根拠文</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.steps.map((s) => (
-                  <tr
-                    key={`${s.stageId ?? s.labelJa ?? ""}-${s.nodeId}-${s.technique ?? ""}-${s.tactic}`}
-                  >
-                    <td>
+          <ol className="ev-cards">
+            {p.steps.map((s, i) => {
+              const kev = kevSourceOf(s.nodeId);
+              return (
+                <li
+                  className={`ev-card tone-${STATE_TONE[s.state]}`}
+                  key={`${s.stageId ?? s.labelJa ?? ""}-${s.nodeId}-${s.technique ?? ""}-${s.tactic}`}
+                >
+                  <div className="ev-head">
+                    <span className="ev-n">{i + 1}</span>
+                    <b className="ev-stage">
                       {s.labelJa ?? s.stageId ?? ""}
                       {s.precondition ? "（前提）" : ""}
-                      {s.branch && (
-                        <>
-                          <br />
-                          <span className="muted">（枝：止まっても本線は進む）</span>
-                        </>
-                      )}
-                    </td>
-                    <td>{nodeLabel(s.nodeId)}</td>
-                    <td>
+                    </b>
+                    <span className={`st ${STATE_TONE[s.state]}`}>{STATE_LABEL[s.state]}</span>
+                  </div>
+                  {s.branch && <p className="muted small">枝：止まっても本線は進む</p>}
+                  <dl className="ev-body">
+                    <dt>自社の構成要素</dt>
+                    <dd>{nodeLabel(s.nodeId)}</dd>
+                    <dt>手法</dt>
+                    <dd>
                       {s.technique ? (
                         <>
-                          <code>{s.technique}</code>
-                          <br />
-                          <span className="muted">{labels.techniques[s.technique] ?? ""}</span>
+                          {labels.techniques[s.technique] ?? ""}（<code>{s.technique}</code>）
                         </>
                       ) : (
                         <span className="muted">（手法なし）</span>
                       )}
                       <br />
                       <span className="muted">
-                        <code>{s.tactic}</code> {labels.tactics[s.tactic] ?? ""}
+                        {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                       </span>
-                    </td>
-                    <td>
-                      <span className={`st ${STATE_TONE[s.state]}`}>{STATE_LABEL[s.state]}</span>
+                    </dd>
+                    {s.mitigations.length > 0 && (
+                      <>
+                        <dt>{i === 0 ? "効く対策（ATT&CK の緩和策）" : "効く対策"}</dt>
+                        <dd>
+                          {s.mitigations.map((m) => (
+                            <div key={m}>
+                              {mit(m)}（<code>{m}</code>）
+                            </div>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                    {s.ineffective.length > 0 && (
+                      <>
+                        <dt>効かない対策</dt>
+                        <dd>
+                          {s.ineffective.map((m) => (
+                            <div key={m.mitigation}>
+                              <span className="fx-red">
+                                {mit(m.mitigation)}（<code>{m.mitigation}</code>）
+                              </span>{" "}
+                              <span className="muted">{m.reasonJa}</span>
+                            </div>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                    <dt>根拠</dt>
+                    <dd>
+                      {EVIDENCE_LABEL[s.evidence]}・{SOURCE_LABEL[s.source]}
+                      {kev && (
+                        <>
+                          <br />
+                          <span className="muted">{kev}</span>
+                        </>
+                      )}
                       {s.ruleId && (
                         <>
                           <br />
                           <code className="muted">{s.ruleId}</code>
                         </>
                       )}
-                    </td>
-                    <td>
-                      {s.mitigations.map((m) => (
-                        <div key={m}>
-                          <code>{m}</code> <span className="muted">{mit(m)}</span>
-                        </div>
-                      ))}
-                    </td>
-                    <td>
-                      {s.ineffective.map((m) => (
-                        <div key={m.mitigation}>
-                          <code className="fx-red">{m.mitigation}</code>{" "}
-                          <span className="muted">{m.reasonJa}</span>
-                        </div>
-                      ))}
-                    </td>
-                    <td>{SOURCE_LABEL[s.source]}</td>
-                    <td>
-                      {EVIDENCE_LABEL[s.evidence]}
-                      {kevSourceOf(s.nodeId) && (
-                        <>
-                          <br />
-                          <span className="muted">{kevSourceOf(s.nodeId)}</span>
-                        </>
-                      )}
-                    </td>
-                    <td>
-                      {s.reasonJa}
-                      {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </dd>
+                    {(s.reasonJa || s.quote) && (
+                      <>
+                        <dt>理由</dt>
+                        <dd>
+                          {s.reasonJa}
+                          {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       ))}
       <div className="grid-2">
@@ -213,7 +243,7 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
           ) : (
             pending.map((x) => (
               <p key={`${x.asset}-${x.mitigation}`} className="small">
-                <b>{x.asset}</b>　<code>{x.mitigation}</code> {mit(x.mitigation)}
+                <b>{x.asset}</b>　{mit(x.mitigation)}（<code>{x.mitigation}</code>）
                 {x.noteJa ? <span className="muted">　{x.noteJa}</span> : null}
               </p>
             ))
@@ -221,33 +251,52 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
         </div>
       </div>
       <div className="panel">
-        <h2>記事から読み取った段階（Claude の読解。判定はプログラム）</h2>
-        <table className="evidence">
+        <h2>
+          記事から読み取った段階
+          <InfoButton title="読解と判定の分担">
+            <p>
+              この表は Claude
+              が記事から読み取った段階です。記事は信頼できないデータとして指示文と分けて渡し、
+              出力はプログラムが検証して、存在しない手法 ID
+              や攻撃の型（型紙）にない手法は捨てています。
+              「記載」は記事に書いてある段階、「推定」は記事に明記がなく Claude が推定した段階です。
+            </p>
+            <p>
+              判定そのもの（どの段階で止まるか、日数、金額、期限）は Claude
+              ではなくプログラムが決めています。
+            </p>
+          </InfoButton>
+        </h2>
+        <table className="evidence stacked">
           <thead>
             <tr>
               <th>戦術</th>
               <th>手法</th>
-              <th>記載／推定</th>
+              <th>記事に書いてある／推定</th>
               <th>要約と根拠文</th>
             </tr>
           </thead>
           <tbody>
             {theCase.steps.map((s) => (
               <tr key={`${s.tactic}-${s.techniques.join(",")}-${s.quote ?? s.summaryJa ?? ""}`}>
-                <td>
-                  <code>{s.tactic}</code> {labels.tactics[s.tactic] ?? ""}
+                <td data-label="戦術">
+                  {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                 </td>
-                <td>
+                <td data-label="手法">
                   {s.techniques.map((t) => (
                     <div key={t}>
-                      <code>{t}</code> <span className="muted">{labels.techniques[t] ?? ""}</span>
+                      {labels.techniques[t] ?? ""}（<code>{t}</code>）
                     </div>
                   ))}
                 </td>
-                <td>
-                  {s.source === "stated" ? "記載" : s.source === "inferred" ? "推定" : "不明"}
+                <td data-label="記事に書いてある／推定">
+                  {s.source === "stated"
+                    ? "記事に書いてある"
+                    : s.source === "inferred"
+                      ? "推定"
+                      : "不明"}
                 </td>
-                <td>
+                <td data-label="要約と根拠文">
                   {s.summaryJa}
                   {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
                 </td>

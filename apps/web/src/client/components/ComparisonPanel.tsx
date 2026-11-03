@@ -1,10 +1,11 @@
 /**
  * 一般的な AI の回答と並べる枠：知見ファイルを渡さない Claude が挙げた対策を、
- * ウチダイの判定ルールで「この経路に効く／効かない（理由つき）／経路の外」の 3 列に振り分けて見せる
+ * ウチダイの判定ルールで「この攻撃に効く／効かない（理由つき）／この攻撃には関係しない」の 3 列に振り分けて見せる
  */
 import { useAiAttacker } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { ComparedMitigation } from "../lib/attackerApi.ts";
+import { InfoButton } from "./InfoButton.tsx";
 import "./ai-attacker.css";
 
 function Item({
@@ -18,9 +19,9 @@ function Item({
     <div className="cmp-item">
       <span className="name">{m.nameJa}</span>{" "}
       {m.mitigation && (
-        <>
-          <code>{m.mitigation}</code> <span className="muted">{m.labelJa}</span>
-        </>
+        <span className="muted">
+          {m.labelJa}（<code>{m.mitigation}</code>）
+        </span>
       )}
       <span className="who">一般的な AI：{m.reasonJa}</span>
       {kind === "effective" && (
@@ -35,8 +36,10 @@ function Item({
       )}
       {kind === "outside" && (
         <span className="who">
-          ウチダイ：<b>経路の外</b>
-          {m.mitigation ? "（この攻撃の段階に当たらない）" : "（緩和策 ID に対応づけできない）"}
+          ウチダイ：<b>この攻撃には関係しない</b>
+          {m.mitigation
+            ? "（この攻撃の段階に当たらない）"
+            : "（対策（ATT&CK の緩和策）の ID に対応づけできない）"}
         </span>
       )}
     </div>
@@ -49,12 +52,20 @@ export function ComparisonPanel() {
   const c = ai.comparison;
   return (
     <div className="panel cmp">
-      <h2>一般的な AI の回答と並べる</h2>
-      <p className="muted small">
-        知見ファイル（型紙・判定ルール表）を渡さない Claude に同じ事例の対策を挙げさせ、
-        ウチダイの判定ルールで「この経路に効く／効かない／経路の外」に振り分けます。
-        対策ボタンを押すと、いまの判定で振り分け直します。
-      </p>
+      <h2>
+        一般的な AI の回答と並べる
+        <InfoButton title="この比較について">
+          <p>
+            知見ファイル（攻撃の型（型紙）・判定ルール表）を渡さない Claude
+            に同じ事例の対策を挙げさせ、ウチダイの判定ルールで「この攻撃に効く」「効かない」「この攻撃には関係しない」
+            に振り分けます。対策ボタンを押すと、いまの判定で振り分け直します。
+          </p>
+          <p>
+            一般的な回答が間違いというわけではなく、御社の構成とこの攻撃の経路に当てはめると、どれが先に効くかが
+            分かる、という比較です。
+          </p>
+        </InfoButton>
+      </h2>
       <div className="row" style={{ marginTop: 8 }}>
         <button
           type="button"
@@ -80,7 +91,7 @@ export function ComparisonPanel() {
         {c && (
           <span className="muted small">
             {c.counts.total} 件：効く {c.counts.effective}、効かない {c.counts.ineffective}
-            、経路の外 {c.counts.outside + c.counts.unmapped}
+            、この攻撃には関係しない {c.counts.outside + c.counts.unmapped}
           </span>
         )}
       </div>
@@ -93,7 +104,7 @@ export function ComparisonPanel() {
         <div className="cmp-cols">
           <div className="cmp-col green">
             <h3>
-              この経路に効く <span className="n">{c.counts.effective}</span>
+              この攻撃に効く <span className="n">{c.counts.effective}</span>
             </h3>
             {c.effective.map((m) => (
               <Item key={`${m.mitigation}-${m.nameJa}`} m={m} kind="effective" />
@@ -102,7 +113,7 @@ export function ComparisonPanel() {
           </div>
           <div className="cmp-col red">
             <h3>
-              この経路では効かない <span className="n">{c.counts.ineffective}</span>
+              この攻撃では効かない <span className="n">{c.counts.ineffective}</span>
             </h3>
             {c.ineffective.map((m) => (
               <Item key={`${m.mitigation}-${m.nameJa}`} m={m} kind="ineffective" />
@@ -111,7 +122,8 @@ export function ComparisonPanel() {
           </div>
           <div className="cmp-col ink">
             <h3>
-              経路の外 <span className="n">{c.counts.outside + c.counts.unmapped}</span>
+              この攻撃には関係しない{" "}
+              <span className="n">{c.counts.outside + c.counts.unmapped}</span>
             </h3>
             {[...c.outside, ...c.unmapped].map((m) => (
               <Item key={`${m.mitigation ?? "-"}-${m.nameJa}`} m={m} kind="outside" />

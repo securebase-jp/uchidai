@@ -38,8 +38,8 @@ export function OutboxItem({ item }: { item: RequestView }) {
       {item.sendError && <p className="err small">{item.sendError}</p>}
       <p className="subj">{item.subject}</p>
       <p className="muted" style={{ marginTop: 4 }}>
-        {item.assetLabel}　<code>{item.background.mitigationId}</code>{" "}
-        {item.background.mitigationLabelJa}
+        {item.assetLabel}　{item.background.mitigationLabelJa}（
+        <code>{item.background.mitigationId}</code>）
         {item.background.techniqueId && (
           <>
             　手法 <code>{item.background.techniqueId}</code>

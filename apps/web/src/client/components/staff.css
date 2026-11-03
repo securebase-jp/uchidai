@@ -1,0 +1,289 @@
+/* 担当者画面：結論から読める並びと、文字を減らした区画。共通の見た目は styles.css */
+
+/* 結論カード（先頭） */
+.verdict-card {
+  margin-top: 10px;
+  scroll-margin-top: 8px;
+}
+.verdict-card .verdict-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.verdict-card .verdict-head .t {
+  flex: 1;
+  min-width: 0;
+}
+.verdict-card .verdict-head .info {
+  margin-top: 8px;
+}
+.verdict-card .verdict-impact {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.verdict-progress {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--edge-strong);
+  display: inline-block;
+  max-width: 100%;
+}
+.verdict-progress-head {
+  font-weight: 700;
+  color: var(--ink);
+}
+.verdict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+.verdict-actions .lab {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.verdict-actions .btn.pending {
+  margin-left: auto;
+}
+@media (max-width: 720px) {
+  .verdict-card {
+    padding: 12px 14px 12px 20px;
+  }
+  .verdict-card .t {
+    font-size: 22px;
+  }
+  .verdict-actions .btn.pending {
+    margin-left: 0;
+  }
+}
+
+/* 凡例を情報ボタンの中に置いたとき（.stage の外） */
+.info-body .legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-top: 6px;
+}
+.info-body .legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.info-body .legend i {
+  display: inline-block;
+  width: 22px;
+  height: 0;
+  border-top: 2px solid var(--ink-2);
+}
+.info-body .legend i.dash {
+  border-top-style: dashed;
+}
+.info-body .legend i.dot {
+  border-top-style: dotted;
+  border-color: var(--violet);
+}
+.info-body .legend b {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+/* 再生の操作：構成図の直上。図が見えている間は画面の上に追従する */
+.stage-wrap {
+  position: relative;
+  margin-top: 12px;
+  scroll-margin-top: 8px;
+}
+.controls.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: color-mix(in srgb, var(--bg) 82%, var(--panel));
+  backdrop-filter: blur(8px);
+}
+.controls .controls-extra {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .controls.sticky {
+    gap: 6px 12px;
+    padding: 6px 8px;
+  }
+  .controls.sticky .btn {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
+
+/* 区画の目次（ページ内の移動。ハッシュは画面の切り替えに使うので、ボタンで動かす） */
+.staff-toc {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.toc-link {
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.toc-link:hover {
+  border-color: var(--cyan);
+  color: var(--ink);
+}
+.staff [id^="staff-"] {
+  scroll-margin-top: 8px;
+}
+
+/* 区画の見出し（面の外に置くもの） */
+.staff-h {
+  font-size: 15px;
+  color: var(--ink-2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 4px 0 -4px;
+}
+.term .hd .info-btn {
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+}
+.term .hd .info-pop {
+  font-family: var(--sans);
+}
+
+/* 面（.panel）は backdrop-filter で重なり順の文脈を持つので、吹き出しを開いた面を後ろの面より上に出す */
+.panel:has(.info-pop),
+.verdict-card:has(.info-pop),
+.controls.sticky:has(.info-pop),
+.term:has(.info-pop) {
+  position: relative;
+  z-index: 31;
+}
+
+/* 根拠：経路の段階ごとのカード（9 列の表の代わり。幅 375px では 1 列） */
+.ev-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.ev-card {
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--edge-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.ev-card.tone-red {
+  border-left-color: var(--red);
+}
+.ev-card.tone-amber {
+  border-left-color: var(--amber);
+}
+.ev-card.tone-green {
+  border-left-color: var(--green);
+}
+.ev-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ev-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.ev-stage {
+  flex: 1;
+  font-size: 15px;
+}
+.ev-body {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.ev-body dt {
+  color: var(--ink-2);
+  font-size: 12px;
+  padding-top: 1px;
+}
+.ev-body dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-body code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ev-body .quote {
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .ev-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+  .ev-body dt {
+    margin-top: 6px;
+  }
+}
+
+/* 読解の段階の表：幅が狭いときは行ごとに縦に積み、項目名を左に出す */
+@media (max-width: 720px) {
+  table.evidence.stacked thead {
+    display: none;
+  }
+  table.evidence.stacked,
+  table.evidence.stacked tbody,
+  table.evidence.stacked tr {
+    display: block;
+  }
+  table.evidence.stacked tr {
+    border-bottom: 1px solid var(--edge);
+    padding: 6px 0;
+  }
+  table.evidence.stacked td {
+    display: block;
+    border: 0;
+    padding: 3px 0;
+  }
+  table.evidence.stacked td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+}

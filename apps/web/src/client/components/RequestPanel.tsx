@@ -8,6 +8,7 @@ import { useApp } from "../hooks/useApp.tsx";
 import { useRequests } from "../hooks/useRequests.tsx";
 import { rankPending } from "../lib/pending.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
+import { InfoButton } from "./InfoButton.tsx";
 import { OutboxPanel } from "./OutboxPanel.tsx";
 import "./requests.css";
 
@@ -77,12 +78,24 @@ export function RequestPanel() {
 
   return (
     <div className="panel">
-      <h2>ベンダーへの確認依頼（未確認の項目を 1 問ずつ聞く）</h2>
-      <p className="muted">
-        送るのは選択式の 1
-        問だけ。回答が届くと、その場で判定を更新します（根拠：ベンダー回答。誰がいつ答えたかを記録）。
-        カルテはサーバに送らず、会社名・対象の名前・質問だけを渡します。
-      </p>
+      <h2>
+        ベンダーへの確認依頼
+        <InfoButton title="確認依頼の仕組み">
+          <p>
+            未確認の項目を、保守ベンダーなどに 1 問ずつ聞くための依頼文を作ります。送るのは選択式の
+            1
+            問だけです。回答が届くと、その場で判定を更新します（根拠はベンダー回答として、誰がいつ答えたかを
+            記録します）。
+          </p>
+          <p>
+            カルテはサーバに送らず、会社名・対象の名前・質問だけを渡します。依頼文は Claude
+            が整えることがありますが、質問の内容と選択肢はプログラムの質問表から決めています。
+          </p>
+          <p>
+            一覧の先頭には、いまの攻撃の経路で問われている項目を置きます。答えると結論が変わりやすい順です。
+          </p>
+        </InfoButton>
+      </h2>
       {req.error && <p className="err small">{req.error}</p>}
       {pending.length === 0 ? (
         <p className="muted" style={{ marginTop: 8 }}>
@@ -92,8 +105,7 @@ export function RequestPanel() {
         <div style={{ marginTop: 6 }}>
           {onPathCount > 0 && (
             <p className="muted small">
-              先頭の {onPathCount}{" "}
-              件は、いまの攻撃の経路で問われている項目です（答えると結論が変わりやすい）。
+              先頭の {onPathCount} 件は、いまの攻撃の経路で問われている項目です。
             </p>
           )}
           {pending.map((x) => {
@@ -103,7 +115,7 @@ export function RequestPanel() {
               <div className="req-row" key={key}>
                 <div className="what">
                   <b>
-                    {x.asset}　<code>{x.mitigation}</code> {mit(x.mitigation)}
+                    {x.asset}　{mit(x.mitigation)}（<code>{x.mitigation}</code>）
                   </b>
                   {x.onPath && (
                     <span className="chip on-path">
