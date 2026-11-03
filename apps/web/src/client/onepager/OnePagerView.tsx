@@ -316,7 +316,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                   </li>
                   {data.entryUnknown && (
                     <li>
-                      記事に攻撃の入口が書かれていないため、型紙の入口候補（VPN
+                      記事に攻撃の入口が書かれていないため、攻撃の型（型紙）の入口候補（VPN
                       装置、リモートデスクトップ、メールなど）で判定しています。別の入口から来る攻撃は含みません。
                     </li>
                   )}
