@@ -5,7 +5,7 @@
  * 共有リンク（ID 形式。架空の会社の記録向け）：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import { CaseChoiceList, CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import {
@@ -239,17 +239,11 @@ export function OnePager() {
       )}
       {state.status === "missing" && (
         <div className="panel">
-          {state.missing === "profile" ? (
-            <CompanyChoiceList />
-          ) : (
-            <>
-              <p>{state.reasonJa}</p>
-              <p className="row" style={{ marginTop: 8 }}>
-                <a className="btn primary" href="#/">
-                  はじめにへ
-                </a>
-              </p>
-            </>
+          {state.needs.profile && <CompanyChoiceList />}
+          {state.needs.case && (
+            <div style={state.needs.profile ? { marginTop: 16 } : undefined}>
+              <CaseChoiceList />
+            </div>
           )}
         </div>
       )}

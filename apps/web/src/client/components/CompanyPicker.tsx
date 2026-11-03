@@ -2,7 +2,8 @@
  * 会社と事例の選択。
  * - CompanyChip：上部バーの会社のチップ。押すと「自社のカルテ（保存があるとき）」と架空の会社の一覧
  * - CaseChip：上部バーの事例のチップ。押すと記録済みの事例の一覧と「記事を貼る（はじめにへ）」
- * - CompanyChoiceList：会社が無い画面（担当者画面、社長画面、一枚、カルテ、外部確認）に出す同じ一覧（ボタンの並び）
+ * - CompanyChoiceList / CaseChoiceList：会社・事例が無い画面に出す同じ一覧（ボタンの並び）
+ * - MissingChoices：会社と事例のうち、まだ空のものの一覧を会社→事例の順に並べる（担当者画面、社長画面、一枚）
  * 選ぶとその場で読み込み、判定が更新される（useApp.selectCompany / loadRecorded）
  */
 import { useEffect, useState } from "react";
@@ -60,7 +61,7 @@ export function CompanyChip() {
 /** 事例名のチップに出す長さ（これより長ければ省略し、吹き出しの中で全文を出す） */
 const CASE_MAX = 16;
 
-export function CaseChip() {
+function useCaseItems(): ChipMenuItem[] {
   const app = useApp();
   const [recorded, setRecorded] = useState<{ caseId: string; title: string; damageType: string }[]>(
     [],
@@ -71,9 +72,8 @@ export function CaseChip() {
       .then((r) => setRecorded(r.items))
       .catch(() => {});
   }, []);
-  const label = app.caseMeta?.label;
   const currentId = app.caseMeta?.recorded?.caseId;
-  const items = caseChoices(recorded).map<ChipMenuItem>((c) =>
+  return caseChoices(recorded).map<ChipMenuItem>((c) =>
     c.kind === "recorded"
       ? {
           key: c.id,
@@ -89,6 +89,12 @@ export function CaseChip() {
           },
         },
   );
+}
+
+export function CaseChip() {
+  const app = useApp();
+  const items = useCaseItems();
+  const label = app.caseMeta?.label;
   return (
     <ChipMenu
       title="事例を選ぶ"
@@ -125,6 +131,40 @@ export function CompanyChoiceList({ leadJa = "会社を選んでください" }:
           最初の5問に答えて自社のカルテを作る
         </a>
       </div>
+    </div>
+  );
+}
+
+/** 事例が無い画面に出す一覧（上部バーと同じ選択）。記録済みの事例は 1 クリックで読み込む */
+export function CaseChoiceList({ leadJa = "事例を選んでください" }: { leadJa?: string }) {
+  const items = useCaseItems();
+  return (
+    <div className="company-choice">
+      <h2>{leadJa}</h2>
+      <div className="row" style={{ marginTop: 8 }}>
+        {items.map((it) => (
+          <button type="button" key={it.key} className="btn sm" onClick={it.onPick}>
+            {it.labelJa}
+          </button>
+        ))}
+        {items.length === 0 && <span className="muted small">事例の一覧を読み込んでいます…</span>}
+      </div>
+    </div>
+  );
+}
+
+/** 会社と事例のうち空のものの一覧を、会社→事例の順に 2 段で並べる。どちらも揃っていれば何も出さない */
+export function MissingChoices() {
+  const { profile, theCase } = useApp();
+  if (profile && theCase) return null;
+  return (
+    <div className="panel" style={{ marginTop: 16 }}>
+      {!profile && <CompanyChoiceList />}
+      {!theCase && (
+        <div style={profile ? undefined : { marginTop: 16 }}>
+          <CaseChoiceList />
+        </div>
+      )}
     </div>
   );
 }

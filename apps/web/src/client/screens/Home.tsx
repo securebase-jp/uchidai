@@ -5,7 +5,7 @@
  * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
  */
 import { type ReactNode, useEffect, useMemo, useState } from "react";
-import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import { CaseChoiceList, CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api } from "../lib/api.ts";
@@ -302,6 +302,7 @@ export function Home() {
 
       <aside className="home-aside">
         {!app.profile && <CompanyChoiceList leadJa="会社を選ぶ" />}
+        {!app.theCase && <CaseChoiceList />}
         <p className="small">
           架空の会社は上部の会社のチップからも選べます。
           <a className="tiny" href="?profile=demo-seiko&demo=1">

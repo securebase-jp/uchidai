@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
-import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import { MissingChoices } from "../components/CompanyPicker.tsx";
 import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
@@ -104,14 +104,8 @@ export function Staff({ settings }: { settings: Settings }) {
     [stage],
   );
 
-  if (!profile) {
-    return (
-      <div className="panel" style={{ marginTop: 16 }}>
-        <CompanyChoiceList />
-      </div>
-    );
-  }
-  if (!stage || !knowledge || !theCase || !tl) {
+  if (!profile || !theCase) return <MissingChoices />;
+  if (!stage || !knowledge || !tl) {
     return (
       <p className="muted" style={{ marginTop: 16 }}>
         {error ? <span className="err">{error}</span> : "判定しています…"}
