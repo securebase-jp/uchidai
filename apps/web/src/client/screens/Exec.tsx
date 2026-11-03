@@ -1,5 +1,5 @@
 /** 社長画面：30〜40 秒で自動再生する一本の物語。専門用語や ID を出さない */
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
@@ -43,7 +43,42 @@ export function Exec({ settings }: { settings: Settings }) {
   const fitInner = useRef<HTMLDivElement>(null);
   // 手動の倍率（0.5〜1.5、0.1 刻み）。undefined なら自動。保存しない
   const [zoom, setZoom] = useState<number | undefined>(undefined);
-  const fit = useFitScale(fitOuter, fitInner, zoom, !isDemoMode(), stage !== undefined);
+  // 発表モード（全画面）：上部バーを隠し、舞台だけを画面に合わせる。Esc か「戻る」で解除。
+  // 全画面が許可されない場面（埋め込みなど）でも、上部バーを隠す発表の状態だけは成り立つようにする
+  const canPresent =
+    typeof document !== "undefined" && !!document.documentElement.requestFullscreen;
+  const [presenting, setPresenting] = useState(false);
+  useEffect(() => {
+    if (!presenting) return;
+    // 全画面を Esc で抜けたら発表も終える。全画面でないときの Esc も同じ
+    const onChange = () => {
+      if (document.fullscreenElement === null) setPresenting(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && document.fullscreenElement === null) setPresenting(false);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("fullscreenchange", onChange);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [presenting]);
+  useLayoutEffect(() => {
+    if (presenting) document.documentElement.setAttribute("data-presenting", "true");
+    else document.documentElement.removeAttribute("data-presenting");
+    return () => document.documentElement.removeAttribute("data-presenting");
+  }, [presenting]);
+  const present = useCallback(() => {
+    setZoom(undefined);
+    setPresenting(true);
+    document.documentElement.requestFullscreen?.().catch(() => {});
+  }, []);
+  const leave = useCallback(() => {
+    setPresenting(false);
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  }, []);
+  const fit = useFitScale(fitOuter, fitInner, zoom, !isDemoMode(), stage !== undefined, presenting);
 
   if (!profile) {
     return (
@@ -105,6 +140,16 @@ export function Exec({ settings }: { settings: Settings }) {
             {Math.round(fit.scale * 100)}%
           </span>
         </fieldset>
+        {canPresent &&
+          (presenting ? (
+            <button type="button" className="btn sm" onClick={leave}>
+              戻る
+            </button>
+          ) : (
+            <button type="button" className="btn sm" onClick={present}>
+              社長に見せる（全画面）
+            </button>
+          ))}
         <InfoButton title="この画面の見方">
           <p>
             報道と同じ攻撃が、{profile.companyName}

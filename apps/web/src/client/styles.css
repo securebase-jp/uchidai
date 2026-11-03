@@ -1585,6 +1585,14 @@ textarea.in {
   font-size: 12px;
   color: var(--ink-2);
 }
+/* 発表モード（全画面）：上部バーを隠し、舞台だけを画面に合わせる */
+:root[data-presenting] .topbar {
+  display: none;
+}
+:root[data-presenting] .wrap {
+  max-width: none;
+  padding-top: 10px;
+}
 /* 舞台を画面に合わせて縮める：外側の高さは縮めた分に合わせ、下に余白が残らないようにする */
 .wrap:has(> .exec) {
   padding-bottom: 12px;

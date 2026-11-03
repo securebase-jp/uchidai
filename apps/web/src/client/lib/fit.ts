@@ -12,8 +12,8 @@ export function fitScale(availW: number, availH: number, w: number, h: number): 
   if (w <= 0 || h <= 0) return 1;
   const s = Math.min(availW / w, availH / h, 1);
   if (!Number.isFinite(s) || s <= 0) return 1;
-  // 0.05 未満の違いで揺れないよう、千分の一に丸める
-  return Math.max(0.1, Math.round(s * 1000) / 1000);
+  // 千分の一に切り捨てる（切り上げると 1px はみ出してスクロールが出る）
+  return Math.max(0.1, Math.floor(s * 1000) / 1000);
 }
 
 /** 手動の倍率を一段進める（0.5〜1.5、0.1 刻み。浮動小数の誤差を丸める） */

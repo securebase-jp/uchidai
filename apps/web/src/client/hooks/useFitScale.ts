@@ -25,10 +25,13 @@ export function useFitScale(
   enabled = true,
   /** 舞台が描かれているか。準備中の画面から切り替わった瞬間に測り直す */
   ready = true,
+  /** 変わったら測り直す値（発表モードの切り替えなど、上部バーの有無が変わるとき） */
+  revision: unknown = undefined,
 ): FitScale {
   const [auto, setAuto] = useState(1);
   const [natural, setNatural] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: revision は測り直しの合図として受け取る
   useLayoutEffect(() => {
     const o = outer.current;
     const i = inner.current;
@@ -52,8 +55,8 @@ export function useFitScale(
       window.removeEventListener("resize", measure);
       document.removeEventListener("fullscreenchange", measure);
     };
-  }, [outer, inner, enabled, ready]);
+  }, [outer, inner, enabled, ready, revision]);
 
   const scale = manual ?? auto;
-  return { scale, auto, height: natural > 0 ? Math.ceil(natural * scale) : undefined };
+  return { scale, auto, height: natural > 0 ? Math.floor(natural * scale) : undefined };
 }
