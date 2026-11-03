@@ -1,4 +1,4 @@
-/** 担当者向けの根拠：手法 ID、緩和策 ID、根拠の種類、記事中の根拠文、矛盾、未確認の一覧 */
+/** 担当者向けの根拠：手法と ID、対策（ATT&CK の緩和策）、根拠、記事中の根拠文、矛盾、未確認の一覧 */
 import { useMemo } from "react";
 import { kevHints } from "../lib/kevHints.ts";
 import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/labels.ts";
@@ -92,9 +92,10 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
       {verdict.paths.map((p) => (
         <div className="panel" key={p.id}>
           <h2>
-            経路 {p.id}　{SOURCE_LABEL[p.source]}　{p.reachedCore ? "中核に到達" : "途中で止まる"}
+            経路 {p.id}　{SOURCE_LABEL[p.source]}　
+            {p.reachedCore ? "中核システムまで届く" : "途中で止まる"}
             {multiTemplate && templates && pathTemplateLabel(p, templates) && (
-              <>　型紙「{pathTemplateLabel(p, templates)}」</>
+              <>　攻撃の型（型紙）「{pathTemplateLabel(p, templates)}」</>
             )}
           </h2>
           <div style={{ overflowX: "auto" }}>
@@ -105,10 +106,10 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                   <th>自社の構成要素</th>
                   <th>手法</th>
                   <th>判定</th>
-                  <th>効く緩和策</th>
-                  <th>効かない緩和策</th>
-                  <th>由来</th>
-                  <th>根拠の種類</th>
+                  <th>効く対策（ATT&amp;CK の緩和策）</th>
+                  <th>効かない対策</th>
+                  <th>記事に書いてある／推定</th>
+                  <th>根拠</th>
                   <th>理由と記事中の根拠文</th>
                 </tr>
               </thead>
@@ -131,16 +132,14 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                     <td>
                       {s.technique ? (
                         <>
-                          <code>{s.technique}</code>
-                          <br />
-                          <span className="muted">{labels.techniques[s.technique] ?? ""}</span>
+                          {labels.techniques[s.technique] ?? ""}（<code>{s.technique}</code>）
                         </>
                       ) : (
                         <span className="muted">（手法なし）</span>
                       )}
                       <br />
                       <span className="muted">
-                        <code>{s.tactic}</code> {labels.tactics[s.tactic] ?? ""}
+                        {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                       </span>
                     </td>
                     <td>
@@ -155,14 +154,16 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                     <td>
                       {s.mitigations.map((m) => (
                         <div key={m}>
-                          <code>{m}</code> <span className="muted">{mit(m)}</span>
+                          {mit(m)}（<code>{m}</code>）
                         </div>
                       ))}
                     </td>
                     <td>
                       {s.ineffective.map((m) => (
                         <div key={m.mitigation}>
-                          <code className="fx-red">{m.mitigation}</code>{" "}
+                          <span className="fx-red">
+                            {mit(m.mitigation)}（<code>{m.mitigation}</code>）
+                          </span>{" "}
                           <span className="muted">{m.reasonJa}</span>
                         </div>
                       ))}
@@ -234,7 +235,7 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
           ) : (
             pending.map((x) => (
               <p key={`${x.asset}-${x.mitigation}`} className="small">
-                <b>{x.asset}</b>　<code>{x.mitigation}</code> {mit(x.mitigation)}
+                <b>{x.asset}</b>　{mit(x.mitigation)}（<code>{x.mitigation}</code>）
                 {x.noteJa ? <span className="muted">　{x.noteJa}</span> : null}
               </p>
             ))
@@ -271,12 +272,12 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
             {theCase.steps.map((s) => (
               <tr key={`${s.tactic}-${s.techniques.join(",")}-${s.quote ?? s.summaryJa ?? ""}`}>
                 <td>
-                  <code>{s.tactic}</code> {labels.tactics[s.tactic] ?? ""}
+                  {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                 </td>
                 <td>
                   {s.techniques.map((t) => (
                     <div key={t}>
-                      <code>{t}</code> <span className="muted">{labels.techniques[t] ?? ""}</span>
+                      {labels.techniques[t] ?? ""}（<code>{t}</code>）
                     </div>
                   ))}
                 </td>

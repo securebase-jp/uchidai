@@ -115,7 +115,7 @@ export function RequestPanel() {
               <div className="req-row" key={key}>
                 <div className="what">
                   <b>
-                    {x.asset}　<code>{x.mitigation}</code> {mit(x.mitigation)}
+                    {x.asset}　{mit(x.mitigation)}（<code>{x.mitigation}</code>）
                   </b>
                   {x.onPath && (
                     <span className="chip on-path">

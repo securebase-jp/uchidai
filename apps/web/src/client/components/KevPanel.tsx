@@ -247,7 +247,7 @@ function KevResult({ view, roleLabel }: { view: KevMatchView; roleLabel: string 
             <p>
               該当する CVE は<b>認証を回避する型</b>
               なので、VPN
-              接続に多要素認証を付けても、この侵入は止まりません（判定ルールの「効かない緩和策」に出ます）。
+              接続に多要素認証を付けても、この侵入は止まりません（判定ルールの「効かない対策」に出ます）。
             </p>
           )}
           {unknownBypass && (

@@ -50,8 +50,8 @@ export function measureEffect(
       };
     return { kind: "effective", textJa: `この段階に効く：${eff.labelJa ?? eff.role}` };
   }
-  if (selected) return { kind: "applied", textJa: "適用中（この経路の判定には関わらない）" };
-  return { kind: "outside", textJa: "この経路の外" };
+  if (selected) return { kind: "applied", textJa: "適用中（この攻撃には関係しない）" };
+  return { kind: "outside", textJa: "この攻撃には関係しない" };
 }
 
 const FX_CLASS: Record<MeasureEffect["kind"], string> = {

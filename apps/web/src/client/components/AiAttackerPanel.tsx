@@ -87,7 +87,7 @@ export function aiSummary(
     parts.push(
       applied
         ? `${applied}を適用しても、まだ「${certain.join("」「")}」の入口が開いています`
-        : `AI が見つけた経路：「${certain.join("」「")}」から中核に到達します`,
+        : `AI が見つけた経路：「${certain.join("」「")}」から中核システムまで届きます`,
     );
   if (stopped.length > 0)
     parts.push(
@@ -123,8 +123,9 @@ export function AiAttackerPanel({
   const applied = measures.filter((m) => app.measureIds.includes(m.id));
   const summary = aiSummary(ai.paths, graph, applied, measures);
   const label = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
+  // 手法は名前を先、ID を後ろに
   const tech = (id: string | undefined) =>
-    id ? `${id} ${labels.techniques[id] ?? ""}`.trim() : "";
+    id ? (labels.techniques[id] ? `${labels.techniques[id]}（${id}）` : id) : "";
   const articleStopped = verdict.result === "blocked" || verdict.result === "mitigated";
 
   return (
