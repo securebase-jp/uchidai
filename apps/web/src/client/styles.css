@@ -1779,14 +1779,18 @@ textarea.in {
 }
 
 /* 動きを減らす */
-:root[data-reduced="true"] * {
+:root[data-reduced="true"] *,
+:root[data-reduced="true"] *::before,
+:root[data-reduced="true"] *::after {
   /* biome-ignore lint/complexity/noImportantStyles: 動きを減らす設定はすべての演出に優先する */
   animation: none !important;
   /* biome-ignore lint/complexity/noImportantStyles: 同上 */
   transition: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  :root:not([data-reduced="false"]) * {
+  :root:not([data-reduced="false"]) *,
+  :root:not([data-reduced="false"]) *::before,
+  :root:not([data-reduced="false"]) *::after {
     /* biome-ignore lint/complexity/noImportantStyles: OS の設定を尊重する */
     animation: none !important;
     /* biome-ignore lint/complexity/noImportantStyles: 同上 */
