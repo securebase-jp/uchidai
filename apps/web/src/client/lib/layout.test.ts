@@ -1,6 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { buildGraph, loadRoles } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
+import { wrapLabel } from "./labels.ts";
 import { depthsFromAttacker, layoutGraph, overlaps } from "./layout.ts";
-import type { Graph } from "./types.ts";
+import type { CompanyProfile, Graph } from "./types.ts";
 
 const node = (
   id: string,
@@ -108,5 +112,50 @@ describe("layoutGraph", () => {
     expect(d.get("server")).toBe(2);
     expect(d.get("core")).toBe(3);
     expect(d.get("backup")).toBe(3);
+  });
+});
+
+describe("デモ精工（examples/demo-seiko.json）の構成図", () => {
+  const path = join(import.meta.dirname, "../../../../../examples/demo-seiko.json");
+  const profile = JSON.parse(readFileSync(path, "utf8")) as CompanyProfile;
+  const graph = buildGraph(profile, loadRoles()) as Graph;
+  const layout = layoutGraph(graph);
+  it("箱同士が重ならず、面の中に収まる", () => {
+    const placed = Object.values(layout.nodes);
+    expect(placed.length).toBe(graph.nodes.length);
+    for (const a of placed)
+      for (const b of placed)
+        if (a.id < b.id) expect(overlaps(a, b), `${a.id} と ${b.id} が重なる`).toBe(false);
+    for (const p of placed) {
+      const plane = layout.planes.find((q) => q.layer === p.layer);
+      expect(plane && p.y - p.h / 2 >= plane.top && p.y + p.h / 2 <= plane.bottom, p.id).toBe(true);
+    }
+  });
+  it("ラベルを省略せず 2 行までに収める（文字は 1 行 7 文字まで）", () => {
+    for (const n of graph.nodes.filter((x) => x.layer === "system")) {
+      const lines = wrapLabel(n.label, 7);
+      expect(lines.length, n.label).toBeLessThanOrEqual(2);
+      for (const line of lines) {
+        expect(line.length, n.label).toBeLessThanOrEqual(7);
+        expect(line.endsWith("…"), n.label).toBe(false);
+      }
+    }
+  });
+  it("社外側の一人ぼっちの列（会計）を隣の社外の列に合流させ、列を 6 本にする", () => {
+    const sys = Object.values(layout.nodes).filter((p) => p.layer === "system");
+    expect(new Set(sys.map((p) => p.col)).size).toBe(6);
+    const acct = layout.nodes["cloud-accounting"];
+    const mail = layout.nodes["cloud-mail"];
+    expect(acct?.col).toBe(mail?.col);
+    // 並びは攻撃者に近い順のまま：攻撃者 → 社外のクラウド群 → VPN・社員PC → … → 人
+    const x = (id: string) => layout.nodes[id]?.x ?? Number.NaN;
+    expect(x("attacker")).toBeLessThan(x("cloud-accounting"));
+    expect(x("cloud-accounting")).toBeLessThan(x("vpn"));
+    expect(x("vpn")).toBeLessThan(x("server"));
+    expect(x("server")).toBeLessThan(x("core"));
+    expect(x("core")).toBeLessThan(x("exec"));
+    // 6 行の列は箱を 40px に詰める
+    expect(mail?.h).toBe(40);
+    expect(layout.nodes.vpn?.h).toBe(58);
   });
 });

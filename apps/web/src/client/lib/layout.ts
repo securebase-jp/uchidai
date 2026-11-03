@@ -133,7 +133,38 @@ export function depthsFromAttacker(graph: Graph): Map<string, number> {
 type Column = { side: Side; depth: number; nodes: GraphNode[] };
 
 /** 一列に積める上限。超えた列は同じ距離のまま隣に分ける（仕様の上限 8 を超える構成でも重ねない） */
-const MAX_ROWS = 5;
+const MAX_ROWS = 6;
+/** 列がこの本数以上のとき、社外側の一人ぼっちの列を隣に合流させる */
+const MERGE_FROM_COLUMNS = 7;
+
+/**
+ * 社外側で 1 ノードだけの列（攻撃者の列は除く）を、同じ側の隣の列に合流させて列を減らす。
+ * 合流先は空きのある隣（行が少ない方、同じなら攻撃者に近い方）。列の並び（攻撃者に近い順）は変えない。
+ */
+function mergeLoneColumns(cols: Column[]): Column[] {
+  const out = cols.map((c) => ({ ...c, nodes: [...c.nodes] }));
+  const mergeable = (c: Column | undefined) =>
+    c !== undefined && c.side === "external" && !c.nodes.some((n) => n.role === "attacker");
+  for (;;) {
+    if (out.length < MERGE_FROM_COLUMNS) return out;
+    let done = false;
+    for (let i = 0; i < out.length; i++) {
+      const col = out[i];
+      if (!col || !mergeable(col) || col.nodes.length !== 1) continue;
+      const targets = [out[i - 1], out[i + 1]].filter(
+        (c): c is Column => mergeable(c) && (c?.nodes.length ?? MAX_ROWS) < MAX_ROWS,
+      );
+      targets.sort((a, b) => a.nodes.length - b.nodes.length);
+      const target = targets[0];
+      if (!target) continue;
+      target.nodes.push(...col.nodes);
+      out.splice(i, 1);
+      done = true;
+      break;
+    }
+    if (!done) return out;
+  }
+}
 
 function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
   const nodes = graph.nodes.filter((n) => n.layer === "system");
@@ -150,7 +181,7 @@ function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
     col.nodes.push(n);
     map.set(k, col);
   }
-  return [...map.values()]
+  const cols = [...map.values()]
     .sort((a, b) => SIDE_ORDER[a.side] - SIDE_ORDER[b.side] || a.depth - b.depth)
     .flatMap((col) => {
       if (col.nodes.length <= MAX_ROWS) return [col];
@@ -159,6 +190,7 @@ function systemColumns(graph: Graph, depth: Map<string, number>): Column[] {
         parts.push({ ...col, nodes: col.nodes.slice(i, i + MAX_ROWS) });
       return parts;
     });
+  return mergeLoneColumns(cols);
 }
 
 /** 縦の並び：前の列につながる相手の行の平均に近づける（線の交差と重なりを減らす） */
