@@ -1,5 +1,5 @@
 /**
- * 上部バー：画面の切り替え、会社名（架空なら小さく「架空」）、事例名、明るさの切り替え。
+ * 上部バー：ロゴとその下の一行（名前の由来と用途）、画面の切り替え、会社名（架空なら小さく「架空」）、事例名、明るさの切り替え。
  * ATT&CK の版は常時出さず、情報ボタン（判定に使っている分類）の中に出す
  */
 import { useState } from "react";
@@ -35,9 +35,18 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
   const caseLong = (caseLabel?.length ?? 0) > CASE_MAX;
   return (
     <header className="topbar">
-      <a className="brand" href="#/">
-        <Logo />
-      </a>
+      <div className="brand-block">
+        <a className="brand" href="#/">
+          <Logo />
+        </a>
+        <p className="tagline">
+          <span className="tagline-origin">ウチダイ ＝ うちの会社は大丈夫か？</span>
+          <span className="tagline-sep" aria-hidden="true">
+            ｜
+          </span>
+          サイバー攻撃対策の簡易評価ツール
+        </p>
+      </div>
       <nav aria-label="画面">
         {NAV.map(([r, label]) => (
           <a

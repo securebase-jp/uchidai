@@ -205,9 +205,7 @@ export function Home() {
   return (
     <div className="home">
       <section className="hero">
-        <p className="eyebrow">サイバー攻撃対策の簡易評価ツール</p>
-        <h1>うちの会社は大丈夫か？</h1>
-        <div className="define">
+        <div className="define lead">
           社長の「うちは大丈夫？」に、根拠つきで答えます。
           <InfoButton title="このツールの仕組み">
             <p>

@@ -156,6 +156,32 @@ p {
   height: 56px;
   width: auto;
 }
+/* ロゴの下の一行：名前の由来（ウチダイ ＝ うちの会社は大丈夫か？）と用途 */
+.brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tagline {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.tagline-origin {
+  color: var(--ink);
+}
+.tagline-sep {
+  margin: 0 5px;
+  color: var(--ink-3);
+}
+@media (max-width: 720px) {
+  .tagline {
+    white-space: normal;
+    font-size: 11px;
+  }
+}
 .brand-tag {
   font-size: 13px;
   font-weight: 500;
@@ -1093,11 +1119,12 @@ table.evidence code {
 .hero {
   padding: 40px 0 24px;
 }
-.hero .eyebrow {
-  color: var(--ink-2);
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  margin: 0 0 6px;
+/* 見出しを置かない導入文：一行目として少し大きく */
+.hero .define.lead {
+  font-family: var(--serif);
+  font-size: clamp(20px, 2.6vw, 26px);
+  font-weight: 700;
+  color: var(--ink);
 }
 .hero h1 {
   font-family: var(--serif);
