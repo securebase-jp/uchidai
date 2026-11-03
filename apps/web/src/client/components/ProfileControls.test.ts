@@ -4,7 +4,7 @@ import type { ControlQuestion } from "../../shared/api.ts";
 import type { PendingItem } from "../lib/pending.ts";
 import { questionForRole } from "../lib/profile.ts";
 import type { CompanyProfile } from "../lib/types.ts";
-import { orderByPath } from "./ProfileControls.tsx";
+import { orderByPath, visibleAssets } from "./ProfileControls.tsx";
 
 type Asset = CompanyProfile["assets"][number];
 const asset = (id: string, mitigations: string[]) =>
@@ -42,6 +42,35 @@ describe("orderByPath（経路で問われている資産と行を先頭に）",
     orderByPath(assets, [item("vpn", "M1042")]);
     expect(assets.map((a) => a.id)).toEqual(["core", "server", "vpn"]);
     expect(assets[2]?.controls[0]?.mitigation).toBe("M1051");
+  });
+});
+
+describe("visibleAssets（一覧の絞り込み：すべて／未確認だけ／経路の項目だけ）", () => {
+  const assets = [
+    asset("core", []),
+    asset("server", ["M1030", "M1022"]),
+    asset("vpn", ["M1051", "M1032", "M1042"]),
+  ];
+  const path = [item("vpn", "M1042"), item("server", "M1022")];
+  // M1030 だけ回答済みとみなす
+  const isPending = (_id: string, c: { mitigation: string }) => c.mitigation !== "M1030";
+  it("「すべて」は経路の順に並べ替えるだけで、行の無い資産も出す", () => {
+    const out = visibleAssets(assets, path, "all", isPending);
+    expect(out.map((a) => a.id)).toEqual(["vpn", "server", "core"]);
+    expect(out[2]?.controls).toEqual([]);
+  });
+  it("「未確認だけ」は未確認の行だけ残し、行が無くなった資産は出さない", () => {
+    const out = visibleAssets(assets, path, "pending", isPending);
+    expect(out.map((a) => a.id)).toEqual(["vpn", "server"]);
+    expect(out[1]?.controls.map((c) => c.mitigation)).toEqual(["M1022"]);
+  });
+  it("「経路の項目だけ」は onPath にある行だけ。経路が無ければ何も出さない", () => {
+    const out = visibleAssets(assets, path, "path", isPending);
+    expect(out.map((a) => a.id)).toEqual(["vpn", "server"]);
+    expect(out[0]?.controls.map((c) => c.mitigation)).toEqual(["M1042"]);
+    expect(visibleAssets(assets, [], "path", isPending)).toEqual([]);
+    // 元の配列は変えない
+    expect(assets[2]?.controls.length).toBe(3);
   });
 });
 

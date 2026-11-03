@@ -21,11 +21,23 @@
   margin-top: 8px;
 }
 .profile .count {
+  font: inherit;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid var(--edge-strong);
+  background: transparent;
   font-size: 13px;
+  color: var(--ink);
+}
+.profile button.count {
+  cursor: pointer;
+}
+.profile button.count:disabled {
+  cursor: default;
+}
+.profile button.count:not(:disabled):hover {
+  background: var(--panel);
 }
 .profile .count.amber {
   color: var(--amber);
@@ -132,6 +144,29 @@ table.profile-table input.in.txt {
   cursor: pointer;
 }
 
+/* 確認項目の見出しと絞り込み */
+.profile .controls-head {
+  display: flex;
+  gap: 8px 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 4px 0 8px;
+}
+.profile .controls-head h2 {
+  font-size: 17px;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.profile h1 {
+  display: inline-flex;
+  align-items: center;
+}
+.profile .panel h2 {
+  display: inline-flex;
+  align-items: center;
+}
+
 /* 資産ごとの確認項目 */
 .asset-card {
   background: var(--panel);
@@ -173,11 +208,6 @@ table.profile-table input.in.txt {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--ink-2);
-}
-.ctl-row .what .q {
-  color: var(--ink-2);
-  font-size: 13px;
-  margin-top: 2px;
 }
 .ctl-row .state {
   font-size: 13px;

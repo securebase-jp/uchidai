@@ -1221,11 +1221,13 @@ table.evidence code {
 .tabbar {
   display: inline-flex;
   gap: 2px;
+  margin: 0;
   padding: 3px;
   border-radius: 10px;
   border: 1px solid var(--edge);
   background: var(--panel-2);
   flex-wrap: wrap;
+  min-width: 0;
 }
 .tab {
   font: inherit;
@@ -1241,10 +1243,15 @@ table.evidence code {
 .tab:hover {
   color: var(--ink);
 }
-.tab[aria-selected="true"] {
+.tab[aria-selected="true"],
+.tab[aria-pressed="true"] {
   color: var(--ink);
   background: var(--btn);
   border-color: var(--edge-strong);
+}
+.tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 .tabpanel {
   margin-top: 10px;
