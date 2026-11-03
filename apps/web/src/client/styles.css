@@ -1608,10 +1608,23 @@ textarea.in {
   transform-origin: top center;
   transition: transform 0.35s ease;
 }
-.exec .exec-top {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* 幅 1000px 未満：縦に一列（帯 → 計器 → 構成図 → AI の警告 → 対策）。列の箱は display: contents で透過させ order で並べる */
+.exec .exec-main,
+.exec .exec-side,
+.exec .exec-side-in {
+  display: contents;
+}
+.exec .exec-main .verdict {
+  order: 1;
+}
+.exec .exec-main .stage {
+  order: 3;
+}
+.exec .exec-side-in .err {
+  order: 4;
+}
+.exec .exec-side-in .panel {
+  order: 5;
 }
 .exec .caption {
   font-family: var(--serif);
@@ -1619,19 +1632,6 @@ textarea.in {
   text-align: center;
   min-height: 1.4em;
   padding: 6px 12px;
-}
-.exec .numbers {
-  display: flex;
-  gap: 14px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-.exec .numbers .meter {
-  min-width: 210px;
-  text-align: center;
-}
-.exec .numbers .meter .v {
-  font-size: clamp(30px, 4vw, 48px);
 }
 .exec .stage svg.diagram .tid {
   display: none;
@@ -1659,32 +1659,81 @@ textarea.in {
 .exec .stage .controls.overlay .lab {
   font-size: 13px;
 }
-/* 計器は常に横一列（狭い画面でも縦に積まない） */
+/* 計器（.meters は flex の行）は横一列で等分。狭い画面でも縦に積まない */
 .exec .numbers {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  order: 2;
+}
+.exec .numbers .meters {
   gap: 8px;
+  flex-wrap: nowrap;
 }
 .exec .numbers .meter {
+  flex: 1 1 0;
   min-width: 0;
   padding: 8px 6px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  text-align: center;
 }
 .exec .numbers .meter .v {
   font-size: clamp(22px, 2.2vw, 34px);
 }
-/* 幅 1000px 以上：計器を結論の帯の右に横並び（帯 2：計器 1） */
+/*
+ * 幅 1000px 以上：舞台を 2 列にする。左（約 2.6fr）＝結論の帯＋構成図、右（1fr、最小 260px）＝計器を縦に積み、結論後はその下に対策。
+ * 右の列は絶対配置の箱に入れて行の高さに影響させない（対策が増えても倍率が変わらず、右の列の中だけがスクロールする）
+ */
 @media (min-width: 1000px) {
-  .exec .exec-top {
+  .exec .exec-stage {
     display: grid;
-    grid-template-columns: 2fr 1fr;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 2.6fr) minmax(260px, 1fr);
+    align-items: start;
+  }
+  .exec .exec-main {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .exec .exec-side {
+    display: block;
+    position: relative;
+    align-self: stretch;
+    min-height: 0;
+  }
+  .exec .exec-side-in {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+  }
+  .exec .exec-side-in .panel {
+    margin: 0;
+  }
+  /* 右の列では計器を縦に積む */
+  .exec .numbers .meters {
+    flex-direction: column;
+  }
+  .exec .numbers .meter {
+    flex: 0 0 auto;
+    padding: 10px 8px;
+  }
+  .exec .numbers .meter .v {
+    font-size: clamp(26px, 2vw, 38px);
   }
   .exec .verdict.big .t {
-    font-size: clamp(26px, 2.7vw, 40px);
+    font-size: clamp(24px, 2.2vw, 36px);
+  }
+  /* 帯の高さを結論の前後で揃え、結論の瞬間に倍率が変わらないようにする */
+  .exec .verdict {
+    min-height: 110px;
+  }
+  /* 構成図が狭くなるので凡例は小さく一列に */
+  .exec .stage .legend {
+    font-size: 10px;
+    gap: 8px;
   }
 }
 /* 狭い画面（スマホ）では自動で合わせるだけにし、拡大縮小と全画面のボタンは出さない */

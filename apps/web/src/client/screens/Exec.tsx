@@ -173,7 +173,8 @@ export function Exec({ settings }: { settings: Settings }) {
           ref={fitInner}
           style={{ transform: fit.scale === 1 ? undefined : `scale(${fit.scale})` }}
         >
-          <div className="exec-top">
+          {/* 左の列：結論の帯と構成図。右の列：計器と、結論後の対策（倍率の計算に含めない） */}
+          <div className="exec-main">
             <VerdictBanner
               verdict={stage.input.verdict}
               scene={scene}
@@ -185,88 +186,97 @@ export function Exec({ settings }: { settings: Settings }) {
               swapping={stage.swapping || busy}
               alert
             />
-            <div className="numbers">
-              <Meters
-                clock={clock}
+            <div className="stage">
+              <Diagram
+                layout={layout}
+                graph={stage.input.graph}
                 scene={scene}
-                verdict={stage.input.verdict}
+                script={script}
                 profile={stage.input.profile}
-                alert
+                showIds={false}
+                measureLabel={(m) =>
+                  knowledge.labels.mitigations[m] ?? knowledge.labels.custom[m]?.labelJa ?? ""
+                }
               />
+              <Particles
+                layout={layout}
+                scene={scene}
+                script={script}
+                clock={clock}
+                reduced={settings.reduced}
+              />
+              <Legend />
+              {alarm && <div className="stage-flash" aria-hidden="true" />}
+              <div className="controls overlay">
+                <button
+                  type="button"
+                  className="btn primary sm"
+                  onClick={clock.ended ? clock.restart : clock.toggle}
+                  disabled={settings.reduced}
+                >
+                  {clock.ended ? "もう一度見る" : clock.playing ? "一時停止" : "続きを見る"}
+                </button>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={clock.toEnd}
+                  disabled={clock.ended}
+                >
+                  結論まで進める
+                </button>
+                <label className="group lab" style={{ cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.reduced}
+                    onChange={(e) => settings.setReduced(e.target.checked)}
+                  />
+                  動きを減らす
+                </label>
+              </div>
             </div>
           </div>
-          <div className="stage">
-            <Diagram
-              layout={layout}
-              graph={stage.input.graph}
-              scene={scene}
-              script={script}
-              profile={stage.input.profile}
-              showIds={false}
-              measureLabel={(m) =>
-                knowledge.labels.mitigations[m] ?? knowledge.labels.custom[m]?.labelJa ?? ""
-              }
-            />
-            <Particles
-              layout={layout}
-              scene={scene}
-              script={script}
-              clock={clock}
-              reduced={settings.reduced}
-            />
-            <Legend />
-            {alarm && <div className="stage-flash" aria-hidden="true" />}
-            <div className="controls overlay">
-              <button
-                type="button"
-                className="btn primary sm"
-                onClick={clock.ended ? clock.restart : clock.toggle}
-                disabled={settings.reduced}
-              >
-                {clock.ended ? "もう一度見る" : clock.playing ? "一時停止" : "続きを見る"}
-              </button>
-              <button type="button" className="btn sm" onClick={clock.toEnd} disabled={clock.ended}>
-                結論まで進める
-              </button>
-              <label className="group lab" style={{ cursor: "pointer" }}>
-                <input
-                  type="checkbox"
-                  checked={settings.reduced}
-                  onChange={(e) => settings.setReduced(e.target.checked)}
+          <div className="exec-side">
+            <div className="exec-side-in">
+              <div className="numbers">
+                <Meters
+                  clock={clock}
+                  scene={scene}
+                  verdict={stage.input.verdict}
+                  profile={stage.input.profile}
+                  alert
                 />
-                動きを減らす
-              </label>
+              </div>
+              {scene.concluded && aiPaths.some((p) => p.reachedCore) && (
+                <p className="err" style={{ textAlign: "center" }}>
+                  {measureIds.length > 0 ? "いまの対策をしても、" : ""}
+                  報道にない別の入口（
+                  {[
+                    ...new Set(
+                      aiPaths
+                        .filter((p) => p.reachedCore)
+                        .map(
+                          (p) =>
+                            stage.input.graph.nodes.find((n) => n.id === p.steps[0]?.nodeId)?.label,
+                        ),
+                    ),
+                  ].join("、")}
+                  ）がまだ開いています
+                </p>
+              )}
+              {scene.concluded && (
+                <MeasurePanel
+                  measures={plainMeasures}
+                  selected={measureIds}
+                  verdict={evaluation?.verdict}
+                  costs={evaluation?.measureCosts}
+                  onToggle={app.toggleMeasure}
+                  onClear={app.clearMeasures}
+                  plain
+                  disabled={busy}
+                />
+              )}
             </div>
           </div>
-          {scene.concluded && aiPaths.some((p) => p.reachedCore) && (
-            <p className="err" style={{ textAlign: "center" }}>
-              {measureIds.length > 0 ? "いまの対策をしても、" : ""}
-              報道にない別の入口（
-              {[
-                ...new Set(
-                  aiPaths
-                    .filter((p) => p.reachedCore)
-                    .map(
-                      (p) =>
-                        stage.input.graph.nodes.find((n) => n.id === p.steps[0]?.nodeId)?.label,
-                    ),
-                ),
-              ].join("、")}
-              ）がまだ開いています
-            </p>
-          )}
-          {scene.concluded && (
-            <MeasurePanel
-              measures={plainMeasures}
-              selected={measureIds}
-              verdict={evaluation?.verdict}
-              costs={evaluation?.measureCosts}
-              onToggle={app.toggleMeasure}
-              onClear={app.clearMeasures}
-              plain
-              disabled={busy}
-            />
-          )}
         </div>
       </div>
     </div>
