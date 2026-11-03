@@ -152,3 +152,29 @@
 .staff [id^="staff-"] {
   scroll-margin-top: 8px;
 }
+
+/* 区画の見出し（面の外に置くもの） */
+.staff-h {
+  font-size: 15px;
+  color: var(--ink-2);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 4px 0 -4px;
+}
+.term .hd .info-btn {
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+}
+.term .hd .info-pop {
+  font-family: var(--sans);
+}
+
+/* 面（.panel）は backdrop-filter で重なり順の文脈を持つので、吹き出しを開いた面を後ろの面より上に出す */
+.panel:has(.info-pop),
+.verdict-card:has(.info-pop),
+.controls.sticky:has(.info-pop),
+.term:has(.info-pop) {
+  position: relative;
+  z-index: 31;
+}

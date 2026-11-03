@@ -5,6 +5,7 @@ import { EVIDENCE_LABEL, SOURCE_LABEL, STATE_LABEL, STATE_TONE } from "../lib/la
 import { pathTemplateLabel, type TemplateRef } from "../lib/pending.ts";
 import { reconHints } from "../lib/reconHints.ts";
 import type { Case, CompanyProfile, LabelsFile, Verdict } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Props = {
   verdict: Verdict;
@@ -58,6 +59,26 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
   );
   return (
     <div className="stack">
+      <h2 className="staff-h">
+        根拠
+        <InfoButton title="根拠の読み方">
+          <p>
+            判定に使った経路を、段階ごとに並べます。段階の名前は攻撃の型（型紙）の見出しで、手法は
+            MITRE ATT&amp;CK の名前と ID
+            です。判定の色と語は、止まる・復旧できる・未確認・人次第・突破される の 5 つです。
+          </p>
+          <p>
+            「効く対策」はその段階で効く ATT&amp;CK
+            の緩和策、「効かない対策」は入れてもこの経路では効かない緩和策と
+            その理由です。「根拠」は、その段階の判定の材料がどこから来たか（外部確認・ベンダー回答・担当者登録・
+            根拠なし）と、記事に書いてある段階か推定した段階かを示します。記事中の根拠文は、Claude
+            が読み取った引用をそのまま載せています。
+          </p>
+          <p>
+            矛盾は、外部確認や公開情報と登録内容の食い違いです。未確認は、確認依頼の候補になる項目です。
+          </p>
+        </InfoButton>
+      </h2>
       {theCase.suspiciousInstructions.length > 0 && (
         <div className="panel warn">
           <h2>注意：記事の中に指示らしき文がありました（判定には使っていません）</h2>
@@ -221,7 +242,22 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
         </div>
       </div>
       <div className="panel">
-        <h2>記事から読み取った段階（Claude の読解。判定はプログラム）</h2>
+        <h2>
+          記事から読み取った段階
+          <InfoButton title="読解と判定の分担">
+            <p>
+              この表は Claude
+              が記事から読み取った段階です。記事は信頼できないデータとして指示文と分けて渡し、
+              出力はプログラムが検証して、存在しない手法 ID
+              や攻撃の型（型紙）にない手法は捨てています。
+              「記載」は記事に書いてある段階、「推定」は記事に明記がなく Claude が推定した段階です。
+            </p>
+            <p>
+              判定そのもの（どの段階で止まるか、日数、金額、期限）は Claude
+              ではなくプログラムが決めています。
+            </p>
+          </InfoButton>
+        </h2>
         <table className="evidence">
           <thead>
             <tr>

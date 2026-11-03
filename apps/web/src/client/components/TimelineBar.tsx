@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { yen } from "../lib/labels.ts";
 import type { TimelineView } from "../lib/timeline.ts";
 import type { CompanyProfile, Verdict } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Props = {
   view: TimelineView;
@@ -56,6 +57,19 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
     <div className="timeline panel">
       <h2>
         時間軸（Day 0 から）
+        <InfoButton title="時間軸の読み方">
+          <p>
+            攻撃が来た日を Day 0
+            として、業務が止まる日、取引先に影響が出る日、個人情報保護委員会への報告や
+            保険の連絡の期限、復旧の見込みを並べます。日数と期限は knowledge/deadlines.yaml
+            などの固定データから、プログラムが決定的に計算しています。
+          </p>
+          <p>
+            下の緑の帯は、止まった日数に 1
+            日の売上を掛けた売上影響の積み上げです。対策を入れて判定が変わると、
+            起きなくなった出来事はこの軸から消えます。出来事に触れると詳しい内容と出典が出ます。
+          </p>
+        </InfoButton>
         {view.events.length === 0 && (
           <span className="chip" style={{ marginLeft: 8 }}>
             {verdict.result === "out_of_scope"

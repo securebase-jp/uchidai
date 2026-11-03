@@ -5,6 +5,7 @@
 import { useAiAttacker } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { ComparedMitigation } from "../lib/attackerApi.ts";
+import { InfoButton } from "./InfoButton.tsx";
 import "./ai-attacker.css";
 
 function Item({
@@ -49,12 +50,20 @@ export function ComparisonPanel() {
   const c = ai.comparison;
   return (
     <div className="panel cmp">
-      <h2>一般的な AI の回答と並べる</h2>
-      <p className="muted small">
-        知見ファイル（型紙・判定ルール表）を渡さない Claude に同じ事例の対策を挙げさせ、
-        ウチダイの判定ルールで「この経路に効く／効かない／経路の外」に振り分けます。
-        対策ボタンを押すと、いまの判定で振り分け直します。
-      </p>
+      <h2>
+        一般的な AI の回答と並べる
+        <InfoButton title="この比較について">
+          <p>
+            知見ファイル（攻撃の型（型紙）・判定ルール表）を渡さない Claude
+            に同じ事例の対策を挙げさせ、ウチダイの判定ルールで「この攻撃に効く」「効かない」「この攻撃には関係しない」
+            に振り分けます。対策ボタンを押すと、いまの判定で振り分け直します。
+          </p>
+          <p>
+            一般的な回答が間違いというわけではなく、御社の構成とこの攻撃の経路に当てはめると、どれが先に効くかが
+            分かる、という比較です。
+          </p>
+        </InfoButton>
+      </h2>
       <div className="row" style={{ marginTop: 8 }}>
         <button
           type="button"

@@ -9,6 +9,7 @@ import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api, type Evaluation } from "../lib/api.ts";
 import { RESULT_SHORT, RESULT_TONE, yen } from "../lib/labels.ts";
 import type { Pattern, ProfileAnswers } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Industry = {
   id: ProfileAnswers["industry"];
@@ -83,15 +84,19 @@ export function IndustrySwitch() {
   const cur = results?.[picked];
   return (
     <div className="panel industry">
-      <h2>業種を切り替えて、同じ攻撃を見る</h2>
-      <p className="muted small">
-        構成は同じ（VPN
-        と保守ベンダーの遠隔接続、社内の業務サーバ、クラウド同期のバックアップ、対策は未登録）
-        のまま、業種の構成パターンだけを替えたカルテで同じ事例を判定します。止まる業務と日数、影響が業種で変わる様子を見るための一場面で、自社のカルテは変えません。
-        {knowledge?.patterns && (
-          <> 業種のパターンは knowledge/profiles の {knowledge.patterns.length} 種です。</>
-        )}
-      </p>
+      <h2>
+        業種を切り替えて、同じ攻撃を見る
+        <InfoButton title="この一場面について">
+          <p>
+            構成は同じ（VPN
+            と保守ベンダーの遠隔接続、社内の業務サーバ、クラウド同期のバックアップ、対策は未登録）のまま、
+            業種の構成パターンだけを替えたカルテで同じ事例を判定します。止まる業務と日数、影響が業種で変わる
+            様子を見るための一場面で、自社のカルテは変えません。
+            {knowledge?.patterns &&
+              ` 業種のパターンは knowledge/profiles の ${knowledge.patterns.length} 種です。`}
+          </p>
+        </InfoButton>
+      </h2>
       <div className="row" style={{ marginTop: 8 }}>
         {results ? (
           INDUSTRIES.map((ind, i) => (

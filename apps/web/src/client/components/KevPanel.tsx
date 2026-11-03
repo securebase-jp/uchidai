@@ -17,6 +17,7 @@ import {
 } from "../lib/kevApi.ts";
 import { kevHints } from "../lib/kevHints.ts";
 import type { CompanyProfile, Contradiction } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Props = {
   profile: CompanyProfile;
@@ -121,7 +122,22 @@ export function KevPanel(p: Props) {
   return (
     <section className="kev" aria-label="悪用確認済み脆弱性との突き合わせ">
       <div className="kev-head">
-        <b>悪用確認済み脆弱性（CISA KEV）</b>
+        <b>
+          悪用確認済み脆弱性（CISA KEV）
+          <InfoButton title="この突き合わせについて">
+            <p>
+              米国 CISA
+              が公開している「悪用が確認された脆弱性」のカタログ（KEV）と、この構成要素の製品名・版を
+              突き合わせます。該当する版なら、判定ルールは「悪用確認済みの脆弱性に該当」として突破される（赤）に
+              し、装置の更新で修正版に上げればこの材料は消えます。
+            </p>
+            <p>
+              製品名と版は Claude
+              に送られません。突き合わせはプログラムが行い、結果はカルテの属性（根拠：公開情報）
+              として保存されます。
+            </p>
+          </InfoButton>
+        </b>
         {statusError ? (
           <span className="err small">{statusError}</span>
         ) : !status ? (
@@ -360,7 +376,6 @@ function KevResult({ view, roleLabel }: { view: KevMatchView; roleLabel: string 
             <br />
           </span>
         ))}
-        製品名と版は Claude に送られません（突き合わせはプログラムが行います）
       </p>
     </div>
   );

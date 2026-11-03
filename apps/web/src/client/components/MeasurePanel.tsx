@@ -1,6 +1,7 @@
 /** 対策ボタン（knowledge/measures.yaml から）。押すと巻き戻して同じ攻撃をもう一度 */
 import { STATE_LABEL } from "../lib/labels.ts";
 import type { MeasureDef, Verdict } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Props = {
   measures: MeasureDef[];
@@ -72,7 +73,29 @@ export function MeasurePanel({
 }: Props) {
   return (
     <div className="panel">
-      <h2>対策を一つ入れて、もう一度</h2>
+      <h2>
+        対策を一つ入れて、もう一度
+        {!plain && (
+          <InfoButton title="対策ボタンの読み方">
+            <p>
+              ボタンを押すと、その対策を入れたカルテで同じ攻撃をもう一度判定し、時間を巻き戻して再生します。
+              対策は knowledge/measures.yaml
+              に定義したもので、緩和策の有無と属性を書き換えます（根拠は担当者登録）。
+              もう一度押すと外れます。
+            </p>
+            <p>
+              ボタンの下の一行は、いまの経路での効き目です。「この段階に効く」はその段階の判定が変わりうること、
+              「効かない」は入れてもこの攻撃では効かないことと理由、「この攻撃には関係しない」はこの経路の判定に
+              使わない対策であることを表します。適用中の対策には、その段階がいまどの状態かを添えます。
+            </p>
+            <p>
+              費用の目安は出典（IPA
+              の資料など）を確認できた項目だけに入れ、無いものは「ベンダーの見積もり待ち」と
+              出します。出典はボタンに触れると見えます。
+            </p>
+          </InfoButton>
+        )}
+      </h2>
       <div className="group">
         {measures.map((m) => {
           const on = selected.includes(m.id);
