@@ -115,7 +115,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
         </div>
         {q ? (
           <>
-            <p className="step">
+            <div className="step">
               {step + 1} / {questions.length}
               <InfoButton title="最初の5問について">
                 <p>
@@ -126,7 +126,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
                   回答するたびに、右側（狭い画面では下側）に御社の構成図が組み上がります。「外部から推定」と付いた項目は、ドメインの外部確認（DNS・証明書の公開ログ）から推定した初期値で、合っているかを確かめるだけで進めます。
                 </p>
               </InfoButton>
-            </p>
+            </div>
             <h2>{q.textJa}</h2>
             {q.hintJa && <p className="hint">{q.hintJa}</p>}
             {hints &&

@@ -187,7 +187,7 @@ export function Home() {
     <div className="home">
       <section className="hero">
         <h1>うちの会社は大丈夫？</h1>
-        <p className="define">
+        <div className="define">
           「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。
           <InfoButton title="この道具の仕組み">
             <p>
@@ -199,7 +199,7 @@ export function Home() {
               は読む・言い換えるだけです。止まるかの判定、日数と金額、期限はプログラムが決めます。
             </p>
           </InfoButton>
-        </p>
+        </div>
       </section>
 
       <ol className="steps">
@@ -296,7 +296,7 @@ export function Home() {
         </p>
       </aside>
 
-      <p className="home-foot small muted">
+      <div className="home-foot small muted">
         データの扱いと出典
         <InfoButton title="データの扱いと出典">
           <p>
@@ -317,7 +317,7 @@ export function Home() {
             事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料です。ICS は対象外です。
           </p>
         </InfoButton>
-      </p>
+      </div>
       {app.error && (
         <p className="err" style={{ marginTop: 12 }}>
           {app.error}

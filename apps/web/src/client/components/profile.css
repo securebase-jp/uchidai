@@ -141,6 +141,7 @@ table.profile-table input.in.txt {
   font: inherit;
   font-weight: 700;
   text-decoration: underline;
+  text-align: left;
   cursor: pointer;
 }
 
@@ -200,8 +201,13 @@ table.profile-table input.in.txt {
     align-items: start;
   }
 }
+.ctl-row .what .name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
 .ctl-row .what b {
-  display: block;
   font-size: 14px;
 }
 .ctl-row .what code {

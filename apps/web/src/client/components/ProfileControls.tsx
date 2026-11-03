@@ -311,13 +311,15 @@ function ControlRow(p: RowProps) {
   return (
     <div className="ctl-row" id={`ctl-${p.asset.id}-${p.mitigation}`}>
       <div className="what">
-        <b>
-          {p.label} <code>{p.mitigation}</code>
+        <div className="name">
+          <b>
+            {p.label} <code>{p.mitigation}</code>
+          </b>
           <InfoButton title={p.label}>
             <p>{p.question.textJa}</p>
             {p.question.hintJa && <p>{p.question.hintJa}</p>}
           </InfoButton>
-        </b>
+        </div>
         {p.onPath && (
           <span className="chip on-path">
             この攻撃の経路{p.onPath.stageJa ? `：${p.onPath.stageJa}` : ""}

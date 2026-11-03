@@ -1193,6 +1193,12 @@ table.evidence code {
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  /* 事例名など長い状態は右端で折り返す（はみ出して切れないように） */
+  flex: 1 1 240px;
+  min-width: 0;
+  justify-content: flex-end;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 .step-tag {
   font-size: 11px;
