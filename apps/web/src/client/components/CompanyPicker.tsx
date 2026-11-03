@@ -135,9 +135,6 @@ export function CompanyChoiceList({ leadJa = "会社を選んでください" }:
         {items.length === 0 && (
           <span className="muted small">架空の会社の一覧を読み込んでいます…</span>
         )}
-        <a className="btn sm ghost" href="#/questions">
-          最初の5問に答えて自社のカルテを作る
-        </a>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@
 import type { ExampleSummary } from "./api.ts";
 
 export type CompanyChoice =
-  | { kind: "own"; labelJa: string; companyName: string }
+  | { kind: "own"; labelJa: string; companyName: string; saved: boolean }
   | { kind: "example"; id: string; labelJa: string; companyName: string; fictional: boolean };
 
 /** 架空の会社の一行：会社名（業種・人数） */
@@ -20,13 +20,22 @@ export function companyChoices(
   own: { companyName: string } | undefined,
   examples: ExampleSummary[],
 ): CompanyChoice[] {
-  const out: CompanyChoice[] = [];
-  if (own)
-    out.push({
-      kind: "own",
-      labelJa: `自社のカルテ（${own.companyName}）`,
-      companyName: own.companyName,
-    });
+  // 「うちの会社」は常に先頭に出す。保存したカルテがあればそれを読み込み、無ければ最初の5問へ進んで作る
+  const out: CompanyChoice[] = [
+    own
+      ? {
+          kind: "own",
+          labelJa: `うちの会社（${own.companyName}）`,
+          companyName: own.companyName,
+          saved: true,
+        }
+      : {
+          kind: "own",
+          labelJa: "うちの会社（最初の5問で作る）",
+          companyName: "うちの会社",
+          saved: false,
+        },
+  ];
   for (const e of examples)
     out.push({
       kind: "example",
@@ -44,7 +53,7 @@ export function isCurrentCompany(
   current: { id: string; source: "example" | "answers" | "saved" } | undefined,
 ): boolean {
   if (!current) return false;
-  if (choice.kind === "own") return current.source !== "example";
+  if (choice.kind === "own") return choice.saved && current.source !== "example";
   return current.source === "example" && current.id === choice.id;
 }
 

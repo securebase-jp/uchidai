@@ -157,7 +157,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const selectCompany = useCallback(
     async (choice: { kind: "own" } | { kind: "example"; id: string }) => {
       if (choice.kind === "example") return loadExample(choice.id);
-      if (!ownProfile) return;
+      // 保存した自社のカルテが無ければ、最初の5問へ進んで作る
+      if (!ownProfile) {
+        location.hash = "/questions";
+        return;
+      }
       storage.clearExampleId();
       setProfileState(ownProfile);
       setProfileSource("saved");

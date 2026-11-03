@@ -24,15 +24,17 @@ const examples = [
 ];
 
 describe("companyChoices（上部バーの会社の選択肢）", () => {
-  it("自社のカルテが保存されているときだけ先頭に出し、架空の会社は「架空：会社名（業種・人数）」", () => {
+  it("「うちの会社」は常に先頭（保存があれば会社名つき、無ければ最初の5問で作る）。架空の会社は「架空：会社名（業種・人数）」", () => {
     const withOwn = companyChoices({ companyName: "テスト製作所" }, examples);
     expect(withOwn.map((c) => c.labelJa)).toEqual([
-      "自社のカルテ（テスト製作所）",
+      "うちの会社（テスト製作所）",
       "架空：デモ物産株式会社（卸売・サービス（事務所型）・60 名）",
       "架空：デモ精工株式会社（製造業（工場あり）・120 名）",
     ]);
     const without = companyChoices(undefined, examples);
-    expect(without.map((c) => c.kind)).toEqual(["example", "example"]);
+    expect(without.map((c) => c.kind)).toEqual(["own", "example", "example"]);
+    expect(without[0]?.labelJa).toBe("うちの会社（最初の5問で作る）");
+    expect(without[0]).toMatchObject({ kind: "own", saved: false });
   });
   it("人数が無い会社は業種だけ、架空でない会社には「架空：」を付けない", () => {
     expect(
@@ -46,7 +48,7 @@ describe("companyChoices（上部バーの会社の選択肢）", () => {
     const real = companyChoices(undefined, [
       { id: "x", companyName: "X社", patternLabelJa: "医療・福祉", fictional: false },
     ]);
-    expect(real[0]?.labelJa).toBe("X社（医療・福祉）");
+    expect(real[1]?.labelJa).toBe("X社（医療・福祉）");
   });
   it("isCurrentCompany：自社は example 以外の出どころ、架空は ID の一致で見る", () => {
     const [own, bussan] = companyChoices({ companyName: "A" }, examples);
@@ -56,6 +58,10 @@ describe("companyChoices（上部バーの会社の選択肢）", () => {
     expect(isCurrentCompany(bussan, { id: "demo-bussan", source: "example" })).toBe(true);
     expect(isCurrentCompany(bussan, { id: "demo-seiko", source: "example" })).toBe(false);
     expect(isCurrentCompany(bussan, undefined)).toBe(false);
+    // 保存の無い「うちの会社」は、どの状態でも「いま選んでいる」にならない
+    const [unsaved] = companyChoices(undefined, examples);
+    if (!unsaved) throw new Error("選択肢が足りない");
+    expect(isCurrentCompany(unsaved, { id: "from-answers", source: "answers" })).toBe(false);
   });
 });
 
