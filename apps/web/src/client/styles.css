@@ -1560,10 +1560,22 @@ textarea.in {
 
 /* 社長画面 */
 .exec {
-  min-height: calc(100vh - 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+/* 右上の道具（画面の見方、拡大縮小）。説明の文は画面に並べず情報ボタンの中に */
+.exec .exec-tools {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+.exec .exec-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .exec .caption {
   font-family: var(--serif);
@@ -1587,6 +1599,56 @@ textarea.in {
 }
 .exec .stage svg.diagram .tid {
   display: none;
+}
+/* 再生の操作は構成図の下端に重ねる小さな半透明の帯（高さを稼ぐ）。凡例もその中に */
+.exec .stage .controls.overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 6px 12px;
+  gap: 6px 14px;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  background: color-mix(in srgb, var(--panel) 78%, transparent);
+  backdrop-filter: blur(4px);
+  border-top: 1px solid var(--edge);
+}
+/* 凡例は帯の上（構成図の左下の空き）に */
+.exec .stage .legend {
+  bottom: 50px;
+}
+.exec .stage .controls.overlay .lab {
+  font-size: 13px;
+}
+/* 幅 1000px 以上：計器を結論の帯の右に横並び（帯 2：計器 1） */
+@media (min-width: 1000px) {
+  .exec .exec-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    align-items: stretch;
+  }
+  .exec .verdict.big .t {
+    font-size: clamp(26px, 2.7vw, 40px);
+  }
+  .exec .numbers {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .exec .numbers .meter {
+    min-width: 0;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .exec .numbers .meter .v {
+    font-size: clamp(22px, 2.2vw, 34px);
+  }
 }
 /* 赤の結論に達した瞬間、構成図の全面がひと呼吸だけ赤く光る（面の flash と同じ動き） */
 .exec .stage .stage-flash {

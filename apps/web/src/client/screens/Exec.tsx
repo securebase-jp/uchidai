@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { Diagram } from "../components/Diagram.tsx";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
@@ -65,29 +66,41 @@ export function Exec({ settings }: { settings: Settings }) {
     RESULT_TONE[stage.input.verdict.result] === "red";
   return (
     <div className="exec">
-      <p className="muted" style={{ textAlign: "center" }}>
-        報道と同じ攻撃が、{profile.companyName}
-        {profile.fictional ? "（架空の会社）" : ""}に来たら
-      </p>
-      <VerdictBanner
-        verdict={stage.input.verdict}
-        scene={scene}
-        script={script}
-        graph={stage.input.graph}
-        fired={clock.fired}
-        plain
-        big
-        swapping={stage.swapping || busy}
-        alert
-      />
-      <div className="numbers">
-        <Meters
-          clock={clock}
-          scene={scene}
+      <div className="exec-tools">
+        <InfoButton title="この画面の見方">
+          <p>
+            報道と同じ攻撃が、{profile.companyName}
+            {profile.fictional ? "（架空の会社）" : ""}
+            に来たらどうなるかを、一本の物語として自動で再生します。結論が出ると、帯の色と計器の数字が変わります。
+          </p>
+          <p>
+            会社と数値は
+            {profile.fictional ? "すべて架空です。" : "会社カルテの登録内容にもとづく目安です。"}
+            攻撃の流れは公開された事例（{theCase.title}）をもとにしています。
+          </p>
+        </InfoButton>
+      </div>
+      <div className="exec-top">
+        <VerdictBanner
           verdict={stage.input.verdict}
-          profile={stage.input.profile}
+          scene={scene}
+          script={script}
+          graph={stage.input.graph}
+          fired={clock.fired}
+          plain
+          big
+          swapping={stage.swapping || busy}
           alert
         />
+        <div className="numbers">
+          <Meters
+            clock={clock}
+            scene={scene}
+            verdict={stage.input.verdict}
+            profile={stage.input.profile}
+            alert
+          />
+        </div>
       </div>
       <div className="stage">
         <Diagram
@@ -110,27 +123,27 @@ export function Exec({ settings }: { settings: Settings }) {
         />
         <Legend />
         {alarm && <div className="stage-flash" aria-hidden="true" />}
-      </div>
-      <div className="controls" style={{ justifyContent: "center" }}>
-        <button
-          type="button"
-          className="btn primary"
-          onClick={clock.ended ? clock.restart : clock.toggle}
-          disabled={settings.reduced}
-        >
-          {clock.ended ? "もう一度見る" : clock.playing ? "一時停止" : "続きを見る"}
-        </button>
-        <button type="button" className="btn" onClick={clock.toEnd} disabled={clock.ended}>
-          結論まで進める
-        </button>
-        <label className="group lab" style={{ cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={settings.reduced}
-            onChange={(e) => settings.setReduced(e.target.checked)}
-          />
-          動きを減らす
-        </label>
+        <div className="controls overlay">
+          <button
+            type="button"
+            className="btn primary sm"
+            onClick={clock.ended ? clock.restart : clock.toggle}
+            disabled={settings.reduced}
+          >
+            {clock.ended ? "もう一度見る" : clock.playing ? "一時停止" : "続きを見る"}
+          </button>
+          <button type="button" className="btn sm" onClick={clock.toEnd} disabled={clock.ended}>
+            結論まで進める
+          </button>
+          <label className="group lab" style={{ cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={settings.reduced}
+              onChange={(e) => settings.setReduced(e.target.checked)}
+            />
+            動きを減らす
+          </label>
+        </div>
       </div>
       {scene.concluded && aiPaths.some((p) => p.reachedCore) && (
         <p className="err" style={{ textAlign: "center" }}>
@@ -160,11 +173,6 @@ export function Exec({ settings }: { settings: Settings }) {
           disabled={busy}
         />
       )}
-      <p className="muted" style={{ textAlign: "center" }}>
-        会社と数値は
-        {profile.fictional ? "すべて架空です。" : "会社カルテの登録内容にもとづく目安です。"}
-        攻撃の流れは公開された事例（{theCase.title}）をもとにしています。
-      </p>
     </div>
   );
 }
