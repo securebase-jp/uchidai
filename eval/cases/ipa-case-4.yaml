@@ -1,21 +1,22 @@
+# 正解データ。2026-11-03 に開発者がレビューして確定（Issue #16）。本文は含めない
 id: ipa-case-4
 title: 被害事例4：取引先を装うメール（読解の検証用）
-status: draft
+status: confirmed
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
   # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
   pages: "30"
+  # 2026-11-02 S1：送金詐欺（BEC）ではなくマルウェア感染だったので damageType を data_breach に、なりすまし（TA0005）の段階を外し、
+  # 実行・横展開・持ち出し・業務停止の段階を追加した。マルウェアの種類と横展開の手法は本文に無いので、認める ID を広めにとっている
   summary: >-
     金融・保険業（20名）。従業員が取引先を装ったメールの添付ファイルを開いて端末がマルウェアに感染し、
     社内ネットワークに広がって基幹システムが停止、顧客（契約者）の情報が外部へ流出した。
-    2026-11-02 S1：本文を確認し、送金詐欺（BEC）ではなくマルウェア感染だったので damageType を data_breach に、
-    なりすまし（TA0005）の段階を外し、実行・横展開・持ち出し・業務停止の段階を追加した。
-    マルウェアの種類と横展開の手法は本文に無いので、認める ID を広めにとっている。
 expected:
   damageType: data_breach
   clarity: clear
   usedInDemo: false
+  # 本文に根拠のある 5 段階だけを正解にする。Claude が補う検知回避（TA0005）・認証情報（TA0006）・収集（TA0009）は足さない
   steps:
     - label: 取引先を装うメールの添付ファイル
       tactic: TA0001
@@ -37,8 +38,9 @@ expected:
       techniques: [T1041, T1048, T1567, T1020]
       source: stated
       quoteHint: 流出
+    # 停止は本文に明記。攻撃者の行為の種類は書かれていないので、データの破壊（T1485）も認める
     - label: 基幹システムの停止
       tactic: TA0040
-      techniques: [T1489, T1499, T1486, T1529]
+      techniques: [T1489, T1499, T1486, T1529, T1485]
       source: stated
       quoteHint: 停止

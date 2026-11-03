@@ -1,6 +1,7 @@
+# 正解データ。2026-11-03 に開発者がレビューして確定（Issue #16）。本文は含めない
 id: ipa-case-2
 title: 被害事例2：クラウド設定ミスによる情報漏えい
-status: draft
+status: confirmed
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
@@ -13,7 +14,9 @@ expected:
   damageType: data_breach
   clarity: clear
   usedInDemo: true
+  # 判定ルール data_breach.storage：公開共有の制限（M1022）と定期的な棚卸し（M1047）が両方あるデモ精工では止まる
   verdict: blocked
+  # 本文では収集と持ち出しが一体（「外部からダウンロードされた」）なので、持ち出し（TA0010）の段階は足さない
   steps:
     - label: 公開状態のクラウドストレージから取得される
       tactic: TA0009

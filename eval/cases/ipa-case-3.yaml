@@ -1,19 +1,21 @@
+# 正解データ。2026-11-03 に開発者がレビューして確定（Issue #16）。本文は含めない
 id: ipa-case-3
 title: 被害事例3：Webサイト改ざん（読解の検証用）
-status: draft
+status: confirmed
 source:
   citation: 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
   url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
   # PDF のページ番号（1 始まり）。紙面に印字された番号は 1 小さい
   pages: "29"
+  # 2026-11-02 S1：入口は追加機能（プラグイン）の脆弱性と明記されていたので stated、被害の型は顧客情報の漏えいなので data_breach、
+  # 入力情報の窃取（T1056.003）を段階に追加した
   summary: >-
     金融・保険業（50名、営業担当が情シス兼任）。ウェブサイト更新管理システム（CMS）の追加機能が未更新で、
     自社サイトがフィッシングサイトに改ざんされ、顧客が入力したクレジットカード情報が外部に漏えいした。
-    2026-11-02 S1：本文を確認し、入口は追加機能（プラグイン）の脆弱性と明記されていたので stated に、
-    被害の型は顧客情報の漏えいなので data_breach に、入力情報の窃取（T1056.003）を段階に追加した。
 expected:
   damageType: data_breach
   clarity: clear
+  # デモ精工には公開 Web サイトの入口がない（結論は no_entry になる）。読解の検証用にとどめる
   usedInDemo: false
   steps:
     - label: 更新されていない追加機能からWebサイトへ侵入
@@ -26,8 +28,15 @@ expected:
       techniques: [T1491.002, T1491]
       source: stated
       quoteHint: 改ざん
+    # 「当該ページに入力された顧客のクレジットカード情報が…漏えいした」を窃取の記載と読む
     - label: 入力されたカード情報の窃取
       tactic: TA0009
       techniques: [T1056.003, T1056]
       source: stated
       quoteHint: クレジットカード
+    # 本文は「外部に漏えいした」と明記しているので、持ち出しの段階を記載として置く
+    - label: カード情報が外部へ漏えい
+      tactic: TA0010
+      techniques: [T1567, T1048, T1041]
+      source: stated
+      quoteHint: 漏えい
