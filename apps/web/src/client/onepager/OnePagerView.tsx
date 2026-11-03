@@ -329,7 +329,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                   )}
                 </ul>
                 <p className="op-brand">
-                  ウチダイ　うちの会社は大丈夫？　— 攻撃の段階の対応づけは MITRE ATT&amp;CK
+                  ウチダイ　うちの会社は大丈夫か？　— 攻撃の段階の対応づけは MITRE ATT&amp;CK
                   Enterprise v{data.attackVersion}
                 </p>
               </footer>
@@ -341,7 +341,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
         <tr>
           <td>
             <div className="op-run op-run-foot" aria-hidden="true">
-              <span>ウチダイ　うちの会社は大丈夫？</span>
+              <span>ウチダイ　うちの会社は大丈夫か？</span>
               <span>MITRE ATT&amp;CK Enterprise v{data.attackVersion}</span>
             </div>
           </td>

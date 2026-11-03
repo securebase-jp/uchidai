@@ -2,7 +2,7 @@
   "name": "uchidai",
   "private": true,
   "version": "0.0.0",
-  "description": "ウチダイ：「うちの会社は大丈夫？」に根拠つきで答える道具",
+  "description": "ウチダイ：「うちの会社は大丈夫か？」に根拠つきで答えるサイバー攻撃対策の簡易評価ツール",
   "license": "MIT",
   "packageManager": "pnpm@10.33.0",
   "engines": {

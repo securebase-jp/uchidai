@@ -47,7 +47,7 @@ export function EndCard({ credits, elapsed }: Props) {
       <div className="end-wrap">
         <header className={`end-head${step(0)}`}>
           <h1>ウチダイ</h1>
-          <p>うちの会社は大丈夫？　に、根拠つきで答える道具</p>
+          <p>うちの会社は大丈夫か？　に、根拠つきで答えるツール</p>
         </header>
 
         <section className={`end-flow${step(0.6)}`} aria-label="処理の流れ">

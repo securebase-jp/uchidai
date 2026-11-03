@@ -208,8 +208,8 @@ export function Home() {
         <p className="eyebrow">サイバー攻撃対策の簡易評価ツール</p>
         <h1>うちの会社は大丈夫か？</h1>
         <div className="define">
-          社長からの突然の質問に、根拠つきで答えます。
-          <InfoButton title="この道具の仕組み">
+          社長の「うちは大丈夫？」に、根拠つきで答えます。
+          <InfoButton title="このツールの仕組み">
             <p>
               他社の被害の報道を貼ると、Claude
               が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
