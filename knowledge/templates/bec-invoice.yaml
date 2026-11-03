@@ -38,8 +38,8 @@ stages:
     accepts: [T1204, T1204.002]
   - id: money
     labelJa: 資金が流出する
-    breachedJa: 送金に使われる
-    breachedDoneJa: 送金に使われました
+    breachedJa: 起きる
+    breachedDoneJa: 起きました
     tactics: [TA0040]
     byRole:
       impact.money: null
