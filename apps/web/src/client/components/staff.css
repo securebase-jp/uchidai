@@ -260,3 +260,31 @@
     margin-top: 6px;
   }
 }
+
+/* 読解の段階の表：幅が狭いときは行ごとに縦に積み、項目名を左に出す */
+@media (max-width: 720px) {
+  table.evidence.stacked thead {
+    display: none;
+  }
+  table.evidence.stacked,
+  table.evidence.stacked tbody,
+  table.evidence.stacked tr {
+    display: block;
+  }
+  table.evidence.stacked tr {
+    border-bottom: 1px solid var(--edge);
+    padding: 6px 0;
+  }
+  table.evidence.stacked td {
+    display: grid;
+    grid-template-columns: 6.5em minmax(0, 1fr);
+    gap: 0 8px;
+    border: 0;
+    padding: 3px 0;
+  }
+  table.evidence.stacked td::before {
+    content: attr(data-label);
+    color: var(--ink-2);
+    font-size: 12px;
+  }
+}

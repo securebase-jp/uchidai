@@ -267,32 +267,36 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
             </p>
           </InfoButton>
         </h2>
-        <table className="evidence">
+        <table className="evidence stacked">
           <thead>
             <tr>
               <th>戦術</th>
               <th>手法</th>
-              <th>記載／推定</th>
+              <th>記事に書いてある／推定</th>
               <th>要約と根拠文</th>
             </tr>
           </thead>
           <tbody>
             {theCase.steps.map((s) => (
               <tr key={`${s.tactic}-${s.techniques.join(",")}-${s.quote ?? s.summaryJa ?? ""}`}>
-                <td>
+                <td data-label="戦術">
                   {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                 </td>
-                <td>
+                <td data-label="手法">
                   {s.techniques.map((t) => (
                     <div key={t}>
                       {labels.techniques[t] ?? ""}（<code>{t}</code>）
                     </div>
                   ))}
                 </td>
-                <td>
-                  {s.source === "stated" ? "記載" : s.source === "inferred" ? "推定" : "不明"}
+                <td data-label="記事に書いてある／推定">
+                  {s.source === "stated"
+                    ? "記事に書いてある"
+                    : s.source === "inferred"
+                      ? "推定"
+                      : "不明"}
                 </td>
-                <td>
+                <td data-label="要約と根拠文">
                   {s.summaryJa}
                   {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
                 </td>
