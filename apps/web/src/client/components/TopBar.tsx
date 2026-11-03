@@ -27,7 +27,6 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
     <header className="topbar">
       <a className="brand" href="#/">
         <Logo />
-        <span className="brand-tag">うちの会社は大丈夫？</span>
       </a>
       <nav aria-label="画面">
         {NAV.map(([r, label]) => (

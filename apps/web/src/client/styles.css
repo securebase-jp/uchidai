@@ -152,7 +152,7 @@ p {
   text-decoration: none;
 }
 .brand .logo {
-  height: 40px;
+  height: 56px;
   width: auto;
 }
 .brand-tag {
@@ -228,7 +228,7 @@ p {
     white-space: nowrap;
   }
   .brand .logo {
-    height: 32px;
+    height: 44px;
   }
   .topbar nav {
     width: 100%;
