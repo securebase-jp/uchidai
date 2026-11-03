@@ -10,6 +10,7 @@
  * 押すと小さな吹き出しが開き、もう一度押す・外を押す・Esc で閉じる。
  */
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { useFitInViewport } from "../hooks/useFitInViewport.ts";
 
 type Props = {
   /** 吹き出しの見出し。ボタンの読み上げ名にも使う */
@@ -24,6 +25,9 @@ export function InfoButton({ title, children, align = "start" }: Props) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const root = useRef<HTMLSpanElement>(null);
+  const pop = useRef<HTMLElement>(null);
+  // 吹き出しは必ず画面内に収める（左右にはみ出す分だけずらす）
+  useFitInViewport(pop, open);
 
   useEffect(() => {
     if (!open) return;
@@ -54,7 +58,7 @@ export function InfoButton({ title, children, align = "start" }: Props) {
         i
       </button>
       {open && (
-        <section className="info-pop" id={id} aria-label={title}>
+        <section className="info-pop" id={id} aria-label={title} ref={pop}>
           <div className="info-title">{title}</div>
           <div className="info-body">{children}</div>
         </section>

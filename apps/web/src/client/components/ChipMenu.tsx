@@ -4,6 +4,7 @@
  * もう一度押す・外を押す・Esc で閉じる。↑↓ で項目を移動し、Enter／Space で選ぶ。aria-expanded を持つ
  */
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { useFitInViewport } from "../hooks/useFitInViewport.ts";
 
 export type ChipMenuItem = {
   key: string;
@@ -36,6 +37,8 @@ export function ChipMenu({ label, title, items, note, emptyJa, className }: Prop
   const root = useRef<HTMLSpanElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  useFitInViewport(pop, open);
 
   useEffect(() => {
     if (!open) return;
@@ -86,7 +89,7 @@ export function ChipMenu({ label, title, items, note, emptyJa, className }: Prop
         {label}
       </button>
       {open && (
-        <div className="info-pop chip-menu-pop" id={id}>
+        <div className="info-pop chip-menu-pop" id={id} ref={pop}>
           <div className="info-title">{title}</div>
           {note && <p className="chip-menu-note">{note}</p>}
           <div
