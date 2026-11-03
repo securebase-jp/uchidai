@@ -17,6 +17,8 @@ export type Placed = {
   side: Side;
   col: number;
   row: number;
+  /** 同じ列に積まれた箱の数（行が多い列では箱の上に飾りを置く余白が無い） */
+  rows: number;
   depth: number;
 };
 export type Plane = {
@@ -260,6 +262,7 @@ export function layoutGraph(graph: Graph): Layout {
       side: n.side,
       col,
       row,
+      rows,
       depth: depth.get(n.id) ?? 0,
     };
   };

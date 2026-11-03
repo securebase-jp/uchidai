@@ -178,11 +178,21 @@ function Node({
           {v.technique}
         </text>
       )}
-      {estimated && (
+      {estimated && p.rows <= 3 && (
         <g>
           <rect className="est-box" x={x0} y={y0 - 16} width={66} height={14} rx={7} />
           <text className="est" x={x0 + 33} y={y0 - 5.5} textAnchor="middle">
             外部から推定
+          </text>
+        </g>
+      )}
+      {estimated && p.rows > 3 && (
+        // 行が多い列は箱の上に余白が無いので、右端にまたがる小さな札にする
+        <g>
+          <title>外部から推定</title>
+          <rect className="est-box" x={x0 + p.w - 14} y={p.y - 7} width={28} height={14} rx={7} />
+          <text className="est" x={x0 + p.w} y={p.y + 3.5} textAnchor="middle">
+            推定
           </text>
         </g>
       )}
@@ -263,14 +273,26 @@ export function Diagram({
           />
         );
       })}
-      {layout.planes.map((p) => (
-        <text key={`${p.layer}-t`} className="layer-label" x={p.topL + 14} y={p.top + 25}>
-          {planeSub(p.layer)[0]}
-          <tspan className="layer-sub" dx={10}>
-            {planeSub(p.layer)[1]}
-          </tspan>
-        </text>
-      ))}
+      {layout.planes.map((p) =>
+        // 面の左上に重ねる。背の高いシステムの面は 2 行、低い業務・経営の面は 1 行
+        p.layer === "system" ? (
+          <g key={`${p.layer}-t`}>
+            <text className="layer-label" x={p.topL + 14} y={p.top + 25}>
+              {planeSub(p.layer)[0]}
+            </text>
+            <text className="layer-sub" x={p.topL + 14} y={p.top + 43}>
+              {planeSub(p.layer)[1]}
+            </text>
+          </g>
+        ) : (
+          <text key={`${p.layer}-t`} className="layer-label" x={p.topL + 14} y={p.top + 25}>
+            {planeSub(p.layer)[0]}
+            <tspan className="layer-sub" dx={10}>
+              {planeSub(p.layer)[1]}
+            </tspan>
+          </text>
+        ),
+      )}
       {layout.dividers.map((d, i) => {
         const p = layout.planes.find((x) => x.layer === d.layer);
         if (!p) return null;
