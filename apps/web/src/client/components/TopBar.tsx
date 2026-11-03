@@ -58,8 +58,15 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
           </a>
         ))}
       </nav>
-      <span className="spacer" />
-      <div className="chips">
+      <button
+        type="button"
+        className="btn sm theme-toggle"
+        onClick={onToggleTheme}
+        aria-label="暗い背景と明るい背景を切り替える"
+      >
+        {theme === "dark" ? "明るい画面" : "暗い画面"}
+      </button>
+      <div className="chips topbar-chips">
         {profile && (
           <span className="chip">
             {profile.companyName}
@@ -91,14 +98,6 @@ export function TopBar({ route, profile, attackVersion, theme, onToggleTheme, ca
             判定そのものはプログラムが行い、Claude は記事を読む・言い換えることだけを担当します。
           </p>
         </InfoButton>
-        <button
-          type="button"
-          className="btn sm"
-          onClick={onToggleTheme}
-          aria-label="黒背景と明るい背景を切り替える"
-        >
-          {theme === "dark" ? "明るい画面" : "黒い画面"}
-        </button>
       </div>
     </header>
   );

@@ -136,11 +136,21 @@ p {
 
 /* 上部バー */
 .topbar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 14px;
   flex-wrap: wrap;
-  padding: 4px 0 10px;
+  padding: 4px 120px 10px 0; /* 右上の切り替えボタンの場所を空けておく */
+}
+/* 明るさの切り替えは常に右上。会社名・事例名のチップはその下の段に */
+.topbar .theme-toggle {
+  position: absolute;
+  top: 8px;
+  right: 0;
+}
+.topbar .topbar-chips {
+  flex-basis: 100%;
 }
 .brand {
   display: inline-flex;
@@ -180,6 +190,13 @@ p {
   .tagline {
     white-space: normal;
     font-size: 11px;
+  }
+  /* 狭い画面では、右上のボタンの場所をロゴの段だけで空け、画面切替は全幅に並べる */
+  .topbar {
+    padding-right: 0;
+  }
+  .brand-block {
+    padding-right: 110px;
   }
 }
 .brand-tag {
