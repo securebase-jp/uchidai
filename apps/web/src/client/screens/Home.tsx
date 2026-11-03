@@ -206,17 +206,25 @@ export function Home() {
     <div className="home">
       <section className="hero">
         <div className="define lead">
-          社長の「うちは大丈夫？」に、根拠つきで答えます。
-          <InfoButton title="このツールの仕組み">
-            <p>
-              他社の被害の報道を貼ると、Claude
-              が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
-            </p>
-            <p>
-              Claude
-              は読む・言い換えるだけです。止まるかの判定、日数と金額、期限はプログラムが決めます。
-            </p>
-          </InfoButton>
+          <span className="lead-line">
+            サイバー攻撃被害のニュースを見て、「うちの会社は大丈夫か？」と、社長が聞く。
+          </span>
+          <span className="lead-line">
+            日本企業ではよくある風習ですが、情シス担当はその都度、調査に大忙しです。
+          </span>
+          <span className="lead-line">
+            ウチダイは「社長向けの一枚」をもって、情シス担当による説明を支援します。
+            <InfoButton title="このツールの仕組み">
+              <p>
+                他社の被害の報道を貼ると、Claude
+                が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
+              </p>
+              <p>
+                Claude
+                は読む・言い換えるだけです。止まるかの判定、日数と金額、期限はプログラムが決めます。
+              </p>
+            </InfoButton>
+          </span>
         </div>
       </section>
 

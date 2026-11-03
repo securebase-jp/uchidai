@@ -1120,11 +1120,17 @@ table.evidence code {
   padding: 40px 0 24px;
 }
 /* 見出しを置かない導入文：一行目として少し大きく */
+/* 導入文：3 行の短い段落。見出しではないので本文より少し大きい程度に */
 .hero .define.lead {
-  font-family: var(--serif);
-  font-size: clamp(20px, 2.6vw, 26px);
-  font-weight: 700;
-  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.9;
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+.hero .lead-line {
+  display: block;
 }
 .hero h1 {
   font-family: var(--serif);
