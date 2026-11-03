@@ -1,6 +1,7 @@
 /** 回答ページ（#/answer/:token）：ベンダーがスマホで開き、1 問に答える。縦長で大きなボタン */
 import { useEffect, useState } from "react";
 import type { AnswerPageView } from "../../shared/requests.ts";
+import { Logo } from "../components/Logo.tsx";
 import { ApiError } from "../lib/api.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
 import "../components/requests.css";
@@ -36,7 +37,8 @@ export function Answer({ token }: { token: string }) {
   return (
     <main className="answer">
       <a className="brand" href="#/">
-        <b>ウチダイ</b>確認のお願い
+        <Logo />
+        <span className="brand-tag">確認のお願い</span>
       </a>
       {error && <p className="err">{error}</p>}
       {!page && !error && <p className="muted">読み込んでいます…</p>}

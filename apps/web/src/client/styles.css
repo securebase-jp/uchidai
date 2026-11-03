@@ -142,16 +142,33 @@ p {
   padding: 4px 0 10px;
 }
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
   font-size: 15px;
   color: var(--ink-2);
   text-decoration: none;
 }
-.brand b {
-  color: var(--ink);
-  font-size: 18px;
-  margin-right: 8px;
+.brand .logo {
+  height: 56px;
+  width: auto;
+}
+.brand-tag {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+/* 黒背景（標準）は白文字のロゴ、白背景は濃紺文字のロゴ */
+.brand .logo-on-light {
+  display: none;
+}
+:root[data-theme="light"] .brand .logo-on-dark {
+  display: none;
+}
+:root[data-theme="light"] .brand .logo-on-light {
+  display: inline;
 }
 .topbar nav {
   display: flex;
@@ -209,6 +226,9 @@ p {
   .brand {
     width: 100%;
     white-space: nowrap;
+  }
+  .brand .logo {
+    height: 44px;
   }
   .topbar nav {
     width: 100%;
