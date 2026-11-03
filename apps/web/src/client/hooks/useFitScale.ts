@@ -8,6 +8,8 @@ import { fitScale } from "../lib/fit.ts";
 
 /** 舞台の下に残す余白（.wrap:has(.exec) の padding-bottom と合わせる） */
 const BOTTOM_GAP = 12;
+/** これより狭い幅では自動の縮小をしない（styles.css の 2 列化の境界と同じ） */
+const NARROW_LIMIT = 1000;
 
 export type FitScale = {
   /** いま使う倍率（手動があれば手動、なければ自動） */
@@ -43,7 +45,9 @@ export function useFitScale(
       const w = i.offsetWidth;
       const h = i.offsetHeight;
       setNatural(h);
-      setAuto(enabled ? fitScale(availW, availH, w, h) : 1);
+      // 幅 1000px 未満（スマホ・縦並び）では縮めない。縦に積んだ舞台を高さに合わせると
+      // 0.4 倍まで縮んで構成図が読めなくなるため、そこでは普通にスクロールさせる
+      setAuto(enabled && availW >= NARROW_LIMIT ? fitScale(availW, availH, w, h) : 1);
     };
     measure();
     const ro = new ResizeObserver(measure);
