@@ -1,12 +1,14 @@
 /**
  * はじめに（#/）：自社で使う流れを 5 段で示し、各段に「いまの状態」を出す。
  * ① ドメインを外から見る（任意）→ ② 最初の5問 → ③ カルテの詳細 → ④ 記事を貼る（またはキー無しで記録済みの事例）→ ⑤ 結論。
+ * 画面の文字は最小限にする：仕組みや安全面の説明は各段の見出し横の情報ボタン（i）の中にだけ出す。
  * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
  */
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api } from "../lib/api.ts";
-import { type HomeStep, homeSteps } from "../lib/home-status.ts";
+import { type HomeStep, homeSteps, type StepId } from "../lib/home-status.ts";
 import { pendingCount } from "../lib/profile.ts";
 import { reconHints } from "../lib/reconHints.ts";
 
@@ -25,6 +27,44 @@ const TONE_WORD: Record<HomeStep["tone"], string> = {
 };
 /** PDF の上限（API の base64 上限 28,000,000 文字に収まる大きさ） */
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
+/** 記事を読めないサーバ（キー無し）だと分かったら覚えておき、次からは「記録済みの事例」のタブを先に出す */
+const READ_UNAVAILABLE_KEY = "uchidai.home.readUnavailable.v1";
+
+/** 各段の情報ボタンに出す説明（段の定義 leadJa のあとに続ける段落）。箇条書きにせず、です・ます調で書く */
+const STEP_INFO: Record<StepId, { title: string; paragraphs: string[] }> = {
+  domain: {
+    title: "外部確認とは",
+    paragraphs: [
+      "対象のホストには一切アクセスしません。ポートスキャン、Web の取得、ログイン画面の確認、TLS 接続のどれも行わず、DNS の公開レコードと証明書の公開ログだけを参照します。",
+      "所有の確認は DNS の TXT レコードで行い、24 時間で失効します。架空のドメインを入れると、記録した応答を再生して試せます。",
+    ],
+  },
+  questions: {
+    title: "最初の5問とは",
+    paragraphs: [
+      "文字入力はありません。2 分以内で終わります。回答はこのブラウザにだけ保存され、会社名はあとでカルテの画面で登録できます。",
+    ],
+  },
+  profile: {
+    title: "カルテの詳細とは",
+    paragraphs: [
+      "根拠は「外部確認」「ベンダー回答」「担当者登録」の順に強く扱います。未確認（分からない）は決して「止まる」とは扱いません。",
+    ],
+  },
+  article: {
+    title: "記事を貼るとは",
+    paragraphs: [
+      "記事は信頼できないデータとして扱い、指示文と分けて Claude に渡します。存在しない手法 ID や、攻撃の型（型紙）にない手法は破棄します。",
+      "サーバに Claude API のキーが無いときはその旨が出ますので、「記録済みの事例」から選んでください。記録済みの事例は、IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」を Claude が読んだ結果の記録です。",
+    ],
+  },
+  result: {
+    title: "結論の見方",
+    paragraphs: [
+      "担当者画面では根拠と対策のボタンを、社長画面では自動再生を、社長向けの一枚では印刷と共有リンクを使えます。",
+    ],
+  },
+};
 
 function toBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
@@ -33,6 +73,25 @@ function toBase64(buf: ArrayBuffer): string {
     bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(bin);
 }
+
+const readUnavailable = {
+  load: (): boolean => {
+    try {
+      return localStorage.getItem(READ_UNAVAILABLE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  },
+  save: () => {
+    try {
+      localStorage.setItem(READ_UNAVAILABLE_KEY, "1");
+    } catch {
+      /* 保存できなくても動作には影響しない */
+    }
+  },
+};
+
+export type ArticleTab = "url" | "text" | "pdf" | "recorded";
 
 export function Home() {
   const app = useApp();
@@ -43,6 +102,8 @@ export function Home() {
   const [reading, setReading] = useState<"url" | "text" | "pdf">();
   const [readError, setReadError] = useState<{ message: string; keyMissing: boolean }>();
   const [recon] = useState(() => reconHints.load());
+  // 既定のタブ：キーが無いと分かっているサーバでは「記録済みの事例」、それ以外は「URL」
+  const [tab, setTab] = useState<ArticleTab>(() => (readUnavailable.load() ? "recorded" : "url"));
 
   useEffect(() => {
     api
@@ -95,10 +156,12 @@ export function Home() {
       location.hash = "/staff";
     } catch (e) {
       // キーが無いサーバは 503（文言はサーバ）。記録済みの事例へ自然に流す
+      const keyMissing = e instanceof ApiError && e.status === 503;
       setReadError({
         message: e instanceof ApiError || e instanceof Error ? e.message : "読解に失敗しました",
-        keyMissing: e instanceof ApiError && e.status === 503,
+        keyMissing,
       });
+      if (keyMissing) readUnavailable.save();
     } finally {
       setReading(undefined);
     }
@@ -124,11 +187,18 @@ export function Home() {
     <div className="home">
       <section className="hero">
         <h1>うちの会社は大丈夫？</h1>
-        <p className="define">「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。</p>
-        <p>
-          他社の被害の報道を貼ると、Claude
-          が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
-          Claude は読む・言い換えるだけ。止まるかの判定、日数と金額、期限はプログラムが決めます。
+        <p className="define">
+          「その対策、この攻撃に効きますか？」に、根拠つきで答える道具。
+          <InfoButton title="この道具の仕組み">
+            <p>
+              他社の被害の報道を貼ると、Claude
+              が記事を読んで攻撃の段階を対応づけ、プログラムが自社の構成の上で「止められるか」を判定します。
+            </p>
+            <p>
+              Claude
+              は読む・言い換えるだけです。止まるかの判定、日数と金額、期限はプログラムが決めます。
+            </p>
+          </InfoButton>
         </p>
       </section>
 
@@ -139,15 +209,28 @@ export function Home() {
               <span className="step-n" aria-hidden="true">
                 {s.n}
               </span>
-              <h2>{s.titleJa}</h2>
+              <h2>
+                {s.titleJa}
+                <InfoButton title={STEP_INFO[s.id].title}>
+                  <p>{s.leadJa}</p>
+                  {s.noteJa && <p>{s.noteJa}</p>}
+                  {STEP_INFO[s.id].paragraphs.map((t) => (
+                    <p key={t}>{t}</p>
+                  ))}
+                </InfoButton>
+              </h2>
               <span className="step-status">
                 <b className={`step-tag ${s.tone}`}>{TONE_WORD[s.tone]}</b>
                 {s.statusJa}
               </span>
             </div>
-            <p className="muted small">{s.leadJa}</p>
             {s.id === "article" ? (
               <ArticleStep
+                tab={tab}
+                onTab={(t) => {
+                  setTab(t);
+                  setReadError(undefined);
+                }}
                 recorded={recorded}
                 current={current}
                 onPick={(id) => void app.loadRecorded(id)}
@@ -164,13 +247,13 @@ export function Home() {
             ) : s.id === "result" ? (
               <div className="row" style={{ marginTop: 10 }}>
                 <Go to="/staff" disabled={!ready} primary>
-                  担当者画面（根拠と対策ボタン）
+                  担当者画面
                 </Go>
                 <Go to="/exec" disabled={!ready}>
-                  社長画面（自動再生）
+                  社長画面
                 </Go>
                 <Go to="/onepager" disabled={!ready}>
-                  社長向けの一枚（印刷・共有リンク）
+                  社長向けの一枚
                 </Go>
               </div>
             ) : (
@@ -213,24 +296,27 @@ export function Home() {
         </p>
       </aside>
 
-      <ul className="promises small">
-        <li>
-          <b className="promise-head">会社カルテはこのブラウザにだけ保存。</b>
-          サーバには残しません（判定のたびに API へ渡しますが保存しません）。
-        </li>
-        <li>
-          <b className="promise-head">Claude に送るのは記事と判定結果だけ。</b>
-          社名・製品名・ホスト名は送らず、出力は検証してから使います。
-        </li>
-        <li>
-          <b className="promise-head">対象ホストにはアクセスしません。</b>
-          外部確認は所有を確認したドメインの DNS と証明書の公開ログだけを参照します。
-        </li>
-      </ul>
-      <p className="muted small" style={{ marginTop: 8 }}>
-        出典：MITRE ATT&amp;CK Enterprise
-        {app.knowledge ? ` v${app.knowledge.attackVersion}` : ""}、IPA
-        事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料。ICS は対象外です。
+      <p className="home-foot small muted">
+        データの扱いと出典
+        <InfoButton title="データの扱いと出典">
+          <p>
+            会社カルテはこのブラウザにだけ保存し、サーバには残しません。判定のたびに API
+            へ渡しますが、保存はしません。
+          </p>
+          <p>
+            Claude
+            に送るのは記事と判定結果だけです。社名・製品名・ホスト名は送らず、出力は検証してから使います。
+          </p>
+          <p>
+            対象ホストにはアクセスしません。外部確認は、所有を確認したドメインの DNS
+            と証明書の公開ログだけを参照します。
+          </p>
+          <p>
+            出典は MITRE ATT&amp;CK Enterprise
+            {app.knowledge ? ` v${app.knowledge.attackVersion}` : ""}、IPA
+            事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料です。ICS は対象外です。
+          </p>
+        </InfoButton>
       </p>
       {app.error && (
         <p className="err" style={{ marginTop: 12 }}>
@@ -267,7 +353,16 @@ function Go({
   );
 }
 
+const TABS: [ArticleTab, string][] = [
+  ["url", "URL"],
+  ["text", "本文"],
+  ["pdf", "PDF"],
+  ["recorded", "記録済みの事例"],
+];
+
 type ArticleProps = {
+  tab: ArticleTab;
+  onTab(t: ArticleTab): void;
   recorded: Recorded[];
   current: string | undefined;
   onPick(id: string): void;
@@ -282,20 +377,29 @@ type ArticleProps = {
   onRead(kind: "url" | "text"): void;
 };
 
+/** 記事の入力：URL／本文／PDF／記録済みの事例 の 4 つを切り替えて、一度に 1 つだけ見せる */
 function ArticleStep(p: ArticleProps) {
   const busy = p.reading !== undefined;
-  const recordedRef = useRef<HTMLDivElement>(null);
-  const goRecorded = () => {
-    recordedRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-    recordedRef.current?.querySelector<HTMLInputElement>("input[type=radio]")?.focus({
-      preventScroll: true,
-    });
-  };
+  const panelId = "article-tab-panel";
   return (
     <div className="article-step">
-      <div className="article-paste">
-        <h3>記事を貼る（サーバに Claude API のキーが必要）</h3>
-        <div className="stack">
+      <div className="tabbar" role="tablist" aria-label="記事の入力方法">
+        {TABS.map(([t, label]) => (
+          <button
+            type="button"
+            key={t}
+            role="tab"
+            className="tab"
+            aria-selected={p.tab === t}
+            aria-controls={panelId}
+            onClick={() => p.onTab(t)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="tabpanel" role="tabpanel" id={panelId}>
+        {p.tab === "url" && (
           <div className="row">
             <input
               className="in"
@@ -304,34 +408,44 @@ function ArticleStep(p: ArticleProps) {
               value={p.url}
               onChange={(e) => p.onUrl(e.target.value)}
               disabled={busy}
+              aria-label="記事の URL"
             />
             <button
               type="button"
-              className="btn sm"
+              className="btn sm primary"
               disabled={!p.url || busy}
               onClick={() => p.onRead("url")}
             >
               {p.reading === "url" ? "読んでいます…" : "URL を読む"}
             </button>
           </div>
-          <textarea
-            className="in"
-            placeholder="記事の本文を貼り付け（40 文字以上）"
-            value={p.text}
-            onChange={(e) => p.onText(e.target.value)}
-            disabled={busy}
-          />
+        )}
+        {p.tab === "text" && (
+          <div className="stack">
+            <textarea
+              className="in"
+              placeholder="記事の本文を貼り付け（40 文字以上）"
+              value={p.text}
+              onChange={(e) => p.onText(e.target.value)}
+              disabled={busy}
+              aria-label="記事の本文"
+            />
+            <div className="row">
+              <button
+                type="button"
+                className="btn sm primary"
+                disabled={p.text.length < 40 || busy}
+                onClick={() => p.onRead("text")}
+              >
+                {p.reading === "text" ? "読んでいます…" : "本文を読む"}
+              </button>
+            </div>
+          </div>
+        )}
+        {p.tab === "pdf" && (
           <div className="row">
-            <button
-              type="button"
-              className="btn sm"
-              disabled={p.text.length < 40 || busy}
-              onClick={() => p.onRead("text")}
-            >
-              {p.reading === "text" ? "読んでいます…" : "本文を読む"}
-            </button>
-            <label className="btn sm" aria-disabled={busy}>
-              {p.reading === "pdf" ? "読んでいます…" : "PDF を読む"}
+            <label className="btn sm primary" aria-disabled={busy}>
+              {p.reading === "pdf" ? "読んでいます…" : "PDF を選ぶ"}
               <input
                 type="file"
                 accept="application/pdf,.pdf"
@@ -343,52 +457,47 @@ function ArticleStep(p: ArticleProps) {
                 }}
               />
             </label>
-            {p.pdfName && <span className="muted small">{p.pdfName}</span>}
+            <span className="muted small">{p.pdfName ?? "20 MB まで"}</span>
           </div>
-          {p.error && (
-            <div role="alert">
-              <p className="err small">{p.error.message}</p>
-              {p.error.keyMissing && (
-                <p className="small" style={{ marginTop: 6 }}>
-                  このサーバでは記事を読めませんが、記録済みの事例（IPA 事例集 5
-                  件）で判定まで進めます。
-                  <button type="button" className="btn sm" onClick={goRecorded}>
-                    記録済みの事例から選ぶ
-                  </button>
-                </p>
-              )}
-            </div>
-          )}
-          <p className="muted small">
-            記事は信頼できないデータとして扱い、指示文と分けて渡します。存在しない手法 ID
-            や型紙にない手法は破棄します。キーが無いサーバではその旨が出るので、下の記録済みの事例から選んでください。
+        )}
+        {p.tab === "recorded" && (
+          <div className="article-recorded">
+            {p.recorded.map((r) => (
+              <label className="opt" key={r.caseId}>
+                <input
+                  type="radio"
+                  name="case"
+                  checked={p.current === r.caseId}
+                  onChange={() => p.onPick(r.caseId)}
+                />
+                <span>
+                  <b>{DAMAGE[r.damageType] ?? r.damageType}</b>　{r.title}
+                  <br />
+                  <span className="muted">{r.caseId.replace("ipa-case-", "被害事例 ")}</span>
+                </span>
+              </label>
+            ))}
+            {p.recorded.length === 0 && <p className="muted small">記録を読み込んでいます…</p>}
+          </div>
+        )}
+        {p.tab !== "recorded" && (
+          <p className="muted small" style={{ marginTop: 8 }}>
+            サーバに Claude API のキーが必要です。
           </p>
-        </div>
-      </div>
-      <div className="article-recorded" ref={recordedRef}>
-        <h3>記録済みの事例から選ぶ（キー不要）</h3>
-        <p className="muted small">
-          IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」を Claude
-          が読んだ結果の記録です。
-        </p>
-        <div style={{ marginTop: 6 }}>
-          {p.recorded.map((r) => (
-            <label className="opt" key={r.caseId}>
-              <input
-                type="radio"
-                name="case"
-                checked={p.current === r.caseId}
-                onChange={() => p.onPick(r.caseId)}
-              />
-              <span>
-                <b>{DAMAGE[r.damageType] ?? r.damageType}</b>　{r.title}
-                <br />
-                <span className="muted">{r.caseId.replace("ipa-case-", "被害事例 ")}</span>
-              </span>
-            </label>
-          ))}
-          {p.recorded.length === 0 && <p className="muted small">記録を読み込んでいます…</p>}
-        </div>
+        )}
+        {p.error && (
+          <div role="alert" style={{ marginTop: 8 }}>
+            <p className="err small">{p.error.message}</p>
+            {p.error.keyMissing && (
+              <p className="small row" style={{ marginTop: 6 }}>
+                このサーバでは記事を読めませんが、記録済みの事例（IPA 事例集）で判定まで進めます。
+                <button type="button" className="btn sm" onClick={() => p.onTab("recorded")}>
+                  記録済みの事例から選ぶ
+                </button>
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
