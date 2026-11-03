@@ -3,7 +3,7 @@
  * 押すと情報ボタン（i）と同じ見た目の吹き出しが開き、中の項目を選ぶ。
  * もう一度押す・外を押す・Esc で閉じる。↑↓ で項目を移動し、Enter／Space で選ぶ。aria-expanded を持つ
  */
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { useFitInViewport } from "../hooks/useFitInViewport.ts";
 
 export type ChipMenuItem = {
@@ -14,6 +14,8 @@ export type ChipMenuItem = {
   current?: boolean;
   /** 項目の右に小さく出す印（「架空」など） */
   mark?: string;
+  /** この項目の下に区切り線を引く */
+  dividerAfter?: boolean;
   onPick(): void;
 };
 
@@ -100,20 +102,22 @@ export function ChipMenu({ label, title, items, note, emptyJa, className }: Prop
             onKeyDown={onListKey}
           >
             {items.map((it) => (
-              <button
-                type="button"
-                key={it.key}
-                role="option"
-                aria-selected={it.current ?? false}
-                className={`chip-menu-item ${it.current ? "current" : ""}`}
-                onClick={() => {
-                  setOpen(false);
-                  it.onPick();
-                }}
-              >
-                <span className="chip-menu-text">{it.labelJa}</span>
-                {it.mark && <small className="chip-mark">{it.mark}</small>}
-              </button>
+              <Fragment key={it.key}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={it.current ?? false}
+                  className={`chip-menu-item ${it.current ? "current" : ""}`}
+                  onClick={() => {
+                    setOpen(false);
+                    it.onPick();
+                  }}
+                >
+                  <span className="chip-menu-text">{it.labelJa}</span>
+                  {it.mark && <small className="chip-mark">{it.mark}</small>}
+                </button>
+                {it.dividerAfter && <hr className="chip-menu-sep" />}
+              </Fragment>
             ))}
             {items.length === 0 && emptyJa && <p className="muted small">{emptyJa}</p>}
           </div>

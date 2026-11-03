@@ -60,17 +60,26 @@ describe("companyChoices（上部バーの会社の選択肢）", () => {
 });
 
 describe("caseChoices（上部バーの事例の選択肢）", () => {
-  it("記録済みの事例を被害の型と題名で並べ、最後に「記事を貼る」を置く", () => {
-    const list = caseChoices([
-      { caseId: "ipa-case-1", title: "VPN の事例", damageType: "ransomware" },
-      { caseId: "ipa-case-5", title: "送金の事例", damageType: "bec" },
-    ]);
+  const recorded = [
+    { caseId: "ipa-case-1", title: "VPN の事例", damageType: "ransomware" },
+    { caseId: "ipa-case-5", title: "送金の事例", damageType: "bec" },
+  ];
+  it("先頭に「記事を貼る…」を置き、そのあとに記録済みの事例を被害の型と題名で並べる", () => {
+    const list = caseChoices(recorded);
     expect(list.map((c) => c.labelJa)).toEqual([
+      "記事を貼る…",
       "業務停止　VPN の事例",
       "なりすまし送金　送金の事例",
-      "記事を貼る（はじめにへ）",
     ]);
-    expect(list[0]).toMatchObject({ kind: "recorded", id: "ipa-case-1", damageJa: "業務停止" });
-    expect(list.at(-1)?.kind).toBe("article");
+    expect(list[0]?.kind).toBe("article");
+    expect(list[1]).toMatchObject({ kind: "recorded", id: "ipa-case-1", damageJa: "業務停止" });
+  });
+  it("キーが無いサーバ（readAvailable === false）では「記事を貼る…」に注記を添える。不明・可なら添えない", () => {
+    expect(caseChoices(recorded, false)[0]?.labelJa).toBe("記事を貼る…（Claude API のキーが必要）");
+    expect(caseChoices(recorded, true)[0]?.labelJa).toBe("記事を貼る…");
+    expect(caseChoices(recorded, undefined)[0]?.labelJa).toBe("記事を貼る…");
+  });
+  it("記録済みの事例が読み込めていなくても「記事を貼る…」は出る", () => {
+    expect(caseChoices([]).map((c) => c.kind)).toEqual(["article"]);
   });
 });
