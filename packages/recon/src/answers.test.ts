@@ -278,3 +278,48 @@ describe("applyAssetHints と外部確認の名前の突き合わせ（external 
     ).toBeUndefined();
   });
 });
+
+describe("applyAssetHints のドメインの付け替え", () => {
+  it("外部確認のドメインがカルテと違えば、廃止済み資産の残存をその名前で突き合わせ、カルテのホスト名も更新する", () => {
+    const profile: CompanyProfile = {
+      id: "p",
+      companyName: "テスト",
+      fictional: false,
+      domain: "demo-seiko.example",
+      domainVerified: false,
+      pattern: "manufacturing",
+      assets: [
+        {
+          id: "old",
+          kind: "system",
+          role: "entry.web",
+          label: "旧サイト",
+          attrs: { decommissioned: true, hostname: "campaign2019.demo-seiko.example" },
+          attrEvidence: { decommissioned: "registered", hostname: "registered" },
+          controls: [],
+        },
+      ],
+      businesses: [],
+      personalData: [],
+    };
+    const next = applyAssetHints(profile, [], {
+      domain: "exe-com.com",
+      checkedAt: "2026-11-03T00:00:00Z",
+      hostnames: [
+        {
+          name: "campaign2019.exe-com.com",
+          resolves: true,
+          addresses: ["203.0.113.82"],
+          certCount: 1,
+          activeCertCount: 0,
+          lastExpiry: "2019-07-30T00:00:00Z",
+          wildcard: false,
+        } as never,
+      ],
+    });
+    const old = next.assets[0];
+    expect(old?.attrs.externallySeen).toBe(true);
+    expect(old?.attrs.hostname).toBe("campaign2019.exe-com.com");
+    expect(old?.attrEvidence.hostname).toBe("registered");
+  });
+});
