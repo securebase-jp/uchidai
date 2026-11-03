@@ -2,13 +2,13 @@
   "caseId": "ipa-case-1",
   "mode": "without-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T06:32:33.200Z",
+  "recordedAt": "2026-11-03T06:03:38.692Z",
   "note": "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "VPN装置の脆弱性悪用によるランサムウェア感染と業務データ・バックアップの暗号化",
+    "title": "VPN装置の脆弱性を悪用されたランサムウェア感染と業務データの暗号化（製造業）",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -16,8 +16,8 @@
           "T1190"
         ],
         "source": "stated",
-        "quote": "リモートワーク用VPN装置の脆弱性更新漏れ",
-        "summaryJa": "更新されていなかったリモートワーク用VPN装置の脆弱性を突かれ、社内に侵入された"
+        "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
+        "summaryJa": "リモートワーク用VPN装置の脆弱性（更新漏れ）を突かれて社内ネットワークに侵入された"
       },
       {
         "tactic": "TA0006",
@@ -26,16 +26,36 @@
           "T1003"
         ],
         "source": "inferred",
-        "summaryJa": "侵入後、管理者などの認証情報を手に入れて権限を広げたと考えられる"
+        "summaryJa": "侵入後に管理者などの認証情報を入手したと考えられる"
       },
       {
         "tactic": "TA0008",
         "techniques": [
-          "T1021",
-          "T1570"
+          "T1021.002",
+          "T1021.001"
         ],
         "source": "inferred",
-        "summaryJa": "社内ネットワークの他のサーバや端末へ感染を広げたと考えられる"
+        "summaryJa": "社内の他のサーバや端末へ侵入範囲を広げたと考えられる"
+      },
+      {
+        "tactic": "TA0005",
+        "techniques": [
+          "T1685"
+        ],
+        "source": "stated",
+        "quote": "ウイルス対策ソフトの監視が及ばない経路で攻撃を受けた",
+        "summaryJa": "ウイルス対策ソフトの監視が及ばない経路で攻撃が行われた"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1490",
+          "T1485",
+          "T1486"
+        ],
+        "source": "stated",
+        "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
+        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が難しくなった"
       },
       {
         "tactic": "TA0040",
@@ -44,26 +64,15 @@
         ],
         "source": "stated",
         "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
-        "summaryJa": "設計データと経理データが暗号化され、一部業務が停止し納期遅延が発生した"
-      },
-      {
-        "tactic": "TA0040",
-        "techniques": [
-          "T1486",
-          "T1490",
-          "T1485"
-        ],
-        "source": "stated",
-        "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が困難になった"
+        "summaryJa": "設計データや経理データが暗号化され、一部業務が停止し納期遅延が発生した"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "VPN装置の脆弱性悪用によるランサムウェア感染と業務データ・バックアップの暗号化",
+    "title": "VPN装置の脆弱性を悪用されたランサムウェア感染と業務データの暗号化（製造業）",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
@@ -71,8 +80,8 @@
           "T1190"
         ],
         "source": "stated",
-        "quote": "リモートワーク用VPN装置の脆弱性更新漏れ",
-        "summaryJa": "更新されていなかったリモートワーク用VPN装置の脆弱性を突かれ、社内に侵入された"
+        "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
+        "summaryJa": "リモートワーク用VPN装置の脆弱性（更新漏れ）を突かれて社内ネットワークに侵入された"
       },
       {
         "tactic": "TA0006",
@@ -82,17 +91,37 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "侵入後、管理者などの認証情報を手に入れて権限を広げたと考えられる"
+        "summaryJa": "侵入後に管理者などの認証情報を入手したと考えられる"
       },
       {
         "tactic": "TA0008",
         "techniques": [
-          "T1021",
-          "T1570"
+          "T1021.002",
+          "T1021.001"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "社内ネットワークの他のサーバや端末へ感染を広げたと考えられる"
+        "summaryJa": "社内の他のサーバや端末へ侵入範囲を広げたと考えられる"
+      },
+      {
+        "tactic": "TA0005",
+        "techniques": [
+          "T1562.001"
+        ],
+        "source": "stated",
+        "quote": "ウイルス対策ソフトの監視が及ばない経路で攻撃を受けた",
+        "summaryJa": "ウイルス対策ソフトの監視が及ばない経路で攻撃が行われた"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1490",
+          "T1485",
+          "T1486"
+        ],
+        "source": "stated",
+        "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
+        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が難しくなった"
       },
       {
         "tactic": "TA0040",
@@ -101,30 +130,21 @@
         ],
         "source": "stated",
         "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
-        "summaryJa": "設計データと経理データが暗号化され、一部業務が停止し納期遅延が発生した"
-      },
-      {
-        "tactic": "TA0040",
-        "techniques": [
-          "T1486",
-          "T1490",
-          "T1485"
-        ],
-        "source": "stated",
-        "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が困難になった"
+        "summaryJa": "設計データや経理データが暗号化され、一部業務が停止し納期遅延が発生した"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
-    "stepsIn": 5,
-    "stepsOut": 5,
-    "techniquesIn": 9,
-    "techniquesOut": 9,
-    "quotesIn": 3,
-    "quotesOut": 3,
-    "replaced": [],
+    "stepsIn": 6,
+    "stepsOut": 6,
+    "techniquesIn": 10,
+    "techniquesOut": 10,
+    "quotesIn": 4,
+    "quotesOut": 4,
+    "replaced": [
+      "T1562.001->T1685"
+    ],
     "droppedTechniques": [],
     "droppedQuotes": 0,
     "suspiciousInstructions": 0

@@ -2,7 +2,7 @@
   "caseId": "ipa-case-5",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T15:55:46.024Z",
+  "recordedAt": "2026-11-03T06:05:02.893Z",
   "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
@@ -24,12 +24,11 @@
         "tactic": "TA0001",
         "techniques": [
           "T1078.004",
-          "T1110.004",
-          "T1078"
+          "T1110.004"
         ],
         "source": "stated",
         "quote": "流出したパスワードは社長のクラウドメールのものと同一で\nあり、攻撃者は社長アカウントへのログインに成功した",
-        "summaryJa": "同じパスワードを使い回していた社長のクラウドメールに、攻撃者がログインした"
+        "summaryJa": "流出したパスワードが社長のクラウドメールと同一だったため、攻撃者が社長アカウントにログインした"
       },
       {
         "tactic": "TA0005",
@@ -38,16 +37,15 @@
         ],
         "source": "stated",
         "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "社長になりすましたメールで経理担当に送金を指示した"
+        "summaryJa": "乗っ取った社長アカウントから、社長を装って経理担当に送金を指示するメールが送られた"
       },
       {
         "tactic": "TA0002",
         "techniques": [
           "T1204"
         ],
-        "source": "stated",
-        "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "経理担当がメールを信じて送金の手続きをした"
+        "source": "inferred",
+        "summaryJa": "経理担当が社長からの指示だと信じ、送金の手続きを行った"
       },
       {
         "tactic": "TA0040",
@@ -56,7 +54,7 @@
         ],
         "source": "stated",
         "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "攻撃者の口座へ約500万円が送金され、資金が流出した"
+        "summaryJa": "攻撃者の口座へ500万円が送金され、会社の資金が流出した"
       }
     ],
     "suspiciousInstructions": []
@@ -80,12 +78,11 @@
         "tactic": "TA0001",
         "techniques": [
           "T1078.004",
-          "T1110.004",
-          "T1078"
+          "T1110.004"
         ],
         "source": "stated",
         "quote": "流出したパスワードは社長のクラウドメールのものと同一で\nあり、攻撃者は社長アカウントへのログインに成功した",
-        "summaryJa": "同じパスワードを使い回していた社長のクラウドメールに、攻撃者がログインした"
+        "summaryJa": "流出したパスワードが社長のクラウドメールと同一だったため、攻撃者が社長アカウントにログインした"
       },
       {
         "tactic": "TA0005",
@@ -94,16 +91,16 @@
         ],
         "source": "stated",
         "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "社長になりすましたメールで経理担当に送金を指示した"
+        "summaryJa": "乗っ取った社長アカウントから、社長を装って経理担当に送金を指示するメールが送られた"
       },
       {
         "tactic": "TA0002",
         "techniques": [
           "T1204"
         ],
-        "source": "stated",
-        "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "経理担当がメールを信じて送金の手続きをした"
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "経理担当が社長からの指示だと信じ、送金の手続きを行った"
       },
       {
         "tactic": "TA0040",
@@ -112,7 +109,7 @@
         ],
         "source": "stated",
         "quote": "社長を騙るメールに経理担\n当が騙され、攻撃者の口座\nへ500万円送金した",
-        "summaryJa": "攻撃者の口座へ約500万円が送金され、資金が流出した"
+        "summaryJa": "攻撃者の口座へ500万円が送金され、会社の資金が流出した"
       }
     ],
     "suspiciousInstructions": []
@@ -120,10 +117,10 @@
   "verification": {
     "stepsIn": 5,
     "stepsOut": 5,
-    "techniquesIn": 8,
-    "techniquesOut": 8,
-    "quotesIn": 5,
-    "quotesOut": 5,
+    "techniquesIn": 7,
+    "techniquesOut": 7,
+    "quotesIn": 4,
+    "quotesOut": 4,
     "replaced": [],
     "droppedTechniques": [],
     "droppedQuotes": 0,
