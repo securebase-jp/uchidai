@@ -1,0 +1,403 @@
+{
+  "$comment": "デモ用の架空企業（医療・福祉、診療所）。法人名、院名、人物、数値、ドメインはすべて架空。電子カルテは院内サーバで、保守ベンダーの遠隔接続と VPN 装置があり、バックアップは切り離した保管先で復旧テスト済み。事例 1（VPN からの業務停止）は侵入は防げないが復旧できる、事例 2（クラウドストレージ）は入口なし、事例 5（院長のメール乗っ取り）は未確認が残り確認中、と結論が分かれるよう設計している",
+  "id": "demo-clinic",
+  "companyName": "医療法人デモ会 デモクリニック",
+  "fictional": true,
+  "domain": "demo-clinic.example",
+  "domainVerified": false,
+  "pattern": "healthcare",
+  "employees": 40,
+  "dailyRevenue": 1500000,
+  "answers": {
+    "industry": "healthcare",
+    "site": "clinic",
+    "hosting": {
+      "mail": "cloud",
+      "files": "onprem",
+      "core": "onprem",
+      "web": "provider"
+    },
+    "remoteAccess": ["vpn", "vendor_remote"],
+    "backup": "isolated"
+  },
+  "vendor": {
+    "name": "電子カルテの保守ベンダー（架空）",
+    "email": "vendor@example.com"
+  },
+  "cyberInsurance": {
+    "enrolled": true,
+    "notifyWithinDays": 30
+  },
+  "typicalTransferJpy": 2000000,
+  "assets": [
+    {
+      "id": "vpn",
+      "kind": "device",
+      "role": "entry.vpn",
+      "label": "VPN装置（院長の自宅と分院から接続）",
+      "product": "架空のVPN製品",
+      "version": "2.1",
+      "attrs": {
+        "exposed": true,
+        "knownExploited": false,
+        "hostname": "vpn.demo-clinic.example"
+      },
+      "attrEvidence": {
+        "exposed": "external",
+        "knownExploited": "vendor",
+        "hostname": "external"
+      },
+      "controls": [
+        {
+          "mitigation": "M1051",
+          "status": "absent",
+          "evidence": "vendor",
+          "noteJa": "ベンダー回答：悪用確認済みの脆弱性には該当しないが、ファームウェアは導入時のままで、更新の運用は決まっていない",
+          "answeredBy": "電子カルテの保守ベンダー",
+          "answeredAt": "2026-10-22T10:00:00+09:00"
+        },
+        {
+          "mitigation": "M1032",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "VPN 接続は ID とパスワードのみ"
+        },
+        {
+          "mitigation": "M1042",
+          "status": "absent",
+          "evidence": "external",
+          "noteJa": "外部確認：VPN 用と推定されるホスト名が公開されている"
+        }
+      ]
+    },
+    {
+      "id": "vendor-remote",
+      "kind": "device",
+      "role": "entry.vendor_remote",
+      "label": "保守用リモート接続（電子カルテの保守）",
+      "attrs": {
+        "alwaysOn": false,
+        "sharedPassword": false,
+        "connectsTo": "core"
+      },
+      "attrEvidence": {
+        "alwaysOn": "vendor",
+        "sharedPassword": "vendor",
+        "connectsTo": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "vendor",
+          "noteJa": "ベンダー回答：保守ツールのログインは多要素認証",
+          "answeredBy": "電子カルテの保守ベンダー",
+          "answeredAt": "2026-10-22T10:00:00+09:00"
+        },
+        {
+          "mitigation": "UD-02",
+          "status": "present",
+          "evidence": "vendor",
+          "noteJa": "ベンダー回答：作業のたびに院内で接続を有効にし、終われば切る",
+          "answeredBy": "電子カルテの保守ベンダー",
+          "answeredAt": "2026-10-22T10:00:00+09:00"
+        },
+        {
+          "mitigation": "M1035",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "接続元の限定の有無は未登録"
+        }
+      ]
+    },
+    {
+      "id": "pc",
+      "kind": "device",
+      "role": "pc",
+      "label": "職員PC（約40台・受付と診察室）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1049",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "ウイルス対策ソフトあり"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "EDR は未導入（ウイルス対策ソフトのみ）"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "kind": "account",
+      "role": "admin",
+      "label": "管理者アカウント",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1026",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "管理者パスワードは全 PC で共通（保守ベンダーが設定）"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "EDR は未導入"
+        }
+      ]
+    },
+    {
+      "id": "server",
+      "kind": "system",
+      "role": "server",
+      "label": "院内サーバ区画",
+      "attrs": {
+        "segmented": false
+      },
+      "attrEvidence": {
+        "segmented": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1030",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "電子カルテのサーバと職員 PC が同じネットワーク"
+        },
+        {
+          "mitigation": "M1035",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "管理用通信の制限なし"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "kind": "system",
+      "role": "core",
+      "label": "電子カルテ（院内サーバ）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "file-server",
+      "kind": "system",
+      "role": "file_server",
+      "label": "ファイルサーバ（院内の文書）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1022",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "共有フォルダのアクセス権の設定は未登録"
+        },
+        {
+          "mitigation": "M1047",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "アクセスログの監査の有無は未登録"
+        }
+      ]
+    },
+    {
+      "id": "backup",
+      "kind": "system",
+      "role": "backup",
+      "label": "バックアップ（切り離した保管先）",
+      "attrs": {
+        "method": "isolated",
+        "isolated": true,
+        "restoreTested": true,
+        "restoreTestedAt": "2026-09-30"
+      },
+      "attrEvidence": {
+        "method": "vendor",
+        "isolated": "vendor",
+        "restoreTested": "vendor",
+        "restoreTestedAt": "vendor"
+      },
+      "controls": [
+        {
+          "mitigation": "M1053",
+          "status": "present",
+          "evidence": "vendor",
+          "noteJa": "ベンダー回答：毎晩の世代バックアップをネットワークから切り離した保管先に取り、半年ごとに復旧テストを実施（直近 2026-09-30）",
+          "answeredBy": "電子カルテの保守ベンダー",
+          "answeredAt": "2026-10-22T10:00:00+09:00"
+        }
+      ]
+    },
+    {
+      "id": "cloud-mail",
+      "kind": "system",
+      "role": "cloud.mail",
+      "label": "クラウドメール",
+      "side": "external",
+      "attrs": {
+        "spf": true,
+        "dmarc": false,
+        "mfaMethod": "app"
+      },
+      "attrEvidence": {
+        "spf": "external",
+        "dmarc": "external",
+        "mfaMethod": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "職員のメールに多要素認証（認証アプリ）を導入"
+        }
+      ]
+    },
+    {
+      "id": "exec-mail-account",
+      "kind": "account",
+      "role": "cloud.mail_account.exec",
+      "label": "院長のメールアカウント",
+      "side": "external",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "多要素認証は導入済みだが、院長のアカウントが例外になっていないかは未確認（事務長が確認中）"
+        },
+        {
+          "mitigation": "M1027",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "パスワードの使い回し防止策は未登録"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "kind": "system",
+      "role": "entry.web",
+      "label": "公開ホームページ（事業者のサービス）",
+      "side": "external",
+      "attrs": {
+        "hostname": "www.demo-clinic.example"
+      },
+      "attrEvidence": {
+        "hostname": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "管理画面の多要素認証の有無は未登録"
+        },
+        {
+          "mitigation": "M1047",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "改ざん検知の有無は未登録"
+        }
+      ]
+    },
+    {
+      "id": "exec",
+      "kind": "person",
+      "role": "person.exec",
+      "label": "院長",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "accounting-staff",
+      "kind": "person",
+      "role": "person.accounting",
+      "label": "事務長（経理担当）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1017",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "情報セキュリティの研修は行っていない"
+        },
+        {
+          "mitigation": "UD-01",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "振込先変更や急な送金指示を折り返し確認する手順があるかは未登録"
+        }
+      ]
+    }
+  ],
+  "businesses": [
+    {
+      "id": "biz-reception",
+      "name": "受付",
+      "assetIds": ["core"],
+      "manualDays": 1,
+      "recoveryDays": 14,
+      "recoveryDaysWithBackup": 3,
+      "affectsJa": "患者の受け入れ"
+    },
+    {
+      "id": "biz-treatment",
+      "name": "診療",
+      "assetIds": ["core"],
+      "manualDays": 1,
+      "recoveryDays": 14,
+      "recoveryDaysWithBackup": 3,
+      "affectsJa": "患者と地域"
+    },
+    {
+      "id": "biz-lab",
+      "name": "検査・処方",
+      "assetIds": ["core"],
+      "manualDays": 1,
+      "recoveryDays": 14,
+      "recoveryDaysWithBackup": 3,
+      "affectsJa": "患者の治療"
+    },
+    {
+      "id": "biz-billing",
+      "name": "会計・請求",
+      "assetIds": ["core"],
+      "manualDays": 3,
+      "recoveryDays": 14,
+      "recoveryDaysWithBackup": 3,
+      "affectsJa": "診療報酬の請求"
+    }
+  ],
+  "personalData": [
+    {
+      "assetId": "core",
+      "descriptionJa": "患者の診療記録（病歴を含む要配慮個人情報）",
+      "count": 12000,
+      "over1000": true,
+      "sensitive": true
+    },
+    {
+      "assetId": "cloud-mail",
+      "descriptionJa": "職員情報",
+      "count": 40,
+      "over1000": false,
+      "sensitive": false
+    }
+  ]
+}

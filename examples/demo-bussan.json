@@ -1,0 +1,334 @@
+{
+  "$comment": "デモ用の架空企業（卸売・サービス、事務所型）。会社名、人物、数値、ドメインはすべて架空。クラウド中心で VPN 装置が無く、社外からはクラウドだけにつなぐ構成。事例 1（VPN からの業務停止）は入口なし、事例 2（クラウドストレージの設定ミス）は突破、事例 5（社長のメール乗っ取り）は多要素認証で止まる、と結論が分かれるよう設計している",
+  "id": "demo-bussan",
+  "companyName": "デモ物産株式会社",
+  "fictional": true,
+  "domain": "demo-bussan.example",
+  "domainVerified": false,
+  "pattern": "office",
+  "employees": 60,
+  "dailyRevenue": 8000000,
+  "answers": {
+    "industry": "wholesale_service",
+    "site": "office_only",
+    "hosting": {
+      "mail": "cloud",
+      "files": "cloud",
+      "core": "cloud",
+      "web": "provider"
+    },
+    "remoteAccess": ["cloud_only"],
+    "backup": "cloud_sync"
+  },
+  "vendor": {
+    "name": "クラウド導入支援の事業者（架空）",
+    "email": "vendor@example.com"
+  },
+  "cyberInsurance": {
+    "enrolled": false
+  },
+  "typicalTransferJpy": 3000000,
+  "assets": [
+    {
+      "id": "pc",
+      "kind": "device",
+      "role": "pc",
+      "label": "社員PC（約60台・ノート）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1049",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "ウイルス対策ソフトあり"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "EDR は未導入（ウイルス対策ソフトのみ）"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "kind": "account",
+      "role": "admin",
+      "label": "管理者アカウント（クラウドの管理者）",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1026",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "クラウドの管理者は専用アカウントで、日常の作業には使わない"
+        },
+        {
+          "mitigation": "M1040",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "EDR は未導入"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "kind": "system",
+      "role": "core",
+      "label": "販売管理システム（クラウド）",
+      "side": "external",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "全員に多要素認証を適用"
+        }
+      ]
+    },
+    {
+      "id": "backup",
+      "kind": "system",
+      "role": "backup",
+      "label": "バックアップ（クラウドの版管理）",
+      "side": "external",
+      "attrs": {
+        "method": "cloud_sync",
+        "isolated": false,
+        "restoreTested": false
+      },
+      "attrEvidence": {
+        "method": "registered",
+        "isolated": "registered",
+        "restoreTested": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1053",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "クラウドの版管理に任せている。切り離した保管先はなく、復旧テストは未実施"
+        }
+      ]
+    },
+    {
+      "id": "cloud-mail",
+      "kind": "system",
+      "role": "cloud.mail",
+      "label": "クラウドメール",
+      "side": "external",
+      "attrs": {
+        "spf": true,
+        "dmarc": true,
+        "mfaMethod": "app"
+      },
+      "attrEvidence": {
+        "spf": "external",
+        "dmarc": "external",
+        "mfaMethod": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "全社員に多要素認証（認証アプリ）を強制。例外なし"
+        }
+      ]
+    },
+    {
+      "id": "exec-mail-account",
+      "kind": "account",
+      "role": "cloud.mail_account.exec",
+      "label": "社長のメールアカウント",
+      "side": "external",
+      "attrs": {
+        "mfaException": false,
+        "mfaMethod": "app"
+      },
+      "attrEvidence": {
+        "mfaException": "registered",
+        "mfaMethod": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "社長を含む全員に多要素認証（認証アプリ）を強制"
+        },
+        {
+          "mitigation": "M1027",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "パスワード管理ツールを全員に配布し、使い回しを禁止"
+        }
+      ]
+    },
+    {
+      "id": "cloud-accounting",
+      "kind": "system",
+      "role": "cloud.accounting",
+      "label": "会計（クラウド）",
+      "side": "external",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered"
+        }
+      ]
+    },
+    {
+      "id": "cloud-storage",
+      "kind": "system",
+      "role": "cloud.storage",
+      "label": "クラウドストレージ（取引先リスト・見積の共有）",
+      "side": "external",
+      "attrs": {
+        "publicLinksDisabled": false
+      },
+      "attrEvidence": {
+        "publicLinksDisabled": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1022",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "「リンクを知っている全員」の公開共有を担当者が自由に作れる。設定での禁止はしていない"
+        },
+        {
+          "mitigation": "M1047",
+          "status": "absent",
+          "evidence": "registered",
+          "noteJa": "共有設定の棚卸しは行っていない"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "kind": "system",
+      "role": "entry.web",
+      "label": "公開ホームページ（事業者のサービス）",
+      "side": "external",
+      "attrs": {
+        "hostname": "www.demo-bussan.example"
+      },
+      "attrEvidence": {
+        "hostname": "registered"
+      },
+      "controls": [
+        {
+          "mitigation": "M1032",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "管理画面に多要素認証あり"
+        },
+        {
+          "mitigation": "M1047",
+          "status": "unknown",
+          "evidence": "none",
+          "noteJa": "改ざん検知の有無は未登録"
+        }
+      ]
+    },
+    {
+      "id": "exec",
+      "kind": "person",
+      "role": "person.exec",
+      "label": "社長",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": []
+    },
+    {
+      "id": "accounting-staff",
+      "kind": "person",
+      "role": "person.accounting",
+      "label": "経理担当",
+      "attrs": {},
+      "attrEvidence": {},
+      "controls": [
+        {
+          "mitigation": "M1017",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "年1回の情報セキュリティ研修"
+        },
+        {
+          "mitigation": "UD-01",
+          "status": "present",
+          "evidence": "registered",
+          "noteJa": "振込先の変更と急な送金は、登録済みの電話番号へ折り返して確認し、二人で承認する"
+        }
+      ]
+    }
+  ],
+  "businesses": [
+    {
+      "id": "biz-order",
+      "name": "受注",
+      "assetIds": ["core"],
+      "manualDays": 2,
+      "recoveryDays": 7,
+      "recoveryDaysWithBackup": 2,
+      "affectsJa": "取引先への出荷"
+    },
+    {
+      "id": "biz-inventory",
+      "name": "在庫・発注",
+      "assetIds": ["core"],
+      "manualDays": 2,
+      "recoveryDays": 7,
+      "recoveryDaysWithBackup": 2,
+      "affectsJa": "仕入先・出荷"
+    },
+    {
+      "id": "biz-delivery",
+      "name": "出荷・配送",
+      "assetIds": ["core"],
+      "manualDays": 1,
+      "recoveryDays": 7,
+      "recoveryDaysWithBackup": 2,
+      "affectsJa": "取引先への出荷"
+    },
+    {
+      "id": "biz-billing",
+      "name": "請求",
+      "assetIds": ["cloud-accounting"],
+      "manualDays": 5,
+      "recoveryDays": 0,
+      "affectsJa": "入金"
+    }
+  ],
+  "personalData": [
+    {
+      "assetId": "cloud-storage",
+      "descriptionJa": "取引先リスト（担当者の氏名・連絡先）",
+      "count": 8000,
+      "over1000": true,
+      "sensitive": false
+    },
+    {
+      "assetId": "core",
+      "descriptionJa": "顧客情報（販売管理）",
+      "count": 5000,
+      "over1000": true,
+      "sensitive": false
+    },
+    {
+      "assetId": "cloud-mail",
+      "descriptionJa": "従業員情報",
+      "count": 60,
+      "over1000": false,
+      "sensitive": false
+    }
+  ]
+}
