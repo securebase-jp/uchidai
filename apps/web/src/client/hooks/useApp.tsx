@@ -3,7 +3,7 @@
  * カルテは localStorage だけに保存する。判定は必ず API（engine）に頼む。
  * 会社は「自社のカルテ（このブラウザに保存）」と「架空の会社（examples/）」から上部バーで選ぶ。
  * 架空の会社を読んでも自社の保存は消さない（選んだ架空の会社の ID だけを別に覚える）。
- * 初回は会社を空のままにし、架空の会社を黙って読み込まない（URL の ?profile= とデモモードは別）
+ * 初回は会社も事例も空のままにし、架空の会社や既定の事例を黙って読み込まない（URL の ?profile= とデモモードは別）
  */
 import {
   createContext,
@@ -24,6 +24,7 @@ import {
   type KnowledgeView,
   type RecordedCaseMeta,
 } from "../lib/api.ts";
+import { shouldLoadDefaultCase } from "../lib/default-case.ts";
 import { storage } from "../lib/storage.ts";
 import type { Case, CompanyProfile } from "../lib/types.ts";
 
@@ -47,7 +48,7 @@ export type AppState = {
   selectCompany(choice: { kind: "own" } | { kind: "example"; id: string }): Promise<void>;
   theCase: Case | undefined;
   caseMeta: CaseMeta | undefined;
-  /** 事例を担当者が選んだ（記事を読ませた、または記録済みの事例を選んだ）か。false なら既定の事例 1 を使っている */
+  /** 事例を担当者が選んだ（記事を読ませた、または記録済みの事例を選んだ）か。false はデモ・録画の URL が読んだ既定の事例 1 */
   caseChosen: boolean;
   measureIds: string[];
   answers: AnswerInput[];
@@ -204,9 +205,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (id) void loadExample(id);
   }, [loadExample, rememberedExample]);
 
-  // 事例が無ければ記録済みの事例 1 を使う（デモとキー無しの動作確認用）。担当者が選んだ事例ではない
+  // 事例が無いときに記録済みの事例 1 を黙って読むのは、デモ・録画の URL のときだけ（台本が事例 1 に依存する）。
+  // 通常は事例を空のまま「事例を選んでください」を出す。読んだ事例は担当者が選んだものではない
   useEffect(() => {
-    if (!theCase) void loadRecorded(DEFAULT_CASE_ID, { chosen: false });
+    if (!theCase && shouldLoadDefaultCase(location.search))
+      void loadRecorded(DEFAULT_CASE_ID, { chosen: false });
   }, [theCase, loadRecorded]);
 
   // 判定：カルテ・事例・対策・回答のどれかが変わるたびに API へ

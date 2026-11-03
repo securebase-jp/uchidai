@@ -1,7 +1,7 @@
 /**
  * 上部バーの「会社」と「事例」の選択肢を組む純粋な関数。
  * 会社：このブラウザに保存した自社のカルテ（あるときだけ）と、架空の会社（GET /api/examples）。
- * 事例：記録済みの事例（GET /api/case/recorded）と「記事を貼る（はじめにへ）」。
+ * 事例：先頭に「記事を貼る…」（その場で入力の吹き出しを開く）、区切りのあとに記録済みの事例（GET /api/case/recorded）。
  * 文字は最小限にする（会社名・業種・人数、被害の型・題名）
  */
 import type { ExampleSummary } from "./api.ts";
@@ -59,10 +59,20 @@ export type CaseChoice =
   | { kind: "recorded"; id: string; labelJa: string; damageJa: string; title: string }
   | { kind: "article"; labelJa: string };
 
+/** サーバに Claude API のキーが無いと、記事は読めない。そのことを「記事を貼る」の横に添える */
+export const ARTICLE_LABEL = "記事を貼る…";
+export const ARTICLE_KEY_NOTE = "（Claude API のキーが必要）";
+
+/** 事例の選択肢：先頭が「記事を貼る…」、そのあとに記録済みの事例。readAvailable === false なら注記を添える */
 export function caseChoices(
   recorded: { caseId: string; title: string; damageType: string }[],
+  readAvailable?: boolean,
 ): CaseChoice[] {
   return [
+    {
+      kind: "article",
+      labelJa: readAvailable === false ? `${ARTICLE_LABEL}${ARTICLE_KEY_NOTE}` : ARTICLE_LABEL,
+    },
     ...recorded.map((r) => ({
       kind: "recorded" as const,
       id: r.caseId,
@@ -70,6 +80,5 @@ export function caseChoices(
       title: r.title,
       labelJa: `${DAMAGE_LABEL[r.damageType] ?? r.damageType}　${r.title}`,
     })),
-    { kind: "article", labelJa: "記事を貼る（はじめにへ）" },
   ];
 }

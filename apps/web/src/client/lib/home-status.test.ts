@@ -19,7 +19,8 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     expect(steps[0]?.noteJa).toContain("任意");
     expect(steps[1]?.statusJa).toBe("まだ答えていません");
     expect(steps[2]?.disabled).toBe(true);
-    expect(steps[3]?.statusJa).toBe("事例がまだありません");
+    expect(steps[3]?.statusJa).toBe("事例を選んでください");
+    expect(steps[3]?.tone).toBe("todo");
     expect(steps[3]?.href).toBeUndefined();
     expect(steps[4]?.disabled).toBe(true);
     expect(steps[4]?.statusJa).toBe("カルテと事例が揃うと見られます");
@@ -84,7 +85,7 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
       ...empty,
       theCase: { title: "VPN から侵入", recordedId: "ipa-case-1" },
     });
-    expect(recorded[3]?.statusJa).toBe("いまの事例：VPN から侵入（記録済みの読解結果）");
+    expect(recorded[3]?.statusJa).toBe("記録済みの事例 1 を使用中：VPN から侵入");
     expect(recorded[4]?.disabled).toBe(true);
     expect(recorded[4]?.statusJa).toBe("カルテができると見られます");
 
@@ -94,7 +95,7 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
       profileSource: "answers",
       theCase: { title: "ある記事" },
     });
-    expect(both[3]?.statusJa).toBe("いまの事例：ある記事（Claude が読解）");
+    expect(both[3]?.statusJa).toBe("記事を使用中：ある記事");
     expect(both[4]?.tone).toBe("done");
     expect(both[4]?.disabled).toBeUndefined();
     expect(both[4]?.href).toBe("#/staff");
@@ -107,7 +108,22 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     expect(onlyProfile[4]?.statusJa).toBe("事例を選ぶと見られます");
   });
 
-  it("4：担当者が選んでいない既定の事例も「記録済みの事例 1 を使用中」で「未」にしない。選んだ事例は「いまの事例」", () => {
+  it("4：事例が空なら「事例を選んでください」（未）。選んだ事例は「記録済みの事例 N を使用中」か「記事を使用中」", () => {
+    const none = homeSteps({ ...empty })[3];
+    expect(none?.tone).toBe("todo");
+    expect(none?.statusJa).toBe("事例を選んでください");
+    const chosen = homeSteps({
+      ...empty,
+      theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: true },
+    })[3];
+    expect(chosen?.tone).toBe("done");
+    expect(chosen?.statusJa).toBe("記録済みの事例 1 を使用中：VPN の事例");
+    expect(chosen?.noteJa).toBeUndefined();
+    const read = homeSteps({ ...empty, theCase: { title: "報道の事例", chosen: true } })[3];
+    expect(read?.statusJa).toBe("記事を使用中：報道の事例");
+  });
+
+  it("4：デモ・録画の URL が読んだ既定の事例（chosen: false）は「未」にせず、既定の事例だと補足する", () => {
     const byDefault = homeSteps({
       ...empty,
       theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: false },
@@ -115,13 +131,5 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     expect(byDefault?.tone).toBe("done");
     expect(byDefault?.statusJa).toBe("記録済みの事例 1 を使用中：VPN の事例");
     expect(byDefault?.noteJa).toContain("既定の事例");
-    const chosen = homeSteps({
-      ...empty,
-      theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: true },
-    })[3];
-    expect(chosen?.tone).toBe("done");
-    expect(chosen?.statusJa).toBe("いまの事例：VPN の事例（記録済みの読解結果）");
-    const read = homeSteps({ ...empty, theCase: { title: "報道の事例" } })[3];
-    expect(read?.statusJa).toBe("いまの事例：報道の事例（Claude が読解）");
   });
 });

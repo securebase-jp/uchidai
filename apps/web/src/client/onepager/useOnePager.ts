@@ -12,7 +12,8 @@ import { buildOnePagerHash, type OnePagerParams } from "./params.ts";
 
 export type OnePagerState =
   | { status: "loading" }
-  | { status: "missing"; missing: "profile" | "case"; reasonJa: string }
+  /** 会社か事例が無い。無いほうの一覧を、会社→事例の順に出す */
+  | { status: "missing"; needs: { profile: boolean; case: boolean } }
   | { status: "error"; messageJa: string }
   /** API で作った一枚。idShareHash は ID で指す形の共有リンク（架空の会社の記録のときだけ作れる） */
   | {
@@ -60,20 +61,8 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
         let theCase: Case | undefined = appCase;
         if (params.case) theCase = (await api.recorded(params.case)).case;
         if (!alive) return;
-        if (!profile) {
-          setState({
-            status: "missing",
-            missing: "profile",
-            reasonJa: "会社がまだ選ばれていません。",
-          });
-          return;
-        }
-        if (!theCase) {
-          setState({
-            status: "missing",
-            missing: "case",
-            reasonJa: "事例がありません。上部の事例から選ぶか、はじめにで記事を貼ってください。",
-          });
+        if (!profile || !theCase) {
+          setState({ status: "missing", needs: { profile: !profile, case: !theCase } });
           return;
         }
         setState({ status: "loading" });

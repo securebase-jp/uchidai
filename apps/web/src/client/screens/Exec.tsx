@@ -1,6 +1,6 @@
 /** 社長画面：30〜40 秒で自動再生する一本の物語。専門用語や ID を出さない */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import { MissingChoices } from "../components/CompanyPicker.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
@@ -84,14 +84,8 @@ export function Exec({ settings }: { settings: Settings }) {
   }, []);
   const fit = useFitScale(fitOuter, fitInner, zoom, !isDemoMode(), stage !== undefined, presenting);
 
-  if (!profile) {
-    return (
-      <div className="panel" style={{ marginTop: 16 }}>
-        <CompanyChoiceList />
-      </div>
-    );
-  }
-  if (!stage || !knowledge || !theCase) {
+  if (!profile || !theCase) return <MissingChoices />;
+  if (!stage || !knowledge) {
     return (
       <div className="panel" style={{ marginTop: 16 }}>
         <h2>準備中</h2>
