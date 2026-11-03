@@ -250,26 +250,44 @@ export function Staff({ settings }: { settings: Settings }) {
       </div>
       <div className="layout-main">
         <div>
-          <div className="stage">
-            <Diagram
-              layout={layout}
-              graph={stage.input.graph}
-              scene={scene}
-              script={script}
-              profile={stage.input.profile}
-              showIds
-              measureLabel={measureLabel}
-            />
-            <Particles
-              layout={layout}
-              scene={scene}
-              script={script}
+          <section className="stage-wrap" id={STAFF_SECTION.diagram} aria-label="経路図">
+            <Controls
               clock={clock}
               reduced={settings.reduced}
+              onReduced={settings.setReduced}
+              sticky
+              extra={
+                <InfoButton title="図の見方" align="end">
+                  <p>
+                    上の段がシステム（会社の IT
+                    と人）、中の段が業務、下の段が経営（影響・お金・義務）です。
+                    線は記事に書いてある経路を実線で、推定や入口候補を破線で、AI
+                    が見つけた経路を点線で描きます。構成要素の色は、赤が突破、黄が未確認・人次第・法律上の義務、緑が止まる・復旧できるを表し、色だけでなく語でも示します。
+                    水色の粒は平時の通信、緑の粒はお金の流れです。
+                  </p>
+                  <Legend />
+                </InfoButton>
+              }
             />
-            <Legend />
-          </div>
-          <Controls clock={clock} reduced={settings.reduced} onReduced={settings.setReduced} />
+            <div className="stage">
+              <Diagram
+                layout={layout}
+                graph={stage.input.graph}
+                scene={scene}
+                script={script}
+                profile={stage.input.profile}
+                showIds
+                measureLabel={measureLabel}
+              />
+              <Particles
+                layout={layout}
+                scene={scene}
+                script={script}
+                clock={clock}
+                reduced={settings.reduced}
+              />
+            </div>
+          </section>
           <TimelineBar
             view={tl}
             verdict={stage.input.verdict}

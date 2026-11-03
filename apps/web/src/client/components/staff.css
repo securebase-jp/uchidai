@@ -95,3 +95,36 @@
   height: 10px;
   border-radius: 3px;
 }
+
+/* 再生の操作：構成図の直上。図が見えている間は画面の上に追従する */
+.stage-wrap {
+  position: relative;
+  margin-top: 12px;
+  scroll-margin-top: 8px;
+}
+.controls.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--edge);
+  background: color-mix(in srgb, var(--bg) 82%, var(--panel));
+  backdrop-filter: blur(8px);
+}
+.controls .controls-extra {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+}
+@media (max-width: 720px) {
+  .controls.sticky {
+    gap: 6px 12px;
+    padding: 6px 8px;
+  }
+  .controls.sticky .btn {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+}
