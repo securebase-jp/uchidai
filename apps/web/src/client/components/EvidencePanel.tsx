@@ -92,44 +92,40 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
       {verdict.paths.map((p) => (
         <div className="panel" key={p.id}>
           <h2>
-            経路 {p.id}　{SOURCE_LABEL[p.source]}　
+            経路 {p.id}
+            {" ／ "}
+            {SOURCE_LABEL[p.source]}
+            {" ／ "}
             {p.reachedCore ? "中核システムまで届く" : "途中で止まる"}
             {multiTemplate && templates && pathTemplateLabel(p, templates) && (
-              <>　攻撃の型（型紙）「{pathTemplateLabel(p, templates)}」</>
+              <>
+                {" ／ "}
+                攻撃の型（型紙）「{pathTemplateLabel(p, templates)}」
+              </>
             )}
           </h2>
-          <div style={{ overflowX: "auto" }}>
-            <table className="evidence">
-              <thead>
-                <tr>
-                  <th>段階</th>
-                  <th>自社の構成要素</th>
-                  <th>手法</th>
-                  <th>判定</th>
-                  <th>効く対策（ATT&amp;CK の緩和策）</th>
-                  <th>効かない対策</th>
-                  <th>記事に書いてある／推定</th>
-                  <th>根拠</th>
-                  <th>理由と記事中の根拠文</th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.steps.map((s) => (
-                  <tr
-                    key={`${s.stageId ?? s.labelJa ?? ""}-${s.nodeId}-${s.technique ?? ""}-${s.tactic}`}
-                  >
-                    <td>
+          <ol className="ev-cards">
+            {p.steps.map((s, i) => {
+              const kev = kevSourceOf(s.nodeId);
+              return (
+                <li
+                  className={`ev-card tone-${STATE_TONE[s.state]}`}
+                  key={`${s.stageId ?? s.labelJa ?? ""}-${s.nodeId}-${s.technique ?? ""}-${s.tactic}`}
+                >
+                  <div className="ev-head">
+                    <span className="ev-n">{i + 1}</span>
+                    <b className="ev-stage">
                       {s.labelJa ?? s.stageId ?? ""}
                       {s.precondition ? "（前提）" : ""}
-                      {s.branch && (
-                        <>
-                          <br />
-                          <span className="muted">（枝：止まっても本線は進む）</span>
-                        </>
-                      )}
-                    </td>
-                    <td>{nodeLabel(s.nodeId)}</td>
-                    <td>
+                    </b>
+                    <span className={`st ${STATE_TONE[s.state]}`}>{STATE_LABEL[s.state]}</span>
+                  </div>
+                  {s.branch && <p className="muted small">枝：止まっても本線は進む</p>}
+                  <dl className="ev-body">
+                    <dt>自社の構成要素</dt>
+                    <dd>{nodeLabel(s.nodeId)}</dd>
+                    <dt>手法</dt>
+                    <dd>
                       {s.technique ? (
                         <>
                           {labels.techniques[s.technique] ?? ""}（<code>{s.technique}</code>）
@@ -141,52 +137,64 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                       <span className="muted">
                         {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
                       </span>
-                    </td>
-                    <td>
-                      <span className={`st ${STATE_TONE[s.state]}`}>{STATE_LABEL[s.state]}</span>
+                    </dd>
+                    {s.mitigations.length > 0 && (
+                      <>
+                        <dt>{i === 0 ? "効く対策（ATT&CK の緩和策）" : "効く対策"}</dt>
+                        <dd>
+                          {s.mitigations.map((m) => (
+                            <div key={m}>
+                              {mit(m)}（<code>{m}</code>）
+                            </div>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                    {s.ineffective.length > 0 && (
+                      <>
+                        <dt>効かない対策</dt>
+                        <dd>
+                          {s.ineffective.map((m) => (
+                            <div key={m.mitigation}>
+                              <span className="fx-red">
+                                {mit(m.mitigation)}（<code>{m.mitigation}</code>）
+                              </span>{" "}
+                              <span className="muted">{m.reasonJa}</span>
+                            </div>
+                          ))}
+                        </dd>
+                      </>
+                    )}
+                    <dt>根拠</dt>
+                    <dd>
+                      {EVIDENCE_LABEL[s.evidence]}・{SOURCE_LABEL[s.source]}
+                      {kev && (
+                        <>
+                          <br />
+                          <span className="muted">{kev}</span>
+                        </>
+                      )}
                       {s.ruleId && (
                         <>
                           <br />
                           <code className="muted">{s.ruleId}</code>
                         </>
                       )}
-                    </td>
-                    <td>
-                      {s.mitigations.map((m) => (
-                        <div key={m}>
-                          {mit(m)}（<code>{m}</code>）
-                        </div>
-                      ))}
-                    </td>
-                    <td>
-                      {s.ineffective.map((m) => (
-                        <div key={m.mitigation}>
-                          <span className="fx-red">
-                            {mit(m.mitigation)}（<code>{m.mitigation}</code>）
-                          </span>{" "}
-                          <span className="muted">{m.reasonJa}</span>
-                        </div>
-                      ))}
-                    </td>
-                    <td>{SOURCE_LABEL[s.source]}</td>
-                    <td>
-                      {EVIDENCE_LABEL[s.evidence]}
-                      {kevSourceOf(s.nodeId) && (
-                        <>
-                          <br />
-                          <span className="muted">{kevSourceOf(s.nodeId)}</span>
-                        </>
-                      )}
-                    </td>
-                    <td>
-                      {s.reasonJa}
-                      {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </dd>
+                    {(s.reasonJa || s.quote) && (
+                      <>
+                        <dt>理由</dt>
+                        <dd>
+                          {s.reasonJa}
+                          {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
+                        </dd>
+                      </>
+                    )}
+                  </dl>
+                </li>
+              );
+            })}
+          </ol>
         </div>
       ))}
       <div className="grid-2">

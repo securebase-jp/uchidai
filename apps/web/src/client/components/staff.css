@@ -178,3 +178,85 @@
   position: relative;
   z-index: 31;
 }
+
+/* 根拠：経路の段階ごとのカード（9 列の表の代わり。幅 375px では 1 列） */
+.ev-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+.ev-card {
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--edge-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  min-width: 0;
+}
+.ev-card.tone-red {
+  border-left-color: var(--red);
+}
+.ev-card.tone-amber {
+  border-left-color: var(--amber);
+}
+.ev-card.tone-green {
+  border-left-color: var(--green);
+}
+.ev-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ev-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.ev-stage {
+  flex: 1;
+  font-size: 15px;
+}
+.ev-body {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.ev-body dt {
+  color: var(--ink-2);
+  font-size: 12px;
+  padding-top: 1px;
+}
+.ev-body dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ev-body code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.ev-body .quote {
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .ev-body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+  .ev-body dt {
+    margin-top: 6px;
+  }
+}
