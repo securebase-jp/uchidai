@@ -173,6 +173,54 @@ describe("buildScript", () => {
     expect(scene.nodes.vpn?.tagJa).toBe("止まる");
     expect(scene.concluded).toBe(true);
   });
+  const worded: Verdict = {
+    ...breached,
+    paths: [
+      {
+        ...breached.paths[0],
+        steps: [
+          step("vpn", "breached"),
+          step("admin", "unknown", { breachedLabelJa: "奪われる" }),
+          step("core", "breached", {
+            breachedLabelJa: "暗号化される",
+            breachedDoneJa: "暗号化されました",
+          }),
+        ],
+      } as Verdict["paths"][0],
+    ],
+  };
+  it("型紙の「突破されたときの言葉」があれば札はそれ、無ければ「突破される」", () => {
+    const s = buildScript(graph, worded, profile);
+    const arrive = s.beats.filter((b) => b.kind === "arrive");
+    expect(arrive.at(-1)).toMatchObject({
+      nodeId: "core",
+      breachedLabelJa: "暗号化される",
+      breachedDoneJa: "暗号化されました",
+    });
+    const end = sceneAt(s, graph, s.beats.length);
+    expect(end.nodes.vpn?.tagJa).toBe("突破される");
+    expect(end.nodes.admin?.tagJa).toBe("未確認");
+    expect(end.nodes.core?.tagJa).toBe("暗号化される");
+  });
+  it("言葉を持たない経路（AI）が突破済みの資産をもう一度通っても、先に付いた言葉は残る", () => {
+    const first = worded.paths[0] as Verdict["paths"][0];
+    const twice: Verdict = {
+      ...worded,
+      paths: [
+        first,
+        {
+          ...first,
+          id: "ai",
+          source: "ai",
+          steps: [step("vpn", "breached"), step("admin", "breached"), step("core", "breached")],
+        } as Verdict["paths"][0],
+      ],
+    };
+    const s = buildScript(graph, twice, profile);
+    const end = sceneAt(s, graph, s.beats.length);
+    expect(end.nodes.core?.tagJa).toBe("暗号化される");
+    expect(end.nodes.admin?.tagJa).toBe("突破される");
+  });
   it("場面は起きた出来事の数だけで決まり、途中では結論が出ない", () => {
     const s = buildScript(graph, breached, profile);
     const mid = firedCount(s.beats, s.duration / 2);

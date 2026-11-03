@@ -118,7 +118,9 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                       {s.labelJa ?? s.stageId ?? ""}
                       {s.precondition ? "（前提）" : ""}
                     </b>
-                    <span className={`st ${STATE_TONE[s.state]}`}>{STATE_LABEL[s.state]}</span>
+                    <span className={`st ${STATE_TONE[s.state]}`}>
+                      {(s.state === "breached" && s.breachedLabelJa) || STATE_LABEL[s.state]}
+                    </span>
                   </div>
                   {s.branch && <p className="muted small">枝：止まっても本線は進む</p>}
                   <dl className="ev-body">

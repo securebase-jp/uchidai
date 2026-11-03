@@ -1,6 +1,7 @@
 /**
  * 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明。
- * conclusionFirst（担当者画面）では結論を常に出し、再生中の進み（「◯◯が突破されました」）は同じ枠の中に小さく出す
+ * conclusionFirst（担当者画面）では結論を常に出し、再生中の進み（「◯◯が突破されました」）は同じ枠の中に小さく出す。
+ * 突破の言葉は型紙の段階が持っていればそれ（「バックアップが暗号化されました」）、無ければ「突破されました」
  */
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
@@ -55,7 +56,7 @@ function progressText(
     const word = plain ? PLAIN_STATE[last.state] : STATE_LABEL[last.state];
     const head =
       last.state === "breached"
-        ? `${label} が突破されました`
+        ? `${label} が${last.breachedDoneJa ?? "突破されました"}`
         : last.state === "blocked"
           ? `${label} で止まりました`
           : last.state === "recoverable"
