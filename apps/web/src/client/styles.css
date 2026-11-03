@@ -1423,3 +1423,68 @@ textarea.in {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+/* 情報ボタン（i）：文字を画面に並べず、押したときだけ説明を見せる */
+.info {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.info-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--edge-strong);
+  background: var(--btn);
+  color: var(--ink-2);
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.info-btn:hover,
+.info-btn[aria-expanded="true"] {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.info-pop {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(360px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--edge-strong);
+  background: var(--panel-2);
+  color: var(--ink);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: left;
+  font-weight: 400;
+  white-space: normal;
+}
+.info-end .info-pop {
+  left: auto;
+  right: 0;
+}
+.info-title {
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.info-body > p {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+}
+.info-body > p:last-child {
+  margin-bottom: 0;
+}
