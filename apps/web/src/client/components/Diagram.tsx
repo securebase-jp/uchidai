@@ -173,8 +173,14 @@ function Node({
           {tag}
         </text>
       )}
-      {showIds && v?.technique && (
+      {showIds && v?.technique && p.rows <= 3 && (
         <text className="tid" x={x0 + p.w} y={y0 - 5} textAnchor="end">
+          {v.technique}
+        </text>
+      )}
+      {showIds && v?.technique && p.rows > 3 && (
+        // 行が多い列は箱の上に余白が無いので、右下の角にまたがせる
+        <text className="tid" x={x0 + p.w} y={y0 + p.h - 3} textAnchor="middle">
           {v.technique}
         </text>
       )}
