@@ -65,8 +65,66 @@ export function yen(v: number | undefined): string {
   return `${v.toLocaleString("ja-JP")}円`;
 }
 
-/** 長い資産名を図の中で短くする（全文は title と一覧に出す） */
-export function shortLabel(label: string, max = 10): string {
-  const cut = label.split(/[（(]/)[0] ?? label;
-  return cut.length > max ? `${cut.slice(0, max - 1)}…` : cut;
+/** この語の直後で折り返す（自然な切れ目） */
+const BREAK_AFTER = ["・", " ", "　", "への", "との", "の", "用"];
+/** この語の直前で折り返す（図によく出る名詞のまとまり） */
+const BREAK_BEFORE = [
+  "システム",
+  "サーバ",
+  "ストレージ",
+  "アカウント",
+  "メール",
+  "サイト",
+  "ホームページ",
+  "デスクトップ",
+  "バックアップ",
+  "リモート",
+  "データ",
+  "装置",
+  "区画",
+  "担当",
+  "接続",
+  "同期",
+  "共有",
+  "報告",
+  "影響",
+  "委員会",
+];
+
+/** 自然に折り返せる位置（その位置の直前までが 1 行目） */
+function breakPoints(text: string): number[] {
+  const points = new Set<number>();
+  for (const t of BREAK_AFTER) {
+    for (let k = text.indexOf(t); k >= 0; k = text.indexOf(t, k + 1)) points.add(k + t.length);
+  }
+  for (const t of BREAK_BEFORE) {
+    for (let k = text.indexOf(t); k >= 0; k = text.indexOf(t, k + 1)) points.add(k);
+  }
+  return [...points].filter((i) => i > 0 && i < text.length).sort((a, b) => a - b);
+}
+
+function splitAt(text: string, i: number): [string, string] {
+  return [text.slice(0, i).trimEnd(), text.slice(i).trimStart()];
+}
+
+/**
+ * 資産名を図の箱に入る 2 行までに折り返す（全文は title と一覧に出す）。
+ * 括弧以降（「（廃止済み）」など）は落とす。1 行に perLine 文字まで。
+ * 折り返しは中黒・空白・「の」「用」の直後や、「システム」「サーバ」などの語の直前を優先し、
+ * 両方の行が収まる候補の中で行の長さが近いものを選ぶ。無ければ文字数で切る。
+ * 2 行に収まらない（perLine の 2 倍を超える）ときだけ末尾を「…」にする。
+ */
+export function wrapLabel(label: string, perLine = 7): string[] {
+  const cut = (label.split(/[（(]/)[0] ?? label).trim();
+  if (cut.length <= perLine) return [cut];
+  const candidates = breakPoints(cut).filter((i) => i <= perLine);
+  const fitting = candidates
+    .map((i) => splitAt(cut, i))
+    .filter(([a, b]) => a.length > 0 && b.length > 0 && b.length <= perLine)
+    .sort((x, y) => Math.abs(x[0].length - x[1].length) - Math.abs(y[0].length - y[1].length));
+  if (fitting[0]) return fitting[0];
+  if (cut.length <= perLine * 2) return splitAt(cut, Math.ceil(cut.length / 2));
+  const i = candidates.length ? (candidates.at(-1) ?? perLine) : perLine;
+  const [first, rest] = splitAt(cut, i);
+  return [first, `${rest.slice(0, perLine - 1)}…`];
 }

@@ -4,7 +4,7 @@
  */
 import { useMemo } from "react";
 import { curveBetween } from "../lib/geometry.ts";
-import { shortLabel } from "../lib/labels.ts";
+import { wrapLabel } from "../lib/labels.ts";
 import type { Layout, Placed } from "../lib/layout.ts";
 import type { Scene, Script } from "../lib/playback.ts";
 import type { CompanyProfile, Graph, GraphNode, Layer } from "../lib/types.ts";
@@ -85,6 +85,25 @@ function Shield({ p, ng, label }: { p: Placed; ng: boolean; label: string }) {
   );
 }
 
+/** 箱の中の文字の縦位置（箱の上端からの基線）。2 行＋状態の行のときは状態を下端に寄せる */
+function textRows(
+  count: number,
+  hasTag: boolean,
+  h: number,
+  sm: boolean,
+): { lines: number[]; tag?: number; tagTight: boolean } {
+  const fs = sm ? 13 : 15;
+  const pitch = fs + 2;
+  const baseline = (center: number) => center + fs * 0.38;
+  const spread = (mid: number) =>
+    Array.from({ length: count }, (_, i) => baseline(mid + (i - (count - 1) / 2) * pitch));
+  if (!hasTag) return { lines: spread(h / 2), tagTight: false };
+  if (count === 1) return { lines: [h / 2 - 3], tag: h / 2 + 15, tagTight: false };
+  const tagTight = h < 48;
+  const bottom = h - (tagTight ? 10 : 12) - 4;
+  return { lines: spread((2 + bottom) / 2), tag: h - 4, tagTight };
+}
+
 function Node({
   n,
   p,
@@ -109,8 +128,11 @@ function Node({
   const estimated = asset ? Object.values(asset.attrEvidence).includes("external") : false;
   const x0 = p.x - p.w / 2;
   const y0 = p.y - p.h / 2;
-  const max = n.layer === "management" ? 12 : n.layer === "business" ? 8 : 9;
-  const label = shortLabel(n.label, max);
+  const perLine = n.layer === "management" ? 12 : n.layer === "business" ? 8 : 7;
+  const lines = wrapLabel(n.label, perLine);
+  const longest = Math.max(...lines.map((l) => l.length));
+  const sm = longest > 7 || longest * 15 > p.w - 12 || (lines.length > 1 && !!tag && p.h < 58);
+  const rows = textRows(lines.length, !!tag, p.h, sm);
   const cls = [
     "node",
     n.role === "attacker" ? "attacker" : "",
@@ -134,16 +156,20 @@ function Node({
         rx={10}
       />
       <rect className="glow glowf" x={x0} y={y0} width={p.w} height={p.h} rx={10} />
-      <text
-        className={`label${label.length > 7 ? " sm" : ""}`}
-        x={p.x}
-        y={tag ? p.y - 3 : p.y + 5}
-        textAnchor="middle"
-      >
-        {label}
+      <text className={`label${sm ? " sm" : ""}`} x={p.x} textAnchor="middle">
+        {lines.map((line, i) => (
+          <tspan key={line} x={p.x} y={y0 + (rows.lines[i] ?? 0)}>
+            {line}
+          </tspan>
+        ))}
       </text>
-      {tag && (
-        <text className="tag" x={p.x} y={p.y + 15} textAnchor="middle">
+      {tag && rows.tag !== undefined && (
+        <text
+          className={`tag${rows.tagTight ? " tight" : ""}`}
+          x={p.x}
+          y={y0 + rows.tag}
+          textAnchor="middle"
+        >
           {tag}
         </text>
       )}
