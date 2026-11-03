@@ -65,6 +65,14 @@ export const STAFF_SECTION = {
   requests: "staff-requests",
 } as const;
 
+const TOC: [string, string][] = [
+  [STAFF_SECTION.verdict, "結論"],
+  [STAFF_SECTION.diagram, "経路図"],
+  [STAFF_SECTION.measures, "対策"],
+  [STAFF_SECTION.evidence, "根拠"],
+  [STAFF_SECTION.requests, "確認依頼"],
+];
+
 /** ページ内の区画へ移動する（ハッシュは画面の切り替えに使っているので、アンカーの href は使わない） */
 export function jumpTo(id: string): void {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -143,88 +151,97 @@ export function Staff({ settings }: { settings: Settings }) {
 
   return (
     <div className="staff">
-      <VerdictBanner
-        verdict={stage.input.verdict}
-        scene={scene}
-        script={script}
-        graph={stage.input.graph}
-        fired={clock.fired}
-        caseTitle={theCase.title}
-        swapping={stage.swapping || busy}
-        conclusionFirst
-        reasonJa={reason}
-        info={
-          <InfoButton title="結論の読み方" align="end">
-            <p>
-              結論は「止められます」「侵入は防げませんが被害は抑えられます」「大丈夫ではありませんでした」「確認中」の
-              4
-              種類です。報道と同じ攻撃が御社の構成に来たとき、どの段階で止まるかをプログラムが判定ルールで決めています。
-            </p>
-            {pending > 0 && (
+      <div id={STAFF_SECTION.verdict}>
+        <VerdictBanner
+          verdict={stage.input.verdict}
+          scene={scene}
+          script={script}
+          graph={stage.input.graph}
+          fired={clock.fired}
+          caseTitle={theCase.title}
+          swapping={stage.swapping || busy}
+          conclusionFirst
+          reasonJa={reason}
+          info={
+            <InfoButton title="結論の読み方" align="end">
               <p>
-                未確認の項目が {pending} 件あります。
-                {onPath.length > 0
-                  ? `うち、この攻撃の経路で問われているのは ${onPath.length} 件（${[...new Set(onPath.map((x) => x.assetLabel))].join("、")}）です。`
-                  : "この攻撃の経路で問われている項目はありません。"}
-                {result === "breached" &&
-                  unknownSteps.length > 0 &&
-                  `いまの結論「${RESULT_SHORT.breached}」は、未確認の段階（${unknownSteps.join("、")}）を「突破される」とみなした最悪の想定です。未確認は「止まる」とは扱いません。`}
-                {result === "pending" &&
-                  `いまの結論は「${RESULT_SHORT.pending}」です。未確認の段階（${unknownSteps.join("、")}）が決まると結論が決まります。`}
-                {result !== "breached" &&
-                  result !== "pending" &&
-                  onPath.length === 0 &&
-                  "この攻撃の結論は未確認の段階を通らずに出ています。残りの未確認は別の攻撃で問われることがあります。"}
-                {onPath.length > 0 &&
-                  "経路の項目から答える（またはベンダーに確認する）と、結論が変わりやすくなります。"}
-                <a href="#/profile">
+                結論は「止められます」「侵入は防げませんが被害は抑えられます」「大丈夫ではありませんでした」「確認中」の
+                4
+                種類です。報道と同じ攻撃が御社の構成に来たとき、どの段階で止まるかをプログラムが判定ルールで決めています。
+              </p>
+              {pending > 0 && (
+                <p>
+                  未確認の項目が {pending} 件あります。
                   {onPath.length > 0
-                    ? `カルテで経路の ${onPath.length} 件から答える`
-                    : "カルテに詳細を登録する"}
-                </a>
-                こともできます。
-                {profile.companyName === "うちの会社" && "会社名もカルテで登録できます。"}
-              </p>
-            )}
-            {theCase.clarity === "unknown" && (
+                    ? `うち、この攻撃の経路で問われているのは ${onPath.length} 件（${[...new Set(onPath.map((x) => x.assetLabel))].join("、")}）です。`
+                    : "この攻撃の経路で問われている項目はありません。"}
+                  {result === "breached" &&
+                    unknownSteps.length > 0 &&
+                    `いまの結論「${RESULT_SHORT.breached}」は、未確認の段階（${unknownSteps.join("、")}）を「突破される」とみなした最悪の想定です。未確認は「止まる」とは扱いません。`}
+                  {result === "pending" &&
+                    `いまの結論は「${RESULT_SHORT.pending}」です。未確認の段階（${unknownSteps.join("、")}）が決まると結論が決まります。`}
+                  {result !== "breached" &&
+                    result !== "pending" &&
+                    onPath.length === 0 &&
+                    "この攻撃の結論は未確認の段階を通らずに出ています。残りの未確認は別の攻撃で問われることがあります。"}
+                  {onPath.length > 0 &&
+                    "経路の項目から答える（またはベンダーに確認する）と、結論が変わりやすくなります。"}
+                  <a href="#/profile">
+                    {onPath.length > 0
+                      ? `カルテで経路の ${onPath.length} 件から答える`
+                      : "カルテに詳細を登録する"}
+                  </a>
+                  こともできます。
+                  {profile.companyName === "うちの会社" && "会社名もカルテで登録できます。"}
+                </p>
+              )}
+              {theCase.clarity === "unknown" && (
+                <p>
+                  記事に入口が書かれていません。攻撃の型（型紙）の入口候補（VPN
+                  装置、リモートデスクトップ、メールなど）だけで判定しています。別の入口から来る攻撃は判定に含まれないので、結論が「止められます」でも、この型紙の入口候補について止められる、という意味に留めてください。
+                </p>
+              )}
               <p>
-                記事に入口が書かれていません。攻撃の型（型紙）の入口候補（VPN
-                装置、リモートデスクトップ、メールなど）だけで判定しています。別の入口から来る攻撃は判定に含まれないので、結論が「止められます」でも、この型紙の入口候補について止められる、という意味に留めてください。
+                再生中は、いまどの段階まで進んだかをこの枠の中に小さく出します。再生が終わると結論だけに戻ります。
               </p>
-            )}
-            <p>
-              再生中は、いまどの段階まで進んだかをこの枠の中に小さく出します。再生が終わると結論だけに戻ります。
-            </p>
-          </InfoButton>
-        }
-      >
-        {(moves.length > 0 || pending > 0) && (
-          <div className="verdict-actions">
-            {moves.length > 0 && <span className="lab">次の一手</span>}
-            {moves.map((m) => (
-              <button
-                type="button"
-                key={m.measure.id}
-                className="btn sm"
-                disabled={busy}
-                onClick={() => app.toggleMeasure(m.measure.id)}
-                title={m.stageJa ? `この段階に効く：${m.stageJa}` : undefined}
-              >
-                {m.measure.labelJa}
-              </button>
-            ))}
-            {pending > 0 && (
-              <button
-                type="button"
-                className="btn sm ghost pending"
-                onClick={() => jumpTo(STAFF_SECTION.requests)}
-              >
-                未確認 {pending} 件
-              </button>
-            )}
-          </div>
-        )}
-      </VerdictBanner>
+            </InfoButton>
+          }
+        >
+          {(moves.length > 0 || pending > 0) && (
+            <div className="verdict-actions">
+              {moves.length > 0 && <span className="lab">次の一手</span>}
+              {moves.map((m) => (
+                <button
+                  type="button"
+                  key={m.measure.id}
+                  className="btn sm"
+                  disabled={busy}
+                  onClick={() => app.toggleMeasure(m.measure.id)}
+                  title={m.stageJa ? `この段階に効く：${m.stageJa}` : undefined}
+                >
+                  {m.measure.labelJa}
+                </button>
+              ))}
+              {pending > 0 && (
+                <button
+                  type="button"
+                  className="btn sm ghost pending"
+                  onClick={() => jumpTo(STAFF_SECTION.requests)}
+                >
+                  未確認 {pending} 件
+                </button>
+              )}
+            </div>
+          )}
+        </VerdictBanner>
+      </div>
+      <nav className="staff-toc" aria-label="区画の目次">
+        {TOC.map(([id, label]) => (
+          <button type="button" key={id} className="toc-link" onClick={() => jumpTo(id)}>
+            {label}
+          </button>
+        ))}
+      </nav>
       {error && (
         <p className="err small" style={{ marginTop: 6 }}>
           {error}
@@ -296,7 +313,7 @@ export function Staff({ settings }: { settings: Settings }) {
             concluded={scene.concluded}
             reduced={settings.reduced}
           />
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} id={STAFF_SECTION.measures}>
             <MeasurePanel
               measures={knowledge.measures}
               selected={measureIds}
@@ -322,7 +339,7 @@ export function Staff({ settings }: { settings: Settings }) {
           <div style={{ marginTop: 12 }}>
             <ComparisonPanel />
           </div>
-          <div style={{ marginTop: 12 }}>
+          <div style={{ marginTop: 12 }} id={STAFF_SECTION.evidence}>
             <EvidencePanel
               verdict={stage.input.verdict}
               theCase={theCase}

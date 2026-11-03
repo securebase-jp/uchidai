@@ -128,3 +128,27 @@
     padding: 6px 10px;
   }
 }
+
+/* 区画の目次（ページ内の移動。ハッシュは画面の切り替えに使うので、ボタンで動かす） */
+.staff-toc {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.toc-link {
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+  color: var(--ink-2);
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.toc-link:hover {
+  border-color: var(--cyan);
+  color: var(--ink);
+}
+.staff [id^="staff-"] {
+  scroll-margin-top: 8px;
+}
