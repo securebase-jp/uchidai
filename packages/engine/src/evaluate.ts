@@ -169,6 +169,8 @@ function evaluateStageNode(
     ...(technique ? { technique } : {}),
     source,
     labelJa: stage.labelJa,
+    ...(stage.breachedJa ? { breachedLabelJa: stage.breachedJa } : {}),
+    ...(stage.breachedDoneJa ? { breachedDoneJa: stage.breachedDoneJa } : {}),
     ...(stage.precondition ? { precondition: true } : {}),
     ...(stage.branch ? { branch: true } : {}),
     ...(matched?.quote ? { quote: matched.quote } : {}),

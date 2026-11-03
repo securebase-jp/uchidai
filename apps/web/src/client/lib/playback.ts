@@ -48,6 +48,10 @@ export type Beat =
       effective: string[];
       technique?: string;
       labelJa?: string;
+      /** 型紙の「突破されたときの言葉」（札。現在形）。無ければ汎用の「突破される」 */
+      breachedLabelJa?: string;
+      /** 再生中の帯の述語（過去形）。無ければ「突破されました」 */
+      breachedDoneJa?: string;
     }
   | { t: number; kind: "flash"; layer: Layer }
   | { t: number; dur: number; kind: "fall"; edgeId: string; from: string; to: string }
@@ -206,6 +210,8 @@ export function buildScript(
         effective,
         ...(step.technique ? { technique: step.technique } : {}),
         ...(step.labelJa ? { labelJa: step.labelJa } : {}),
+        ...(step.breachedLabelJa ? { breachedLabelJa: step.breachedLabelJa } : {}),
+        ...(step.breachedDoneJa ? { breachedDoneJa: step.breachedDoneJa } : {}),
       });
       visited.set(step.nodeId, step.state);
       prev = step.nodeId;
@@ -420,6 +426,12 @@ export function sceneAt(script: Script, graph: Graph, fired: number): Scene {
         break;
       case "arrive": {
         const n = node(b.nodeId);
+        // 突破された札は、型紙に段階の言葉（「暗号化される」など）があればそれを使う。
+        // 言葉を持たない経路（AI が見つけた経路など）が突破済みの資産をもう一度通っても、先に付いた言葉は残す
+        const breachWord =
+          b.state === "breached"
+            ? (b.breachedLabelJa ?? (n.state === "breached" ? n.tagJa : undefined))
+            : undefined;
         n.state = b.state;
         n.tone =
           b.state === "breached"
@@ -427,7 +439,7 @@ export function sceneAt(script: Script, graph: Graph, fired: number): Scene {
             : b.state === "unknown" || b.state === "human"
               ? "amber"
               : "green";
-        n.tagJa = STATE_LABEL[b.state];
+        n.tagJa = breachWord ?? STATE_LABEL[b.state];
         n.ineffective = b.ineffective;
         n.effective = b.effective;
         if (b.technique) n.technique = b.technique;

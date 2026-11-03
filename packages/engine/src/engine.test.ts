@@ -141,6 +141,53 @@ describe("被害事例1（業務停止）", () => {
   });
 });
 
+describe("型紙の「突破されたときの言葉」", () => {
+  it("事例1：型紙の breachedJa / breachedDoneJa が経路の各段階に載る（バックアップは「暗号化される」）", () => {
+    const v = evaluate(case1, demo, { knowledge });
+    const steps = v.paths[0]?.steps ?? [];
+    expect(steps.map((s) => [s.stageId, s.breachedLabelJa, s.breachedDoneJa])).toEqual([
+      ["entry", "侵入される", "侵入されました"],
+      ["credentials", "奪われる", "奪われました"],
+      ["lateral", "侵入される", "侵入されました"],
+      ["recovery", "暗号化される", "暗号化されました"],
+      ["encrypt", "暗号化される", "暗号化されました"],
+    ]);
+  });
+  it("事例5：乗っ取り・なりすまし・経理担当・送金の言葉が載り、前提の段階にも付く", () => {
+    const v = evaluate(case5, demo, { knowledge });
+    const words = Object.fromEntries(
+      (v.paths[0]?.steps ?? []).map((s) => [s.stageId, s.breachedLabelJa]),
+    );
+    expect(words).toEqual({
+      leak: "流出している",
+      takeover: "乗っ取られる",
+      impersonate: "なりすまされる",
+      human: "だまされる",
+      money: "送金される",
+    });
+  });
+  it("AI が見つけた経路（型紙にない段階）には付けない", () => {
+    const graph = buildGraph(demo, knowledge.roles);
+    const r = validateAiPath(
+      {
+        steps: [
+          { role: "entry.vendor_remote", technique: "T1199", reasonJa: "x" },
+          { role: "core", technique: "T1486", reasonJa: "y" },
+        ],
+      },
+      graph,
+      demo,
+      knowledge,
+    );
+    expect(r.ok).toBe(true);
+    if (r.ok)
+      for (const s of r.path.steps) {
+        expect(s.breachedLabelJa).toBeUndefined();
+        expect(s.breachedDoneJa).toBeUndefined();
+      }
+  });
+});
+
 describe("被害事例5（なりすまし送金）", () => {
   it("初期状態は「大丈夫ではない」。穴は社長のアカウント、経理担当は人次第", () => {
     const v = evaluate(case5, demo, { knowledge });

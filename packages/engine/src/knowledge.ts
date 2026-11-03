@@ -112,6 +112,10 @@ export type RuleOutcome = z.infer<typeof RuleOutcome>;
 export const TemplateStage = z.object({
   id: z.string(),
   labelJa: z.string(),
+  /** この段階が突破されたときの画面の札（現在形。「暗号化される」「だまされる」など）。無ければ汎用の「突破される」 */
+  breachedJa: z.string().optional(),
+  /** 再生中の帯の文（過去形。「バックアップが暗号化されました」の述語） */
+  breachedDoneJa: z.string().optional(),
   tactics: z.array(TacticId),
   entry: z.boolean().default(false),
   precondition: z.boolean().default(false),

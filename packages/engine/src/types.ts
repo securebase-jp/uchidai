@@ -226,6 +226,10 @@ export const PathStep = z.object({
   reasonJa: z.string(),
   /** 段階の見出し（型紙の labelJa） */
   labelJa: z.string().optional(),
+  /** この段階が突破されたときの札（型紙の breachedJa。現在形。無ければ画面の汎用語「突破される」） */
+  breachedLabelJa: z.string().optional(),
+  /** 再生中の帯の述語（型紙の breachedDoneJa。過去形。無ければ「突破されました」） */
+  breachedDoneJa: z.string().optional(),
   /** 前提条件として表示する段階（止めない） */
   precondition: z.boolean().optional(),
   /** 本線から枝分かれした段階（二重恐喝の持ち出しなど）。止まっても本線は進み、結論の材料にも数えない */

@@ -7,6 +7,8 @@ descriptionJa: 入口から侵入し、管理者権限を奪って社内に広�
 stages:
   - id: entry
     labelJa: 入口から侵入
+    breachedJa: 侵入される
+    breachedDoneJa: 侵入されました
     tactics: [TA0001]
     entry: true
     byRole:
@@ -20,18 +22,24 @@ stages:
     accepts: [T1190, T1133, T1078, T1566, T1566.001, T1566.002, T1189, T1195.002, T1199]
   - id: credentials
     labelJa: 管理者権限を奪う
+    breachedJa: 奪われる
+    breachedDoneJa: 奪われました
     tactics: [TA0006, TA0004]
     byRole:
       admin: T1003
     accepts: [T1003, T1078, T1110, T1110.004, T1555]
   - id: lateral
     labelJa: サーバへ広がる
+    breachedJa: 侵入される
+    breachedDoneJa: 侵入されました
     tactics: [TA0008]
     byRole:
       server: T1021
     accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
   - id: exfil
     labelJa: データを持ち出す（二重恐喝）
+    breachedJa: 持ち出される
+    breachedDoneJa: 持ち出されました
     tactics: [TA0010]
     byRole:
       server: T1048
@@ -41,6 +49,8 @@ stages:
     branch: true
   - id: recovery
     labelJa: バックアップを消す
+    breachedJa: 暗号化される
+    breachedDoneJa: 暗号化されました
     tactics: [TA0040]
     byRole:
       backup: T1490
@@ -49,6 +59,8 @@ stages:
     optional: true
   - id: encrypt
     labelJa: 暗号化・業務停止
+    breachedJa: 暗号化される
+    breachedDoneJa: 暗号化されました
     tactics: [TA0040]
     byRole:
       core: T1486

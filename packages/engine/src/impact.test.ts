@@ -253,6 +253,9 @@ describe("社長向けの一枚", () => {
     for (const line of one.whatHappensJa)
       expect(line).not.toMatch(/\b(T\d{4}|M\d{4}|TA\d{4}|UD-\d{2})\b/);
     expect(one.whatHappensJa.join("")).toContain("VPN装置");
+    // 「何が起きるか」は型紙の言葉で書く（「突破」ではなく「暗号化される」）
+    expect(one.whatHappensJa[0]).toContain("バックアップ（クラウド同期）が暗号化される");
+    expect(one.whatHappensJa.join("")).not.toContain("突破");
     expect(one.whatHappensJa.join("")).toContain("復旧まで最長 10 日");
     expect(one.whatHappensJa.join("")).toContain("3 日目から取引先の納期に影響");
     expect(one.stopped).toEqual([

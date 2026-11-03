@@ -1,6 +1,7 @@
 /**
  * 結論：動きが止まった瞬間に明朝体で大きく。途中は進行の説明。
- * conclusionFirst（担当者画面）では結論を常に出し、再生中の進み（「◯◯が突破されました」）は同じ枠の中に小さく出す
+ * conclusionFirst（担当者画面）では結論を常に出し、再生中の進み（「◯◯が突破されました」）は同じ枠の中に小さく出す。
+ * 突破の言葉は型紙の段階が持っていればそれ（「バックアップが暗号化されました」）、無ければ「突破されました」
  */
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
@@ -32,6 +33,8 @@ type Props = {
    * 「動きを減らす」設定では点滅せず、赤い縁と札だけになる。担当者画面は渡さないので従来どおり
    */
   alert?: boolean;
+  /** 再生を始める前（社長画面の「再生する」待ち）。平時の見出しを出す */
+  idle?: boolean;
 };
 
 function progressText(
@@ -55,7 +58,7 @@ function progressText(
     const word = plain ? PLAIN_STATE[last.state] : STATE_LABEL[last.state];
     const head =
       last.state === "breached"
-        ? `${label} が突破されました`
+        ? `${label} が${last.breachedDoneJa ?? "突破されました"}`
         : last.state === "blocked"
           ? `${label} で止まりました`
           : last.state === "recoverable"
@@ -89,13 +92,16 @@ export function VerdictBanner({
   info,
   children,
   alert = false,
+  idle = false,
 }: Props) {
   const concluded = scene.concluded;
   const [head, sub] = swapping
     ? ["時間を巻き戻しています", "同じ攻撃を、条件を変えてもう一度走らせます。"]
-    : concluded
-      ? [verdict.headlineJa, summary(verdict, plain, graph)]
-      : progressText(script, graph, fired, plain);
+    : idle && !concluded
+      ? ["いまは平時です", "「再生する」を押すと、報道と同じ攻撃が来ます。"]
+      : concluded
+        ? [verdict.headlineJa, summary(verdict, plain, graph)]
+        : progressText(script, graph, fired, plain);
 
   if (conclusionFirst) {
     const tone = RESULT_TONE[verdict.result];

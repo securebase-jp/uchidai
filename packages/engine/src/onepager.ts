@@ -100,12 +100,16 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     verdict.paths.find((p) => p.source !== "ai") ??
     verdict.paths[0];
   if (!path) return [];
+  // 型紙に「突破されたときの言葉」があれば「バックアップが暗号化される」のように資産名＋その言葉で、
+  // 無ければ段階の見出し＋資産名で書く（画面の構成図の札と同じ言葉になる）
   const chain = path.steps
     .filter((s) => !s.precondition)
-    .map(
-      (s) =>
-        `${s.labelJa ?? "次の段階へ進む"}（${nodeLabel(s.nodeId, s.role, profile, knowledge)}）`,
-    )
+    .map((s) => {
+      const node = nodeLabel(s.nodeId, s.role, profile, knowledge);
+      return s.breachedLabelJa && s.state !== "blocked"
+        ? `${node}が${s.breachedLabelJa}`
+        : `${s.labelJa ?? "次の段階へ進む"}（${node}）`;
+    })
     .join(" → ");
   const lines: string[] = [];
   if (path.reachedCore) {

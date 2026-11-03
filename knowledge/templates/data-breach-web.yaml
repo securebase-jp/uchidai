@@ -8,6 +8,8 @@ descriptionJa: 公開 Web サイトの脆弱性や管理画面から侵入し、
 stages:
   - id: entry
     labelJa: 公開 Web サイトへ侵入
+    breachedJa: 改ざんされる
+    breachedDoneJa: 改ざんされました
     tactics: [TA0001, TA0003]
     entry: true
     byRole:
@@ -16,6 +18,8 @@ stages:
     accepts: [T1190, T1505.003, T1078]
   - id: capture
     labelJa: 改ざんして入力情報を窃取
+    breachedJa: 盗まれる
+    breachedDoneJa: 盗まれました
     tactics: [TA0009, TA0040]
     byRole:
       entry.web: T1056.003
@@ -23,12 +27,16 @@ stages:
     accepts: [T1056.003, T1491.002]
   - id: exfil
     labelJa: 外部へ持ち出す
+    breachedJa: 持ち出される
+    breachedDoneJa: 持ち出されました
     tactics: [TA0010]
     byRole:
       entry.web: T1567
     accepts: [T1567, T1048, T1041]
   - id: leak
     labelJa: 個人情報が漏えいする
+    breachedJa: 漏えいする
+    breachedDoneJa: 漏えいしました
     tactics: [TA0010]
     byRole:
       entry.web: null

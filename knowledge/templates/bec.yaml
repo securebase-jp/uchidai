@@ -6,6 +6,8 @@ descriptionJa: 流出したパスワードで社長のメールに入り、社�
 stages:
   - id: leak
     labelJa: パスワードが流出している
+    breachedJa: 流出している
+    breachedDoneJa: 流出していました
     tactics: [TA0043]
     entry: true
     precondition: true
@@ -14,6 +16,8 @@ stages:
     accepts: [T1589.001, T1589]
   - id: takeover
     labelJa: 社長のメールに入られる
+    breachedJa: 乗っ取られる
+    breachedDoneJa: 乗っ取られました
     tactics: [TA0001, TA0003]
     byRole:
       cloud.mail_account.exec: T1078.004
@@ -21,12 +25,16 @@ stages:
     accepts: [T1078.004, T1078, T1110.004, T1566.002, T1621]
   - id: impersonate
     labelJa: 社長になりすまして指示する
+    breachedJa: なりすまされる
+    breachedDoneJa: なりすまされました
     tactics: [TA0005]
     byRole:
       cloud.mail_account.exec: T1684.001
     accepts: [T1684.001, T1684.002]
   - id: human
     labelJa: 経理担当が送金する
+    breachedJa: だまされる
+    breachedDoneJa: だまされました
     tactics: [TA0002]
     human: true
     byRole:
@@ -35,6 +43,8 @@ stages:
     accepts: [T1204, T1204.002]
   - id: money
     labelJa: 資金が流出する
+    breachedJa: 送金される
+    breachedDoneJa: 送金されました
     tactics: [TA0040]
     byRole:
       impact.money: null
