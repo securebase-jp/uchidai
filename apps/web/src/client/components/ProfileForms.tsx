@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import type { CompanyFields } from "../lib/profile.ts";
 import type { CompanyProfile } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 type Business = CompanyProfile["businesses"][number];
 type PersonalData = CompanyProfile["personalData"][number];
@@ -169,7 +170,23 @@ export function CompanyForm({
         <span className="h">確認依頼の宛先になります</span>
       </label>
       <label className="f" htmlFor="pf-vendor-email">
-        <span className="k">保守ベンダーのメール（任意）</span>
+        <span className="k">
+          保守ベンダーのメール（任意）
+          <InfoButton title="なぜメールアドレスを入れるのか">
+            <p>
+              カルテで「分からない」とした項目は、「ベンダーに確認する」で保守ベンダーへの確認依頼になります。ここに入れたメールアドレスは、その依頼の宛先として使います。
+            </p>
+            <p>
+              既定では自動で送られません。「ベンダーに確認する」を押すと担当者画面の送信箱に文面ができ、内容を確かめてから「メールソフトで開く」で送ります。サーバに
+              SMTP
+              を設定しているときだけ、「ベンダーに確認する」を押した時点でこのアドレスへ送られます。ベンダーの回答は、メールのリンクから開く回答ページで受け取り、判定にその場で反映されます。
+            </p>
+            <p>
+              アドレスはこのブラウザのカルテに保存され、依頼を作ったときだけ宛先として送信箱に記録されます。Claude
+              には送りません。入れなくても、回答リンクを自分で別の方法で渡せば使えます。
+            </p>
+          </InfoButton>
+        </span>
         <BlurInput
           id="pf-vendor-email"
           value={profile.vendor?.email ?? ""}
