@@ -5,6 +5,7 @@
  */
 import { useMemo, useState } from "react";
 import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import {
   type ControlFilter,
@@ -47,6 +48,7 @@ export function Profile() {
   const [staff, setStaff] = useState(() => staffName.load());
   const [savedAt, setSavedAt] = useState<string>();
   const [filter, setFilter] = useState<ControlFilter>("all");
+  const [confirmReset, setConfirmReset] = useState(false);
   const now = useMemo(() => new Date(), []);
 
   const save = (next: CompanyProfile) => {
@@ -149,7 +151,16 @@ export function Profile() {
       {profile && (
         <>
           <div className="panel">
-            <h2>会社の情報</h2>
+            <h2>
+              会社の情報
+              <button
+                type="button"
+                className="btn ghost sm reset-btn"
+                onClick={() => setConfirmReset(true)}
+              >
+                リセットする
+              </button>
+            </h2>
             <div className="fields">
               <label className="f">
                 <span className="k">
@@ -291,6 +302,29 @@ export function Profile() {
       )}
 
       <ProfileFile profile={profile} onReplace={(p) => save(p)} />
+      <ConfirmDialog
+        open={confirmReset}
+        title="カルテをリセットしますか？"
+        confirmLabel="リセットする"
+        onConfirm={() => {
+          setConfirmReset(false);
+          void app.resetProfile();
+          setSavedAt(undefined);
+        }}
+        onCancel={() => setConfirmReset(false)}
+      >
+        {app.profileSource === "example" ? (
+          <p>
+            {profile?.companyName}
+            のカルテへの変更を取り消して、はじめの内容に戻します。架空の会社なので、このブラウザに保存した自社のカルテには影響しません。
+          </p>
+        ) : (
+          <p>
+            登録した対策の有無、数値、会社名、個人情報の件数などを消して、最初の5問の回答から作った直後の状態に戻します。確認依頼の送信箱の回答は残ります。
+          </p>
+        )}
+        <p>この操作は元に戻せません。必要なら先に「書き出し」で JSON を保存してください。</p>
+      </ConfirmDialog>
     </div>
   );
 }

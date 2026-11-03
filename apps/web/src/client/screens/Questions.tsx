@@ -3,6 +3,7 @@
  * 回答が確定するたびに構成図のノードが順に現れて図が組み上がる（約5秒）
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
@@ -58,6 +59,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
     return { ...(mail ? { mail } : {}), ...(web ? { web } : {}) };
   });
   const [error, setError] = useState<string>();
+  const [confirmReset, setConfirmReset] = useState(false);
   const timers = useRef<number[]>([]);
   const layout = useMemo(() => layoutGraph(graph), [graph]);
 
@@ -102,6 +104,23 @@ export function Questions({ reduced }: { reduced: boolean }) {
     }
   }
 
+  // 最初の5問のリセット：回答と、そこから作ったこのブラウザのカルテを消して、何も選んでいない状態に戻す
+  const dirty = step > 0 || Object.keys(answers).length > 0 || app.ownProfile !== undefined;
+  function reset() {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    setStep(0);
+    setAnswers({});
+    setGraph(EMPTY_GRAPH);
+    setHidden(new Set());
+    setAppearing(new Set());
+    setRemote([]);
+    setHosting({});
+    setError(undefined);
+    app.clearProfile();
+    setConfirmReset(false);
+  }
+
   const q: Question | undefined = questions[step];
   const isLast = step === questions.length - 1;
 
@@ -117,6 +136,14 @@ export function Questions({ reduced }: { reduced: boolean }) {
           <>
             <div className="step">
               {step + 1} / {questions.length}
+              <button
+                type="button"
+                className="btn ghost sm reset-btn"
+                disabled={!dirty}
+                onClick={() => setConfirmReset(true)}
+              >
+                リセットする
+              </button>
               <InfoButton title="最初の5問について">
                 <p>
                   文字入力はありません。2
@@ -282,6 +309,19 @@ export function Questions({ reduced }: { reduced: boolean }) {
           <Diagram layout={layout} graph={graph} hidden={hidden} appearing={appearing} />
         )}
       </div>
+      <ConfirmDialog
+        open={confirmReset}
+        title="最初の5問をリセットしますか？"
+        confirmLabel="リセットする"
+        onConfirm={reset}
+        onCancel={() => setConfirmReset(false)}
+      >
+        <p>
+          いま選んでいる回答と、そこから作ったこのブラウザのカルテ（登録した対策の有無や数値を含む）を消して、1
+          問目からやり直します。
+        </p>
+        <p>この操作は元に戻せません。書き出した JSON があれば、あとで読み込めます。</p>
+      </ConfirmDialog>
     </div>
   );
 }

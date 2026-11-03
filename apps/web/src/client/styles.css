@@ -1969,3 +1969,52 @@ textarea.in {
 .article-pop.chip-menu-pop {
   width: min(520px, 100%);
 }
+
+/* リセットのボタンと確認のポップアップ */
+.reset-btn {
+  margin-left: 10px;
+  vertical-align: middle;
+}
+.reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn.danger:hover {
+  filter: brightness(1.1);
+}
+dialog.confirm-dialog {
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 0;
+  border: 1px solid var(--edge-strong);
+  border-radius: 14px;
+  background: var(--panel-2);
+  color: var(--ink);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+dialog.confirm-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.62);
+}
+.confirm-body {
+  padding: 20px 22px;
+}
+.confirm-body h2 {
+  font-size: 18px;
+  margin: 0 0 10px;
+}
+.confirm-body .confirm-text p {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}

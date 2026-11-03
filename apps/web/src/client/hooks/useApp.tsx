@@ -58,6 +58,8 @@ export type AppState = {
   loadExample(id: string): Promise<void>;
   setProfile(p: CompanyProfile, source: ProfileSource): void;
   clearProfile(): void;
+  /** カルテを初期値に戻す：架空の会社は examples/ から読み直し、自社は 5 問の回答から作り直す（登録した詳細は消える） */
+  resetProfile(): Promise<void>;
   setCase(c: Case, meta: CaseMeta): void;
   /** 記録済みの事例を読む。chosen: false は既定の事例（担当者が選んだのではない） */
   loadRecorded(caseId: string, opts?: { chosen?: boolean }): Promise<void>;
@@ -141,6 +143,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setMeasureIds([]);
     setAnswers([]);
   }, []);
+  const resetProfile = useCallback(async () => {
+    const p = profile;
+    if (!p) return;
+    try {
+      if (profileSource === "example") {
+        const { profile: fresh } = await api.example(p.id);
+        setProfile(fresh, "example");
+        return;
+      }
+      if (!p.answers) return;
+      const { profile: fresh } = await api.fromAnswers(p.answers, p.companyName);
+      setProfile(fresh, profileSource ?? "saved");
+    } catch (e) {
+      fail(e);
+    }
+  }, [profile, profileSource, setProfile, fail]);
   const loadExample = useCallback(
     async (id: string) => {
       try {
@@ -268,6 +286,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadExample,
       setProfile,
       clearProfile,
+      resetProfile,
       setCase,
       loadRecorded,
       toggleMeasure,
@@ -294,6 +313,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadExample,
       setProfile,
       clearProfile,
+      resetProfile,
       setCase,
       loadRecorded,
       toggleMeasure,
