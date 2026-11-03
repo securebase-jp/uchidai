@@ -38,6 +38,12 @@
           "labelJa": {
             "type": "string"
           },
+          "breachedJa": {
+            "type": "string"
+          },
+          "breachedDoneJa": {
+            "type": "string"
+          },
           "tactics": {
             "type": "array",
             "items": {

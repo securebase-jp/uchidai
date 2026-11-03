@@ -6,6 +6,8 @@ descriptionJa: 誰でも閲覧できる状態のクラウドストレージか�
 stages:
   - id: storage
     labelJa: 公開状態のクラウドストレージから取得される
+    breachedJa: 持ち出される
+    breachedDoneJa: 持ち出されました
     tactics: [TA0009, TA0001]
     entry: true
     byRole:
@@ -13,6 +15,8 @@ stages:
     accepts: [T1530]
   - id: leak
     labelJa: 個人情報が漏えいする
+    breachedJa: 漏えいする
+    breachedDoneJa: 漏えいしました
     tactics: [TA0010]
     byRole:
       cloud.storage: null

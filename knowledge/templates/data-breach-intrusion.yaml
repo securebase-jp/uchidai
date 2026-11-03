@@ -8,6 +8,8 @@ descriptionJa: 入口から社内に侵入し、管理者権限を奪ってサ�
 stages:
   - id: entry
     labelJa: 入口から侵入
+    breachedJa: 侵入される
+    breachedDoneJa: 侵入されました
     tactics: [TA0001]
     entry: true
     byRole:
@@ -19,18 +21,24 @@ stages:
     accepts: [T1190, T1133, T1078, T1566, T1566.001, T1566.002, T1189, T1195.002, T1199]
   - id: credentials
     labelJa: 管理者権限を奪う
+    breachedJa: 奪われる
+    breachedDoneJa: 奪われました
     tactics: [TA0006, TA0004]
     byRole:
       admin: T1003
     accepts: [T1003, T1078, T1110, T1110.004, T1555]
   - id: lateral
     labelJa: サーバへ広がる
+    breachedJa: 侵入される
+    breachedDoneJa: 侵入されました
     tactics: [TA0008]
     byRole:
       server: T1021
     accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
   - id: collect
     labelJa: 個人情報を集める
+    breachedJa: 集められる
+    breachedDoneJa: 集められました
     tactics: [TA0009, TA0007]
     byRole:
       server: T1005
@@ -39,12 +47,16 @@ stages:
     accepts: [T1005, T1039, T1083]
   - id: exfil
     labelJa: 外部へ持ち出す
+    breachedJa: 持ち出される
+    breachedDoneJa: 持ち出されました
     tactics: [TA0010]
     byRole:
       server: T1048
     accepts: [T1048, T1041, T1567]
   - id: leak
     labelJa: 個人情報が漏えいする
+    breachedJa: 漏えいする
+    breachedDoneJa: 漏えいしました
     tactics: [TA0010]
     byRole:
       file_server: null
