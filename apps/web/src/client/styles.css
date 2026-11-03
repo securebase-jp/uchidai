@@ -1572,6 +1572,21 @@ textarea.in {
   gap: 8px;
   min-height: 28px;
 }
+/* 舞台を画面に合わせて縮める：外側の高さは縮めた分に合わせ、下に余白が残らないようにする */
+.wrap:has(> .exec) {
+  padding-bottom: 12px;
+}
+.exec .exec-fit {
+  position: relative;
+  transition: height 0.35s ease;
+}
+.exec .exec-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transform-origin: top center;
+  transition: transform 0.35s ease;
+}
 .exec .exec-top {
   display: flex;
   flex-direction: column;
