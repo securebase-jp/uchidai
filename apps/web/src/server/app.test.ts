@@ -143,6 +143,20 @@ describe("守り", () => {
     expect((await app.request("/api/knowledge", { headers: h })).status).toBe(403);
     expect((await app.request("/api/health", { headers: h })).status).toBe(200);
   });
+  it("/api/health は読解が使えるか（キーの有無）だけを返し、値は返さない", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      expect(await loose(app.request("/api/health"))).toEqual({ ok: true, readAvailable: false });
+      process.env.ANTHROPIC_API_KEY = "test-key-not-used";
+      const body = await loose(app.request("/api/health"));
+      expect(body.readAvailable).toBe(true);
+      expect(JSON.stringify(body)).not.toContain("test-key-not-used");
+    } finally {
+      if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
+      else delete process.env.ANTHROPIC_API_KEY;
+    }
+  });
   it("CORS は手元の origin と PUBLIC_BASE_URL だけに許す", async () => {
     const ok = await app.request("/api/health", { headers: { origin: "http://localhost:5173" } });
     expect(ok.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
@@ -198,6 +212,13 @@ describe("POST /api/evaluate", () => {
     );
     expect(update.verdict.result).toBe("blocked");
     expect(update.measures.map((m: { id: string }) => m.id)).toEqual(["vpn-update"]);
+    // 次の一手：入口で効く VPN 装置の更新が先頭。講じた対策は候補から消える
+    expect(base.nextMoves.map((n: { measureId: string }) => n.measureId)[0]).toBe("vpn-update");
+    expect(base.nextMoves[0].stageJa).toBe("入口から侵入");
+    expect(base.nextMoves.length).toBeLessThanOrEqual(3);
+    expect(update.nextMoves.map((n: { measureId: string }) => n.measureId)).not.toContain(
+      "vpn-update",
+    );
 
     const backup = await loose(
       json("/api/evaluate", { case: theCase, profile, measureIds: ["backup-isolated"] }),

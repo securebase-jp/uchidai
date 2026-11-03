@@ -20,7 +20,7 @@ import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
-import { nextMoves, reasonSentence } from "../lib/conclusion.ts";
+import { type NextMove, reasonSentence } from "../lib/conclusion.ts";
 import { RESULT_SHORT } from "../lib/labels.ts";
 import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
 import { timelineOf } from "../lib/timeline.ts";
@@ -147,7 +147,10 @@ export function Staff({ settings }: { settings: Settings }) {
   const verdictNow = evaluation?.verdict ?? stage.input.verdict;
   const graphNow = evaluation?.graph ?? stage.input.graph;
   const reason = reasonSentence(verdictNow, graphNow, knowledge.labels.techniques);
-  const moves = nextMoves(knowledge.measures, verdictNow, measureIds);
+  const moves: NextMove[] = (evaluation?.nextMoves ?? []).flatMap((n) => {
+    const measure = knowledge.measures.find((m) => m.id === n.measureId);
+    return measure ? [{ measure, ...(n.stageJa ? { stageJa: n.stageJa } : {}) }] : [];
+  });
 
   return (
     <div className="staff">

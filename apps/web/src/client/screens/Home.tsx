@@ -89,6 +89,13 @@ const readUnavailable = {
       /* 保存できなくても動作には影響しない */
     }
   },
+  clear: () => {
+    try {
+      localStorage.removeItem(READ_UNAVAILABLE_KEY);
+    } catch {
+      /* 同上 */
+    }
+  },
 };
 
 export type ArticleTab = "url" | "text" | "pdf" | "recorded";
@@ -109,6 +116,18 @@ export function Home() {
     api
       .recordedList()
       .then((r) => setRecorded(r.items))
+      .catch(() => {});
+    // サーバにキーが無ければ、初回から「記録済みの事例」を既定にする（まだ URL のままのときだけ切り替える）
+    api
+      .health()
+      .then((h) => {
+        if (h.readAvailable) {
+          readUnavailable.clear();
+          return;
+        }
+        readUnavailable.save();
+        setTab((t) => (t === "url" ? "recorded" : t));
+      })
       .catch(() => {});
   }, []);
 

@@ -1,7 +1,7 @@
 /**
  * 結論カードの材料。判定はしない（判定結果と構成グラフを読んで文と並びを作るだけ）。
  * - reasonSentence：結論の理由を一文で（突破された入口と到達先、または止まった場所）
- * - nextMoves：いまの経路の段階に効く対策を、入口に近い段階で効くものから順に（適用中のものは除く）
+ * - NextMove：次の一手の型（選ぶのは engine の effectiveMeasures。/api/evaluate が返す）
  */
 import type { AttackPath, Graph, MeasureDef, PathStep, Verdict } from "./types.ts";
 
@@ -69,48 +69,5 @@ export function reasonSentence(
   }
 }
 
+/** 次の一手の 1 件（対策と、効く段階のラベル）。選ぶのはサーバ側の engine（/api/evaluate の nextMoves） */
 export type NextMove = { measure: MeasureDef; stageJa?: string };
-
-/**
- * 次の一手：いまの判定の段階（止まっていない段階）で効く対策を、早い段階で効くものから順に。
- * 効かない対策（ineffective）と適用中の対策は除く。同じ段階なら対策ボタンの並び順
- */
-export function nextMoves(
-  measures: MeasureDef[],
-  v: Verdict,
-  selected: string[],
-  limit = 3,
-): NextMove[] {
-  const steps = v.paths
-    .filter((p) => p.source !== "ai")
-    .flatMap((p) => mainSteps(p).map((s, index) => ({ s, index })))
-    .filter(({ s }) => s.state !== "blocked");
-  const out: (NextMove & { index: number; order: number })[] = [];
-  measures.forEach((measure, order) => {
-    if (selected.includes(measure.id)) return;
-    const roles = new Set(measure.patches.map((p) => p.role));
-    const ids = new Set([measure.mitigation, ...measure.patches.map((p) => p.mitigation)]);
-    const hit = steps
-      .filter(
-        ({ s }) =>
-          roles.has(s.role) &&
-          s.mitigations.some((m) => ids.has(m)) &&
-          !s.ineffective.some((i) => ids.has(i.mitigation)),
-      )
-      .reduce<{ s: PathStep; index: number } | undefined>(
-        (best, h) => (best === undefined || h.index < best.index ? h : best),
-        undefined,
-      );
-    if (hit)
-      out.push({
-        measure,
-        ...(hit.s.labelJa ? { stageJa: hit.s.labelJa } : {}),
-        index: hit.index,
-        order,
-      });
-  });
-  return out
-    .sort((a, b) => a.index - b.index || a.order - b.order)
-    .slice(0, limit)
-    .map(({ measure, stageJa }) => ({ measure, ...(stageJa ? { stageJa } : {}) }));
-}

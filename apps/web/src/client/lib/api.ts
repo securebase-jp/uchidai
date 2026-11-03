@@ -36,6 +36,8 @@ export type Evaluation = {
   verdict: Verdict;
   measures: MeasureDef[];
   profile: CompanyProfile;
+  /** 次の一手：いまの経路で効く対策（早い段階から 3 つ。サーバ側の engine が選ぶ） */
+  nextMoves?: { measureId: string; stageJa?: string }[];
 };
 export type RecordedCaseMeta = {
   caseId: string;
@@ -78,6 +80,7 @@ const post = <T>(path: string, body: unknown) =>
 export const api = {
   knowledge: () => call<KnowledgeView>("/api/knowledge"),
   example: (id: string) => call<{ profile: CompanyProfile; graph: Graph }>(`/api/examples/${id}`),
+  health: () => call<{ ok: boolean; readAvailable: boolean }>("/api/health"),
   recordedList: () =>
     call<{ items: { caseId: string; title: string; damageType: string }[] }>("/api/case/recorded"),
   recorded: (id: string) =>

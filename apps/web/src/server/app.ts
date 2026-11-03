@@ -11,6 +11,7 @@ import {
   buildGraph,
   Case,
   CompanyProfile,
+  effectiveMeasures,
   evaluate,
   loadKnowledge,
   measureCost,
@@ -93,7 +94,10 @@ app.onError((err, c) => {
   return c.json({ error: publicMessage(err) }, 500);
 });
 
-app.get("/api/health", (c) => c.json({ ok: true }));
+// readAvailable：記事の読解（Claude）が使えるか。キーの値は返さない
+app.get("/api/health", (c) =>
+  c.json({ ok: true, readAvailable: Boolean(process.env.ANTHROPIC_API_KEY) }),
+);
 app.route("/api/attacker", attackerRoutes);
 
 // 外部確認（所有確認 → DNS・証明書の公開ログ → カルテへの反映）。P2：src/server/routes/recon.ts
@@ -266,5 +270,9 @@ app.post("/api/evaluate", async (c) => {
       return [m.id, { costJa, ...(costSourceJa ? { costSourceJa } : {}) }];
     }),
   );
-  return c.json({ graph, verdict, measures, profile, measureCosts });
+  // 次の一手：いまの経路で効く対策を早い段階から 3 つ（engine の規則。既に講じた対策は除く）
+  const nextMoves = effectiveMeasures(verdict, k.measures, profile)
+    .slice(0, 3)
+    .map(({ measure, stageJa }) => ({ measureId: measure.id, ...(stageJa ? { stageJa } : {}) }));
+  return c.json({ graph, verdict, measures, profile, measureCosts, nextMoves });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nextMoves, reasonSentence } from "./conclusion.ts";
-import type { Graph, MeasureDef, PathStep, Verdict } from "./types.ts";
+import { reasonSentence } from "./conclusion.ts";
+import type { Graph, PathStep, Verdict } from "./types.ts";
 
 const step = (nodeId: string, extra: Partial<PathStep> = {}): PathStep => ({
   nodeId,
@@ -41,13 +41,6 @@ const verdict = (result: Verdict["result"], steps: PathStep[]): Verdict => ({
   ],
 });
 const techniques = { T1190: "公開アプリケーションの悪用" };
-const m = (id: string, mitigation: string, role: string): MeasureDef => ({
-  id,
-  labelJa: id,
-  mitigation,
-  patches: [{ role, mitigation, status: "present" }],
-});
-
 describe("reasonSentence（結論の理由の一文）", () => {
   it("突破：入口（手法名）から到達先まで", () => {
     const v = verdict("breached", [
@@ -82,50 +75,5 @@ describe("reasonSentence（結論の理由の一文）", () => {
     ]);
     expect(reasonSentence(v, graph)).toBe("VPN装置から入られ、生産管理システムまで届きます");
     expect(reasonSentence(verdict("no_entry", []), graph)).toBe("");
-  });
-});
-
-describe("nextMoves（この段階に効く対策の上位）", () => {
-  const v = verdict("breached", [
-    step("vpn", {
-      role: "entry.vpn",
-      mitigations: ["M1051"],
-      ineffective: [{ mitigation: "M1032", reasonJa: "認証を回避する" }],
-      labelJa: "入口から侵入",
-    }),
-    step("admin", {
-      state: "unknown",
-      mitigations: ["M1040", "M1026"],
-      labelJa: "管理者権限を奪う",
-    }),
-    step("backup", { mitigations: ["M1053"], labelJa: "バックアップを消す" }),
-  ]);
-  const measures = [
-    m("backup-isolated", "M1053", "backup"),
-    m("admin-separate", "M1026", "admin"),
-    m("vpn-mfa", "M1032", "entry.vpn"),
-    m("vpn-update", "M1051", "entry.vpn"),
-    m("edr", "M1040", "admin"),
-    m("exec-mfa", "M1032", "cloud.mail_account.exec"),
-  ];
-  it("早い段階で効く順、同じ段階なら対策の並び順。効かない対策と経路の外は除く", () => {
-    expect(nextMoves(measures, v, []).map((x) => x.measure.id)).toEqual([
-      "vpn-update",
-      "admin-separate",
-      "edr",
-    ]);
-    expect(nextMoves(measures, v, [])[0]?.stageJa).toBe("入口から侵入");
-  });
-  it("適用中の対策は除き、件数の上限を守る", () => {
-    expect(nextMoves(measures, v, ["vpn-update"], 2).map((x) => x.measure.id)).toEqual([
-      "admin-separate",
-      "edr",
-    ]);
-  });
-  it("止まった段階の対策は勧めない", () => {
-    const stopped = verdict("blocked", [
-      step("vpn", { role: "entry.vpn", state: "blocked", mitigations: ["M1051"] }),
-    ]);
-    expect(nextMoves(measures, stopped, [])).toEqual([]);
   });
 });
