@@ -303,6 +303,8 @@ p {
   right: auto;
   top: calc(100% + 6px);
   width: min(440px, 100%);
+  /* 下の結論の文字が透けないよう、背景色を不透明に重ねる */
+  background: linear-gradient(var(--panel-2), var(--panel-2)), var(--bg);
 }
 .chip-menu-note {
   margin: 0 0 8px;
