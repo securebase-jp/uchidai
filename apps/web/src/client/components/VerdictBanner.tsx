@@ -27,6 +27,11 @@ type Props = {
   info?: ReactNode;
   /** 次の一手・未確認の件数など、結論の下に置くもの */
   children?: ReactNode;
+  /**
+   * 赤の結論（大丈夫ではありませんでした）に達した瞬間、縁をゆっくり 3 回点滅させてから脈打たせ、左に「警告」の札を出す（社長画面）。
+   * 「動きを減らす」設定では点滅せず、赤い縁と札だけになる。担当者画面は渡さないので従来どおり
+   */
+  alert?: boolean;
 };
 
 function progressText(
@@ -83,6 +88,7 @@ export function VerdictBanner({
   reasonJa,
   info,
   children,
+  alert = false,
 }: Props) {
   const concluded = scene.concluded;
   const [head, sub] = swapping
@@ -124,11 +130,13 @@ export function VerdictBanner({
   }
 
   const tone = concluded ? RESULT_TONE[verdict.result] : "";
+  const alarm = alert && concluded && !swapping && tone === "red";
   return (
     <section
-      className={`verdict ${tone ? `tone-${tone}` : ""}${big && concluded ? " big" : ""}`}
+      className={`verdict ${tone ? `tone-${tone}` : ""}${big && concluded ? " big" : ""}${alarm ? " alarm" : ""}`}
       aria-live="polite"
     >
+      {alarm && <span className="verdict-badge">警告</span>}
       <AnimatePresence mode="wait">
         <motion.div
           key={head}

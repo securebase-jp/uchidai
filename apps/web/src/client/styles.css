@@ -1588,6 +1588,89 @@ textarea.in {
 .exec .stage svg.diagram .tid {
   display: none;
 }
+/* 赤の結論に達した瞬間、構成図の全面がひと呼吸だけ赤く光る（面の flash と同じ動き） */
+.exec .stage .stage-flash {
+  position: absolute;
+  inset: 0;
+  background: var(--red);
+  opacity: 0;
+  pointer-events: none;
+  animation: flash 900ms linear 1;
+}
+
+/* 赤の結論の警告（社長画面）：縁を 0.6 秒周期で 3 回ゆっくり点滅（毎秒 3 回未満）してから、点灯のまま脈打つ。文字は消さない */
+.verdict.alarm {
+  padding-left: 52px;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--red) 55%, transparent),
+    0 0 28px color-mix(in srgb, var(--red) 50%, transparent);
+  animation: alarm-blink 600ms ease-in-out 3;
+}
+.verdict.alarm::before {
+  width: 32px;
+}
+.verdict.alarm::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--red) 24%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  animation: alarm-sweep 2400ms ease-in-out 1800ms infinite;
+}
+.verdict.alarm > div {
+  position: relative;
+  z-index: 1;
+}
+.verdict-badge {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.3em;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 2;
+}
+@keyframes alarm-blink {
+  0%,
+  100% {
+    border-color: var(--red);
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--red) 55%, transparent),
+      0 0 32px color-mix(in srgb, var(--red) 60%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--red) 30%, var(--edge));
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes alarm-sweep {
+  0% {
+    opacity: 0.5;
+    background-position: 100% 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+    background-position: -100% 0;
+  }
+}
 
 /* 動きを減らす */
 :root[data-reduced="true"] * {

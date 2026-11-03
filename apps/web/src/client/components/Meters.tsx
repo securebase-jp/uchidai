@@ -10,6 +10,8 @@ type Props = {
   scene: Scene;
   verdict: Verdict;
   profile: CompanyProfile;
+  /** 赤の結論に達したら、すべての数字を赤にする（社長画面の警告） */
+  alert?: boolean;
 };
 
 export function useDayCounter(clock: Clock, scene: Scene): number {
@@ -25,15 +27,16 @@ export function useDayCounter(clock: Clock, scene: Scene): number {
   return day;
 }
 
-export function Meters({ clock, scene, verdict, profile }: Props) {
+export function Meters({ clock, scene, verdict, profile, alert = false }: Props) {
   const day = useDayCounter(clock, scene);
   const downtime = Math.min(day, verdict.impact.downtimeDays);
   const revenue = profile.dailyRevenue !== undefined ? profile.dailyRevenue * downtime : undefined;
-  const hot = downtime > 0 ? (verdict.result === "mitigated" ? "warm" : "hot") : "";
+  const alarm = alert && scene.concluded && verdict.result === "breached";
+  const hot = alarm ? "hot" : downtime > 0 ? (verdict.result === "mitigated" ? "warm" : "hot") : "";
   const money = verdict.impact.moneyLossJpy;
   return (
     <div className="meters" aria-live="off">
-      <div className={`meter ${day > 0 ? hot : ""}`}>
+      <div className={`meter ${day > 0 || alarm ? hot : ""}`}>
         <div className="k">経過</div>
         <div className="v">Day {day}</div>
       </div>

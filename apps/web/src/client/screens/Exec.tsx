@@ -11,6 +11,7 @@ import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
+import { RESULT_TONE } from "../lib/labels.ts";
 import { Legend } from "./Staff.tsx";
 
 export function Exec({ settings }: { settings: Settings }) {
@@ -56,6 +57,12 @@ export function Exec({ settings }: { settings: Settings }) {
   }
   const { layout, scene, script, clock } = stage;
   const plainMeasures = knowledge.measures;
+  // 赤の結論に達した瞬間だけの警告（帯の点滅、数字の赤、構成図のひと呼吸の赤）
+  const alarm =
+    scene.concluded &&
+    !stage.swapping &&
+    !busy &&
+    RESULT_TONE[stage.input.verdict.result] === "red";
   return (
     <div className="exec">
       <p className="muted" style={{ textAlign: "center" }}>
@@ -71,6 +78,7 @@ export function Exec({ settings }: { settings: Settings }) {
         plain
         big
         swapping={stage.swapping || busy}
+        alert
       />
       <div className="numbers">
         <Meters
@@ -78,6 +86,7 @@ export function Exec({ settings }: { settings: Settings }) {
           scene={scene}
           verdict={stage.input.verdict}
           profile={stage.input.profile}
+          alert
         />
       </div>
       <div className="stage">
@@ -100,6 +109,7 @@ export function Exec({ settings }: { settings: Settings }) {
           reduced={settings.reduced}
         />
         <Legend />
+        {alarm && <div className="stage-flash" aria-hidden="true" />}
       </div>
       <div className="controls" style={{ justifyContent: "center" }}>
         <button
