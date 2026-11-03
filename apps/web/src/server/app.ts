@@ -5,7 +5,7 @@
  * 守り：入力は zod で検証し、本文の大きさに上限を置く。公開 URL 経由の要求は回答ページの API だけに絞る。
  * 記事の URL は公開された http(s) だけ（手元や社内のアドレスには向けない）。エラー応答にスタックや内部パスは出さない。
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   buildGraph,
@@ -148,6 +148,41 @@ app.post("/api/profile/from-answers", async (c) => {
 });
 
 // 架空企業のカルテ（examples/）
+/** 一覧の 1 件。会社名と業種（構成パターンの名前）、人数だけを返す（カルテの中身は :id で） */
+export type ExampleSummary = {
+  id: string;
+  companyName: string;
+  patternLabelJa: string;
+  employees?: number;
+  fictional: boolean;
+};
+/** examples/*.json のうち、ID が安全で CompanyProfile として検証できるものだけを一覧にする */
+export function listExamples(): ExampleSummary[] {
+  const dir = join(repoRoot, "examples");
+  if (!existsSync(dir)) return [];
+  const patterns = loadKnowledge().patterns;
+  const out: ExampleSummary[] = [];
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith(".json"))
+    .sort()) {
+    const id = SafeId.safeParse(file.slice(0, -".json".length));
+    if (!id.success) continue;
+    try {
+      const profile = CompanyProfile.parse(JSON.parse(readFileSync(join(dir, file), "utf8")));
+      out.push({
+        id: id.data,
+        companyName: profile.companyName,
+        patternLabelJa: patterns.find((p) => p.id === profile.pattern)?.labelJa ?? profile.pattern,
+        ...(profile.employees !== undefined ? { employees: profile.employees } : {}),
+        fictional: profile.fictional,
+      });
+    } catch {
+      // 検証できないファイルは一覧に出さない（画面から選べる会社は読めるものだけ）
+    }
+  }
+  return out;
+}
+app.get("/api/examples", (c) => c.json({ items: listExamples() }));
 app.get("/api/examples/:id", (c) => {
   const id = SafeId.parse(c.req.param("id"));
   const path = join(repoRoot, "examples", `${id}.json`);

@@ -90,7 +90,7 @@ export function homeSteps(input: HomeInput): HomeStep[] {
             profileSource === "answers"
               ? `回答済み：${profile.companyName}`
               : profileSource === "example"
-                ? `架空の会社を読み込み中：${profile.companyName}（自社のカルテではありません）`
+                ? `架空の会社：${profile.companyName}（自社のカルテではありません）`
                 : `このブラウザに保存済みのカルテ：${profile.companyName}`,
           tone: "done" as const,
           actionJa: "もう一度答える（カルテを作り直す）",
@@ -117,9 +117,9 @@ export function homeSteps(input: HomeInput): HomeStep[] {
           actionJa: "カルテを開く",
           disabled: true,
         }
-      : profile.fictional
+      : profileSource === "example" || profile.fictional
         ? {
-            statusJa: "架空の会社のカルテです（登録は要りません）",
+            statusJa: `架空の会社：${profile.companyName}（登録は要りません）`,
             tone: "done" as const,
             actionJa: "カルテを見る",
           }

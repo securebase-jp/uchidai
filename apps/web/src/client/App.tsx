@@ -1,5 +1,6 @@
 import { MotionConfig } from "motion/react";
 import { useEffect } from "react";
+import { CaseChip, CompanyChip } from "./components/CompanyPicker.tsx";
 import { TopBar } from "./components/TopBar.tsx";
 import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
@@ -29,11 +30,15 @@ function Shell({ settings }: { settings: Settings }) {
     <div className="wrap">
       <TopBar
         route={route}
-        {...(app.profile ? { profile: app.profile } : {})}
         {...(app.knowledge ? { attackVersion: app.knowledge.attackVersion } : {})}
-        {...(app.caseMeta ? { caseLabel: app.caseMeta.label } : {})}
         theme={settings.theme}
         onToggleTheme={settings.toggleTheme}
+        chips={
+          <>
+            <CompanyChip />
+            <CaseChip />
+          </>
+        }
       />
       {route === "home" && <Home />}
       {route === "domain" && <Domain />}

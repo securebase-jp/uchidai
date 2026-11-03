@@ -3,6 +3,7 @@
  * 手順 1 トークン発行、2 所有確認、3 実行、4 反映。対象ホストにはアクセスしない（公開情報だけ）。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { ReconApplyPanel } from "../components/ReconApplyPanel.tsx";
 import { ReconResultView } from "../components/ReconResultView.tsx";
@@ -407,18 +408,7 @@ export function Domain() {
                 問の初期値はこのブラウザに保存しました。
                 「最初の5問」で該当の質問に初期選択として出ます（合っているかを確かめるだけで進めます）。
               </p>
-              <p className="row" style={{ marginTop: 8 }}>
-                <a className="btn primary" href="#/questions">
-                  最初の5問に答える
-                </a>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() => void app.loadExample("demo-seiko")}
-                >
-                  架空の会社（デモ精工）のカルテを読む
-                </button>
-              </p>
+              <CompanyChoiceList leadJa="会社を選ぶ" />
             </div>
           ) : appliedDone ? (
             <div className="small">

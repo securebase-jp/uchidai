@@ -39,6 +39,14 @@ export type Evaluation = {
   /** 次の一手：いまの経路で効く対策（早い段階から 3 つ。サーバ側の engine が選ぶ） */
   nextMoves?: { measureId: string; stageJa?: string }[];
 };
+/** 架空の会社の一覧の 1 件（GET /api/examples） */
+export type ExampleSummary = {
+  id: string;
+  companyName: string;
+  patternLabelJa: string;
+  employees?: number;
+  fictional: boolean;
+};
 export type RecordedCaseMeta = {
   caseId: string;
   recordedAt?: string;
@@ -79,6 +87,7 @@ const post = <T>(path: string, body: unknown) =>
 
 export const api = {
   knowledge: () => call<KnowledgeView>("/api/knowledge"),
+  examples: () => call<{ items: ExampleSummary[] }>("/api/examples"),
   example: (id: string) => call<{ profile: CompanyProfile; graph: Graph }>(`/api/examples/${id}`),
   health: () => call<{ ok: boolean; readAvailable: boolean }>("/api/health"),
   recordedList: () =>

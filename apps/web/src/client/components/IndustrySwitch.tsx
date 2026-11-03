@@ -95,6 +95,10 @@ export function IndustrySwitch() {
             {knowledge?.patterns &&
               ` 業種のパターンは knowledge/profiles の ${knowledge.patterns.length} 種です。`}
           </p>
+          <p>
+            対策まで登録した架空の 3
+            社（製造業、卸売・サービス、医療・福祉）は、上部の会社から選べます。
+          </p>
         </InfoButton>
       </h2>
       <div className="row" style={{ marginTop: 8 }}>

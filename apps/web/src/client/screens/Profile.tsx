@@ -4,6 +4,7 @@
  * 画面の文字は最小限にし、仕組みの説明は見出し横の情報ボタン（i）の中に出す
  */
 import { useMemo, useState } from "react";
+import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import {
   type ControlFilter,
@@ -137,22 +138,10 @@ export function Profile() {
 
       {!profile && (
         <div className="panel">
-          <h2>会社カルテがありません</h2>
-          <p className="muted">
+          <CompanyChoiceList />
+          <p className="muted small" style={{ marginTop: 8 }}>
             最初の5問に答えると、役割の枠だけのカルテができます。書き出した JSON
             を読み込むこともできます。
-          </p>
-          <p className="row" style={{ marginTop: 8 }}>
-            <a className="btn primary" href="#/questions">
-              最初の5問に答える
-            </a>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => void app.loadExample("demo-seiko")}
-            >
-              架空の会社（デモ精工）で試す
-            </button>
           </p>
         </div>
       )}

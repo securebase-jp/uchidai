@@ -12,7 +12,7 @@ import { buildOnePagerHash, type OnePagerParams } from "./params.ts";
 
 export type OnePagerState =
   | { status: "loading" }
-  | { status: "missing"; reasonJa: string }
+  | { status: "missing"; missing: "profile" | "case"; reasonJa: string }
   | { status: "error"; messageJa: string }
   /** API で作った一枚。idShareHash は ID で指す形の共有リンク（架空の会社の記録のときだけ作れる） */
   | {
@@ -63,15 +63,16 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
         if (!profile) {
           setState({
             status: "missing",
-            reasonJa:
-              "会社カルテがありません。最初の5問に答えるか、架空の会社（デモ精工）を選んでください。",
+            missing: "profile",
+            reasonJa: "会社がまだ選ばれていません。",
           });
           return;
         }
         if (!theCase) {
           setState({
             status: "missing",
-            reasonJa: "事例がありません。はじめにで事例を選んでください。",
+            missing: "case",
+            reasonJa: "事例がありません。上部の事例から選ぶか、はじめにで記事を貼ってください。",
           });
           return;
         }

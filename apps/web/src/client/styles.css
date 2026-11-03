@@ -284,6 +284,87 @@ p {
   white-space: normal;
   text-align: left;
 }
+/* 会社・事例のチップの選択メニュー：吹き出しは情報ボタンと同じ見た目。
+   チップの段（.topbar-chips）を基準に左寄せで開くので、狭い画面でも右にはみ出さない */
+.topbar .topbar-chips {
+  position: relative;
+}
+.chip-menu {
+  display: inline-block;
+}
+/* まだ選んでいないチップ（会社を選ぶ／事例を選ぶ）は破線で目立たせる */
+.chip-empty {
+  border-style: dashed;
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+.chip-menu-pop {
+  left: 0;
+  right: auto;
+  top: calc(100% + 6px);
+  width: min(440px, 100%);
+  /* 下の結論の文字が透けないよう、背景色を不透明に重ねる */
+  background: linear-gradient(var(--panel-2), var(--panel-2)), var(--bg);
+}
+.chip-menu-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.chip-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chip-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+.chip-menu-item:hover,
+.chip-menu-item:focus-visible {
+  border-color: var(--cyan);
+  background: var(--btn);
+  outline: none;
+}
+.chip-menu-item.current {
+  border-color: var(--edge-strong);
+  background: var(--panel);
+}
+.chip-menu-item.current .chip-menu-text::before {
+  content: "✓ ";
+  color: var(--cyan);
+}
+.chip-menu-text {
+  flex: 1;
+  white-space: normal;
+}
+/* 会社が無い画面に出す同じ一覧 */
+.company-choice h2 {
+  font-size: 16px;
+}
+.company-choice .btn .chip-mark {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  padding: 0 5px;
+  vertical-align: 1px;
+}
 /* 狭い画面（スマホ）：ナビは折り返して二段、チップは幅に収める */
 @media (max-width: 720px) {
   .wrap {
