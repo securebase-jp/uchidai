@@ -1,6 +1,7 @@
 /**
- * 確認項目の一覧：資産ごとに緩和策を 1 行ずつ。「自分で答える」（質問表の選択肢をその場で出す）と「ベンダーに聞く」。
- * 根拠の優先順位を守る：外部確認は変更不可、ベンダー回答は確認してから、送信箱の回答は変更不可
+ * 確認項目の一覧：資産ごとに対策（ATT&CK の緩和策）を 1 行ずつ。「自分で答える」（質問表の選択肢をその場で出す）と「ベンダーに聞く」。
+ * 根拠の優先順位を守る：外部確認は変更不可、ベンダー回答は確認してから、送信箱の回答は変更不可。
+ * 一覧には項目名と状態だけを出し、質問の文は項目名の横の情報ボタンか、開いたときに見せる
  */
 import { useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
@@ -18,9 +19,13 @@ import {
   type StaffAnswer,
 } from "../lib/profile.ts";
 import type { CompanyProfile, Contradiction, LabelsFile, RoleDef } from "../lib/types.ts";
+import { InfoButton } from "./InfoButton.tsx";
 import { KevPanel } from "./KevPanel.tsx";
 
 type Asset = CompanyProfile["assets"][number];
+type Control = Asset["controls"][number];
+/** 一覧の絞り込み：すべて／未確認だけ／この攻撃の経路に関係する項目だけ */
+export type ControlFilter = "all" | "pending" | "path";
 
 export const STATUS_LABEL = { present: "あり", absent: "なし", unknown: "未確認" } as const;
 const STATUS_TONE = { present: "green", absent: "red", unknown: "amber" } as const;
@@ -42,6 +47,8 @@ type Props = {
   outboxAnswers: AnswerInput[];
   /** いまの判定の経路で問われている未確認（入口に近い順）。該当する資産と行を先頭に寄せ、印を付ける */
   onPath?: PendingItem[];
+  /** 一覧の絞り込み（既定はすべて） */
+  filter?: ControlFilter;
   staff: string;
   now: Date;
   onAnswer(a: StaffAnswer): void;
@@ -79,6 +86,29 @@ export function orderByPath(assets: Asset[], onPath: PendingItem[]): Asset[] {
     }));
 }
 
+/**
+ * 絞り込み後に一覧へ出す資産と行（経路の順に並べたあと）。
+ * 「未確認だけ」は isPending が真の行、「経路の項目だけ」は onPath にある行。行が残らない資産は出さない。「すべて」は並べ替えだけ
+ */
+export function visibleAssets(
+  assets: Asset[],
+  onPath: PendingItem[],
+  filter: ControlFilter,
+  isPending: (assetId: string, c: Control) => boolean,
+): Asset[] {
+  const ordered = orderByPath(assets, onPath);
+  if (filter === "all") return ordered;
+  const asked = new Set(onPath.map((x) => `${x.assetId}:${x.mitigation}`));
+  return ordered
+    .map((a) => ({
+      ...a,
+      controls: a.controls.filter((c) =>
+        filter === "pending" ? isPending(a.id, c) : asked.has(`${a.id}:${c.mitigation}`),
+      ),
+    }))
+    .filter((a) => a.controls.length > 0);
+}
+
 export function ProfileControls(p: Props) {
   const mit = (id: string) =>
     p.labels.mitigations[id] ?? p.labels.custom[id]?.labelJa ?? "（名称なし）";
@@ -88,9 +118,25 @@ export function ProfileControls(p: Props) {
   const onPath = p.onPath ?? [];
   const pathStage = (assetId: string, mitigation: string) =>
     onPath.find((x) => x.assetId === assetId && x.mitigation === mitigation);
+  const filter = p.filter ?? "all";
+  const isPending = (assetId: string, c: Control) =>
+    effectiveControl(
+      c,
+      p.outboxAnswers.find((x) => x.assetId === assetId && x.mitigation === c.mitigation),
+      c.mitigation,
+    ).status === "unknown";
+  const shown = visibleAssets(p.profile.assets, onPath, filter, isPending);
+  if (shown.length === 0)
+    return (
+      <p className="muted">
+        {filter === "pending"
+          ? "未確認の項目はありません。"
+          : "この攻撃の経路で問われている未確認の項目はありません。"}
+      </p>
+    );
   return (
     <div className="stack">
-      {orderByPath(p.profile.assets, onPath).map((a) => (
+      {shown.map((a) => (
         <AssetCard
           key={a.id}
           profile={p.profile}
@@ -157,7 +203,13 @@ function AssetCard(p: CardProps) {
       {PRODUCT_ROLES.has(asset.role) && (
         <div className="fields" style={{ marginBottom: 6 }}>
           <label className="f">
-            <span className="k">製品名</span>
+            <span className="k">
+              製品名
+              <InfoButton title="製品名と版について">
+                <p>製品名と版は Claude に送られません。判定はプログラムが行います。</p>
+                <p>版が未登録だと、更新の運用が未確認のときに「未確認」のままになります。</p>
+              </InfoButton>
+            </span>
             <input
               className="in"
               value={product}
@@ -165,9 +217,6 @@ function AssetCard(p: CardProps) {
               onChange={(e) => setProduct(e.target.value)}
               onBlur={commitProduct}
             />
-            <span className="h">
-              製品名と版は Claude に送られません（判定はプログラムが行います）
-            </span>
           </label>
           <label className="f">
             <span className="k">版（バージョン）</span>
@@ -178,9 +227,6 @@ function AssetCard(p: CardProps) {
               onChange={(e) => setVersion(e.target.value)}
               onBlur={commitProduct}
             />
-            <span className="h">
-              版が未登録だと、更新の運用が未確認のときに「未確認」のままになります
-            </span>
           </label>
         </div>
       )}
@@ -195,7 +241,7 @@ function AssetCard(p: CardProps) {
         />
       )}
       {asset.controls.length === 0 ? (
-        <p className="muted">この構成要素に確認する緩和策はありません。</p>
+        <p className="muted">この構成要素に確認する対策（ATT&amp;CK の緩和策）はありません。</p>
       ) : (
         asset.controls.map((c) => (
           <ControlRow
@@ -265,15 +311,20 @@ function ControlRow(p: RowProps) {
   return (
     <div className="ctl-row" id={`ctl-${p.asset.id}-${p.mitigation}`}>
       <div className="what">
-        <b>
-          {p.label} <code>{p.mitigation}</code>
-        </b>
+        <div className="name">
+          <b>
+            {p.label} <code>{p.mitigation}</code>
+          </b>
+          <InfoButton title={p.label}>
+            <p>{p.question.textJa}</p>
+            {p.question.hintJa && <p>{p.question.hintJa}</p>}
+          </InfoButton>
+        </div>
         {p.onPath && (
           <span className="chip on-path">
             この攻撃の経路{p.onPath.stageJa ? `：${p.onPath.stageJa}` : ""}
           </span>
         )}
-        <p className="q">{p.question.textJa}</p>
       </div>
       <div className="state">
         <span>

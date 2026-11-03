@@ -3,6 +3,7 @@
  * 手順 1 トークン発行、2 所有確認、3 実行、4 反映。対象ホストにはアクセスしない（公開情報だけ）。
  */
 import { useCallback, useEffect, useRef, useState } from "react";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { ReconApplyPanel } from "../components/ReconApplyPanel.tsx";
 import { ReconResultView } from "../components/ReconResultView.tsx";
 import { useApp } from "../hooks/useApp.tsx";
@@ -186,22 +187,44 @@ export function Domain() {
   return (
     <div className="stack" style={{ marginTop: 12 }}>
       <div className="panel">
-        <h2>外部確認：自社のドメインを外から見る</h2>
-        <p className="small" style={{ marginTop: 6 }}>
-          所有を確認したドメインについて、<b>DNS の公開レコードと証明書の公開ログ（crt.sh）だけ</b>
-          を参照し、VPN
-          用と推定されるホスト名、SPF・DMARC、メールやホームページの提供元の手がかりを集めます。
-          国の調査（IPA 事例集の脆弱性事例）で中小企業に実際に見つかった弱点の確認です。
-        </p>
-        <p className="small muted" style={{ marginTop: 6 }}>
-          対象のホストには一切アクセスしません（ポートスキャン、Web の取得、ログイン画面の確認、TLS
-          接続を含む）。所有確認は 24 時間で失効します。架空のドメイン <code>{FIXTURE_DOMAIN}</code>{" "}
-          を入れると、記録した応答を再生して試せます。
+        <h2>
+          外部確認：自社のドメインを外から見る
+          <InfoButton title="外部確認とは">
+            <p>
+              所有を確認したドメインについて、DNS
+              の公開レコードと証明書の公開ログ（crt.sh）だけを参照し、VPN
+              用と推定されるホスト名、SPF・DMARC、メールやホームページの提供元の手がかりを集めます。国の調査（IPA
+              事例集の脆弱性事例）で中小企業に実際に見つかった弱点の確認です。
+            </p>
+            <p>
+              対象のホストには一切アクセスしません。ポートスキャン、Web
+              の取得、ログイン画面の確認、TLS 接続のどれも行いません。所有確認は 24
+              時間で失効します。
+            </p>
+            <p>
+              架空のドメイン <code>{FIXTURE_DOMAIN}</code>{" "}
+              を入れると、記録した応答を再生して試せます。
+            </p>
+          </InfoButton>
+        </h2>
+        <p className="small muted">
+          所有を確認したドメインの DNS
+          と証明書の公開ログだけを見ます。対象のホストにはアクセスしません。
         </p>
       </div>
 
       <div className="panel">
-        <h2>手順 1　ドメインを入れてトークンを発行する</h2>
+        <h2>
+          手順 1　ドメインを入れてトークンを発行する
+          <InfoButton title="トークンとは">
+            <p>
+              ドメインの所有を確かめるための合い言葉です。発行したトークンを DNS の TXT
+              レコードに入れていただくと、次の手順でその値を公開 DNS
+              から読み取って所有を確認します。
+            </p>
+            <p>国際化ドメイン名（日本語ドメインなど）は xn-- で始まる形で入れてください。</p>
+          </InfoButton>
+        </h2>
         <div className="row" style={{ marginTop: 8 }}>
           <input
             className="in"
@@ -301,11 +324,15 @@ export function Domain() {
       </div>
 
       <div className="panel">
-        <h2>手順 2　所有を確認する</h2>
-        <p className="small muted" style={{ marginTop: 6 }}>
-          DNS の TXT
-          レコードに上の値があるかを確かめます。反映には数分から数時間かかることがあります。
-        </p>
+        <h2>
+          手順 2　所有を確認する
+          <InfoButton title="所有の確認とは">
+            <p>
+              DNS の TXT レコードに手順 1 の値があるかを公開 DNS で確かめます。DNS
+              の反映には数分から数時間かかることがありますので、確認できないときは少し待ってからもう一度お試しください。
+            </p>
+          </InfoButton>
+        </h2>
         <p className="row" style={{ marginTop: 8 }}>
           <button
             type="button"
@@ -342,11 +369,15 @@ export function Domain() {
       </div>
 
       <div className="panel">
-        <h2>手順 3　外部確認を実行する</h2>
-        <p className="small muted" style={{ marginTop: 6 }}>
-          DNS（TXT・MX・A・AAAA・CNAME・PTR）と証明書の公開ログを参照します。crt.sh への問い合わせは
-          1 ドメインにつき 1 回で、応答は 24 時間キャッシュします。
-        </p>
+        <h2>
+          手順 3　外部確認を実行する
+          <InfoButton title="外部確認で参照するもの">
+            <p>
+              DNS（TXT・MX・A・AAAA・CNAME・PTR）と証明書の公開ログを参照します。crt.sh
+              への問い合わせは 1 ドメインにつき 1 回で、応答は 24 時間キャッシュします。
+            </p>
+          </InfoButton>
+        </h2>
         <p className="row" style={{ marginTop: 8 }}>
           <button
             type="button"
@@ -393,7 +424,7 @@ export function Domain() {
             <div className="small">
               <p className="st green">反映しました</p>
               <p style={{ marginTop: 8 }}>
-                担当者画面の「矛盾（外部確認と登録内容の食い違い）」の欄と、各資産の根拠の種類を確認してください。
+                担当者画面の「矛盾（外部確認と登録内容の食い違い）」の欄と、各資産の根拠を確認してください。
               </p>
               <p className="row" style={{ marginTop: 8 }}>
                 <a className="btn primary" href="#/staff">

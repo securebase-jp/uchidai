@@ -388,10 +388,6 @@ export function PersonalDataTable({
           })}
         </tbody>
       </table>
-      <p className="muted" style={{ marginTop: 6 }}>
-        1,000
-        件を超える漏えいや、要配慮個人情報の漏えいは、個人情報保護委員会への報告義務の判定に使います（判定はプログラム）。
-      </p>
     </div>
   );
 }

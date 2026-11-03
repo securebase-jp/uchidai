@@ -5,6 +5,7 @@
  * 共有リンク（ID 形式。架空の会社の記録向け）：#/onepager?profile=demo-seiko&case=ipa-case-1&measures=vpn-update
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import {
   buildShareHash,
@@ -49,6 +50,37 @@ function PrintPreviewToggle({ preview, onToggle }: { preview: boolean; onToggle(
     >
       {preview ? "画面の表示に戻す" : "印刷の見え方を確認"}
     </button>
+  );
+}
+
+/**
+ * 一枚を作っている間に見せる紙の骨組み：見出しの位置に薄い帯を置き、空の画面にしない。
+ * 段の構成は OnePagerView と同じ（表題、結論、何が起きるか、止まる業務、お金、期限、対策）
+ */
+function OnePagerSkeleton() {
+  const sections = [
+    "結論",
+    "何が起きるか",
+    "止まる業務と日数",
+    "お金への影響の目安",
+    "期限",
+    "対策",
+  ];
+  return (
+    <div className="op-paper op-skeleton" aria-hidden="true">
+      <div className="op-head op-skel-block">
+        <span className="op-skel w-20 h-sm" />
+        <span className="op-skel w-60 h-lg" />
+        <span className="op-skel w-40 h-sm" />
+      </div>
+      {sections.map((name, i) => (
+        <div className="op-sec op-skel-block" key={name}>
+          <span className="op-skel w-30 h-sm" />
+          <span className={`op-skel ${i === 0 ? "w-90 h-xl" : "w-100 h-md"}`} />
+          {i !== 0 && <span className="op-skel w-70 h-md" />}
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -159,22 +191,26 @@ export function OnePager() {
                 {copied === "id" ? "コピーしました" : "短いリンク（架空の会社の記録を指す形）"}
               </button>
             )}
+            <InfoButton title="共有リンクについて" align="end">
+              <p>
+                共有リンクには一枚の内容がそのまま入ります。数 KB の長い URL
+                になりますが、会社カルテと経路図は入れません。
+              </p>
+              <p>
+                サーバには何も保存しないので、リンクを受け取った人はカルテが無いスマホでもこの一枚を開けます。
+              </p>
+              {!canShare && (
+                <p>
+                  このブラウザは圧縮（CompressionStream）に未対応のため、共有リンクを作れません。
+                </p>
+              )}
+            </InfoButton>
           </>
         )}
       </div>
-      {state.status === "ready" && (
+      {state.status === "ready" && (shareError || shareNote) && (
         <div className="op-toolbar no-print small muted" style={{ display: "block" }}>
-          {shareError ? (
-            <span className="err">{shareError}</span>
-          ) : shareNote ? (
-            shareNote
-          ) : (
-            <>
-              共有リンクには一枚の内容がそのまま入ります（数 KB の長い URL
-              になります）。会社カルテと経路図は入れません。サーバには何も保存しないので、リンクを受け取った人はカルテが無いスマホでもこの一枚を開けます。
-              {!canShare && " このブラウザでは共有リンクを作れません（圧縮に未対応）。"}
-            </>
-          )}
+          {shareError ? <span className="err">{shareError}</span> : shareNote}
         </div>
       )}
       {manualLink && (
@@ -192,7 +228,14 @@ export function OnePager() {
           />
         </div>
       )}
-      {state.status === "loading" && <p className="muted">一枚を作っています…</p>}
+      {state.status === "loading" && (
+        <>
+          <p className="muted" role="status">
+            一枚を作っています…
+          </p>
+          <OnePagerSkeleton />
+        </>
+      )}
       {state.status === "missing" && (
         <div className="panel">
           <p>{state.reasonJa}</p>
@@ -333,7 +376,14 @@ export function SharedOnePager({ d }: { d: string }) {
           </p>
         </div>
       )}
-      {state.status === "loading" && <p className="muted">一枚を開いています…</p>}
+      {state.status === "loading" && (
+        <>
+          <p className="muted" role="status">
+            一枚を開いています…
+          </p>
+          <OnePagerSkeleton />
+        </>
+      )}
       {state.status === "error" && (
         <div className="panel">
           <p className="err">{state.messageJa}</p>

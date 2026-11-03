@@ -15,7 +15,8 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     const steps = homeSteps(empty);
     expect(steps.map((s) => s.n)).toEqual([1, 2, 3, 4, 5]);
     expect(steps.map((s) => s.tone)).toEqual(["optional", "todo", "todo", "todo", "todo"]);
-    expect(steps[0]?.statusJa).toContain("任意");
+    expect(steps[0]?.statusJa).toBe("未実施");
+    expect(steps[0]?.noteJa).toContain("任意");
     expect(steps[1]?.statusJa).toBe("まだ答えていません");
     expect(steps[2]?.disabled).toBe(true);
     expect(steps[3]?.statusJa).toBe("事例がまだありません");
@@ -46,7 +47,8 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     });
     expect(answers[1]?.statusJa).toBe("回答済み：テスト製作所");
     expect(answers[2]?.tone).toBe("warn");
-    expect(answers[2]?.statusJa).toContain("未確認 18 件");
+    expect(answers[2]?.statusJa).toBe("未確認 18 件");
+    expect(answers[2]?.noteJa).toContain("最悪の想定");
     expect(answers[2]?.disabled).toBeUndefined();
 
     const saved = homeSteps({
@@ -98,13 +100,14 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     expect(onlyProfile[4]?.statusJa).toBe("事例を選ぶと見られます");
   });
 
-  it("4：担当者が選んでいない既定の事例は「未」、選んだ事例は「済」", () => {
+  it("4：担当者が選んでいない既定の事例も「記録済みの事例 1 を使用中」で「未」にしない。選んだ事例は「いまの事例」", () => {
     const byDefault = homeSteps({
       ...empty,
       theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: false },
     })[3];
-    expect(byDefault?.tone).toBe("todo");
-    expect(byDefault?.statusJa).toContain("既定で記録済みの事例「VPN の事例」");
+    expect(byDefault?.tone).toBe("done");
+    expect(byDefault?.statusJa).toBe("記録済みの事例 1 を使用中：VPN の事例");
+    expect(byDefault?.noteJa).toContain("既定の事例");
     const chosen = homeSteps({
       ...empty,
       theCase: { title: "VPN の事例", recordedId: "ipa-case-1", chosen: true },

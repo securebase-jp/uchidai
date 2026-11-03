@@ -26,6 +26,8 @@ export type HomeStep = {
   /** 短い定義（何をする段か） */
   leadJa: string;
   statusJa: string;
+  /** 状態の補足（画面には常時出さず、情報ボタンの中に出す） */
+  noteJa?: string;
   tone: StepTone;
   /** 主な導線。article は画面内の入力欄なので無い */
   href?: string;
@@ -37,6 +39,12 @@ export type HomeStep = {
 export const defaultFormatDateTime = (iso: string): string => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("ja-JP");
+};
+
+/** 記録済みの事例の番号（ipa-case-1 → 「 1 」）。番号が取れなければ空 */
+const recordedNo = (id: string | undefined): string => {
+  const m = id?.match(/(\d+)$/);
+  return m ? ` ${m[1]} ` : "";
 };
 
 export function homeSteps(input: HomeInput): HomeStep[] {
@@ -63,7 +71,8 @@ export function homeSteps(input: HomeInput): HomeStep[] {
         titleJa: "自社のドメインを外から見る",
         leadJa:
           "DNS の公開レコードと証明書の公開ログだけから、VPN らしいホスト名や SPF・DMARC を確かめます。",
-        statusJa: "未実施（任意。結果は 5 問の初期値とカルテの属性になります）",
+        statusJa: "未実施",
+        noteJa: "任意です。結果は 5 問の初期値とカルテの属性になります。",
         tone: "optional",
         href: "#/domain",
         actionJa: "ドメインを外から見る",
@@ -116,7 +125,8 @@ export function homeSteps(input: HomeInput): HomeStep[] {
           }
         : profile.pending > 0
           ? {
-              statusJa: `未確認 ${profile.pending} 件（未確認が残る間、結論は最悪の想定か「確認中」になります）`,
+              statusJa: `未確認 ${profile.pending} 件`,
+              noteJa: "未確認が残る間、結論は最悪の想定か「確認中」になります。",
               tone: "warn" as const,
               actionJa: "未確認を減らす",
             }
@@ -133,10 +143,13 @@ export function homeSteps(input: HomeInput): HomeStep[] {
     titleJa: "記事を貼る",
     leadJa:
       "報道記事の URL・本文・PDF を Claude が読み、攻撃の段階を手法 ID に対応づけます。キーが無ければ記録済みの事例から選びます。",
+    // 担当者が選んでいなくても、記録済みの事例があれば判定は進められる。「未」は事例も記事も無いときだけ
     ...(theCase && theCase.chosen === false
       ? {
-          statusJa: `まだ選んでいません（既定で記録済みの事例「${theCase.title}」を使っています。記事を貼るか、下から選べます）`,
-          tone: "todo" as const,
+          statusJa: `記録済みの事例${recordedNo(theCase.recordedId)}を使用中：${theCase.title}`,
+          noteJa:
+            "担当者が選んだ事例ではなく、既定の事例です。記事を貼るか、記録済みの事例から選ぶと差し替わります。",
+          tone: "done" as const,
         }
       : theCase
         ? {
@@ -156,7 +169,7 @@ export function homeSteps(input: HomeInput): HomeStep[] {
     leadJa:
       "記事と同じ攻撃が自社の構成をどう進むかを再生し、止められるかを根拠つきで示します。社長向けの一枚にまとめます。",
     statusJa: ready
-      ? "結論を見られます（担当者画面、社長画面、社長向けの一枚）"
+      ? "結論を見られます"
       : !profile && !theCase
         ? "カルテと事例が揃うと見られます"
         : !profile

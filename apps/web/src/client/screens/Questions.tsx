@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Diagram } from "../components/Diagram.tsx";
+import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { layoutGraph } from "../lib/layout.ts";
@@ -114,9 +115,18 @@ export function Questions({ reduced }: { reduced: boolean }) {
         </div>
         {q ? (
           <>
-            <p className="step">
+            <div className="step">
               {step + 1} / {questions.length}
-            </p>
+              <InfoButton title="最初の5問について">
+                <p>
+                  文字入力はありません。2
+                  分以内で終わります。回答はこのブラウザにだけ保存されます。会社名は、あとでカルテの画面で登録できます。
+                </p>
+                <p>
+                  回答するたびに、右側（狭い画面では下側）に御社の構成図が組み上がります。「外部から推定」と付いた項目は、ドメインの外部確認（DNS・証明書の公開ログ）から推定した初期値で、合っているかを確かめるだけで進めます。
+                </p>
+              </InfoButton>
+            </div>
             <h2>{q.textJa}</h2>
             {q.hintJa && <p className="hint">{q.hintJa}</p>}
             {hints &&
@@ -250,10 +260,6 @@ export function Questions({ reduced }: { reduced: boolean }) {
                 </button>
               </p>
             )}
-            <p className="muted" style={{ marginTop: 14 }}>
-              文字入力はありません。2
-              分以内で終わります。回答はこのブラウザにだけ保存されます。会社名は、あとでカルテの画面で登録できます。
-            </p>
           </>
         ) : (
           <>
@@ -270,7 +276,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
       <div className="stage">
         {graph.nodes.length === 0 ? (
           <div style={{ padding: 40 }} className="muted">
-            回答するたびに、ここに御社の構成図が組み上がります。「外部から推定」の表示は、ドメインの公開情報から推定した項目です。
+            回答するたびに、ここに御社の構成図が組み上がります。
           </div>
         ) : (
           <Diagram layout={layout} graph={graph} hidden={hidden} appearing={appearing} />
