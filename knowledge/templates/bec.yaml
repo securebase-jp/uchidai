@@ -25,8 +25,8 @@ stages:
     accepts: [T1078.004, T1078, T1110.004, T1566.002, T1621]
   - id: impersonate
     labelJa: 社長になりすまして指示する
-    breachedJa: なりすまされる
-    breachedDoneJa: なりすまされました
+    breachedJa: 悪用される
+    breachedDoneJa: 悪用されました
     tactics: [TA0005]
     byRole:
       cloud.mail_account.exec: T1684.001
@@ -43,8 +43,8 @@ stages:
     accepts: [T1204, T1204.002]
   - id: money
     labelJa: 資金が流出する
-    breachedJa: 送金される
-    breachedDoneJa: 送金されました
+    breachedJa: 送金に使われる
+    breachedDoneJa: 送金に使われました
     tactics: [TA0040]
     byRole:
       impact.money: null

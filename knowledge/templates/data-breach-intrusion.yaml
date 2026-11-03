@@ -37,8 +37,8 @@ stages:
     accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
   - id: collect
     labelJa: 個人情報を集める
-    breachedJa: 集められる
-    breachedDoneJa: 集められました
+    breachedJa: 探られる
+    breachedDoneJa: 探られました
     tactics: [TA0009, TA0007]
     byRole:
       server: T1005
@@ -55,8 +55,8 @@ stages:
     accepts: [T1048, T1041, T1567]
   - id: leak
     labelJa: 個人情報が漏えいする
-    breachedJa: 漏えいする
-    breachedDoneJa: 漏えいしました
+    breachedJa: 漏えい元になる
+    breachedDoneJa: 漏えい元になりました
     tactics: [TA0010]
     byRole:
       file_server: null

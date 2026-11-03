@@ -15,8 +15,8 @@ stages:
     accepts: [T1530]
   - id: leak
     labelJa: 個人情報が漏えいする
-    breachedJa: 漏えいする
-    breachedDoneJa: 漏えいしました
+    breachedJa: 漏えい元になる
+    breachedDoneJa: 漏えい元になりました
     tactics: [TA0010]
     byRole:
       cloud.storage: null

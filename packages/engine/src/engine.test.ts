@@ -161,9 +161,9 @@ describe("型紙の「突破されたときの言葉」", () => {
     expect(words).toEqual({
       leak: "流出している",
       takeover: "乗っ取られる",
-      impersonate: "なりすまされる",
+      impersonate: "悪用される",
       human: "だまされる",
-      money: "送金される",
+      money: "送金に使われる",
     });
   });
   it("AI が見つけた経路（型紙にない段階）には付けない", () => {
