@@ -1572,6 +1572,19 @@ textarea.in {
   gap: 8px;
   min-height: 28px;
 }
+.exec .exec-zoom {
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.exec .exec-zoom .lab {
+  font-family: var(--mono);
+  min-width: 3.2em;
+  text-align: right;
+  font-size: 12px;
+  color: var(--ink-2);
+}
 /* 舞台を画面に合わせて縮める：外側の高さは縮めた分に合わせ、下に余白が残らないようにする */
 .wrap:has(> .exec) {
   padding-bottom: 12px;

@@ -1,5 +1,5 @@
 /** 社長画面：30〜40 秒で自動再生する一本の物語。専門用語や ID を出さない */
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
@@ -14,6 +14,7 @@ import { useApp } from "../hooks/useApp.tsx";
 import { useFitScale } from "../hooks/useFitScale.ts";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
+import { stepZoom } from "../lib/fit.ts";
 import { RESULT_TONE } from "../lib/labels.ts";
 import { Legend } from "./Staff.tsx";
 
@@ -40,7 +41,9 @@ export function Exec({ settings }: { settings: Settings }) {
   // 舞台を画面の幅と高さに合わせて縮める。デモモード（録画は 1920×1080）では台本の座標を変えないよう等倍に固定
   const fitOuter = useRef<HTMLDivElement>(null);
   const fitInner = useRef<HTMLDivElement>(null);
-  const fit = useFitScale(fitOuter, fitInner, undefined, !isDemoMode(), stage !== undefined);
+  // 手動の倍率（0.5〜1.5、0.1 刻み）。undefined なら自動。保存しない
+  const [zoom, setZoom] = useState<number | undefined>(undefined);
+  const fit = useFitScale(fitOuter, fitInner, zoom, !isDemoMode(), stage !== undefined);
 
   if (!profile) {
     return (
@@ -73,6 +76,35 @@ export function Exec({ settings }: { settings: Settings }) {
   return (
     <div className="exec">
       <div className="exec-tools">
+        <fieldset className="group exec-zoom" aria-label="拡大縮小">
+          <button
+            type="button"
+            className="btn sm"
+            aria-label="縮小"
+            onClick={() => setZoom((z) => stepZoom(z ?? fit.auto, -1))}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="btn sm"
+            aria-pressed={zoom === undefined}
+            onClick={() => setZoom(undefined)}
+          >
+            画面に合わせる
+          </button>
+          <button
+            type="button"
+            className="btn sm"
+            aria-label="拡大"
+            onClick={() => setZoom((z) => stepZoom(z ?? fit.auto, 1))}
+          >
+            ＋
+          </button>
+          <span className="lab" aria-live="polite">
+            {Math.round(fit.scale * 100)}%
+          </span>
+        </fieldset>
         <InfoButton title="この画面の見方">
           <p>
             報道と同じ攻撃が、{profile.companyName}
@@ -83,6 +115,10 @@ export function Exec({ settings }: { settings: Settings }) {
             会社と数値は
             {profile.fictional ? "すべて架空です。" : "会社カルテの登録内容にもとづく目安です。"}
             攻撃の流れは公開された事例（{theCase.title}）をもとにしています。
+          </p>
+          <p>
+            画面全体は、ブラウザの大きさに合わせて自動で縮めています。「−」「＋」で倍率を 0.5〜1.5
+            倍の範囲で変えられ、「画面に合わせる」で自動に戻ります。
           </p>
         </InfoButton>
       </div>
