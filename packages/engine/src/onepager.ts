@@ -307,7 +307,7 @@ export function buildOnePager(
   );
   const sources = [
     `${knowledge.costs.sourceJa}（${knowledge.costs.sourceUrl}）`,
-    `MITRE ATT&CK Enterprise v${verdict.attackVersion}（攻撃の段階の対応づけ）`,
+    `MITRE ATT&CK Enterprise v${verdict.attackVersion}（攻撃の段階の対応づけ。対象は Enterprise のみで、工場の制御システム（ICS）への攻撃は対象外）`,
     ...knowledge.deadlines.sources
       .filter((s) => s.url && usedSourceIds.has(s.id))
       .map((s) => `${s.nameJa}（${s.url}、${s.checkedAt} 確認）`),
