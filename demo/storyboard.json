@@ -429,12 +429,12 @@
           "to": "top"
         },
         {
-          "at": 11.6,
+          "at": 10.8,
           "do": "measures",
           "ids": []
         },
         {
-          "at": 12.0,
+          "at": 11.1,
           "do": "overlay",
           "id": "slot:comparison"
         }
@@ -456,7 +456,7 @@
         },
         {
           "kind": "badge",
-          "from": 12.0,
+          "from": 11.1,
           "to": 20,
           "pos": "top-right",
           "tone": "record",

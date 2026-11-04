@@ -9,7 +9,7 @@ const LINES: { at: number; labelJa: string; textJa: string }[] = [
   {
     at: 6.4,
     labelJa: "どう解決",
-    textJa: "同じ攻撃が自社で起きたらどうなるかを再生し、根拠つきで答える",
+    textJa: "同じ攻撃が自社で起きたらどうなるかを検証し、根拠つきで答える",
   },
 ];
 
