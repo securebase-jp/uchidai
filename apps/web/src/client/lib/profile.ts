@@ -166,6 +166,39 @@ export function pendingCount(profile: CompanyProfile): number {
   );
 }
 
+/** 確認の進み具合：緩和策の総数と、根拠ごとの確認済みの数、未確認の数 */
+export type Progress = {
+  total: number;
+  /** 未確認（status が unknown） */
+  unknown: number;
+  external: number;
+  vendor: number;
+  registered: number;
+  /** 状態は確認済みだが根拠の種類が「なし」のもの（ふつうは 0） */
+  other: number;
+};
+
+/** 画面の一覧と同じ見え方（送信箱のベンダー回答を重ねたもの）で、確認の進み具合を数える */
+export function controlProgress(profile: CompanyProfile, outbox: AnswerInput[]): Progress {
+  const out: Progress = { total: 0, unknown: 0, external: 0, vendor: 0, registered: 0, other: 0 };
+  for (const a of profile.assets) {
+    for (const c of a.controls) {
+      const e = effectiveControl(
+        c,
+        outbox.find((x) => x.assetId === a.id && x.mitigation === c.mitigation),
+        c.mitigation,
+      );
+      out.total += 1;
+      if (e.status === "unknown") out.unknown += 1;
+      else if (e.evidence === "external") out.external += 1;
+      else if (e.evidence === "vendor") out.vendor += 1;
+      else if (e.evidence === "registered") out.registered += 1;
+      else out.other += 1;
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // 会社・資産・業務・個人情報の更新（すべて新しいカルテを返す）
 // ---------------------------------------------------------------------------
@@ -196,6 +229,33 @@ export function updateCompany(profile: CompanyProfile, f: Partial<CompanyFields>
     }
   }
   return next;
+}
+
+/** サイバー保険の 3 択（加入している／していない／分からない） */
+export type InsuranceChoice = "yes" | "no" | "unknown";
+
+/**
+ * カルテの cyberInsurance → 3 択。「分からない」は cyberInsurance を持たない状態（未回答と同じ）。
+ * 判定は enrolled が真のときだけ保険を前提にするので、「していない」と「分からない」で結論は変わらない
+ */
+export function insuranceChoice(ins: CompanyProfile["cyberInsurance"]): InsuranceChoice {
+  if (!ins) return "unknown";
+  return ins.enrolled ? "yes" : "no";
+}
+
+/** 3 択 → カルテの cyberInsurance。加入しているときだけ、すでにある通知期限を残す */
+export function insuranceFromChoice(
+  choice: InsuranceChoice,
+  current: CompanyProfile["cyberInsurance"],
+): CompanyProfile["cyberInsurance"] {
+  if (choice === "unknown") return undefined;
+  if (choice === "no") return { enrolled: false };
+  return {
+    enrolled: true,
+    ...(current?.enrolled && current.notifyWithinDays
+      ? { notifyWithinDays: current.notifyWithinDays }
+      : {}),
+  };
 }
 
 /** 製品名と版（自由入力。空なら消す。Claude には渡らない） */

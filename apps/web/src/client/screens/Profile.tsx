@@ -14,10 +14,13 @@ import {
 } from "../components/ProfileControls.tsx";
 import { ProfileFile } from "../components/ProfileFile.tsx";
 import { BusinessTable, CompanyForm, PersonalDataTable } from "../components/ProfileForms.tsx";
+import { ProgressRing } from "../components/ProgressRing.tsx";
 import { useApp } from "../hooks/useApp.tsx";
+import { AFFECTS_EXAMPLES } from "../lib/choices.ts";
 import { type PendingItem, rankPending } from "../lib/pending.ts";
 import {
   applyStaffAnswer,
+  controlProgress,
   effectiveControl,
   isStale,
   setAssetProduct,
@@ -63,9 +66,9 @@ export function Profile() {
       answers.find((x) => x.assetId === assetId && x.mitigation === c.mitigation),
       c.mitigation,
     ).status === "unknown";
-  const pending = profile
-    ? profile.assets.reduce((n, a) => n + a.controls.filter((c) => isPending(a.id, c)).length, 0)
-    : 0;
+  const progress = profile
+    ? controlProgress(profile, answers)
+    : { total: 0, unknown: 0, external: 0, vendor: 0, registered: 0, other: 0 };
   // いまの判定の経路で問われている未確認（答えると結論が変わりやすい順）。判定は engine の結果をそのまま使う
   const ranked = useMemo(
     () =>
@@ -77,6 +80,16 @@ export function Profile() {
   const onPath = ranked.filter((x) => x.onPath);
   const mitLabel = (id: string) =>
     knowledge?.labels.mitigations[id] ?? knowledge?.labels.custom[id]?.labelJa ?? id;
+  // 影響先の候補：いまの業種の構成パターンの例を先に、ほかの業種の例を続けて（重複は除く）
+  const affectsExamples = useMemo(() => {
+    const own = knowledge?.patterns.find((p) => p.id === profile?.pattern);
+    const rest = (knowledge?.patterns ?? []).filter((p) => p !== own);
+    const all = [own, ...rest]
+      .flatMap((p) => p?.businesses ?? [])
+      .map((b) => b.affectsJa)
+      .filter((x): x is string => Boolean(x));
+    return all.length > 0 ? [...new Set(all)] : AFFECTS_EXAMPLES;
+  }, [knowledge, profile?.pattern]);
   const jumpTo = (x: PendingItem) => jumpToRow(x.assetId, x.mitigation);
   /** 「未確認 N 件」を押したら、いまの並びと絞り込みで最初に出ている未確認の行へ */
   const jumpToFirstPending = () => {
@@ -110,15 +123,7 @@ export function Profile() {
         <p className="lead">自社の構成と対策の有無を登録します。保存先はこのブラウザだけです。</p>
         {profile && (
           <div className="summary" aria-live="polite">
-            <button
-              type="button"
-              className={`count ${pending > 0 ? "amber" : "green"}`}
-              onClick={jumpToFirstPending}
-              disabled={pending === 0}
-              title={pending > 0 ? "最初の未確認の項目へ移ります" : undefined}
-            >
-              未確認 {pending} 件
-            </button>
+            <ProgressRing progress={progress} onJump={jumpToFirstPending} />
             {staleCount > 0 && <span className="count amber">半年以上経過 {staleCount} 件</span>}
             {profile.fictional && <span className="chip fiction">架空の会社</span>}
             {busy ? (
@@ -278,6 +283,7 @@ export function Profile() {
             <BusinessTable
               businesses={profile.businesses}
               assetLabel={(id) => profile.assets.find((a) => a.id === id)?.label ?? id}
+              affectsExamples={affectsExamples}
               onChange={(id, f) => save(updateBusiness(profile, id, f))}
             />
           </div>
@@ -293,6 +299,7 @@ export function Profile() {
               </InfoButton>
             </h2>
             <PersonalDataTable
+              profileId={profile.id}
               assets={profile.assets}
               personalData={profile.personalData}
               onChange={(assetId, data) => save(setPersonalData(profile, assetId, data))}

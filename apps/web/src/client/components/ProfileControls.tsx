@@ -3,11 +3,17 @@
  * 根拠の優先順位を守る：外部確認は変更不可、ベンダー回答は確認してから、送信箱の回答は変更不可。
  * 一覧には項目名と状態だけを出し、質問の文は項目名の横の情報ボタンか、開いたときに見せる
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
 import { useRequests } from "../hooks/useRequests.tsx";
 import { hostStatusLines } from "../lib/hostStatus.ts";
 import type { KevMatch } from "../lib/kevApi.ts";
+import {
+  type KevProductOption,
+  matchProductId,
+  OTHER_PRODUCT,
+  versionHint,
+} from "../lib/kevProducts.ts";
 import { EVIDENCE_LABEL } from "../lib/labels.ts";
 import type { PendingItem } from "../lib/pending.ts";
 import {
@@ -21,6 +27,7 @@ import {
 import type { CompanyProfile, Contradiction, LabelsFile, RoleDef } from "../lib/types.ts";
 import { InfoButton } from "./InfoButton.tsx";
 import { KevPanel } from "./KevPanel.tsx";
+import { Field } from "./ProfileForms.tsx";
 
 type Asset = CompanyProfile["assets"][number];
 type Control = Asset["controls"][number];
@@ -179,14 +186,141 @@ type CardProps = {
  */
 export const PRODUCT_ROLES = new Set(["entry.vpn", "entry.rdp", "entry.web"]);
 
+/** 製品の選択肢（products.yaml）は重いので、製品名の欄が出るときに別の塊として読む。読めなければ自由記述の欄だけにする */
+function useKevProducts(): KevProductOption[] | undefined {
+  const [options, setOptions] = useState<KevProductOption[]>();
+  useEffect(() => {
+    let live = true;
+    import("../lib/kevProductsData.ts")
+      .then((m) => live && setOptions(m.kevProductOptions))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  return options;
+}
+
+/**
+ * 製品名と版。製品名は一覧から選ぶ（一覧にない製品は「その他」で自由記述）。版は文字の欄で、選んだ製品の書き方の例を出す。
+ * すでに保存されている自由記述の製品名は、一覧の別名に当たれば選択状態に、当たらなければ「その他」と文字の欄で表す（保存の形は変えない）
+ */
+function ProductFields(p: {
+  assetId: string;
+  /** 保存されている製品名（選択の状態はこれで決める。入力中の文字で決めると、打っている途中で欄が切り替わる） */
+  savedProduct: string;
+  product: string;
+  version: string;
+  onProduct(v: string): void;
+  onVersion(v: string): void;
+  onCommit(product: string, version: string): void;
+}) {
+  const options = useKevProducts();
+  const [otherMode, setOtherMode] = useState(false);
+  const matchedId = options ? matchProductId(p.savedProduct, options) : undefined;
+  const matched = options?.find((o) => o.id === matchedId);
+  const choice = !options
+    ? OTHER_PRODUCT
+    : p.savedProduct.trim()
+      ? (matchedId ?? OTHER_PRODUCT)
+      : otherMode
+        ? OTHER_PRODUCT
+        : "";
+  const { placeholder, noteJa } = versionHint(matched?.versionHintJa);
+  const id = `prod-${p.assetId}`;
+  return (
+    <div className="fields" style={{ marginBottom: 6 }}>
+      <Field
+        label="製品名"
+        htmlFor={`${id}-select`}
+        info={
+          <InfoButton title="製品名と版について">
+            <p>製品名と版は Claude に送られません。判定はプログラムが行います。</p>
+            <p>版が未登録だと、更新の運用が未確認のときに「未確認」のままになります。</p>
+            <p>
+              一覧にない製品は「その他」を選んで、メーカー名と型番を入れてください。一覧にある製品は、悪用確認済みの脆弱性との突き合わせに使えます。
+            </p>
+          </InfoButton>
+        }
+      >
+        {options && (
+          <select
+            id={`${id}-select`}
+            className="in sel"
+            value={choice}
+            onChange={(e) => {
+              const v = e.target.value;
+              const next = options.find((o) => o.id === v);
+              if (next) {
+                setOtherMode(false);
+                p.onProduct(next.labelJa);
+                p.onCommit(next.labelJa, p.version);
+              } else {
+                // 「その他」と「選んでください」は、いまの製品名を空に戻す（一覧の製品名を自由記述に持ち越さない）
+                setOtherMode(v === OTHER_PRODUCT);
+                p.onProduct("");
+                p.onCommit("", p.version);
+              }
+            }}
+          >
+            <option value="">選んでください</option>
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.labelJa}
+              </option>
+            ))}
+            <option value={OTHER_PRODUCT}>その他（自由記述）</option>
+          </select>
+        )}
+        {choice === OTHER_PRODUCT && (
+          <input
+            className="in"
+            value={p.product}
+            aria-label="製品名（自由記述）"
+            placeholder="例：機器のメーカー名と型番"
+            onChange={(e) => p.onProduct(e.target.value)}
+            onBlur={() => p.onCommit(p.product, p.version)}
+          />
+        )}
+      </Field>
+      <Field
+        label="版（バージョン）"
+        htmlFor={`${id}-version`}
+        {...(noteJa
+          ? {
+              info: (
+                <InfoButton title="版の書き方">
+                  <p>{noteJa}</p>
+                </InfoButton>
+              ),
+            }
+          : {})}
+      >
+        <input
+          id={`${id}-version`}
+          className="in"
+          value={p.version}
+          placeholder={placeholder}
+          onChange={(e) => p.onVersion(e.target.value)}
+          onBlur={() => p.onCommit(p.product, p.version)}
+        />
+      </Field>
+    </div>
+  );
+}
+
 function AssetCard(p: CardProps) {
   const { asset } = p;
   const [product, setProduct] = useState(asset.product ?? "");
   const [version, setVersion] = useState(asset.version ?? "");
-  const commitProduct = () => {
-    if ((asset.product ?? "") === product.trim() && (asset.version ?? "") === version.trim())
+  /** 製品名と版を保存する（変わっていなければ何もしない） */
+  const commit = (nextProduct: string, nextVersion: string) => {
+    if (
+      (asset.product ?? "") === nextProduct.trim() &&
+      (asset.version ?? "") === nextVersion.trim()
+    )
       return;
-    p.onProduct(asset.id, product, version);
+    p.onProduct(asset.id, nextProduct, nextVersion);
   };
   return (
     <section className="asset-card" aria-label={asset.label}>
@@ -201,34 +335,15 @@ function AssetCard(p: CardProps) {
         </p>
       ))}
       {PRODUCT_ROLES.has(asset.role) && (
-        <div className="fields" style={{ marginBottom: 6 }}>
-          <label className="f">
-            <span className="k">
-              製品名
-              <InfoButton title="製品名と版について">
-                <p>製品名と版は Claude に送られません。判定はプログラムが行います。</p>
-                <p>版が未登録だと、更新の運用が未確認のときに「未確認」のままになります。</p>
-              </InfoButton>
-            </span>
-            <input
-              className="in"
-              value={product}
-              placeholder="例：機器のメーカー名と型番"
-              onChange={(e) => setProduct(e.target.value)}
-              onBlur={commitProduct}
-            />
-          </label>
-          <label className="f">
-            <span className="k">版（バージョン）</span>
-            <input
-              className="in"
-              value={version}
-              placeholder="例：7.0.14"
-              onChange={(e) => setVersion(e.target.value)}
-              onBlur={commitProduct}
-            />
-          </label>
-        </div>
+        <ProductFields
+          assetId={asset.id}
+          savedProduct={asset.product ?? ""}
+          product={product}
+          version={version}
+          onProduct={(v) => setProduct(v)}
+          onVersion={(v) => setVersion(v)}
+          onCommit={commit}
+        />
       )}
       {PRODUCT_ROLES.has(asset.role) && p.onKevApplied && (
         <KevPanel

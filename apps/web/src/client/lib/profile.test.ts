@@ -3,7 +3,10 @@ import type { ControlQuestion } from "../../shared/api.ts";
 import {
   answerFromChoice,
   applyStaffAnswer,
+  controlProgress,
   effectiveControl,
+  insuranceChoice,
+  insuranceFromChoice,
   isStale,
   overwritePolicy,
   pendingCount,
@@ -264,5 +267,80 @@ describe("会社・資産・業務・個人情報の更新", () => {
   });
   it("pendingCount は未確認の緩和策を数える", () => {
     expect(pendingCount(base())).toBe(2);
+  });
+});
+
+describe("サイバー保険の 3 択", () => {
+  it("カルテ → 3 択：無ければ分からない、enrolled で加入している／していない", () => {
+    expect(insuranceChoice(undefined)).toBe("unknown");
+    expect(insuranceChoice({ enrolled: true })).toBe("yes");
+    expect(insuranceChoice({ enrolled: false })).toBe("no");
+  });
+  it("3 択 → カルテ：分からないは持たない（undefined）、していないは enrolled:false、加入は通知期限を残す", () => {
+    expect(insuranceFromChoice("unknown", { enrolled: true, notifyWithinDays: 7 })).toBeUndefined();
+    expect(insuranceFromChoice("no", { enrolled: true, notifyWithinDays: 7 })).toEqual({
+      enrolled: false,
+    });
+    expect(insuranceFromChoice("yes", undefined)).toEqual({ enrolled: true });
+    expect(insuranceFromChoice("yes", { enrolled: true, notifyWithinDays: 7 })).toEqual({
+      enrolled: true,
+      notifyWithinDays: 7,
+    });
+    // していない → 加入に戻したとき、前の期限は引き継がない
+    expect(insuranceFromChoice("yes", { enrolled: false })).toEqual({ enrolled: true });
+  });
+  it("分からないにするとカルテから cyberInsurance が消える", () => {
+    const p = updateCompany(base(), { cyberInsurance: { enrolled: true, notifyWithinDays: 3 } });
+    expect(p.cyberInsurance).toEqual({ enrolled: true, notifyWithinDays: 3 });
+    const q = updateCompany(p, {
+      cyberInsurance: insuranceFromChoice("unknown", p.cyberInsurance),
+    });
+    expect("cyberInsurance" in q).toBe(false);
+  });
+});
+
+describe("controlProgress（確認の進み具合）", () => {
+  it("根拠ごとに確認済みを数え、未確認を分ける。合計は緩和策の総数", () => {
+    // base: vpn（未確認、外部確認、ベンダー回答）と backup（未確認）
+    expect(controlProgress(base(), [])).toEqual({
+      total: 4,
+      unknown: 2,
+      external: 1,
+      vendor: 1,
+      registered: 0,
+      other: 0,
+    });
+  });
+  it("担当者登録と、根拠の種類が「なし」の確認済みも数える", () => {
+    const p = applyStaffAnswer(base(), {
+      assetId: "vpn",
+      mitigation: "M1051",
+      status: "present",
+      answeredBy: "田中",
+      answeredAt: "2026-11-04T00:00:00+09:00",
+    });
+    const n = p.assets[1];
+    if (!n) throw new Error("資産が無い");
+    n.controls = [{ mitigation: "M1053", status: "present", evidence: "none" }];
+    expect(controlProgress(p, [])).toEqual({
+      total: 4,
+      unknown: 0,
+      external: 1,
+      vendor: 1,
+      registered: 1,
+      other: 1,
+    });
+  });
+  it("送信箱のベンダー回答を重ねる（未確認が確認済みになる）", () => {
+    const got = controlProgress(base(), [
+      {
+        assetId: "backup",
+        mitigation: "M1053",
+        status: "present",
+        evidence: "vendor",
+        answeredBy: "保守ベンダー",
+      },
+    ]);
+    expect(got).toMatchObject({ total: 4, unknown: 1, vendor: 2 });
   });
 });
