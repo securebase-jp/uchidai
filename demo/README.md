@@ -40,6 +40,14 @@ demo/
    - 場面 7 の `leadSilenceSeconds: 2` は、音声の先頭の無音として入る（VOICEVOX の `prePhonemeLength`）。字幕の cue もその分あとから始まる
 3. **字幕とタイムラインを作る** `node demo/scripts/build-subtitles.ts` → `demo/out/narration.srt`（YouTube にアップロードできる）、`narration.vtt`、`timeline.json`。音声があればその長さで cue を切る
 4. **エンドカードの数字を数え直す** `demo/endcard-facts.json`（`verifyBeforeRecording: true` のあいだは暫定）。数え方は同ファイルの `$comment`。数え直したら `measuredAt` を更新し、`verifyBeforeRecording` を `false` にする
+   5-a. **自動で録画する（画面収録の許可が要らない方法）**：`pnpm dev` を起動したまま、次を実行する。ヘッドレスの Chromium（Playwright のものが `~/Library/Caches/ms-playwright` にあれば使える）でデモを実時間で動かし、1920×1080・30fps の `demo/capture/screen.mp4`（映像のみ）を作る。開始ボタンを押した時刻を 0 秒とするので、音声・効果音と時刻がそろう。字幕を画面に焼き込むときは URL に `&captions=1` を付ける
+
+   ```bash
+   node demo/scripts/record-screen.ts --seconds 183 \
+     --url "http://localhost:5173/?profile=demo-seiko&demo=1&controls=0&captions=1&autostart=0"
+   ```
+
+   音声合成のエンジン（VOICEVOX）はローカルの 50021 番で動かす。読み上げの読みは、`/accent_phrases` で確かめられる（「十日」は「トオカ」と読まれるので、原稿の読み上げ用は「じゅうにち」と書く）。結合の最後に、全体の音量を -16 LUFS（ピーク -1.5 dB）にそろえる
 5. **デモモードを録画する**：`pnpm dev` で起動し、ブラウザを 1920×1080・ダークテーマ（既定）にして次の URL を開き、画面収録（macOS は Shift+Cmd+5、60fps）を始めてから「開始」を押す
 
    ```

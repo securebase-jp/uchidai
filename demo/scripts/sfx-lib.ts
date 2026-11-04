@@ -163,13 +163,15 @@ export function buildMixArgs(opts: {
   const { narration, sfxTrack, sfxGainDb, out } = opts;
   const d = opts.duck ?? DEFAULT_DUCK;
   const limiter = "alimiter=limit=0.95:level=disabled";
+  // 仕上げ：動画サイトで小さく聞こえないよう、全体の音量を -16 LUFS（ピーク -1.5 dB）にそろえる
+  const loudness = "loudnorm=I=-16:TP=-1.5:LRA=11";
   const tail = ["-ar", String(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", out];
   if (!narration) {
     return [
       "-i",
       sfxTrack,
       "-filter_complex",
-      `[0:a]volume=${num(sfxGainDb)}dB,${limiter}[mix]`,
+      `[0:a]volume=${num(sfxGainDb)}dB,${limiter},${loudness}[mix]`,
       "-map",
       "[mix]",
       ...tail,
@@ -180,7 +182,7 @@ export function buildMixArgs(opts: {
     `[1:a]volume=${num(sfxGainDb)}dB[sfxg]`,
     `[sfxg][key]sidechaincompress=threshold=${num(d.threshold)}:ratio=${num(d.ratio)}:attack=${num(d.attack)}:release=${num(d.release)}:makeup=1[duck]`,
     "[nar][duck]amix=inputs=2:normalize=0:duration=first[m]",
-    `[m]${limiter}[mix]`,
+    `[m]${limiter},${loudness}[mix]`,
   ].join(";");
   return ["-i", narration, "-i", sfxTrack, "-filter_complex", filter, "-map", "[mix]", ...tail];
 }
