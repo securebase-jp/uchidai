@@ -2120,3 +2120,15 @@ dialog.confirm-dialog::backdrop {
     display: none;
   }
 }
+
+/* データの扱いと出典：データの扱いの段落と、出典の小見出し */
+.sources .src-data p {
+  margin: 0 0 8px;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.8;
+}
+.sources .src-sub {
+  font-size: 20px;
+  margin: 28px 0 4px;
+}

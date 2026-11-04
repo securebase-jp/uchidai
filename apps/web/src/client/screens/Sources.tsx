@@ -1,5 +1,5 @@
 /**
- * 出典（#/sources）：このツールが参考にした資料の一覧。
+ * データの扱いと出典（#/sources）：データをどう扱うかの説明と、このツールが参考にした資料の一覧。
  * 会社カルテ・事例・判定は読まない軽い画面（共有リンクの一枚と同じく、AppProvider の外で描く）。
  * 一覧の元は knowledge/sources.yaml。ATT&CK の版は version.json から API が差し込む
  */
@@ -72,7 +72,25 @@ export function Sources({ settings }: { settings: Settings }) {
     <div className="wrap">
       <TopBar route="sources" theme={settings.theme} onToggleTheme={settings.toggleTheme} />
       <main className="sources">
-        <h1 className="src-title">
+        <h1 className="src-title">データの扱いと出典</h1>
+        <section className="src-cat" aria-labelledby="src-data">
+          <h2 id="src-data">データの扱い</h2>
+          <div className="src-data">
+            <p>
+              会社カルテはこのブラウザにだけ保存し、サーバには残しません。判定のたびに API
+              へ渡しますが、保存はしません。
+            </p>
+            <p>
+              Claude
+              に送るのは記事と判定結果だけです。社名・製品名・ホスト名は送らず、出力は検証してから使います。
+            </p>
+            <p>
+              対象ホストにはアクセスしません。外部確認は、所有を確認したドメインの DNS
+              と証明書の公開ログだけを参照します。制御システム（ICS）は対象外です。
+            </p>
+          </div>
+        </section>
+        <h2 className="src-sub">
           出典
           <InfoButton title="この一覧について">
             <p>
@@ -86,7 +104,7 @@ export function Sources({ settings }: { settings: Settings }) {
               はそこと食い違わないように保っています。
             </p>
           </InfoButton>
-        </h1>
+        </h2>
         <p className="muted">このツールが参考にした資料です</p>
         {error && <p className="err">{error}</p>}
         {!view && !error && <p className="muted">読み込み中…</p>}

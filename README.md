@@ -111,7 +111,7 @@ pnpm attack:import                          # ATT&CK の再取り込み
 
 ## 出典
 
-画面の「出典」（`#/sources`）に同じ一覧がある。元データは `knowledge/sources.yaml`。
+画面の「データの扱いと出典」（`#/sources`）に同じ一覧がある。元データは `knowledge/sources.yaml`。
 
 - MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は [NOTICE](NOTICE)。日本語ラベルは本プロジェクト独自の訳）
 - IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの短い抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）

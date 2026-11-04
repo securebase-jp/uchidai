@@ -192,31 +192,6 @@ export function Home() {
         </p>
       </aside>
 
-      <div className="home-foot small muted">
-        データの扱いと出典
-        <InfoButton title="データの扱いと出典">
-          <p>
-            会社カルテはこのブラウザにだけ保存し、サーバには残しません。判定のたびに API
-            へ渡しますが、保存はしません。
-          </p>
-          <p>
-            Claude
-            に送るのは記事と判定結果だけです。社名・製品名・ホスト名は送らず、出力は検証してから使います。
-          </p>
-          <p>
-            対象ホストにはアクセスしません。外部確認は、所有を確認したドメインの DNS
-            と証明書の公開ログだけを参照します。
-          </p>
-          <p>
-            出典は MITRE ATT&amp;CK Enterprise
-            {app.knowledge ? ` v${app.knowledge.attackVersion}` : ""}、IPA
-            事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料です。ICS は対象外です。
-          </p>
-          <p>
-            <a href="#/sources">出典の一覧を見る</a>
-          </p>
-        </InfoButton>
-      </div>
       {app.error && (
         <p className="err" style={{ marginTop: 12 }}>
           {app.error}
