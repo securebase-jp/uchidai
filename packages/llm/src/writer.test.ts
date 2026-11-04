@@ -30,7 +30,7 @@ const goodBody = [
   "{{vendor}} 様",
   "{{company}} の{{staff}}です。{{asset}}について教えてください。",
   input.question,
-  "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください（例：『2　山田』）。",
+  "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください（例：（番号）　（お名前））。",
   "1. 全 PC で共通",
   "2. PC ごとに個別",
   "3. 分からない",
@@ -62,7 +62,8 @@ describe("writeVendorRequest（テンプレート）", () => {
     expect(m.text).toContain(
       "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください",
     );
-    expect(m.text).toContain("例：「2　山田」");
+    expect(m.text).toContain("例：（番号）　（お名前）");
+    expect(m.text).not.toMatch(/例[:：]\s*[「『]?\d/);
     expect(m.text).not.toMatch(/https?:\/\/|answer/i);
     expect(m.text).toContain("T1003");
     expect(m.text).toContain("M1026");
@@ -141,11 +142,16 @@ describe("writeVendorRequest（Claude の出力の検証）", () => {
     const missing = goodBody.replace("3. 分からない", "");
     expect(validateVendorDraft({ subject, body: missing }, input)).toContain("分からない");
   });
+  it("返信の例に具体的な番号を入れた下書きは捨てる（回答を誘導するため）", () => {
+    const subject = "{{asset}} {{company}}";
+    const body = goodBody.replace("例：（番号）　（お名前）", "例：「2　山田」");
+    expect(validateVendorDraft({ subject, body }, input)).toContain("具体的な番号");
+  });
   it("返信の案内やお名前の依頼が無い下書きは捨てる", () => {
     const subject = "{{asset}} {{company}}";
     const noReply = goodBody.replace("このメールに返信し、", "").replace("返信", "");
     expect(validateVendorDraft({ subject, body: noReply }, input)).toContain("返信");
-    const noName = goodBody.replace("ご回答者のお名前", "ご回答者");
+    const noName = goodBody.replaceAll("お名前", "ご氏名");
     expect(validateVendorDraft({ subject, body: noName }, input)).toContain("お名前");
   });
   it("回答リンクのプレースホルダなど、知らない {{…}} が残った下書きは捨てる", () => {

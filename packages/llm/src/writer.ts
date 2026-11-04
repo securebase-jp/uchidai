@@ -113,7 +113,7 @@ export function vendorRequestTemplate(i: VendorRequestInput): { subject: string;
     "",
     "■ ご回答の方法（このメールへの返信で）",
     "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください（1 分ほどで終わります）。",
-    "例：「2　山田」（数字は書き方の例です。実際の状況に合う番号をお選びください）",
+    "例：（番号）　（お名前）",
     ...numberedChoices(i.choices).map((c) => `${c.number}. ${c.label}`),
     "",
     "■ 背景",
@@ -187,7 +187,7 @@ const STYLE = [
 const VENDOR_RULES = [
   "- 質問は 1 問だけ。<data> の question をそのまま一字一句変えずに本文に入れる。",
   "- 選択肢は <data> の choices の number と label をそのまま使い、「1. 全文」の形で 1 行ずつ、すべて本文に列挙する。番号を振り直したり、文言を変えたりしない。",
-  "- 回答方法は「このメールに返信し、当てはまる番号と、ご回答者のお名前を書いてください（例：『2　山田』）」と伝える。リンクは書かない。",
+  "- 回答方法は「このメールに返信し、当てはまる番号と、ご回答者のお名前を書いてください（例：（番号）　（お名前））」と伝える。例は「（番号）　（お名前）」の型だけにし、具体的な番号や名前は例に出さない（番号が回答を誘導するため）。リンクは書かない。",
   "- 背景として、手法 ID と緩和策 ID（MITRE ATT&CK）と、判定の材料を 1〜2 文で添える。",
   "- 期限を本文に書く。",
 ].join("\n");
@@ -284,6 +284,8 @@ export function validateVendorDraft(
       return `選択肢「${c.number}. ${c.label}」が番号つきで入っていない`;
   if (!draft.body.includes("返信")) return "返信での回答方法がない";
   if (!draft.body.includes("お名前")) return "ご回答者のお名前を書いてもらう案内がない";
+  if (/例[:：]\s*[「『(（]?\s*\d/.test(draft.body))
+    return "返信の例に具体的な番号を入れている（回答を誘導する）";
   if (/https?:\/\/|@[\w.-]+\.[a-z]{2,}/i.test(all)) return "URL やメールアドレスを作り出している";
   return undefined;
 }
@@ -297,6 +299,8 @@ export function validateMeasureDraft(
     if (!all.includes(p)) return `プレースホルダ ${p} がない`;
   if (!all.includes(input.mitigationId)) return "緩和策 ID がない";
   if (!all.includes(input.measureLabel)) return "対策名がない";
+  if (/例[:：]\s*[「『(（]?\s*\d/.test(draft.body))
+    return "返信の例に具体的な番号を入れている（回答を誘導する）";
   if (/https?:\/\/|@[\w.-]+\.[a-z]{2,}/i.test(all)) return "URL やメールアドレスを作り出している";
   return undefined;
 }
