@@ -38,6 +38,14 @@
   padding: 9px 4px;
   min-height: 44px;
 }
+.chk-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
 .chk-toggle {
   flex: 1 1 auto;
   min-width: 0;
@@ -130,15 +138,37 @@
   align-items: flex-start;
 }
 @media (max-width: 560px) {
+  /* 狭い幅：アイコン | 項目名と結果 | 開閉の矢印 の 3 列。札は項目名の下に */
+  .chk-line {
+    display: grid;
+    grid-template-columns: 22px 1fr 16px;
+    align-items: start;
+    column-gap: 10px;
+    row-gap: 4px;
+  }
+  .chk-line > .st-icon {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 1px;
+  }
+  .chk-text,
+  .chk-toggle {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
   .chk-name {
     min-width: 0;
-    flex-basis: 100%;
   }
-  .chk-line {
-    flex-wrap: wrap;
+  .chk-tag {
+    grid-column: 2;
+    justify-self: start;
   }
   .chk-chev {
-    margin-left: auto;
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 3px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -322,4 +352,52 @@
 .btn .opt-icon {
   margin-right: 6px;
   vertical-align: -4px;
+}
+
+/* 手順の「確認済み（日時）」などの状態の札は、狭い幅では折り返す（横にはみ出さない） */
+.panel .row > .st {
+  white-space: normal;
+}
+
+@media (max-width: 560px) {
+  /* 狭い幅：反映の表は 1 行を 1 枚の小さなカードにする（横にスクロールさせない） */
+  .apply-table,
+  .apply-table tbody,
+  .apply-table tr,
+  .apply-table td {
+    display: block;
+  }
+  .apply-table thead {
+    display: none;
+  }
+  .apply-table tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--edge);
+  }
+  table.evidence.apply-table td {
+    border: 0;
+    padding: 0;
+    white-space: normal;
+  }
+  .apply-table td:nth-child(1) {
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: 700;
+    white-space: normal;
+  }
+  .apply-table td:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .apply-table td:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .apply-table td:nth-child(4) {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }

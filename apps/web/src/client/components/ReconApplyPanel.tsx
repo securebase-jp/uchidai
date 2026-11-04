@@ -56,13 +56,15 @@ export function ReconApplyPanel({ before, applied, busy, onApply }: Props) {
                   <span className="st-icon tone-amber" role="img" aria-label="要確認">
                     <TriangleAlert size={18} strokeWidth={2.2} aria-hidden="true" />
                   </span>
-                  <span className="chk-name">{assetLabel(c.assetId)}</span>
-                  <span className="chk-result">
-                    {c.messageJa}
-                    <span className="chk-sub muted small">
-                      外部：{c.external}／登録：{c.registered}
+                  <div className="chk-text">
+                    <span className="chk-name">{assetLabel(c.assetId)}</span>
+                    <span className="chk-result">
+                      {c.messageJa}
+                      <span className="chk-sub muted small">
+                        外部：{c.external}／登録：{c.registered}
+                      </span>
                     </span>
-                  </span>
+                  </div>
                 </div>
               </li>
             ))}
