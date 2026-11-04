@@ -4,7 +4,7 @@
  * - readCaseWithoutKnowledge：知見ファイルを一切渡さずに読む（比較用）
  * - listGenericMitigations：知見なしの Claude に対策を緩和策 ID つきで列挙させる（比較用）
  */
-import type { AttackData } from "@uchidai/engine";
+import type { AttackData, DamageTypeDef } from "@uchidai/engine";
 import { callStructured, type LlmOptions, type StructuredResult } from "./client.ts";
 import {
   buildMitigationsSystem,
@@ -14,6 +14,7 @@ import {
   wrapArticle,
 } from "./prompts.ts";
 import {
+  buildRawCaseJsonSchema,
   type RawCase,
   RawCase as RawCaseSchema,
   type RawMitigations,
@@ -27,6 +28,8 @@ export type ReadOptions = LlmOptions & {
   attack: AttackData;
   /** 知見ファイル。渡されたときだけ日本語ラベルと型紙を使う */
   knowledge?: ReadKnowledge;
+  /** 被害の種類（既定は knowledge/damage-types.yaml）。分類の選択肢と基準に使う */
+  damageTypes?: DamageTypeDef[];
   url?: string;
   title?: string;
 };
@@ -39,9 +42,9 @@ export async function readCase(text: string, options: ReadOptions): Promise<Read
   if (options.title) meta.title = options.title;
   if (options.url) meta.url = options.url;
   return callStructured(options, {
-    system: buildReadSystem(options.attack, options.knowledge),
+    system: buildReadSystem(options.attack, options.knowledge, options.damageTypes),
     user: wrapArticle(text, meta),
-    schema: rawCaseJsonSchema,
+    schema: options.damageTypes ? buildRawCaseJsonSchema(options.damageTypes) : rawCaseJsonSchema,
     parse: (v) => RawCaseSchema.parse(v),
   });
 }
@@ -49,15 +52,15 @@ export async function readCase(text: string, options: ReadOptions): Promise<Read
 /** 知見なし：ラベル・型紙・手法一覧を渡さず、同じスキーマで読む */
 export async function readCaseWithoutKnowledge(
   text: string,
-  options: LlmOptions & { url?: string; title?: string } = {},
+  options: LlmOptions & { url?: string; title?: string; damageTypes?: DamageTypeDef[] } = {},
 ): Promise<ReadResult> {
   const meta: { title?: string; url?: string } = {};
   if (options.title) meta.title = options.title;
   if (options.url) meta.url = options.url;
   return callStructured(options, {
-    system: buildNoKnowledgeSystem(),
+    system: buildNoKnowledgeSystem(options.damageTypes),
     user: wrapArticle(text, meta),
-    schema: rawCaseJsonSchema,
+    schema: options.damageTypes ? buildRawCaseJsonSchema(options.damageTypes) : rawCaseJsonSchema,
     parse: (v) => RawCaseSchema.parse(v),
   });
 }

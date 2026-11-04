@@ -1,6 +1,6 @@
 /**
  * 読解結果の検証（プログラムが決定的に行う）。
- * 1. zod で形を検証
+ * 1. zod で形を検証。定義にない被害の種類（damage-types.yaml）は拒否
  * 2. 手法 ID を canonicalTechnique で正規化（廃止 ID は置き換え、存在しない ID は破棄）
  * 3. 根拠文が原文に実在するか文字列照合（空白・全角半角の揺れを吸収）。無ければ quote を消し inferred に落とす。
  *    短すぎる・長すぎる根拠文、stated 以外の段階に付いた根拠文も消す（根拠文があるのは stated だけ、という不変条件）
@@ -11,7 +11,14 @@
  * ここで守れないもの：damageType・clarity・段階の有無そのものは Claude の判断で、記事中の指示に従って変えられても
  * 検証では見分けられない。その防御はプロンプト（RULES_JA）と、検知した指示文の画面表示に頼る
  */
-import { type AttackData, Case, type CaseStep, canonicalTechnique } from "@uchidai/engine";
+import {
+  type AttackData,
+  Case,
+  type CaseStep,
+  canonicalTechnique,
+  loadDamageTypes,
+  OUT_OF_SCOPE,
+} from "@uchidai/engine";
 import { RawCase } from "./schema.ts";
 
 /** 空白と全角半角の揺れを吸収して照合する（eval/src/score.ts の normalizeText と同じ規則） */
@@ -25,6 +32,8 @@ export function normalizeText(s: string): string {
 export type VerifyOptions = {
   /** 型紙にある手法。渡されたときはこれ以外の手法を破棄する */
   allowedTechniques?: Iterable<string>;
+  /** 定義済みの被害の種類の id（既定は knowledge/damage-types.yaml）。これと out_of_scope 以外は拒否する */
+  damageTypes?: Iterable<string>;
   url?: string;
   /** これより短い根拠文（正規化後の文字数）は照合しない（既定 8） */
   minQuoteLength?: number;
@@ -124,6 +133,9 @@ export function verifyCase(
   options: VerifyOptions = {},
 ): VerifiedCase {
   const parsed = RawCase.parse(raw);
+  const knownTypes = new Set(options.damageTypes ?? loadDamageTypes().map((d) => d.id));
+  if (parsed.damageType !== OUT_OF_SCOPE && !knownTypes.has(parsed.damageType))
+    throw new Error(`未定義の被害の種類: ${parsed.damageType}`);
   const normalizedArticle = normalizeText(articleText);
   const minQuote = options.minQuoteLength ?? 8;
   const maxQuote = options.maxQuoteLength ?? 400;
