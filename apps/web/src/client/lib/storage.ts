@@ -25,7 +25,7 @@ const safe = <T>(fn: () => T, fallback: T): T => {
 const SavedProfile = z.looseObject({
   id: z.string().min(1),
   companyName: z.string(),
-  pattern: z.enum(["manufacturing", "office", "healthcare"]),
+  pattern: z.enum(["manufacturing", "construction", "office", "healthcare"]),
   assets: z.array(
     z.looseObject({
       id: z.string(),

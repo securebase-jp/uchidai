@@ -1,0 +1,45 @@
+# 業種別の構成パターン：建設業
+# 数値は叩き台（開発者がレビューする）。製造業の受注〜出荷（手作業 2〜3 日、復旧 10 日、切り離したバックアップがあれば 2 日）に揃え、
+# 施工管理・原価管理システムが止まると現場の段取りも止まる前提にした。請求・精算だけは紙の出来高書類で数日回せるので手作業 5 日とした
+id: construction
+labelJa: 建設業
+core:
+  labelJa: 施工管理・原価管理システム
+businesses:
+  - id: biz-estimate
+    name: 見積・受注
+    roles: [core]
+    manualDays: 3
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 発注者への見積・契約
+  - id: biz-construction
+    name: 施工管理
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 発注者（工期）
+  - id: biz-procurement
+    name: 資材・調達
+    roles: [core]
+    manualDays: 2
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 協力会社・資材の手配
+  - id: biz-billing
+    name: 請求・精算
+    roles: [core]
+    manualDays: 5
+    recoveryDays: 10
+    recoveryDaysWithBackup: 2
+    affectsJa: 協力会社への支払・発注者への請求
+impact:
+  partnerJa: 発注者（工期）と協力会社
+  reportJa: 不正アクセスによる漏えいのおそれは件数にかかわらず報告
+# 5問から作るカルテの個人情報の既定値（件数は未確認として扱う）
+personalData:
+  - role: core
+    descriptionJa: 発注者・協力会社の担当者の連絡先
+    sensitive: false
+    over1000: false

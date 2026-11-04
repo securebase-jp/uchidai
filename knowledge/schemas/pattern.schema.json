@@ -6,6 +6,7 @@
       "type": "string",
       "enum": [
         "manufacturing",
+        "construction",
         "office",
         "healthcare"
       ]
@@ -26,7 +27,7 @@
       "additionalProperties": false
     },
     "businesses": {
-      "maxItems": 5,
+      "maxItems": 4,
       "type": "array",
       "items": {
         "type": "object",

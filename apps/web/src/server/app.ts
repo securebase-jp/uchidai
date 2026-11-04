@@ -147,7 +147,7 @@ const FromAnswers = z.object({
 app.post("/api/profile/from-answers", async (c) => {
   const body = FromAnswers.parse(await c.req.json());
   const k = loadKnowledge();
-  const profile = profileFromAnswers(body.answers, k.patterns, body.companyName);
+  const profile = profileFromAnswers(body.answers, k.patterns, body.companyName, k.sites);
   return c.json({ profile, graph: buildGraph(profile, k.roles) });
 });
 

@@ -1,7 +1,7 @@
 /**
  * 業種を切り替えて同じ攻撃を見る一場面（Issue 42）。
  * 5問の構成（VPN と保守接続、社内サーバ、クラウド同期のバックアップ）を固定し、業種の構成パターンだけを
- * 製造業／事務所型／医療・福祉に替えたカルテを /api/profile/from-answers で作り、同じ事例と対策で /api/evaluate にかける。
+ * 製造業／建設業／事務所型／医療・福祉に替えたカルテを /api/profile/from-answers で作り、同じ事例と対策で /api/evaluate にかける。
  * 止まる業務と日数、影響が業種で変わる様子を並べる。自社のカルテは変えない（判定はすべて engine）
  */
 import { useState } from "react";
@@ -21,6 +21,12 @@ type Industry = {
 };
 const INDUSTRIES: Industry[] = [
   { id: "manufacturing", site: "factory", pattern: "manufacturing", labelJa: "製造業（工場あり）" },
+  {
+    id: "construction",
+    site: "construction_site",
+    pattern: "construction",
+    labelJa: "建設業（工事現場）",
+  },
   {
     id: "wholesale_service",
     site: "office_only",
@@ -121,7 +127,9 @@ export function IndustrySwitch() {
             disabled={busy || !theCase || app.busy}
             onClick={() => void run()}
           >
-            {busy ? "3 業種で判定しています…" : "3 業種で比べる"}
+            {busy
+              ? `${INDUSTRIES.length} 業種で判定しています…`
+              : `${INDUSTRIES.length} 業種で比べる`}
           </button>
         )}
         {results && (

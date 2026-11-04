@@ -4,8 +4,11 @@ questions:
     textJa: 御社の業種は？
     options:
       - value: manufacturing
-        labelJa: 製造・建設
+        labelJa: 製造業
         pattern: manufacturing
+      - value: construction
+        labelJa: 建設業
+        pattern: construction
       - value: wholesale_service
         labelJa: 卸売・小売・サービス
         pattern: office
@@ -25,19 +28,115 @@ questions:
     textJa: 現場はありますか？
     options:
       # industries：この選択肢を出す業種（industry の value）。無ければすべての業種に出す。
-      # 製造・建設に診療所は無い、のように、業種に合わない現場は出さない
+      #   製造業に診療所は無い、のように、業種に合わない現場は出さない（単一選択のまま）
+      # siteBusiness：選ぶと構成図の業務の層に足す「現場の業務」。無ければ（事務所のみ）足さない。
+      #   roles は、その業務が止まる元の役割（roles.yaml）。数値は叩き台で、開発者がレビューする。
+      #   replaces：構成パターンに同じ業務（業務 ID）が既にあるときは、足さずにその業務を現場の業務に置き換える
       - value: factory
-        labelJa: 工場・倉庫
-        siteBusinessJa: 生産ライン
+        labelJa: 工場
+        industries: [manufacturing, other]
+        siteBusiness:
+          name: 生産ライン
+          roles: [core]
+          # 製造業の「生産ライン」と同じ値（製造業×工場は従来と同じ構成になる）
+          manualDays: 2
+          recoveryDays: 10
+          recoveryDaysWithBackup: 2
+          affectsJa: 出荷
+          replaces: [biz-production]
+      - value: warehouse
+        labelJa: 倉庫・物流拠点
         industries: [manufacturing, wholesale_service, other]
+        siteBusiness:
+          name: 倉庫・物流
+          roles: [core]
+          # 事務所型の「出荷・配送」と同程度（在庫の紙台帳で 1 日は回せる）
+          manualDays: 1
+          recoveryDays: 7
+          recoveryDaysWithBackup: 2
+          affectsJa: 取引先への出荷
+      - value: construction_site
+        labelJa: 工事現場（現場事務所・仮設）
+        industries: [construction]
+        siteBusiness:
+          name: 施工管理（現場）
+          roles: [core, pc]
+          # 建設業の「施工管理」と同じ値。現場事務所の PC からも工程・原価を扱うので pc も止まる元にする
+          manualDays: 2
+          recoveryDays: 10
+          recoveryDaysWithBackup: 2
+          affectsJa: 発注者（工期）
+          replaces: [biz-construction]
+      - value: yard
+        labelJa: 資材置き場・倉庫
+        industries: [construction]
+        siteBusiness:
+          name: 資材管理（置き場）
+          roles: [core]
+          # 製造業の出荷より手作業が少し長い（紙の出庫票で回せる）。復旧は建設業の中核システムと同じ
+          manualDays: 3
+          recoveryDays: 10
+          recoveryDaysWithBackup: 2
+          affectsJa: 現場への資材の供給
       - value: store
-        labelJa: 店舗
-        siteBusinessJa: 店頭
+        labelJa: 店舗・支店
         industries: [wholesale_service, finance, other]
+        siteBusiness:
+          name: 店頭・窓口
+          roles: [core, pc]
+          # レジや窓口は手書きで 1 日が限度。復旧は事務所型の受注と同程度
+          manualDays: 1
+          recoveryDays: 7
+          recoveryDaysWithBackup: 2
+          affectsJa: 来店客の対応
       - value: clinic
-        labelJa: 診療所・施設
-        siteBusinessJa: 診療
+        labelJa: 診療所・病院
         industries: [healthcare]
+        siteBusiness:
+          name: 診療
+          roles: [core]
+          # 医療・福祉の「診療」と同じ値（医療×診療所は従来と同じ構成になる）
+          manualDays: 1
+          recoveryDays: 14
+          recoveryDaysWithBackup: 3
+          affectsJa: 患者と地域
+          replaces: [biz-treatment]
+      - value: care
+        labelJa: 介護・福祉施設
+        industries: [healthcare]
+        siteBusiness:
+          name: 介護・ケア
+          roles: [core]
+          # 診療より手書きの記録で回せる日数が長い。復旧は電子カルテと同じ。診療の業務は置き換える
+          manualDays: 2
+          recoveryDays: 14
+          recoveryDaysWithBackup: 3
+          affectsJa: 利用者と家族
+          replaces: [biz-treatment]
+      - value: datacenter
+        labelJa: データセンター・サーバルーム（自社運用）
+        industries: [it]
+        siteBusiness:
+          name: サーバ運用（自社）
+          roles: [server, core]
+          # 預かっているサービスは手作業で代替できない（0 日）。復旧は製造業の中核システムと同程度、
+          # 切り離したバックアップがあれば再構築が早い。クラウドの中核システムでも core があるので消えない
+          manualDays: 0
+          recoveryDays: 10
+          recoveryDaysWithBackup: 3
+          affectsJa: 預かっている顧客のサービス
+      - value: onsite_team
+        labelJa: 客先に常駐するチームがある
+        industries: [it]
+        siteBusiness:
+          name: 客先常駐の対応
+          roles: [pc]
+          # 客先で使う PC は再設定で戻る。紙とメモで数日は回せる。保守ベンダーの遠隔接続（入口）は
+          # 「社外からのつなぎ方」の問いが決めるので、ここでは業務を足すだけにする
+          manualDays: 3
+          recoveryDays: 5
+          recoveryDaysWithBackup: 2
+          affectsJa: 常駐先（客先）への提供
       - value: office_only
         labelJa: 事務所のみ
   - id: hosting

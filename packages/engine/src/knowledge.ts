@@ -16,8 +16,10 @@ import {
   DamageType,
   Layer,
   MitigationId,
+  PatternId,
   Role,
   Side,
+  Site,
   StepState,
   TacticId,
   TechniqueId,
@@ -170,10 +172,11 @@ export const PatternBusiness = z.object({
   affectsJa: z.string().optional(),
 });
 export const Pattern = z.object({
-  id: z.enum(["manufacturing", "office", "healthcare"]),
+  id: PatternId,
   labelJa: z.string(),
   core: z.object({ labelJa: z.string() }),
-  businesses: z.array(PatternBusiness).max(5),
+  // 最大 4 つ。最初の5問の「現場」の業務が加わっても、業務の層の上限（5）に収まる
+  businesses: z.array(PatternBusiness).max(4),
   impact: z.object({ partnerJa: z.string(), reportJa: z.string() }),
   /** 5問から作るカルテに入れる個人情報の既定値 */
   personalData: z
@@ -192,6 +195,31 @@ export type Pattern = z.infer<typeof Pattern>;
 export const QuestionsFile = z.object({
   questions: z.array(z.looseObject({ id: z.string(), textJa: z.string() })),
 });
+
+/**
+ * 「現場はありますか？」の選択肢が業務の層に足す「現場の業務」。
+ * replaces は、構成パターンに同じ業務（生産ライン、診療など）が既にあるときの業務 ID で、
+ * あればその業務を現場の業務に置き換える（重複させない）。無ければ末尾に足す
+ */
+export const SiteBusiness = z.object({
+  name: z.string(),
+  roles: z.array(Role).min(1),
+  manualDays: z.number().nonnegative(),
+  recoveryDays: z.number().nonnegative(),
+  recoveryDaysWithBackup: z.number().nonnegative().optional(),
+  affectsJa: z.string(),
+  replaces: z.array(z.string()).default([]),
+});
+export type SiteBusiness = z.infer<typeof SiteBusiness>;
+export const SiteOption = z.object({
+  value: Site,
+  labelJa: z.string(),
+  /** この選択肢を出す業種（industry の value）。無ければすべての業種 */
+  industries: z.array(z.string()).optional(),
+  /** 無ければ（事務所のみ）現場の業務を足さない */
+  siteBusiness: SiteBusiness.optional(),
+});
+export type SiteOption = z.infer<typeof SiteOption>;
 
 export const EntryCandidate = z.object({
   role: Role,
@@ -373,6 +401,12 @@ export function loadMeasures(): MeasureDef[] {
 export function loadPatterns(): Pattern[] {
   return yamlFiles("profiles").map((f) => Pattern.parse(readYaml(f)));
 }
+/** questions.yaml の「現場」の選択肢 */
+export function loadSites(): SiteOption[] {
+  const file = QuestionsFile.parse(readYaml("questions.yaml"));
+  const q = file.questions.find((x) => x.id === "site");
+  return z.array(SiteOption).parse(q?.options ?? []);
+}
 export function loadEntryCandidates(): EntryCandidates {
   return EntryCandidates.parse(readYaml("entry-candidates.yaml"));
 }
@@ -420,6 +454,8 @@ export type Knowledge = {
   rules: Rule[];
   measures: MeasureDef[];
   patterns: Pattern[];
+  /** 「現場」の選択肢と、それが足す現場の業務 */
+  sites: SiteOption[];
   entryCandidates: EntryCandidates;
   deadlines: DeadlinesFile;
   costs: CostsFile;
@@ -434,6 +470,7 @@ export function loadKnowledge(): Knowledge {
     rules: loadRules(),
     measures: loadMeasures(),
     patterns: loadPatterns(),
+    sites: loadSites(),
     entryCandidates: loadEntryCandidates(),
     deadlines: loadDeadlines(),
     costs: loadCosts(),
@@ -602,7 +639,37 @@ export function checkKnowledge(profilePaths: string[]): string[] {
         `entry-candidates: ${c.role} の件数 ${c.stat.count} が有効回答 ${c.stat.total} を超える`,
       );
   }
-  collect("questions", () => QuestionsFile.parse(readYaml("questions.yaml")));
+  // 業種の選択肢と構成パターン、現場の選択肢の整合
+  const questionsFile = collect("questions", () => QuestionsFile.parse(readYaml("questions.yaml")));
+  const industryOptions = (questionsFile?.questions.find((q) => q.id === "industry")?.options ??
+    []) as { value: string; pattern?: string }[];
+  const industryValues = new Set(industryOptions.map((o) => o.value));
+  for (const o of industryOptions)
+    if (!patterns.some((p) => p.id === o.pattern))
+      problems.push(
+        `questions/industry: ${o.value} の構成パターン ${o.pattern} が profiles にない`,
+      );
+  for (const p of patterns)
+    if (!industryOptions.some((o) => o.pattern === p.id))
+      problems.push(`questions/industry: 構成パターン ${p.id} に対応する業種の選択肢がない`);
+  const sites = collect("questions/site", loadSites) ?? [];
+  const patternBusinessIds = new Set(patterns.flatMap((p) => p.businesses.map((b) => b.id)));
+  for (const s of sites) {
+    for (const i of s.industries ?? [])
+      if (!industryValues.has(i))
+        problems.push(`questions/site: ${s.value} の業種 ${i} が industry にない`);
+    for (const role of s.siteBusiness?.roles ?? [])
+      if (!isKnownRole(role, roles))
+        problems.push(`questions/site: ${s.value} の現場の業務の役割 ${role} は roles.yaml にない`);
+    for (const id of s.siteBusiness?.replaces ?? [])
+      if (!patternBusinessIds.has(id))
+        problems.push(`questions/site: ${s.value} が置き換える業務 ${id} は profiles にない`);
+  }
+  for (const v of Site.options)
+    if (!sites.some((s) => s.value === v)) problems.push(`questions/site: ${v} の選択肢がない`);
+  for (const i of industryValues)
+    if (!sites.some((s) => !s.industries || s.industries.includes(i)))
+      problems.push(`questions/site: 業種 ${i} に出す現場の選択肢がない`);
 
   const deadlines = collect("deadlines", loadDeadlines);
   if (deadlines) {
