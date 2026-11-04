@@ -1,0 +1,40 @@
+{
+  "$comment": "エンドカード後半（場面 10）に出す開発の跡の数字。画面はここから読んで数え上げる。数字は動画に出す直前に数え直す（verifyBeforeRecording を false にするのは数え直したあと）。実測の取り方：commits は `git rev-list --count main`、scoring.records は eval/RESULTS.md の日付つきの行数、scoring.series は同じ表の知見あり・知見なしの列、audits は docs/claude-code-log.md の監査セッションの記述（S2 の 8 件、A1〜A3 の約 45 件、A4 の高 2・中 9 件）、sessions は docs/claude-code-log.md と worktree の数。モデルの役割分担に Mythos の名は出さない",
+  "verifyBeforeRecording": true,
+  "measuredAt": "2026-11-04",
+  "sessions": {
+    "total": 40,
+    "approx": true,
+    "areasJa": [
+      "読解",
+      "判定エンジン",
+      "描画と動き",
+      "経営の層",
+      "外部確認",
+      "AI攻撃者・比較",
+      "連携・依頼",
+      "デモ・一枚",
+      "プロダクト化・画面の調整"
+    ]
+  },
+  "roles": [
+    { "model": "Fable", "roleJa": "計画・統合・レビュー" },
+    { "model": "Sonnet", "roleJa": "実装" }
+  ],
+  "scoring": {
+    "records": 81,
+    "cases": 10,
+    "series": [
+      { "labelJa": "初回（仮の記録）", "withKnowledge": 57 },
+      { "labelJa": "初回の実測", "withKnowledge": 92, "withoutKnowledge": 90 },
+      { "labelJa": "現在", "withKnowledge": 95, "withoutKnowledge": 92 }
+    ]
+  },
+  "audits": {
+    "sessions": 5,
+    "found": 64,
+    "approx": true,
+    "examplesJa": ["記事 URL の SSRF", "公開 URL 経由で全 API が無認証", "偽の所有確認"]
+  },
+  "commits": 323
+}

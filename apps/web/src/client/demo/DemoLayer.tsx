@@ -6,6 +6,7 @@
  *   &captions=1        画面に字幕を出す（既定は出さない。動画には assemble.ts で焼き込む）
  *   &hud=1             右上に場面と時刻を出す（既定は出さない）
  *   &controls=0        画面下の操作バーと「一時停止中」の札を出さない（録画用。既定は出す）
+ *   &police=1|0        場面 3 の警察庁の数字の小さな表示を出す／出さない（既定は storyboard.json の options）
  * キー：Space 一時停止／再開、→ 次の場面、← 前の場面、H 表示切替、C 字幕切替
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -15,7 +16,11 @@ import { demoClock, withDemoClock } from "./bridge.ts";
 import { DemoControls } from "./DemoControls.tsx";
 import { buildScenes, cueAt, type DemoScene, narration, storyboard } from "./data.ts";
 import { EndCard } from "./EndCard.tsx";
+import { LayerStack, showTap, useZoomLayer } from "./layers.tsx";
+import { BuildOverlay } from "./overlays/Build.tsx";
 import { ChatOverlay } from "./overlays/Chat.tsx";
+import { ConclusionOverlay } from "./overlays/Conclusion.tsx";
+import { DeclarationOverlay } from "./overlays/Declaration.tsx";
 import { ReadingOverlay } from "./overlays/Reading.tsx";
 import { type DemoParams, parseDemoParams } from "./params.ts";
 import type { DemoAction, DemoAnswer, OverlayId } from "./schema.ts";
@@ -24,6 +29,22 @@ import { useDemoPlayer } from "./useDemoPlayer.ts";
 import "./demo.css";
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/** この overlay が出ている終わりの時刻：次の overlay 操作の時刻（無ければ場面の終わり） */
+function overlayEnd(scene: DemoScene, since: number, sceneSeconds: number): number {
+  const next = scene.board.actions
+    .filter((a) => a.do === "overlay" && a.at > since)
+    .map((a) => a.at);
+  return next.length > 0 ? Math.min(...next) : sceneSeconds;
+}
+
+/** セレクタに合う要素から、text を含むものの nth 番目（絵コンテの click / fill の対象） */
+function pick(selector: string, nth = 0, text?: string): Element | undefined {
+  const all = [...document.querySelectorAll(selector)].filter(
+    (e) => text === undefined || (e.textContent ?? "").includes(text),
+  );
+  return all[nth];
+}
 
 export function DemoLayer() {
   const params = useMemo(() => parseDemoParams(), []);
@@ -37,12 +58,19 @@ function DemoRunner({
   captions: captionsDefault,
   hud: hudDefault,
   controls,
+  police,
 }: DemoParams) {
   const app = useApp();
   const appRef = useRef(app);
   appRef.current = app;
   const [scenes, setScenes] = useState<DemoScene[]>();
-  const [overlay, setOverlay] = useState<OverlayId>("none");
+  // overlay は、いつから出ているか（since、場面の経過秒数）を持つ。部品の時刻は出た時点を 0 とする
+  const [overlay, setOverlayState] = useState<{ id: OverlayId; since: number }>({
+    id: "none",
+    since: 0,
+  });
+  const setOverlay = useCallback((id: OverlayId, since = 0) => setOverlayState({ id, since }), []);
+  const flags = useMemo(() => ({ policeStat: police ?? storyboard.options.policeStat }), [police]);
   const [captions, setCaptions] = useState(captionsDefault);
   const [hud, setHud] = useState(hudDefault);
   const [ready, setReady] = useState(false);
@@ -102,7 +130,7 @@ function DemoRunner({
           if (location.hash !== action.to) location.hash = action.to;
           break;
         case "overlay":
-          setOverlay(action.id);
+          setOverlay(action.id, action.at);
           break;
         case "clock":
           withDemoClock((clock) => {
@@ -128,11 +156,32 @@ function DemoRunner({
           else
             document
               .querySelector(action.to)
-              ?.scrollIntoView({ behavior: "smooth", block: "center" });
+              ?.scrollIntoView({ behavior: "smooth", block: action.block ?? "center" });
           break;
+        case "click": {
+          const el = pick(action.target, action.nth, action.text);
+          if (el instanceof HTMLElement) {
+            showTap(el);
+            el.click();
+          }
+          break;
+        }
+        case "fill": {
+          const el = pick(action.target, action.nth);
+          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+            showTap(el);
+            const proto =
+              el instanceof HTMLInputElement
+                ? HTMLInputElement.prototype
+                : HTMLTextAreaElement.prototype;
+            Object.getOwnPropertyDescriptor(proto, "value")?.set?.call(el, action.value);
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          }
+          break;
+        }
       }
     },
-    [setMeasures, setAnswers],
+    [setMeasures, setAnswers, setOverlay],
   );
 
   const player = useDemoPlayer(scenes ?? [], {
@@ -141,8 +190,11 @@ function DemoRunner({
       setOverlay(scene.board.overlay);
     },
     onAction: exec,
-    onFinish: () => setOverlay("endcard"),
+    onFinish: () => setOverlay("endcard-close"),
   });
+
+  // 図への寄り（担当者画面の構成図をノードに寄せる）
+  useZoomLayer(player.scene?.board.layers ?? [], player.elapsed, flags);
 
   // 一時停止は画面の再生時計（経路の再生）も止め、再開で元の状態に戻す
   const clockWasPlaying = useRef(false);
@@ -241,10 +293,16 @@ function DemoRunner({
         </div>
       )}
 
-      {scene && overlay !== "none" && (
-        <Overlay id={overlay} scene={scene} elapsed={player.elapsed} seconds={player.seconds} />
+      {scene && overlay.id !== "none" && (
+        <Overlay
+          id={overlay.id}
+          scene={scene}
+          elapsed={Math.max(0, player.elapsed - overlay.since)}
+          seconds={Math.max(0.1, overlayEnd(scene, overlay.since, player.seconds) - overlay.since)}
+        />
       )}
-      {player.finished && <EndCard credits={narration.credits} elapsed={999} />}
+      {scene && <LayerStack layers={scene.board.layers} elapsed={player.elapsed} flags={flags} />}
+      {player.finished && <EndCard phase="close" credits={narration.credits} elapsed={999} />}
 
       {controls && scene && !player.finished && (
         <DemoControls
@@ -299,13 +357,29 @@ function Overlay({
 }) {
   if (id === "chat-boss" || id === "chat-staff" || id === "chat-reply")
     return <ChatOverlay variant={id} elapsed={elapsed} seconds={seconds} />;
+  if (id === "declaration") return <DeclarationOverlay elapsed={elapsed} />;
   if (id === "reading") return <ReadingOverlay elapsed={elapsed} seconds={seconds} />;
-  if (id === "endcard") return <EndCard credits={narration.credits} elapsed={elapsed} />;
+  if (id === "build") return <BuildOverlay elapsed={elapsed} />;
+  if (id === "conclusion") return <ConclusionOverlay elapsed={elapsed} />;
+  if (id === "endcard-roles" || id === "endcard-trace" || id === "endcard-close")
+    return (
+      <EndCard
+        phase={id.slice("endcard-".length) as "roles" | "trace" | "close"}
+        credits={narration.credits}
+        elapsed={elapsed}
+      />
+    );
   if (id.startsWith("slot:")) {
     const sid = id as SlotId;
     const C = SLOTS[sid];
     const props = { elapsed, seconds, onScreen: scene.script.onScreen };
-    return C ? <C {...props} /> : <SlotPlaceholder id={sid} {...props} />;
+    // 外部確認の再生は、下のホーム画面が枠の外に見えないよう、黒地を敷く
+    return (
+      <>
+        {sid === "slot:recon" && <div className="demo-overlay" aria-hidden="true" />}
+        {C ? <C {...props} /> : <SlotPlaceholder id={sid} {...props} />}
+      </>
+    );
   }
   return null;
 }

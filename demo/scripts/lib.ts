@@ -16,6 +16,8 @@ export type NarrationScene = {
   id: string;
   titleJa: string;
   targetSeconds: number;
+  /** 読み上げの前に置く無音（秒）。音声の先頭に入れる。字幕もその分あとから始める */
+  leadSilenceSeconds?: number;
   textJa: string;
   subtitleJa: string[];
   onScreen?: string;
@@ -43,6 +45,11 @@ export function loadNarration(): Narration {
       `場面 ${s.n} に subtitleJa がありません`,
     );
     must(s.targetSeconds > 0, `場面 ${s.n} の targetSeconds が不正です`);
+    must(
+      s.leadSilenceSeconds === undefined ||
+        (s.leadSilenceSeconds >= 0 && s.leadSilenceSeconds < s.targetSeconds),
+      `場面 ${s.n} の leadSilenceSeconds が不正です`,
+    );
   }
   must(
     raw.credits?.voice && raw.credits?.github,
@@ -100,12 +107,15 @@ export function buildTimeline(
   return narration.scenes.map((s) => {
     const d = durations[String(s.n)];
     const seconds = d ?? s.targetSeconds;
+    // 先頭の無音のあいだは字幕を出さない。読み上げの長さを cue に配る
+    const lead = Math.min(s.leadSilenceSeconds ?? 0, seconds);
+    const spoken = seconds - lead;
     const total = s.subtitleJa.reduce((n, c) => n + c.length, 0) || 1;
     let acc = 0;
     const cues = s.subtitleJa.map((text) => {
-      const start = t + (seconds * acc) / total;
+      const start = t + lead + (spoken * acc) / total;
       acc += text.length;
-      const end = t + (seconds * acc) / total;
+      const end = t + lead + (spoken * acc) / total;
       return { start, end, text };
     });
     const scene: TimelineScene = {
