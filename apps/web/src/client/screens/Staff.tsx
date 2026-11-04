@@ -14,7 +14,7 @@ import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
-import { VerdictBanner } from "../components/VerdictBanner.tsx";
+import { summary, VerdictBanner } from "../components/VerdictBanner.tsx";
 import "../components/staff.css";
 import { useDemoBridge } from "../demo/bridge.ts";
 import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
@@ -134,6 +134,7 @@ export function Staff({ settings }: { settings: Settings }) {
   const verdictNow = evaluation?.verdict ?? stage.input.verdict;
   const graphNow = evaluation?.graph ?? stage.input.graph;
   const reason = reasonSentence(verdictNow, graphNow, knowledge.labels.techniques);
+  const impactText = summary(stage.input.verdict, false);
   const moves: NextMove[] = (evaluation?.nextMoves ?? []).flatMap((n) => {
     const measure = knowledge.measures.find((m) => m.id === n.measureId);
     return measure ? [{ measure, ...(n.stageJa ? { stageJa: n.stageJa } : {}) }] : [];
@@ -151,9 +152,14 @@ export function Staff({ settings }: { settings: Settings }) {
           caseTitle={theCase.title}
           swapping={stage.swapping || busy}
           conclusionFirst
-          reasonJa={reason}
           info={
             <InfoButton title="結論の読み方" align="end">
+              {(reason || impactText) && (
+                <p>
+                  {reason && `${reason}。`}
+                  {impactText && `${impactText}。`}
+                </p>
+              )}
               <p>
                 結論は「止められます」「侵入は防げませんが被害は抑えられます」「大丈夫ではありませんでした」「確認中」の
                 4

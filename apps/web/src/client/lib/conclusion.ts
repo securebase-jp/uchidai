@@ -71,3 +71,75 @@ export function reasonSentence(
 
 /** 次の一手の 1 件（対策と、効く段階のラベル）。選ぶのはサーバ側の engine（/api/evaluate の nextMoves） */
 export type NextMove = { measure: MeasureDef; stageJa?: string };
+
+/** 結論カードの数字タイル 1 枚。値は engine の Verdict.impact をそのまま写す（計算はしない） */
+export type ImpactTile = {
+  key: "stop" | "revenue" | "money" | "partner" | "report";
+  /** 短いラベル（「停止」「売上影響」「取引先」「報告義務」） */
+  label: string;
+  value: string;
+  /** 小さく添える語（止まる業務の名前、報告対象の件数など） */
+  sub?: string;
+  /** 被害が出る（強調する）か。「なし」は弱く出す */
+  hot: boolean;
+};
+
+const NONE = "なし";
+
+/**
+ * 結論カードの数字タイル。入口なし・対象外では出さない（結論の文だけで足りる）。
+ * 止められる結論でも「なし」のタイルを並べ、何も起きないことを数字で示す
+ */
+export function impactTiles(v: Verdict, yenJa: (n: number | undefined) => string): ImpactTile[] {
+  if (v.result === "no_entry" || v.result === "out_of_scope") return [];
+  const i = v.impact;
+  const longest = [...i.stopped].sort((a, b) => b.days - a.days)[0];
+  const tiles: ImpactTile[] = [
+    {
+      key: "stop",
+      label: "停止",
+      value: i.downtimeDays > 0 ? `${i.downtimeDays}日` : NONE,
+      ...(i.downtimeDays > 0 && longest ? { sub: longest.name } : {}),
+      hot: i.downtimeDays > 0,
+    },
+    {
+      key: "revenue",
+      label: "売上影響",
+      value: i.revenueImpactJpy ? yenJa(i.revenueImpactJpy) : NONE,
+      hot: Boolean(i.revenueImpactJpy),
+    },
+  ];
+  if (i.moneyLossJpy)
+    tiles.push({ key: "money", label: "流出", value: yenJa(i.moneyLossJpy), hot: true });
+  tiles.push(
+    {
+      key: "partner",
+      label: "取引先",
+      value: i.partnerImpactDay !== undefined ? `${i.partnerImpactDay}日目` : NONE,
+      hot: i.partnerImpactDay !== undefined,
+    },
+    reportTile(v),
+  );
+  return tiles;
+}
+
+function reportTile(v: Verdict): ImpactTile {
+  const i = v.impact;
+  if (!i.reportRequired) return { key: "report", label: "報告義務", value: NONE, hot: false };
+  const reached = i.personalDataReached;
+  const parts: string[] = [];
+  if (reached.some((p) => p.sensitive)) parts.push("要配慮");
+  const counts = reached.map((p) => p.count);
+  if (counts.length > 0 && counts.every((c): c is number => c !== undefined)) {
+    parts.push(`${counts.reduce((a, b) => a + b, 0).toLocaleString("ja-JP")}件`);
+  } else if (reached.some((p) => p.over1000)) {
+    parts.push("1,000人超");
+  }
+  return {
+    key: "report",
+    label: "報告義務",
+    value: "あり",
+    ...(parts.length > 0 ? { sub: parts.join("・") } : {}),
+    hot: true,
+  };
+}

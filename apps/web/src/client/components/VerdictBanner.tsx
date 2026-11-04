@@ -9,6 +9,7 @@ import { PLAIN_STATE, RESULT_TONE, STATE_LABEL, yen } from "../lib/labels.ts";
 import { unknownStepLabels } from "../lib/pending.ts";
 import type { Scene, Script } from "../lib/playback.ts";
 import type { Graph, Verdict } from "../lib/types.ts";
+import { ImpactTiles } from "./ImpactTiles.tsx";
 
 type Props = {
   verdict: Verdict;
@@ -22,8 +23,6 @@ type Props = {
   swapping?: boolean;
   /** 結論を常に大見出しに出し、再生の進みは小さく添える（担当者画面） */
   conclusionFirst?: boolean;
-  /** 理由の一文（結論の下） */
-  reasonJa?: string;
   /** 見出しの横に置く情報ボタンなど */
   info?: ReactNode;
   /** 次の一手・未確認の件数など、結論の下に置くもの */
@@ -88,7 +87,6 @@ export function VerdictBanner({
   big = false,
   swapping = false,
   conclusionFirst = false,
-  reasonJa,
   info,
   children,
   alert = false,
@@ -105,7 +103,9 @@ export function VerdictBanner({
 
   if (conclusionFirst) {
     const tone = RESULT_TONE[verdict.result];
-    const impact = summary(verdict, plain);
+    // 影響は数字のタイルで見せる。タイルを出さない結論（入口なし・対象外）だけ、文を添える
+    const hasTiles = verdict.result !== "no_entry" && verdict.result !== "out_of_scope";
+    const impact = hasTiles ? "" : summary(verdict, plain);
     const running = swapping || !concluded;
     return (
       <section className={`verdict verdict-card tone-${tone}`} aria-live="polite">
@@ -113,7 +113,7 @@ export function VerdictBanner({
           <p className="t">{verdict.headlineJa}</p>
           {info}
         </div>
-        {reasonJa && <p className="s">{reasonJa}</p>}
+        {hasTiles && <ImpactTiles verdict={verdict} />}
         {impact && <p className="s verdict-impact">{impact}</p>}
         <AnimatePresence mode="wait">
           {running && (
