@@ -144,13 +144,13 @@
           "mitigation": "M1026",
           "status": "unknown",
           "evidence": "none",
-          "noteJa": "管理者パスワードが PC ごとに個別か共通か未登録（デモ中にベンダーへ確認）"
+          "noteJa": "管理者パスワードが PC ごとに個別か共通かは未登録"
         },
         {
           "mitigation": "M1040",
           "status": "unknown",
           "evidence": "none",
-          "noteJa": "EDR の有無と監視体制が未登録（デモ中にベンダーへ確認）"
+          "noteJa": "EDR の有無と監視体制は未登録"
         }
       ]
     },
