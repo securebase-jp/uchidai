@@ -403,4 +403,23 @@ describe("POST /api/profile/from-answers", () => {
     );
     expect(old.profile.businesses.map((b: { name: string }) => b.name)).toContain("生産ライン");
   });
+  it("会社ごとに別の ID を付ける。同じ会社の作り直しは、渡した ID をそのまま使う", async () => {
+    const answers = {
+      industry: "wholesale_service",
+      site: "office_only",
+      hosting: { mail: "cloud", files: "cloud", core: "onprem", web: "provider" },
+      remoteAccess: ["vpn"],
+      backup: "isolated",
+    };
+    const a = await loose(json("/api/profile/from-answers", { answers }));
+    const b = await loose(json("/api/profile/from-answers", { answers }));
+    expect(a.profile.id).toMatch(/^from-answers-[0-9a-f]{8}$/);
+    expect(b.profile.id).not.toBe(a.profile.id);
+    const again = await loose(
+      json("/api/profile/from-answers", { answers, profileId: a.profile.id }),
+    );
+    expect(again.profile.id).toBe(a.profile.id);
+    const bad = await json("/api/profile/from-answers", { answers, profileId: "../x" });
+    expect(bad.status).toBe(400);
+  });
 });

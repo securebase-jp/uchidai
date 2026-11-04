@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (!p.answers) return;
-      const { profile: fresh } = await api.fromAnswers(p.answers, p.companyName);
+      const { profile: fresh } = await api.fromAnswers(p.answers, p.companyName, p.id);
       setProfile(fresh, profileSource ?? "saved");
     } catch (e) {
       fail(e);

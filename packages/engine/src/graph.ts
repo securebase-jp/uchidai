@@ -261,6 +261,8 @@ export function profileFromAnswers(
   companyName = "うちの会社",
   /** 「現場」の選択肢（knowledge の sites）。渡さなければ現場の業務は足さない */
   sites: SiteOption[] = [],
+  /** カルテの ID。会社ごとに別の ID を付けるのは呼び出し側（依頼や根拠が ID で会社に結びつくため）。既定は固定値 */
+  profileId = "from-answers",
 ): CompanyProfile {
   const patternId = patternIdOf(answers.industry);
   const pattern = patterns.find((p) => p.id === patternId);
@@ -430,7 +432,7 @@ export function profileFromAnswers(
     .filter((b) => b.assetIds.length > 0);
 
   return {
-    id: "from-answers",
+    id: profileId,
     companyName,
     fictional: false,
     domainVerified: false,

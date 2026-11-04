@@ -71,6 +71,9 @@ export function Questions({ reduced }: { reduced: boolean }) {
   const [error, setError] = useState<string>();
   const [confirmReset, setConfirmReset] = useState(false);
   const timers = useRef<number[]>([]);
+  // この回で作る会社の ID。最初の応答で付いた ID を、以降の回答でも使い回す（回答のたびに別の会社にしない）。
+  // 5 問をやり直すと別の会社になる（前の会社の依頼や根拠を引き継がない）
+  const profileIdRef = useRef<string | undefined>(undefined);
   const layout = useMemo(() => layoutGraph(graph), [graph]);
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -78,7 +81,12 @@ export function Questions({ reduced }: { reduced: boolean }) {
   async function commit(next: Partial5, final: boolean) {
     setAnswers(next);
     try {
-      const { profile, graph: g } = await api.fromAnswers(complete(next), "うちの会社");
+      const { profile, graph: g } = await api.fromAnswers(
+        complete(next),
+        "うちの会社",
+        profileIdRef.current,
+      );
+      profileIdRef.current ??= profile.id;
       const before = new Set(graph.nodes.map((n) => n.id));
       const fresh = g.nodes.filter((n) => !before.has(n.id)).map((n) => n.id);
       setGraph(g);

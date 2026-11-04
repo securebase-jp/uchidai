@@ -123,10 +123,12 @@ export const api = {
       article: { title?: string; sourceUrl?: string };
       model: string;
     }>("/api/case/read", { input }),
-  fromAnswers: (answers: ProfileAnswers, companyName?: string) =>
+  /** profileId を渡すと同じ会社のカルテとして作り直す（無ければ新しい会社として新しい ID が付く） */
+  fromAnswers: (answers: ProfileAnswers, companyName?: string, profileId?: string) =>
     post<{ profile: CompanyProfile; graph: Graph }>("/api/profile/from-answers", {
       answers,
       ...(companyName ? { companyName } : {}),
+      ...(profileId ? { profileId } : {}),
     }),
   evaluate: (body: {
     case: Case;

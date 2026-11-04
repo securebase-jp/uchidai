@@ -5,6 +5,7 @@
  * 守り：入力は zod で検証し、本文の大きさに上限を置く。公開 URL 経由の要求は回答ページの API だけに絞る。
  * 記事の URL は公開された http(s) だけ（手元や社内のアドレスには向けない）。エラー応答にスタックや内部パスは出さない。
  */
+import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -138,11 +139,22 @@ app.get("/api/knowledge", (c) => {
 const FromAnswers = z.object({
   answers: ProfileAnswers,
   companyName: z.string().max(80).optional(),
+  /** 同じ会社のカルテを作り直すとき（リセットなど）に前の ID を渡す。無ければ新しい会社として新しい ID を付ける */
+  profileId: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,64}$/)
+    .optional(),
 });
 app.post("/api/profile/from-answers", async (c) => {
   const body = FromAnswers.parse(await c.req.json());
   const k = loadKnowledge();
-  const profile = profileFromAnswers(body.answers, k.patterns, body.companyName, k.sites);
+  const profile = profileFromAnswers(
+    body.answers,
+    k.patterns,
+    body.companyName,
+    k.sites,
+    body.profileId ?? `from-answers-${randomUUID().slice(0, 8)}`,
+  );
   return c.json({ profile, graph: buildGraph(profile, k.roles) });
 });
 
