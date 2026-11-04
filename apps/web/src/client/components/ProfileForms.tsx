@@ -2,8 +2,11 @@
  * カルテの数値と名前の入力：会社（従業員数、売上、保険、送金額、保守ベンダー）、業務の日数、個人情報。
  * 文字入力は名前と短い文だけ。入力が確定（欄を離れる）したときにカルテを保存する
  */
-import { type ReactNode, useEffect, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import {
+  AFFECTS_EXAMPLES,
+  DAY_PRESETS,
   EMPLOYEE_PRESETS,
   formatJpy,
   INSURANCE_DAYS_PRESETS,
@@ -39,6 +42,8 @@ function BlurInput(props: {
   step?: number;
   ariaLabel?: string;
   id?: string;
+  /** 候補（<datalist> の id）。候補に無い言葉も自由に入れられる */
+  list?: string;
   selectOnFocus?: boolean;
 }) {
   const [v, setV] = useState(props.value);
@@ -49,6 +54,7 @@ function BlurInput(props: {
       type={props.type ?? "text"}
       value={v}
       {...(props.id ? { id: props.id } : {})}
+      {...(props.list ? { list: props.list } : {})}
       {...(props.placeholder ? { placeholder: props.placeholder } : {})}
       {...(props.min !== undefined ? { min: props.min } : {})}
       {...(props.step !== undefined ? { step: props.step } : {})}
@@ -293,89 +299,182 @@ export function CompanyForm({
   );
 }
 
+/** 業務の日数の棒の長さをそろえる基準（いちばん長い日数。短くても 7 日分の幅は確保する） */
+function maxDays(businesses: Business[]): number {
+  return Math.max(
+    7,
+    ...businesses.flatMap((b) => [b.manualDays, b.recoveryDays, b.recoveryDaysWithBackup ?? 0]),
+  );
+}
+
+function DayBar({
+  label,
+  days,
+  max,
+  tone,
+}: {
+  label: string;
+  days: number;
+  max: number;
+  tone: "steel" | "green" | "amber";
+}) {
+  return (
+    <span className="biz-bar">
+      <span className="lbl">{label}</span>
+      <span className="track" aria-hidden="true">
+        <span className={`fill ${tone}`} style={{ width: `${Math.max(2, (days / max) * 100)}%` }} />
+      </span>
+      <span className="val">{days} 日</span>
+    </span>
+  );
+}
+
+function BusinessRow({
+  business: b,
+  assetLabel,
+  max,
+  affectsList,
+  onChange,
+}: {
+  business: Business;
+  assetLabel: string;
+  max: number;
+  affectsList: string;
+  onChange(f: Partial<Pick<Business, BusinessField>>): void;
+}) {
+  const [open, setOpen] = useState(false);
+  const uid = useId();
+  const stopsPartner = b.recoveryDays > b.manualDays;
+  return (
+    <li className="biz">
+      <button
+        type="button"
+        className="biz-head"
+        aria-expanded={open}
+        aria-controls={`${uid}-body`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="biz-title">
+          {open ? (
+            <ChevronDown size={16} aria-hidden="true" />
+          ) : (
+            <ChevronRight size={16} aria-hidden="true" />
+          )}
+          <b>{b.name}</b>
+          <span className="muted small">{assetLabel || "―"}</span>
+        </span>
+        <span className="biz-bars">
+          <DayBar label="手作業" days={b.manualDays} max={max} tone="steel" />
+          <DayBar
+            label="復旧"
+            days={b.recoveryDays}
+            max={max}
+            tone={stopsPartner ? "amber" : "green"}
+          />
+          {b.recoveryDaysWithBackup !== undefined && (
+            <DayBar
+              label="バックアップあり"
+              days={b.recoveryDaysWithBackup}
+              max={max}
+              tone="green"
+            />
+          )}
+        </span>
+        {b.affectsJa && <span className="biz-affects">影響先：{b.affectsJa}</span>}
+      </button>
+      {open && (
+        <div className="biz-body" id={`${uid}-body`}>
+          <Field label="手作業で回せる日数" htmlFor={`${uid}-manual`}>
+            <ChoiceNumber
+              compact
+              id={`${uid}-manual`}
+              ariaLabel={`${b.name}：手作業で回せる日数`}
+              unit="日"
+              allowEmpty={false}
+              presets={DAY_PRESETS}
+              value={b.manualDays}
+              onCommit={(v) => v !== undefined && onChange({ manualDays: v })}
+            />
+          </Field>
+          <Field label="復旧にかかる日数" htmlFor={`${uid}-recovery`}>
+            <ChoiceNumber
+              compact
+              id={`${uid}-recovery`}
+              ariaLabel={`${b.name}：復旧にかかる日数`}
+              unit="日"
+              allowEmpty={false}
+              presets={DAY_PRESETS}
+              value={b.recoveryDays}
+              onCommit={(v) => v !== undefined && onChange({ recoveryDays: v })}
+            />
+          </Field>
+          <Field
+            label="切り離したバックアップがあるときの復旧日数（任意）"
+            htmlFor={`${uid}-backup`}
+          >
+            <ChoiceNumber
+              compact
+              id={`${uid}-backup`}
+              ariaLabel={`${b.name}：切り離したバックアップがあるときの復旧日数`}
+              unit="日"
+              presets={DAY_PRESETS}
+              value={b.recoveryDaysWithBackup}
+              onCommit={(v) => onChange({ recoveryDaysWithBackup: v })}
+            />
+          </Field>
+          <label className="f" htmlFor={`${uid}-affects`}>
+            <span className="k">影響先（任意）</span>
+            <BlurInput
+              id={`${uid}-affects`}
+              list={affectsList}
+              value={b.affectsJa ?? ""}
+              placeholder="例：取引先の納期"
+              onCommit={(v) => onChange({ affectsJa: v })}
+            />
+          </label>
+        </div>
+      )}
+    </li>
+  );
+}
+
+type BusinessField = "manualDays" | "recoveryDays" | "recoveryDaysWithBackup" | "affectsJa";
+
 export function BusinessTable({
   businesses,
   assetLabel,
+  affectsExamples = AFFECTS_EXAMPLES,
   onChange,
 }: {
   businesses: Business[];
   assetLabel(id: string): string;
-  onChange(
-    id: string,
-    f: Partial<
-      Pick<Business, "manualDays" | "recoveryDays" | "recoveryDaysWithBackup" | "affectsJa">
-    >,
-  ): void;
+  /** 影響先の候補（業種の構成パターンの例）。無ければ固定の数例 */
+  affectsExamples?: string[];
+  onChange(id: string, f: Partial<Pick<Business, BusinessField>>): void;
 }) {
+  const listId = useId();
   if (businesses.length === 0) return <p className="muted">業務が登録されていません。</p>;
+  const max = maxDays(businesses);
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table className="profile-table">
-        <thead>
-          <tr>
-            <th>業務</th>
-            <th>依存する構成要素</th>
-            <th>手作業で回せる日数</th>
-            <th>復旧にかかる日数</th>
-            <th>切り離したバックアップがあるときの復旧日数</th>
-            <th>影響先（短い文）</th>
-          </tr>
-        </thead>
-        <tbody>
-          {businesses.map((b) => (
-            <tr key={b.id}>
-              <td>
-                <b>{b.name}</b>
-              </td>
-              <td className="muted">{b.assetIds.map(assetLabel).join("、") || "―"}</td>
-              <td>
-                <BlurInput
-                  className="in num"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={str(b.manualDays)}
-                  ariaLabel={`${b.name}：手作業で回せる日数`}
-                  onCommit={(v) => onChange(b.id, { manualDays: num(v) ?? b.manualDays })}
-                />
-              </td>
-              <td>
-                <BlurInput
-                  className="in num"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={str(b.recoveryDays)}
-                  ariaLabel={`${b.name}：復旧にかかる日数`}
-                  onCommit={(v) => onChange(b.id, { recoveryDays: num(v) ?? b.recoveryDays })}
-                />
-              </td>
-              <td>
-                <BlurInput
-                  className="in num"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={str(b.recoveryDaysWithBackup)}
-                  placeholder="任意"
-                  ariaLabel={`${b.name}：切り離したバックアップがあるときの復旧日数`}
-                  onCommit={(v) => onChange(b.id, { recoveryDaysWithBackup: num(v) })}
-                />
-              </td>
-              <td>
-                <BlurInput
-                  className="in txt"
-                  value={b.affectsJa ?? ""}
-                  placeholder="例：取引先の納期"
-                  ariaLabel={`${b.name}：影響先`}
-                  onCommit={(v) => onChange(b.id, { affectsJa: v })}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <ul className="biz-list">
+        {businesses.map((b) => (
+          <BusinessRow
+            key={b.id}
+            business={b}
+            assetLabel={b.assetIds.map(assetLabel).join("、")}
+            max={max}
+            affectsList={listId}
+            onChange={(f) => onChange(b.id, f)}
+          />
+        ))}
+      </ul>
+      <datalist id={listId}>
+        {affectsExamples.map((x) => (
+          <option key={x} value={x} />
+        ))}
+      </datalist>
+    </>
   );
 }
 

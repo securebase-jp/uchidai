@@ -15,6 +15,7 @@ import {
 import { ProfileFile } from "../components/ProfileFile.tsx";
 import { BusinessTable, CompanyForm, PersonalDataTable } from "../components/ProfileForms.tsx";
 import { useApp } from "../hooks/useApp.tsx";
+import { AFFECTS_EXAMPLES } from "../lib/choices.ts";
 import { type PendingItem, rankPending } from "../lib/pending.ts";
 import {
   applyStaffAnswer,
@@ -77,6 +78,16 @@ export function Profile() {
   const onPath = ranked.filter((x) => x.onPath);
   const mitLabel = (id: string) =>
     knowledge?.labels.mitigations[id] ?? knowledge?.labels.custom[id]?.labelJa ?? id;
+  // 影響先の候補：いまの業種の構成パターンの例を先に、ほかの業種の例を続けて（重複は除く）
+  const affectsExamples = useMemo(() => {
+    const own = knowledge?.patterns.find((p) => p.id === profile?.pattern);
+    const rest = (knowledge?.patterns ?? []).filter((p) => p !== own);
+    const all = [own, ...rest]
+      .flatMap((p) => p?.businesses ?? [])
+      .map((b) => b.affectsJa)
+      .filter((x): x is string => Boolean(x));
+    return all.length > 0 ? [...new Set(all)] : AFFECTS_EXAMPLES;
+  }, [knowledge, profile?.pattern]);
   const jumpTo = (x: PendingItem) => jumpToRow(x.assetId, x.mitigation);
   /** 「未確認 N 件」を押したら、いまの並びと絞り込みで最初に出ている未確認の行へ */
   const jumpToFirstPending = () => {
@@ -278,6 +289,7 @@ export function Profile() {
             <BusinessTable
               businesses={profile.businesses}
               assetLabel={(id) => profile.assets.find((a) => a.id === id)?.label ?? id}
+              affectsExamples={affectsExamples}
               onChange={(id, f) => save(updateBusiness(profile, id, f))}
             />
           </div>
