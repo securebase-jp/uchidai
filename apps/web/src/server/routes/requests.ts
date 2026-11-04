@@ -1,11 +1,12 @@
 /**
- * 確認依頼と回答の API。
+ * 確認依頼と回答の API（すべて手元のサーバ専用。公開 URL 経由の要求は remote-guard が断る）。
+ * ベンダーはメールの返信で番号を答え、担当者が送信箱から手で入力する。
  * - POST /            依頼を作り、依頼文を生成し、送信箱に積む（SMTP_URL があれば送る）
  * - GET  /            送信箱（依頼と回答の状態）
- * - DELETE /          送信箱を空にする（手元だけ。公開 URL 経由では拒否される）
- * - GET  /events      SSE。回答が来たら answer イベントで AnswerInput を流す
- * - GET  /:token      回答ページ用：質問と選択肢
- * - POST /:token/answer  回答を保存し、AnswerInput に変換して返す（二重回答は 409）
+ * - DELETE /          送信箱を空にする
+ * - GET  /events      SSE。回答の入力は answer、取り消しは retract イベントで流す（別のタブの画面を合わせる）
+ * - POST /:id/reply   返信の内容（選んだ選択肢、ベンダー側の回答者名、受け取った日時、入力者）を保存し、AnswerInput に変換して返す（二重回答は 409）
+ * - DELETE /:id/reply 入力した回答を取り消し、依頼を回答待ちに戻す
  * - POST /measure-draft  対策依頼文の下書き（保存も送信もしない）
  */
 import { dirname, join } from "node:path";
@@ -15,21 +16,20 @@ import { type WriterOptions, writeMeasureRequest, writeVendorRequest } from "@uc
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import {
-  type AnswerPageView,
-  AnswerRequest,
   CreateRequest,
   MeasureDraftRequest,
   type MeasureDraftView,
+  ReplyRequest,
 } from "../../shared/requests.ts";
 import { type Mailer, mailerFromEnv, mailtoUrl } from "../mail/mailer.ts";
 import { backgroundFor, questionFor } from "../requests/questions.ts";
 import {
   AlreadyAnsweredError,
+  InvalidReceivedAtError,
+  NotAnsweredError,
   newId,
-  newToken,
   RequestStore,
   type StoredRequest,
-  TOKEN_PATTERN,
   toView,
   UnknownChoiceError,
 } from "../store/requests.ts";
@@ -37,8 +37,6 @@ import {
 export type RequestDeps = {
   store: RequestStore;
   mailer: Mailer;
-  /** 回答リンクの土台（PUBLIC_BASE_URL。Cloudflare Tunnel の URL など） */
-  publicBaseUrl: string;
   /** SSE の keepalive 間隔 */
   keepAliveMs?: number;
   /** SSE の同時接続の上限（超えたら 503） */
@@ -66,11 +64,6 @@ export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): RequestDeps {
   return {
     store: new RequestStore({ file: env.UCHIDAI_REQUESTS_FILE ?? defaultStoreFile }),
     mailer: mailerFromEnv(env),
-    // 既定は手元の Vite（WEB_PORT を変えて起動したときはその番号）
-    publicBaseUrl: (env.PUBLIC_BASE_URL ?? `http://localhost:${env.WEB_PORT ?? 5173}`).replace(
-      /\/+$/,
-      "",
-    ),
   };
 }
 
@@ -86,7 +79,6 @@ export function defaultDeadline(now: Date, days = 7): string {
 
 export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   const { store, mailer } = deps;
-  const publicBaseUrl = deps.publicBaseUrl.replace(/\/+$/, "");
   const now = deps.now ?? (() => new Date());
   const keepAliveMs = deps.keepAliveMs ?? 15_000;
   const maxSubscribers = deps.maxSubscribers ?? DEFAULT_MAX_SUBSCRIBERS;
@@ -100,13 +92,17 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   r.get("/events", (c) => {
     if (store.subscriberCount >= maxSubscribers)
       return c.json(
-        { error: "回答の待ち受けの接続が多すぎます。他のタブを閉じてから開き直してください" },
+        { error: "画面の同期の接続が多すぎます。他のタブを閉じてから開き直してください" },
         503,
       );
     return streamSSE(c, async (stream) => {
       let open = true;
       const unsub = store.subscribe((ev) => {
-        void stream.writeSSE({ event: "answer", data: JSON.stringify(ev), id: ev.requestId });
+        void stream.writeSSE({
+          event: ev.type,
+          data: JSON.stringify(ev.event),
+          id: ev.event.requestId,
+        });
       });
       stream.onAbort(() => {
         open = false;
@@ -134,8 +130,6 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     if (!q) return c.json({ error: `緩和策 ${body.mitigation} の質問はまだありません` }, 404);
     const bg = backgroundFor(body.mitigation, asset.role, k);
     const roleLabel = k.roles.find((x) => x.id === asset.role)?.labelJa ?? asset.role;
-    const token = newToken();
-    const answerUrl = `${publicBaseUrl}/#/answer/${token}`;
     const deadline = body.deadline ?? defaultDeadline(now());
     const mail = await writeVendorRequest(
       {
@@ -151,7 +145,6 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
         techniqueLabel: bg.techniqueLabelJa,
         materialsJa: bg.materialsJa,
         deadline,
-        answerUrl,
       },
       { ...(deps.writer ?? {}), ...(body.writer ? { writer: body.writer } : {}) },
     );
@@ -160,7 +153,6 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     const { ruleId: _rule, ...background } = bg;
     const item: StoredRequest = {
       id: newId(),
-      token,
       ...(body.profile.id ? { profileId: body.profile.id } : {}),
       companyLabel: body.profile.companyName,
       assetId: asset.id,
@@ -175,7 +167,6 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
       ...(to ? { to } : {}),
       subject: mail.subject,
       text: mail.text,
-      answerUrl,
       mailtoUrl: sent.mailtoUrl,
       createdAt: now().toISOString(),
       sentVia: sent.via,
@@ -233,40 +224,33 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     return c.json(view);
   });
 
-  r.get("/:token", (c) => {
-    const token = c.req.param("token");
-    if (!TOKEN_PATTERN.test(token))
-      return c.json({ error: "回答リンクの形式が正しくありません" }, 400);
-    const it = store.byToken(token);
-    if (!it)
-      return c.json(
-        { error: "この回答リンクは見つかりません（期限切れか、誤った URL です）" },
-        404,
-      );
-    const view: AnswerPageView = {
-      companyLabel: it.companyLabel,
-      assetLabel: it.assetLabel,
-      question: it.question,
-      background: it.background,
-      createdAt: it.createdAt,
-      answered: Boolean(it.answer),
-      ...(it.answeredAt ? { answeredAt: it.answeredAt } : {}),
-    };
-    return c.json(view);
-  });
-
-  r.post("/:token/answer", async (c) => {
-    const token = c.req.param("token");
-    if (!TOKEN_PATTERN.test(token))
-      return c.json({ error: "回答リンクの形式が正しくありません" }, 400);
-    const body = AnswerRequest.parse(await c.req.json());
+  r.post("/:id/reply", async (c) => {
+    const body = ReplyRequest.parse(await c.req.json());
     try {
-      const ev = store.answer(token, body);
-      if (!ev) return c.json({ error: "この回答リンクは見つかりません" }, 404);
-      return c.json({ ok: true, answer: ev.answer, choiceLabelJa: ev.choiceLabelJa });
+      const ev = store.recordReply(c.req.param("id"), body);
+      if (!ev) return c.json({ error: "この依頼は見つかりません" }, 404);
+      const request = store.byId(ev.requestId);
+      return c.json({
+        ok: true,
+        answer: ev.answer,
+        choiceLabelJa: ev.choiceLabelJa,
+        ...(request ? { request: toView(request) } : {}),
+      });
     } catch (e) {
       if (e instanceof AlreadyAnsweredError) return c.json({ error: e.message }, 409);
-      if (e instanceof UnknownChoiceError) return c.json({ error: e.message }, 400);
+      if (e instanceof UnknownChoiceError || e instanceof InvalidReceivedAtError)
+        return c.json({ error: e.message }, 400);
+      throw e;
+    }
+  });
+
+  r.delete("/:id/reply", (c) => {
+    try {
+      const ev = store.retract(c.req.param("id"));
+      if (!ev) return c.json({ error: "この依頼は見つかりません" }, 404);
+      return c.json({ ok: true, retracted: ev });
+    } catch (e) {
+      if (e instanceof NotAnsweredError) return c.json({ error: e.message }, 409);
       throw e;
     }
   });

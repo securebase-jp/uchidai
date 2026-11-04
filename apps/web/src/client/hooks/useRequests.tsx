@@ -1,6 +1,8 @@
 /**
  * 確認依頼の状態：送信箱の一覧と SSE の購読（アプリ全体で 1 本）。
- * 回答が届いたら useApp の answers に加え、/api/evaluate が再実行される（黄 → 赤に変わり、再生が巻き戻る）。
+ * ベンダーの返信メールを担当者が入力する（reply）と、useApp の answers に加え、/api/evaluate が再実行される
+ * （黄 → 赤に変わり、再生が巻き戻る）。取り消す（retract）と answers から外れ、判定も元に戻る。
+ * SSE は別のタブの画面を合わせるためのもの（同じタブの入力は自分で反映し、届いた通知は二重に適用しない）。
  * 画面を開き直しても回答が消えないよう、起動時に回答済みの依頼を同じカルテのぶんだけ適用する。
  * デモモード（?demo=1）では前回の実演の回答を再適用しない（毎回同じ映像にする）。
  */
@@ -14,19 +16,22 @@ import {
   useRef,
   useState,
 } from "react";
-import type { AnswerEvent, RequestView } from "../../shared/requests.ts";
+import type { AnswerEvent, ReplyRequest, RequestView } from "../../shared/requests.ts";
 import { isDemoMode } from "../demo/params.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
 import { useApp } from "./useApp.tsx";
 
 export type RequestsState = {
   items: RequestView[];
-  live: boolean;
   busyKey: string | undefined;
   error: string | undefined;
   /** 直近に届いた回答（画面で知らせる） */
   lastAnswer: AnswerEvent | undefined;
   create(assetId: string, mitigation: string): Promise<RequestView | undefined>;
+  /** ベンダーの返信の内容を入力し、判定に反映する。失敗したら理由の文を返す（成功は undefined） */
+  reply(requestId: string, body: ReplyRequest): Promise<string | undefined>;
+  /** 入力した回答を取り消し、判定を元に戻す。失敗したら理由の文を返す */
+  retract(requestId: string): Promise<string | undefined>;
   refresh(): Promise<void>;
 };
 
@@ -34,9 +39,8 @@ const Ctx = createContext<RequestsState | undefined>(undefined);
 
 export function RequestsProvider({ children }: { children: ReactNode }) {
   const app = useApp();
-  const { profile, addAnswer } = app;
+  const { profile, addAnswer, removeAnswer } = app;
   const [items, setItems] = useState<RequestView[]>([]);
-  const [live, setLive] = useState(false);
   const [busyKey, setBusyKey] = useState<string>();
   const [error, setError] = useState<string>();
   const [lastAnswer, setLastAnswer] = useState<AnswerEvent>();
@@ -73,8 +77,8 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refresh();
-    const unsub = requestsApi.subscribe(
-      (ev) => {
+    const unsub = requestsApi.subscribe({
+      answer: (ev) => {
         setLastAnswer(ev);
         if (ev.profileId === profileId && !applied.current.has(ev.requestId)) {
           applied.current.add(ev.requestId);
@@ -82,10 +86,67 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
         }
         void refresh();
       },
-      (open) => setLive(open),
-    );
+      retract: (ev) => {
+        if (ev.profileId === profileId && applied.current.delete(ev.requestId))
+          removeAnswer(ev.assetId, ev.mitigation);
+        void refresh();
+      },
+    });
     return unsub;
-  }, [refresh, profileId, addAnswer]);
+  }, [refresh, profileId, addAnswer, removeAnswer]);
+
+  const reply = useCallback(
+    async (requestId: string, body: ReplyRequest) => {
+      try {
+        const r = await requestsApi.reply(requestId, body);
+        const it = items.find((x) => x.id === requestId);
+        // 同じカルテの依頼だけ判定に反映する（SSE の通知が先に来ていたら二重にしない）
+        if (it?.profileId === profileId && !applied.current.has(requestId)) {
+          applied.current.add(requestId);
+          addAnswer(r.answer);
+        }
+        // 一覧を読み直す前に手元の一覧も更新する（古い一覧のまま回答を二重に適用しないため）
+        const updated = r.request;
+        if (updated) setItems((xs) => xs.map((x) => (x.id === requestId ? updated : x)));
+        await refresh();
+        return undefined;
+      } catch (e) {
+        return e instanceof Error ? e.message : "回答を入力できませんでした";
+      }
+    },
+    [items, profileId, addAnswer, refresh],
+  );
+
+  const retract = useCallback(
+    async (requestId: string) => {
+      try {
+        const { retracted } = await requestsApi.retract(requestId);
+        if (retracted.profileId === profileId) {
+          applied.current.delete(requestId);
+          removeAnswer(retracted.assetId, retracted.mitigation);
+        }
+        setItems((xs) =>
+          xs.map((x) => {
+            if (x.id !== requestId) return x;
+            const {
+              answer: _a,
+              answeredAt: _b,
+              answeredBy: _c,
+              enteredBy: _d,
+              enteredAt: _e,
+              ...rest
+            } = x;
+            return rest;
+          }),
+        );
+        await refresh();
+        return undefined;
+      } catch (e) {
+        return e instanceof Error ? e.message : "回答を取り消せませんでした";
+      }
+    },
+    [profileId, removeAnswer, refresh],
+  );
 
   const create = useCallback(
     async (assetId: string, mitigation: string) => {
@@ -108,8 +169,8 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<RequestsState>(
-    () => ({ items, live, busyKey, error, lastAnswer, create, refresh }),
-    [items, live, busyKey, error, lastAnswer, create, refresh],
+    () => ({ items, busyKey, error, lastAnswer, create, reply, retract, refresh }),
+    [items, busyKey, error, lastAnswer, create, reply, retract, refresh],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

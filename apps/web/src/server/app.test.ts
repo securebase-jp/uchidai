@@ -219,9 +219,15 @@ describe("守り", () => {
     expect(res.status).toBe(413);
     expect((await loose(res)).error).toContain("大きすぎ");
   });
-  it("公開 URL 経由（転送ヘッダつき）では送信箱と判定は 403", async () => {
+  it("公開 URL 経由（転送ヘッダつき）では送信箱と返信の入力・判定は 403", async () => {
     const h = { "cf-connecting-ip": "203.0.113.9" };
     expect((await app.request("/api/requests", { headers: h })).status).toBe(403);
+    expect(
+      (await app.request("/api/requests/req_x/reply", { method: "POST", headers: h })).status,
+    ).toBe(403);
+    expect(
+      (await app.request("/api/requests/req_x/reply", { method: "DELETE", headers: h })).status,
+    ).toBe(403);
     expect((await app.request("/api/knowledge", { headers: h })).status).toBe(403);
     expect((await app.request("/api/health", { headers: h })).status).toBe(200);
   });
@@ -239,19 +245,20 @@ describe("守り", () => {
       else delete process.env.ANTHROPIC_API_KEY;
     }
   });
-  it("CORS は手元の origin と PUBLIC_BASE_URL だけに許す", async () => {
+  it("CORS は手元の origin だけに許す（PUBLIC_BASE_URL は見ない）", async () => {
     const ok = await app.request("/api/health", { headers: { origin: "http://localhost:5173" } });
     expect(ok.headers.get("access-control-allow-origin")).toBe("http://localhost:5173");
     const ng = await app.request("/api/health", { headers: { origin: "https://evil.example" } });
     expect(ng.headers.get("access-control-allow-origin")).toBeNull();
-    expect(
-      corsOrigin("https://demo.trycloudflare.com", {
-        PUBLIC_BASE_URL: "https://demo.trycloudflare.com/",
-      }),
-    ).toBe("https://demo.trycloudflare.com");
-    expect(
-      corsOrigin("https://evil.example", { PUBLIC_BASE_URL: "https://demo.trycloudflare.com" }),
-    ).toBeNull();
+    const saved = process.env.PUBLIC_BASE_URL;
+    process.env.PUBLIC_BASE_URL = "https://demo.trycloudflare.com";
+    try {
+      expect(corsOrigin("https://demo.trycloudflare.com")).toBeNull();
+      expect(corsOrigin("http://127.0.0.1:8787")).toBe("http://127.0.0.1:8787");
+    } finally {
+      if (saved === undefined) delete process.env.PUBLIC_BASE_URL;
+      else process.env.PUBLIC_BASE_URL = saved;
+    }
   });
   it("対策 ID と回答の数に上限がある", async () => {
     const { theCase, profile } = await demoFixture();

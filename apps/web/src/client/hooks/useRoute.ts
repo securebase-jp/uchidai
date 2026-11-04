@@ -1,4 +1,4 @@
-/** ハッシュによる画面の切り替え：#/ #/domain #/questions #/profile #/staff #/exec #/onepager #/sources #/answer/:token */
+/** ハッシュによる画面の切り替え：#/ #/domain #/questions #/profile #/staff #/exec #/onepager #/sources */
 import { useEffect, useMemo, useState } from "react";
 
 export type Route =
@@ -9,12 +9,10 @@ export type Route =
   | "staff"
   | "exec"
   | "onepager"
-  | "sources"
-  | "answer";
+  | "sources";
 
 function parse(hash: string): Route {
   const h = hash.replace(/^#\/?/, "").split("?")[0];
-  if (h?.startsWith("answer/")) return "answer";
   if (
     h === "domain" ||
     h === "questions" ||
@@ -29,7 +27,7 @@ function parse(hash: string): Route {
 }
 
 export function useRoute(): [Route, (r: Route) => void] {
-  // ハッシュ全体を状態に持つ（#/answer/A → #/answer/B のように route が同じでも再描画する）
+  // ハッシュ全体を状態に持つ（共有リンクの一枚は #/onepager?d=… のように route が同じでも中身が変わる）
   const [hash, setHash] = useState(() => location.hash);
   useEffect(() => {
     const on = () => setHash(location.hash);
@@ -38,9 +36,4 @@ export function useRoute(): [Route, (r: Route) => void] {
   }, []);
   const route = useMemo(() => parse(hash), [hash]);
   return [route, (r) => (location.hash = r === "home" ? "/" : `/${r}`)];
-}
-
-/** #/answer/:token のトークン（回答ページ用） */
-export function answerToken(): string | undefined {
-  return /^#\/answer\/([A-Za-z0-9_-]+)/.exec(location.hash)?.[1];
 }

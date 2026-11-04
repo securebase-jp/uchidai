@@ -70,6 +70,8 @@ export type AppState = {
   toggleMeasure(id: string): void;
   clearMeasures(): void;
   addAnswer(a: AnswerInput): void;
+  /** 取り消された回答を判定から外す（同じ資産・同じ緩和策のもの） */
+  removeAnswer(assetId: string, mitigation: string): void;
   clearAnswers(): void;
   setError(e: string | undefined): void;
 };
@@ -291,6 +293,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ]),
     [],
   );
+  const removeAnswer = useCallback(
+    (assetId: string, mitigation: string) =>
+      setAnswers((xs) => xs.filter((x) => !(x.assetId === assetId && x.mitigation === mitigation))),
+    [],
+  );
   const clearAnswers = useCallback(() => setAnswers([]), []);
 
   const value = useMemo<AppState>(
@@ -320,6 +327,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleMeasure,
       clearMeasures,
       addAnswer,
+      removeAnswer,
       clearAnswers,
       setError,
     }),
@@ -349,6 +357,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleMeasure,
       clearMeasures,
       addAnswer,
+      removeAnswer,
       clearAnswers,
     ],
   );

@@ -7,10 +7,9 @@ import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
 import { AppProvider, useApp } from "./hooks/useApp.tsx";
 import { RequestsProvider } from "./hooks/useRequests.tsx";
-import { answerToken, useRoute } from "./hooks/useRoute.ts";
+import { useRoute } from "./hooks/useRoute.ts";
 import { type Settings, useSettings } from "./hooks/useSettings.ts";
 import { parseOnePagerHash } from "./onepager/params.ts";
-import { Answer } from "./screens/Answer.tsx";
 import { Domain } from "./screens/Domain.tsx";
 import { Exec } from "./screens/Exec.tsx";
 import { Home } from "./screens/Home.tsx";
@@ -57,11 +56,6 @@ function Shell({ settings }: { settings: Settings }) {
 export function App() {
   const [route] = useRoute();
   const settings = useSettings();
-  // 回答ページ（ベンダーがスマホで開く）は、カルテ・知識・判定を一切読まない軽い画面
-  if (route === "answer") {
-    const token = answerToken() ?? "";
-    return <Answer key={token} token={token} />;
-  }
   // 出典の画面も、カルテ・知識・判定を読まない軽い画面（出典の一覧だけを取る）
   if (route === "sources") return <Sources settings={settings} />;
   // 共有リンク（内容を URL に載せた一枚）も同じく軽い画面：カルテ・知識・判定の API を呼ばない。

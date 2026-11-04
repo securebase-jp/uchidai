@@ -1,10 +1,11 @@
-/** 確認依頼と回答の API クライアント（S7）。カルテは抜粋だけ送る */
+/** 確認依頼と回答の API クライアント（S7）。カルテは抜粋だけ送る。すべて手元のサーバの API */
 import type { AnswerInput } from "../../shared/api.ts";
 import type {
   AnswerEvent,
-  AnswerPageView,
   MeasureDraftView,
+  ReplyRequest,
   RequestView,
+  RetractEvent,
 } from "../../shared/requests.ts";
 import { ApiError } from "./api.ts";
 import type { CompanyProfile } from "./types.ts";
@@ -41,11 +42,17 @@ export const requestsApi = {
       assetId,
       mitigation,
     }),
-  page: (token: string) => call<AnswerPageView>(`/api/requests/${encodeURIComponent(token)}`),
-  answer: (token: string, choice: string, answeredBy: string) =>
-    post<{ ok: true; answer: AnswerInput; choiceLabelJa: string }>(
-      `/api/requests/${encodeURIComponent(token)}/answer`,
-      { choice, answeredBy },
+  /** ベンダーの返信メールの内容を入力する（依頼の id で引く。手元のサーバだけの API） */
+  reply: (requestId: string, body: ReplyRequest) =>
+    post<{ ok: true; answer: AnswerInput; choiceLabelJa: string; request?: RequestView }>(
+      `/api/requests/${encodeURIComponent(requestId)}/reply`,
+      body,
+    ),
+  /** 入力した回答を取り消す（依頼は回答待ちに戻る） */
+  retract: (requestId: string) =>
+    call<{ ok: true; retracted: RetractEvent }>(
+      `/api/requests/${encodeURIComponent(requestId)}/reply`,
+      { method: "DELETE" },
     ),
   measureDraft: (profile: CompanyProfile, measureId: string) =>
     post<MeasureDraftView>("/api/requests/measure-draft", {
@@ -53,11 +60,21 @@ export const requestsApi = {
       measureId,
     }),
   /** SSE を購読する。返り値で解除 */
-  subscribe: (onAnswer: (ev: AnswerEvent) => void, onState?: (open: boolean) => void) => {
+  subscribe: (
+    on: { answer: (ev: AnswerEvent) => void; retract: (ev: RetractEvent) => void },
+    onState?: (open: boolean) => void,
+  ) => {
     const es = new EventSource("/api/requests/events");
     es.addEventListener("answer", (e) => {
       try {
-        onAnswer(JSON.parse((e as MessageEvent).data) as AnswerEvent);
+        on.answer(JSON.parse((e as MessageEvent).data) as AnswerEvent);
+      } catch {
+        // 壊れたイベントは無視する
+      }
+    });
+    es.addEventListener("retract", (e) => {
+      try {
+        on.retract(JSON.parse((e as MessageEvent).data) as RetractEvent);
       } catch {
         // 壊れたイベントは無視する
       }

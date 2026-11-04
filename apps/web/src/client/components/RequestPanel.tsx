@@ -26,7 +26,7 @@ export function RequestPanel() {
     if (!req.lastAnswer) return;
     const a = req.lastAnswer;
     setToast(
-      `${a.answer.answeredBy} から回答：${a.assetLabel}は「${a.choiceLabelJa}」。判定を更新しました`,
+      `${a.answer.answeredBy} さんの返信を入力しました：${a.assetLabel}は「${a.choiceLabelJa}」。判定を更新しました`,
     );
     const t = setTimeout(() => setToast(undefined), 8000);
     return () => clearTimeout(t);
@@ -50,7 +50,7 @@ export function RequestPanel() {
   async function createAndShow(assetId: string, mitigation: string) {
     const r = await req.create(assetId, mitigation);
     if (!r) return;
-    setToast("送信箱に確認依頼を作りました。文面と回答リンクは下の送信箱にあります");
+    setToast("送信箱に確認依頼を作りました。メールの文面は下の送信箱にあります");
     setTimeout(() => setToast(undefined), 6000);
     outboxRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -82,10 +82,14 @@ export function RequestPanel() {
         ベンダーへの確認依頼
         <InfoButton title="確認依頼の仕組み">
           <p>
-            未確認の項目を、保守ベンダーなどに 1 問ずつ聞くための依頼文を作ります。送るのは選択式の
-            1
-            問だけです。回答が届くと、その場で判定を更新します（根拠はベンダー回答として、誰がいつ答えたかを
-            記録します）。
+            未確認の項目を、保守ベンダーなどに 1
+            問ずつ聞くための依頼のメールを作ります。聞くのは選択式の 1
+            問だけで、選択肢には番号を付けます。ベンダーには、メールに返信して当てはまる番号とお名前を書いてもらいます。
+          </p>
+          <p>
+            返信が届いたら、送信箱の「返信を入力する」で、同じ番号を選び、返信に書かれていた名前と受け取った日時を入れて
+            「この回答で判定を更新する」を押します。押したときだけ判定に反映され、根拠はベンダー回答として、
+            誰が答え、いつ受け取り、誰が入力したかを記録します。間違えたときは「回答を取り消す」で元に戻せます。
           </p>
           <p>
             カルテはサーバに送らず、会社名・対象の名前・質問だけを渡します。依頼文は Claude
@@ -144,7 +148,8 @@ export function RequestPanel() {
       <div ref={outboxRef}>
         <OutboxPanel
           items={req.items}
-          live={req.live}
+          onReply={req.reply}
+          onRetract={req.retract}
           onClear={() => void requestsApi.clear().then(() => req.refresh())}
         />
       </div>

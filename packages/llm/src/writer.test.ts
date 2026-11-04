@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   fillNames,
   type MeasureRequestInput,
+  numberedChoices,
   type VendorRequestInput,
   validateVendorDraft,
   writeMeasureRequest,
@@ -22,8 +23,19 @@ const input: VendorRequestInput = {
   techniqueLabel: "OS 認証情報のダンプ",
   materialsJa: "カルテ：EDR の有無と監視体制、管理者アカウントの分離",
   deadline: "2026年11月9日",
-  answerUrl: "http://localhost:5173/#/answer/abc",
 };
+
+/** 契約を満たす本文（選択肢は番号つき、返信の案内あり） */
+const goodBody = [
+  "{{vendor}} 様",
+  "{{company}} の{{staff}}です。{{asset}}について教えてください。",
+  input.question,
+  "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください（例：『2　山田』）。",
+  "1. 全 PC で共通",
+  "2. PC ごとに個別",
+  "3. 分からない",
+  "背景：T1003 に対する M1026 の判定材料です。期限：2026年11月9日",
+].join("\n");
 
 /** Claude の応答を偽装する最小のクライアント */
 function fakeClient(payload: unknown, stopReason = "end_turn"): Anthropic {
@@ -40,14 +52,18 @@ function fakeClient(payload: unknown, stopReason = "end_turn"): Anthropic {
 }
 
 describe("writeVendorRequest（テンプレート）", () => {
-  it("キーが無くても動き、質問・選択肢・回答 URL・ID・期限・実名を含む", async () => {
+  it("キーが無くても動き、質問・番号つきの選択肢・返信の案内・ID・期限・実名を含み、リンクは含まない", async () => {
     const m = await writeVendorRequest(input, { writer: "template" });
     expect(m.writer).toBe("template");
     expect(m.subject).toContain("デモ精工株式会社");
     expect(m.subject).toContain("管理者アカウント（社内 PC 共通）");
     expect(m.text).toContain(input.question);
-    expect(m.text).toContain("全 PC で共通／PC ごとに個別／分からない");
-    expect(m.text).toContain(input.answerUrl);
+    expect(m.text).toContain("1. 全 PC で共通\n2. PC ごとに個別\n3. 分からない");
+    expect(m.text).toContain(
+      "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください",
+    );
+    expect(m.text).toContain("例：「2　山田」");
+    expect(m.text).not.toMatch(/https?:\/\/|answer/i);
     expect(m.text).toContain("T1003");
     expect(m.text).toContain("M1026");
     expect(m.text).toContain("2026年11月9日");
@@ -68,16 +84,11 @@ describe("writeVendorRequest（テンプレート）", () => {
 
 describe("writeVendorRequest（Claude の出力の検証）", () => {
   it("契約を満たす下書きは実名を差し込んで使う", async () => {
-    const body = [
-      "{{vendor}} 様",
-      "{{company}} の{{staff}}です。{{asset}}について教えてください。",
-      input.question,
-      "選択肢：全 PC で共通／PC ごとに個別／分からない",
-      "回答はこちら：{{answer_url}}",
-      "背景：T1003 に対する M1026 の判定材料です。期限：2026年11月9日",
-    ].join("\n");
     const m = await writeVendorRequest(input, {
-      client: fakeClient({ subject: "【ご確認】{{asset}}について（{{company}}）", body }),
+      client: fakeClient({
+        subject: "【ご確認】{{asset}}について（{{company}}）",
+        body: goodBody,
+      }),
     });
     expect(m.writer).toBe("claude");
     expect(m.model).toBe("fake-model");
@@ -85,14 +96,14 @@ describe("writeVendorRequest（Claude の出力の検証）", () => {
       "【ご確認】管理者アカウント（社内 PC 共通）について（デモ精工株式会社）",
     );
     expect(m.text).toContain("地域の保守ベンダー（架空） 様");
-    expect(m.text).toContain(input.answerUrl);
+    expect(m.text).toContain("2. PC ごとに個別");
     expect(m.text).not.toContain("{{");
   });
   it("質問文を言い換えた下書きは捨ててテンプレートにする", async () => {
     const m = await writeVendorRequest(input, {
       client: fakeClient({
         subject: "{{asset}}（{{company}}）",
-        body: "{{vendor}} 様\n管理者パスワードは共通でしょうか。\n{{answer_url}}\n全 PC で共通／PC ごとに個別／分からない",
+        body: "{{vendor}} 様\n管理者パスワードは共通でしょうか。\n返信でお名前と番号を。\n1. 全 PC で共通\n2. PC ごとに個別\n3. 分からない",
       }),
     });
     expect(m.writer).toBe("template");
@@ -102,13 +113,48 @@ describe("writeVendorRequest（Claude の出力の検証）", () => {
   it("URL を作り出した下書きは捨てる", () => {
     expect(
       validateVendorDraft(
-        {
-          subject: "{{asset}} {{company}}",
-          body: `${input.question}\n全 PC で共通 PC ごとに個別 分からない {{answer_url}} https://example.com/x`,
-        },
+        { subject: "{{asset}} {{company}}", body: `${goodBody}\nhttps://example.com/x` },
         input,
       ),
     ).toContain("URL");
+  });
+  it("メールアドレスを作り出した下書きは捨てる", () => {
+    expect(
+      validateVendorDraft(
+        { subject: "{{asset}} {{company}}", body: `${goodBody}\nご連絡先：a@example.com` },
+        input,
+      ),
+    ).toContain("メールアドレス");
+  });
+  it("契約を満たす本文は通る（全角の番号つきの書き方も許す）", () => {
+    const subject = "{{asset}} {{company}}";
+    expect(validateVendorDraft({ subject, body: goodBody }, input)).toBeUndefined();
+    const paren = goodBody.replace("1. 全 PC", "（1）全 PC").replace("2. PC", "2　PC");
+    expect(validateVendorDraft({ subject, body: paren }, input)).toBeUndefined();
+  });
+  it("選択肢に番号が無い、番号が違う、選択肢が欠けた下書きは捨てる", () => {
+    const subject = "{{asset}} {{company}}";
+    const noNumber = goodBody.replace("1. 全 PC で共通", "全 PC で共通");
+    expect(validateVendorDraft({ subject, body: noNumber }, input)).toContain("番号つき");
+    const swapped = goodBody.replace("2. PC ごとに個別", "3. PC ごとに個別");
+    expect(validateVendorDraft({ subject, body: swapped }, input)).toContain("番号つき");
+    const missing = goodBody.replace("3. 分からない", "");
+    expect(validateVendorDraft({ subject, body: missing }, input)).toContain("分からない");
+  });
+  it("返信の案内やお名前の依頼が無い下書きは捨てる", () => {
+    const subject = "{{asset}} {{company}}";
+    const noReply = goodBody.replace("このメールに返信し、", "").replace("返信", "");
+    expect(validateVendorDraft({ subject, body: noReply }, input)).toContain("返信");
+    const noName = goodBody.replace("ご回答者のお名前", "ご回答者");
+    expect(validateVendorDraft({ subject, body: noName }, input)).toContain("お名前");
+  });
+  it("回答リンクのプレースホルダなど、知らない {{…}} が残った下書きは捨てる", () => {
+    expect(
+      validateVendorDraft(
+        { subject: "{{asset}} {{company}}", body: `${goodBody}\n{{answer_url}}` },
+        input,
+      ),
+    ).toContain("{{answer_url}}");
   });
   it("Claude が拒否・失敗してもテンプレートで返す", async () => {
     const m = await writeVendorRequest(input, { client: fakeClient({}, "refusal") });
@@ -149,6 +195,16 @@ describe("writeMeasureRequest", () => {
     });
     expect(m.writer).toBe("template");
     expect(m.fallbackReasonJa).toContain("緩和策 ID");
+  });
+});
+
+describe("numberedChoices", () => {
+  it("質問表の並び順に 1 から振る", () => {
+    expect(numberedChoices(["あ", "い", "う"])).toEqual([
+      { number: 1, label: "あ" },
+      { number: 2, label: "い" },
+      { number: 3, label: "う" },
+    ]);
   });
 });
 

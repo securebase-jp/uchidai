@@ -4,8 +4,9 @@
  * - writeMeasureRequest：対策の依頼文（担当者が確認してから送る下書き）
  *
  * Claude には役割の日本語名、質問、選択肢、手法 ID・緩和策 ID、期限だけを渡す。
- * 会社名・ベンダー名・機器名・回答 URL はプレースホルダ（{{company}} など）のまま書かせ、プログラム側で差し込む。
- * 出力は zod で検証し、プレースホルダや質問文が欠けていればテンプレートに切り替える。キーが無くても必ず動く。
+ * 会社名・ベンダー名・機器名はプレースホルダ（{{company}} など）のまま書かせ、プログラム側で差し込む。
+ * ベンダーはメールの返信で番号を答える。選択肢の番号はプログラムが質問表の並び順で決め、Claude には決めさせない。
+ * 出力は zod で検証し、プレースホルダや質問文、番号つきの選択肢が欠けていればテンプレートに切り替える。キーが無くても必ず動く。
  */
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
@@ -47,7 +48,6 @@ export type VendorRequestInput = Names & {
   materialsJa?: string | undefined;
   /** 回答の希望期限（例：2026年11月9日） */
   deadline: string;
-  answerUrl: string;
 };
 
 export type MeasureRequestInput = Names & {
@@ -68,20 +68,26 @@ export const PLACEHOLDERS = {
   vendor: "{{vendor}}",
   asset: "{{asset}}",
   staff: "{{staff}}",
-  answerUrl: "{{answer_url}}",
 } as const;
 
 const DEFAULT_VENDOR = "保守ご担当者";
 const DEFAULT_STAFF = "情報システム担当";
 
 /** プレースホルダを実名に置き換える */
-export function fillNames(text: string, names: Names & { answerUrl?: string }): string {
+export function fillNames(text: string, names: Names): string {
   return text
     .replaceAll(PLACEHOLDERS.company, names.companyLabel)
     .replaceAll(PLACEHOLDERS.vendor, names.vendorLabel ?? DEFAULT_VENDOR)
     .replaceAll(PLACEHOLDERS.asset, names.assetLabel)
-    .replaceAll(PLACEHOLDERS.staff, names.staffLabel ?? DEFAULT_STAFF)
-    .replaceAll(PLACEHOLDERS.answerUrl, names.answerUrl ?? "");
+    .replaceAll(PLACEHOLDERS.staff, names.staffLabel ?? DEFAULT_STAFF);
+}
+
+/**
+ * 返信で答えてもらう番号つきの選択肢（1 始まり。質問表の choices の並び順）。
+ * 番号と選択肢の対応はここだけで決める。担当者画面の入力欄も同じ並びと番号を使う
+ */
+export function numberedChoices(choices: string[]): { number: number; label: string }[] {
+  return choices.map((label, i) => ({ number: i + 1, label }));
 }
 
 // ---------------------------------------------------------------------------
@@ -105,10 +111,10 @@ export function vendorRequestTemplate(i: VendorRequestInput): { subject: string;
     "■ ご質問",
     i.question,
     "",
-    "■ ご回答の方法",
-    "次のリンクを開き、当てはまるものを 1 つ選んでください（1 分ほどで終わります）。",
-    "{{answer_url}}",
-    `選択肢：${i.choices.join("／")}`,
+    "■ ご回答の方法（このメールへの返信で）",
+    "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください（1 分ほどで終わります）。",
+    "例：「2　山田」（数字は書き方の例です。実際の状況に合う番号をお選びください）",
+    ...numberedChoices(i.choices).map((c) => `${c.number}. ${c.label}`),
     "",
     "■ 背景",
     `攻撃の手法 ${techniqueLine(i)} に対して、対策 ${i.mitigationId}（${i.mitigationLabel}）が効くかを判定するための材料です（MITRE ATT&CK の ID）。`,
@@ -180,8 +186,8 @@ const STYLE = [
 
 const VENDOR_RULES = [
   "- 質問は 1 問だけ。<data> の question をそのまま一字一句変えずに本文に入れる。",
-  "- 選択肢をすべて本文に列挙する。",
-  "- 回答方法として {{answer_url}} を本文に含める（リンクを開いて 1 つ選ぶだけ、と伝える）。",
+  "- 選択肢は <data> の choices の number と label をそのまま使い、「1. 全文」の形で 1 行ずつ、すべて本文に列挙する。番号を振り直したり、文言を変えたりしない。",
+  "- 回答方法は「このメールに返信し、当てはまる番号と、ご回答者のお名前を書いてください（例：『2　山田』）」と伝える。リンクは書かない。",
   "- 背景として、手法 ID と緩和策 ID（MITRE ATT&CK）と、判定の材料を 1〜2 文で添える。",
   "- 期限を本文に書く。",
 ].join("\n");
@@ -224,7 +230,7 @@ export function vendorRequestData(input: VendorRequestInput): Record<string, unk
   return {
     assetRoleLabel: input.assetRoleLabel,
     question: input.question,
-    choices: input.choices,
+    choices: numberedChoices(input.choices),
     mitigationId: input.mitigationId,
     mitigationLabel: input.mitigationLabel,
     techniqueId: input.techniqueId ?? null,
@@ -248,16 +254,36 @@ export function measureRequestData(input: MeasureRequestInput): Record<string, u
   };
 }
 
-/** Claude の下書きが契約を満たすか（プレースホルダ、質問の原文、URL の捏造なし） */
+const KNOWN_PLACEHOLDERS = new Set<string>(Object.values(PLACEHOLDERS));
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** 本文に「番号 ＋ 選択肢の全文」が 1 行として入っているか（「1. 全文」「1　全文」「（1）全文」など） */
+function hasNumberedChoice(body: string, number: number, label: string): boolean {
+  const re = new RegExp(
+    `(^|\\n)[ \\t\u3000]*[(（\\[【]?${number}[)）\\]】]?[.．、:：\\s\u3000]*${escapeRegExp(label)}`,
+  );
+  return re.test(body);
+}
+
+/** Claude の下書きが契約を満たすか（プレースホルダ、質問の原文、番号つきの選択肢、返信の案内、URL の捏造なし） */
 export function validateVendorDraft(
   draft: { subject: string; body: string },
   input: Pick<VendorRequestInput, "question" | "choices">,
 ): string | undefined {
   const all = `${draft.subject}\n${draft.body}`;
-  for (const p of [PLACEHOLDERS.company, PLACEHOLDERS.asset, PLACEHOLDERS.answerUrl])
+  for (const p of [PLACEHOLDERS.company, PLACEHOLDERS.asset])
     if (!all.includes(p)) return `プレースホルダ ${p} がない`;
+  for (const m of all.matchAll(/\{\{[^{}]*\}\}/g))
+    if (!KNOWN_PLACEHOLDERS.has(m[0])) return `知らないプレースホルダ ${m[0]} がある`;
   if (!draft.body.includes(input.question)) return "質問文が原文のまま入っていない";
-  for (const c of input.choices) if (!draft.body.includes(c)) return `選択肢「${c}」がない`;
+  for (const c of numberedChoices(input.choices))
+    if (!hasNumberedChoice(draft.body, c.number, c.label))
+      return `選択肢「${c.number}. ${c.label}」が番号つきで入っていない`;
+  if (!draft.body.includes("返信")) return "返信での回答方法がない";
+  if (!draft.body.includes("お名前")) return "ご回答者のお名前を書いてもらう案内がない";
   if (/https?:\/\/|@[\w.-]+\.[a-z]{2,}/i.test(all)) return "URL やメールアドレスを作り出している";
   return undefined;
 }
@@ -278,7 +304,7 @@ export function validateMeasureDraft(
 /** プレースホルダを実名に置き換えて WrittenMail にする */
 function finish(
   d: { subject: string; body: string },
-  names: Names & { answerUrl?: string },
+  names: Names,
   rest: Omit<WrittenMail, "subject" | "text">,
 ): WrittenMail {
   return { subject: fillNames(d.subject, names), text: fillNames(d.body, names), ...rest };

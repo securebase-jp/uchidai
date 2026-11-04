@@ -165,7 +165,6 @@ describe("依頼文（Claude に渡す資料）", () => {
       techniqueLabel: "公開アプリケーションの悪用",
       materialsJa: "カルテ：製品・バージョン、更新の運用",
       deadline: "2026年11月9日",
-      answerUrl: "https://example.trycloudflare.com/#/answer/secret-token",
     }),
   );
   const measure = JSON.stringify(
@@ -180,7 +179,7 @@ describe("依頼文（Claude に渡す資料）", () => {
     }),
   );
 
-  it("社名・ベンダー名・資産の表示名・担当者名・回答 URL は渡さない（プログラムが後から差し込む）", () => {
+  it("社名・ベンダー名・資産の表示名・担当者名は渡さない（プログラムが後から差し込む）", () => {
     for (const rendered of [vendor, measure]) {
       for (const bad of [
         names.companyLabel,
@@ -190,11 +189,12 @@ describe("依頼文（Claude に渡す資料）", () => {
         "Fortinet",
         "7.0.14",
         "demo-seiko",
-        "trycloudflare",
-        "secret-token",
       ])
         expect(rendered, bad).not.toContain(bad);
-      expect(leaks(rendered)).toEqual([]);
+      // 選択肢の番号（1, 2, 3…）は質問表の並び順から機械的に決めた値で、カルテの日数（2 日、3 日）と数字が偶然重なる
+      const choiceNumberOnly = (l: Leaf) =>
+        /^businesses\[\d+\]\.(manualDays|recoveryDaysWithBackup)$/.test(l.path);
+      expect(leaks(rendered, choiceNumberOnly)).toEqual([]);
     }
   });
 });

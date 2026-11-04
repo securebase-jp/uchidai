@@ -53,18 +53,13 @@ const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const READ_BODY_LIMIT = MAX_PDF_BASE64_CHARS + 64 * 1024;
 const DEFAULT_BODY_LIMIT = 2 * 1024 * 1024;
 
-/** CORS：同じ origin（Vite のプロキシ、本番の配信）か、手元の localhost と PUBLIC_BASE_URL だけ */
-export function corsOrigin(origin: string, env: NodeJS.ProcessEnv = process.env): string | null {
+/**
+ * CORS：手元の localhost だけ。画面と API は同じ origin（Vite のプロキシ、本番の配信）で動くので、公開 URL（トンネル）で
+ * 画面を開く場合も同じ origin の呼び出しになり、CORS の許可は要らない
+ */
+export function corsOrigin(origin: string): string | null {
   if (!origin) return null;
   if (/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) return origin;
-  const pub = env.PUBLIC_BASE_URL;
-  if (pub) {
-    try {
-      if (new URL(pub).origin === origin) return origin;
-    } catch {
-      // PUBLIC_BASE_URL が URL でなければ無視
-    }
-  }
   return null;
 }
 

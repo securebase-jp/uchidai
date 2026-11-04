@@ -26,7 +26,6 @@ function build(over: Partial<Parameters<typeof requestRoutes>[0]> = {}) {
     requestRoutes({
       store,
       mailer: new OutboxMailer(),
-      publicBaseUrl: "https://demo.example.trycloudflare.com/",
       keepAliveMs: 30,
       writer: { writer: "template" },
       now: () => new Date("2026-11-05T10:00:00Z"),
@@ -43,21 +42,23 @@ function build(over: Partial<Parameters<typeof requestRoutes>[0]> = {}) {
 }
 
 describe("POST /api/requests", () => {
-  it("依頼を作り、依頼文を生成し、送信箱に積む（回答 URL は PUBLIC_BASE_URL の下）", async () => {
+  it("依頼を作り、依頼文を生成し、送信箱に積む（回答リンクは作らず、番号つきの選択肢と返信の案内を載せる）", async () => {
     const { app, post } = build();
     const res = await post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" });
     expect(res.status).toBe(201);
     const { request } = await loose(res);
-    expect(request.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(request.answerUrl).toBe(
-      `https://demo.example.trycloudflare.com/#/answer/${request.token}`,
-    );
+    expect(request.token).toBeUndefined();
+    expect(request.answerUrl).toBeUndefined();
     expect(request.to).toBe("vendor@example.com");
     expect(request.sentVia).toBe("outbox");
     expect(request.writer).toBe("template");
     expect(request.subject).toContain("管理者アカウント");
     expect(request.text).toContain("管理者のパスワードは、全 PC で共通ですか");
-    expect(request.text).toContain(request.answerUrl);
+    expect(request.text).toContain("1. 全 PC で共通\n2. PC ごとに個別\n3. 分からない");
+    expect(request.text).toContain(
+      "このメールに返信し、当てはまる番号と、ご回答者のお名前をお書きください",
+    );
+    expect(request.text).not.toMatch(/https?:\/\/|#\/answer/);
     expect(request.text).toContain("T1003");
     expect(request.text).toContain("M1026");
     expect(request.background.techniqueId).toBe("T1003");
@@ -94,28 +95,23 @@ describe("POST /api/requests", () => {
   });
 });
 
-describe("回答ページと回答", () => {
-  it("GET /:token は質問と選択肢だけ返し、POST /:token/answer は AnswerInput を返す。二重回答は 409", async () => {
+describe("返信の入力と取り消し", () => {
+  const reply = {
+    choice: "shared",
+    repliedBy: "保守ベンダー 田中",
+    receivedAt: "2026-11-05T09:30:00Z",
+  };
+  async function created(post: ReturnType<typeof build>["post"]) {
+    return (await loose(post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" })))
+      .request;
+  }
+
+  it("POST /:id/reply は AnswerInput を返し、送信箱に回答者・受け取った日時・入力者が残る。二重回答は 409", async () => {
     const { app, post } = build();
-    const { request } = await loose(
-      post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" }),
-    );
-    const page = await loose(app.request(`/api/requests/${request.token}`));
-    expect(page.companyLabel).toBe("デモ精工株式会社");
-    expect(page.question.textJa).toContain("共通ですか");
-    expect(page.answered).toBe(false);
-    expect(page.token).toBeUndefined();
-    expect(page.subject).toBeUndefined();
-
-    const bad = await post(`/api/requests/${request.token}/answer`, {
-      choice: "zzz",
-      answeredBy: "x",
-    });
-    expect(bad.status).toBe(400);
-
-    const ok = await post(`/api/requests/${request.token}/answer`, {
-      choice: "shared",
-      answeredBy: "保守ベンダー 田中",
+    const request = await created(post);
+    const ok = await post(`/api/requests/${request.id}/reply`, {
+      ...reply,
+      enteredBy: "情シス 山田",
     });
     expect(ok.status).toBe(200);
     const body = await loose(ok);
@@ -125,28 +121,72 @@ describe("回答ページと回答", () => {
       status: "absent",
       evidence: "vendor",
       answeredBy: "保守ベンダー 田中",
-      answeredAt: "2026-11-05T10:00:00.000Z",
+      answeredAt: "2026-11-05T09:30:00.000Z",
       attrs: { sharedPassword: true },
     });
-    const again = await post(`/api/requests/${request.token}/answer`, {
+    expect(body.answer.noteJa).toContain("入力：情シス 山田");
+    expect(body.request).toMatchObject({
+      id: request.id,
+      answeredBy: "保守ベンダー 田中",
+      answeredAt: "2026-11-05T09:30:00.000Z",
+      enteredBy: "情シス 山田",
+      enteredAt: "2026-11-05T10:00:00.000Z",
+    });
+    const again = await post(`/api/requests/${request.id}/reply`, {
+      ...reply,
       choice: "individual",
-      answeredBy: "別の人",
     });
     expect(again.status).toBe(409);
-    const after = await loose(app.request(`/api/requests/${request.token}`));
-    expect(after.answered).toBe(true);
     const list = await loose(app.request("/api/requests"));
     expect(list.items[0].answer.choiceLabelJa).toBe("全 PC で共通");
   });
-  it("無いトークンは 404、形式違いは 400", async () => {
-    const { app } = build();
-    expect((await app.request(`/api/requests/${"a".repeat(43)}`)).status).toBe(404);
-    expect((await app.request("/api/requests/short")).status).toBe(400);
+  it("無い選択肢と読めない日時は 400、無い依頼は 404（保存されない）", async () => {
+    const { app, post } = build();
+    const request = await created(post);
+    expect(
+      (await post(`/api/requests/${request.id}/reply`, { ...reply, choice: "zzz" })).status,
+    ).toBe(400);
+    expect(
+      (await post(`/api/requests/${request.id}/reply`, { ...reply, receivedAt: "きのう" })).status,
+    ).toBe(400);
+    expect((await post("/api/requests/req_none/reply", reply)).status).toBe(404);
+    const list = await loose(app.request("/api/requests"));
+    expect(list.items[0].answer).toBeUndefined();
+  });
+  it("DELETE /:id/reply は回答を取り消して回答待ちに戻す。回答の無い依頼は 409、無い依頼は 404", async () => {
+    const { app, post } = build();
+    const request = await created(post);
+    const del = () => app.request(`/api/requests/${request.id}/reply`, { method: "DELETE" });
+    expect((await del()).status).toBe(409);
+    await post(`/api/requests/${request.id}/reply`, reply);
+    const res = await del();
+    expect(res.status).toBe(200);
+    expect((await loose(res)).retracted).toEqual({
+      requestId: request.id,
+      profileId: "demo-seiko",
+      assetId: "admin",
+      mitigation: "M1026",
+    });
+    const list = await loose(app.request("/api/requests"));
+    expect(list.items[0].answer).toBeUndefined();
+    expect(list.items[0].answeredBy).toBeUndefined();
+    expect((await post(`/api/requests/${request.id}/reply`, reply)).status).toBe(200);
+    expect((await app.request("/api/requests/req_none/reply", { method: "DELETE" })).status).toBe(
+      404,
+    );
+  });
+  it("トークンつきの公開向けの経路（GET /:token、POST /:token/answer）は無い", async () => {
+    const { app, post } = build();
+    const token = "a".repeat(43);
+    expect((await app.request(`/api/requests/${token}`)).status).toBe(404);
+    expect(
+      (await post(`/api/requests/${token}/answer`, { choice: "shared", answeredBy: "x" })).status,
+    ).toBe(404);
   });
 });
 
 describe("GET /api/requests/events（SSE）", () => {
-  it("回答が来たら answer イベントで AnswerInput を流す", async () => {
+  it("返信を入力したら answer、取り消したら retract のイベントを流す", async () => {
     const { app, post, store } = build();
     const { request } = await loose(
       post("/api/requests", { profile, assetId: "vpn", mitigation: "M1051" }),
@@ -167,13 +207,32 @@ describe("GET /api/requests/events（SSE）", () => {
     };
     expect(await readUntil("event: ready")).toBe(true);
     expect(store.subscriberCount).toBe(1);
-    await post(`/api/requests/${request.token}/answer`, { choice: "absent", answeredBy: "保守" });
+    await post(`/api/requests/${request.id}/reply`, {
+      choice: "absent",
+      repliedBy: "保守",
+      receivedAt: "2026-11-05T09:30:00Z",
+    });
     expect(await readUntil("event: answer")).toBe(true);
     const line = buf.split("\n").find((l) => l.startsWith('data: {"requestId"'));
     const ev = JSON.parse((line ?? "").slice(6));
     expect(ev.requestId).toBe(request.id);
     expect(ev.profileId).toBe("demo-seiko");
     expect(ev.answer).toMatchObject({ assetId: "vpn", mitigation: "M1051", status: "absent" });
+    await app.request(`/api/requests/${request.id}/reply`, { method: "DELETE" });
+    expect(await readUntil("event: retract")).toBe(true);
+    const rline = buf
+      .split("\n")
+      .find(
+        (l) =>
+          l.startsWith('data: {"requestId"') &&
+          l.includes('"mitigation"') &&
+          !l.includes('"answer"'),
+      );
+    expect(JSON.parse((rline ?? "").slice(6))).toMatchObject({
+      requestId: request.id,
+      assetId: "vpn",
+      mitigation: "M1051",
+    });
     expect(await readUntil("event: ping")).toBe(true);
     ctrl.abort();
     await reader.cancel().catch(() => {});
@@ -249,7 +308,7 @@ describe("送信の差し替え", () => {
 });
 
 describe("DELETE /api/requests（送信箱を空にする）", () => {
-  it("メモリの依頼を全部消し、消した件数を返す。回答ページのトークンも無効になる", async () => {
+  it("メモリの依頼を全部消し、消した件数を返す。消した依頼への回答の入力は 404", async () => {
     const { app, post } = build();
     const created = await post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" });
     const { request } = await loose(created);
@@ -258,6 +317,14 @@ describe("DELETE /api/requests（送信箱を空にする）", () => {
     expect(await loose(res)).toMatchObject({ ok: true, cleared: 1 });
     const list = await loose(await app.request("/api/requests"));
     expect(list.items).toEqual([]);
-    expect((await app.request(`/api/requests/${request.token}`)).status).toBe(404);
+    expect(
+      (
+        await post(`/api/requests/${request.id}/reply`, {
+          choice: "shared",
+          repliedBy: "x",
+          receivedAt: "2026-11-05T09:30:00Z",
+        })
+      ).status,
+    ).toBe(404);
   });
 });
