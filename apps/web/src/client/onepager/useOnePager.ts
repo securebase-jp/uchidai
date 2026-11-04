@@ -3,7 +3,7 @@
  * - URL に d=（内容を載せた共有リンク）があれば、その文字列だけから一枚を復元する（API も、カルテも使わない）
  * - 無ければ、URL の指定（profile / case / measures）か画面の状態を POST /api/onepager に渡す。判定と計算はサーバ（engine）
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api, type OnePagerResponse } from "../lib/api.ts";
 import { decodeShare, type SharePayload } from "../lib/onepager-share.ts";
@@ -22,6 +22,8 @@ export type OnePagerState =
       idShareHash: string | undefined;
       /** 記事に入口が書かれていない事例（型紙の入口候補で判定した一枚） */
       entryUnknown: boolean;
+      /** 文の書き方（Claude／テンプレート）だけを切り替えて、同じ一枚を取り直している間 true（紙は前のまま出しておく） */
+      writing: boolean;
     }
   /** 共有リンク（d=）から復元した一枚 */
   | { status: "shared"; payload: SharePayload };
@@ -40,9 +42,16 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
   const appCase = params.case ? undefined : app.theCase;
   const shared = params.d;
 
+  // 文の書き方だけが変わったときは紙を消さずに取り直す（そのほかが前回と同じかを覚えておく）
+  const lastBase = useRef<unknown[]>([]);
+  const base = [shared, params.profile, params.case, measuresKey, answersKey, appProfile, appCase];
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: 判定に影響する値だけで再取得する
   useEffect(() => {
     let alive = true;
+    const onlyTextChanged =
+      base.length === lastBase.current.length && base.every((v, i) => v === lastBase.current[i]);
+    lastBase.current = base;
     (async () => {
       try {
         if (shared) {
@@ -65,7 +74,11 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
           setState({ status: "missing", needs: { profile: !profile, case: !theCase } });
           return;
         }
-        setState({ status: "loading" });
+        setState((prev) =>
+          onlyTextChanged && prev.status === "ready"
+            ? { ...prev, writing: true }
+            : { status: "loading" },
+        );
         const data = await api.onepager({
           case: theCase,
           profile,
@@ -78,6 +91,7 @@ export function useOnePager(params: OnePagerParams): OnePagerState {
           status: "ready",
           data,
           entryUnknown: theCase.clarity === "unknown",
+          writing: false,
           idShareHash:
             profileId && caseId
               ? buildOnePagerHash({ profile: profileId, case: caseId, measures: measureIds })

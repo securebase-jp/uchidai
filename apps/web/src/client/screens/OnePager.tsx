@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CaseChoiceList, CompanyChoiceList } from "../components/CompanyPicker.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
+import { useReadAvailable } from "../hooks/useReadAvailable.ts";
 import {
   buildShareHash,
   decodeShare,
@@ -26,6 +27,8 @@ import {
 import { PdfActions } from "../onepager/PdfActions.tsx";
 import { useOnePagerParams } from "../onepager/params.ts";
 import { pdfFileName } from "../onepager/pdf-layout.ts";
+import { TextSourceRow } from "../onepager/TextSourceRow.tsx";
+import { textSourceView } from "../onepager/text-source.ts";
 import { useOnePager } from "../onepager/useOnePager.ts";
 import { usePrintPreview } from "../onepager/usePrintPreview.ts";
 
@@ -100,6 +103,13 @@ export function OnePager() {
   const manualRef = useRef<HTMLInputElement>(null);
   const canShare = supportsShare();
   const print = usePrintPreview();
+  const available = useReadAvailable();
+  const textView = textSourceView({
+    rewrite: params.rewrite,
+    available,
+    busy: state.status === "loading" || (state.status === "ready" && state.writing),
+    text: state.status === "ready" ? state.data.text : undefined,
+  });
 
   const view = useMemo(() => {
     if (state.status === "ready")
@@ -211,6 +221,9 @@ export function OnePager() {
           </>
         )}
       </div>
+      {(state.status === "loading" || state.status === "ready") && !params.d && (
+        <TextSourceRow view={textView} />
+      )}
       {state.status === "ready" && (shareError || shareNote) && (
         <div className="op-toolbar no-print small muted" style={{ display: "block" }}>
           {shareError ? <span className="err">{shareError}</span> : shareNote}

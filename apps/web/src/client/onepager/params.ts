@@ -52,6 +52,17 @@ export function buildOnePagerHash(params: {
   return q ? `#/onepager?${q}` : "#/onepager";
 }
 
+/** いまのハッシュの、rewrite だけを付け替えたハッシュ。Claude（既定）は rewrite を書かず、テンプレートは rewrite=0 */
+export function withRewrite(hash: string, rewrite: boolean): string {
+  const i = hash.indexOf("?");
+  const path = i < 0 ? hash : hash.slice(0, i);
+  const p = new URLSearchParams(i < 0 ? "" : hash.slice(i + 1));
+  if (rewrite) p.delete("rewrite");
+  else p.set("rewrite", "0");
+  const q = p.toString();
+  return q ? `${path}?${q}` : path;
+}
+
 export function useOnePagerParams(): OnePagerParams {
   const [params, setParams] = useState<OnePagerParams>(() => parseOnePagerHash());
   useEffect(() => {
