@@ -7,7 +7,7 @@
 demo/
   narration.json      ナレーション原稿（11 場面：読み上げ文、字幕、秒数、先頭の無音、画面で起きること、クレジット）
   storyboard.json     絵コンテ（場面ごとの画面の操作 actions と、見た目だけの演出 layers。デモモードがこの順に進める）
-  endcard-facts.json  エンドカード後半に出す開発の跡の数字（約 40 セッション、採点の推移、監査の件数、コミット数）
+  endcard-facts.json  エンドカード後半に出す開発の跡の数字（約 40 セッション、採点の推移、実際の報道記事での検証、コミット数）
   sfx.json            効果音の指定（demo-sfx-assemble が担当）
   scripts/
     build-subtitles.ts  原稿 → 字幕（SRT / VTT）とタイムライン JSON

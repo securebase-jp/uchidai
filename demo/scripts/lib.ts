@@ -18,6 +18,10 @@ export type NarrationScene = {
   targetSeconds: number;
   /** 読み上げの前に置く無音（秒）。音声の先頭に入れる。字幕もその分あとから始める */
   leadSilenceSeconds?: number;
+  /** この場面の読み上げの速さ（VOICEVOX の speedScale。既定 1）。場面の長さに収めるための微調整 */
+  speechSpeed?: number;
+  /** 字幕の各行が始まる時刻（場面の開始からの秒）。measure-cues.ts が、音声合成の長さから測って書く */
+  cueStarts?: number[];
   textJa: string;
   subtitleJa: string[];
   onScreen?: string;
@@ -107,12 +111,19 @@ export function buildTimeline(
   return narration.scenes.map((s) => {
     const d = durations[String(s.n)];
     const seconds = d ?? s.targetSeconds;
-    // 先頭の無音のあいだは字幕を出さない。読み上げの長さを cue に配る
+    // 先頭の無音のあいだは字幕を出さない。測った時刻（cueStarts）があればそれを使い、無ければ読み上げの長さを文字数で配る
     const lead = Math.min(s.leadSilenceSeconds ?? 0, seconds);
     const spoken = seconds - lead;
     const total = s.subtitleJa.reduce((n, c) => n + c.length, 0) || 1;
+    const measured =
+      s.cueStarts && s.cueStarts.length === s.subtitleJa.length ? s.cueStarts : undefined;
     let acc = 0;
-    const cues = s.subtitleJa.map((text) => {
+    const cues = s.subtitleJa.map((text, i) => {
+      if (measured) {
+        const from = Math.min(measured[i] ?? 0, seconds);
+        const to = Math.min(measured[i + 1] ?? seconds, seconds);
+        return { start: t + from, end: t + to, text };
+      }
       const start = t + lead + (spoken * acc) / total;
       acc += text.length;
       const end = t + lead + (spoken * acc) / total;

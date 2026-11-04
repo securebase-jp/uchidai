@@ -244,6 +244,17 @@ function DemoRunner({
       (l) =>
         l.kind === "text" && l.hideCaption && player.elapsed >= l.from && player.elapsed < l.to,
     ) ?? false;
+  // 場面が隠すと決めた部品（結論カードなど）を、その場面のあいだだけ隠す
+  const hideKey = scene?.board.hide.join(",") ?? "";
+  useEffect(() => {
+    if (!hideKey) return;
+    const style = document.createElement("style");
+    style.dataset.demoHide = "true";
+    style.textContent = `${hideKey}{visibility:hidden !important}`;
+    document.head.append(style);
+    return () => style.remove();
+  }, [hideKey]);
+  const captionText = scene ? cueAt({ ...scene, seconds: player.seconds }, player.elapsed) : "";
   const audioCount = scenes?.filter((s) => s.audioUrl).length ?? 0;
   const total = scenes?.reduce((n, s) => n + s.seconds, 0) ?? 0;
 
@@ -321,9 +332,9 @@ function DemoRunner({
         />
       )}
 
-      {captions && scene && !captionHidden && (
+      {captions && scene && !captionHidden && captionText && (
         <div className="demo-caption" aria-live="off">
-          <span>{cueAt({ ...scene, seconds: player.seconds }, player.elapsed)}</span>
+          <span>{captionText}</span>
         </div>
       )}
 

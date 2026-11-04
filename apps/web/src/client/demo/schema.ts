@@ -150,6 +150,8 @@ export const StoryboardScene = z.object({
   overlay: OverlayId,
   actions: z.array(DemoAction).default([]),
   layers: z.array(Layer).default([]),
+  /** この場面のあいだ隠す部品の CSS セレクタ（visibility: hidden。配置は変えない）。結論を先に見せないため */
+  hide: z.array(z.string()).default([]),
 });
 export const Storyboard = z.object({
   version: z.number(),
@@ -169,6 +171,9 @@ export const NarrationScene = z.object({
   targetSeconds: z.number().positive(),
   /** 読み上げの前に置く無音（秒）。音声の先頭に入れる */
   leadSilenceSeconds: z.number().nonnegative().optional(),
+  speechSpeed: z.number().positive().optional(),
+  /** 字幕の各行が始まる時刻（場面の開始からの秒）。音声合成の長さから測ったもの */
+  cueStarts: z.array(z.number().nonnegative()).optional(),
   textJa: z.string(),
   subtitleJa: z.array(z.string()).min(1),
   onScreen: z.string().optional(),
@@ -211,11 +216,11 @@ export const EndcardFacts = z.object({
       )
       .min(2),
   }),
-  audits: z.object({
-    sessions: z.number().int().positive(),
-    found: z.number().int().positive(),
-    approx: z.boolean(),
-    examplesJa: z.array(z.string()),
+  /** 実際の報道記事での検証（記事の本数、被害の型が合った数）と、開発者が確認した正解データの件数 */
+  articles: z.object({
+    count: z.number().int().positive(),
+    typeMatch: z.number().int().nonnegative(),
+    goldChecked: z.number().int().positive(),
   }),
   commits: z.number().int().positive(),
 });

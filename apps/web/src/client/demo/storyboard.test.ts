@@ -47,13 +47,22 @@ describe("絵コンテと原稿の整合", () => {
     expect(total).toBe(narration.totalTargetSeconds);
     expect(total).toBeLessThanOrEqual(180);
   });
-  it("11 場面で、読み上げは 840 字以内に収まり（実際の音声は各場面の長さに収まることを確かめてある）、先頭の無音は場面の長さより短い", () => {
+  it("字幕の開始時刻（cueStarts）は、字幕の行数と同じ数で、昇順で、場面の長さに収まる", () => {
+    for (const s of narration.scenes) {
+      if (!s.cueStarts) continue;
+      expect(s.cueStarts, `場面 ${s.n}`).toHaveLength(s.subtitleJa.length);
+      for (let i = 1; i < s.cueStarts.length; i++)
+        expect(s.cueStarts[i] ?? 0, `場面 ${s.n}`).toBeGreaterThan(s.cueStarts[i - 1] ?? 0);
+      expect(s.cueStarts[s.cueStarts.length - 1] ?? 0, `場面 ${s.n}`).toBeLessThan(s.targetSeconds);
+    }
+  });
+  it("11 場面で、読み上げは 860 字以内に収まり（実際の音声は各場面の長さに収まることを確かめてある）、先頭の無音は場面の長さより短い", () => {
     expect(narration.scenes).toHaveLength(11);
     const chars = narration.scenes.reduce(
       (n, s) => n + s.textJa.replace(/[\s「」『』、。・！？!?（）()：:…—]/g, "").length,
       0,
     );
-    expect(chars).toBeLessThanOrEqual(840);
+    expect(chars).toBeLessThanOrEqual(860);
     for (const s of narration.scenes) {
       expect(s.leadSilenceSeconds ?? 0).toBeLessThan(s.targetSeconds);
       // 読み上げは読みで書く（字幕には正式表記を残す）

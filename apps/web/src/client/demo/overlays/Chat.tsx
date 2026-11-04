@@ -3,6 +3,7 @@
  * 文字は overlay が出てからの経過秒数（elapsed）から決める（一時停止すると止まる）。
  * chat-reply は場面 9 の途中（社長向けの一枚を見せたあと）から出るので、時刻は出た時点を 0 とする。
  */
+import { useLayoutEffect, useRef } from "react";
 import { useApp } from "../../hooks/useApp.tsx";
 import { yen } from "../../lib/labels.ts";
 
@@ -130,6 +131,16 @@ export function ChatOverlay({ variant, elapsed }: Props) {
   const reduced = reducedMotion();
   const isRead = (shownAt: number) => reduced || elapsed >= shownAt + READ_AFTER;
 
+  // 吹き出しは上から下へ積む（ふつうのチャットと同じ）。窓に収まらなくなったときだけ、新しい発言が見えるよう下へ送る
+  const logRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = logRef.current;
+    if (!el) return;
+    const over = el.scrollHeight > el.clientHeight + 1;
+    el.dataset.overflow = over ? "true" : "false";
+    if (over) el.scrollTop = el.scrollHeight;
+  });
+
   const history = (
     <>
       <Bubble
@@ -158,7 +169,7 @@ export function ChatOverlay({ variant, elapsed }: Props) {
           <span>社内チャット</span>
           <span className="muted">社長、情シス担当</span>
         </div>
-        <div className="chat-log">
+        <div className="chat-log" ref={logRef}>
           {variant === "chat-boss" && (
             <>
               {elapsed >= 1 && (

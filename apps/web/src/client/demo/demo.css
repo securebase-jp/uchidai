@@ -281,7 +281,10 @@
   flex-direction: column;
   gap: 16px;
   overflow: hidden;
-  justify-content: flex-end;
+  /* 上から下へ積む。収まらなくなったとき（data-overflow）だけ、古い発言が上で切れる */
+  justify-content: flex-start;
+}
+.chat-log[data-overflow="true"] {
   /* 古い発言が上で切れるとき、途中で切れた吹き出しを目立たせない */
   mask-image: linear-gradient(to bottom, transparent, #000 36px);
 }
@@ -1506,7 +1509,7 @@
 }
 .close-line {
   font-family: var(--serif);
-  font-size: 104px;
+  font-size: 84px;
   letter-spacing: 0.06em;
   opacity: 0;
   transform: translateY(14px);
@@ -1561,9 +1564,14 @@
   opacity: 1;
   transform: none;
 }
-/* 最後の 2 秒：ロゴと一行だけ（ロゴを中央へ寄せて大きくする） */
+/* 最後の約 3 秒：ロゴと一行だけ（ロゴを画面の中央に、幅 640px ほどに大きく出す） */
 .end-wrap.close.last .close-logo {
-  transform: translateY(-190px) scale(1.7);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(3);
+  gap: 14px;
+  white-space: nowrap;
 }
 .close-logo {
   transition:

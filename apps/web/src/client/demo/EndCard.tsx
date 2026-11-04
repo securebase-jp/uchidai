@@ -1,8 +1,8 @@
 /**
  * エンドカード（場面 10・11）。2 段に動く図と締め。
  *   roles（場面 10 前半・12 秒）：左に Claude の使い道、中央に検証、右に「判定と計算は、プログラム」
- *   trace（場面 10 後半・12 秒）：Claude Code の跡（並行セッション、役割分担、採点の推移、監査で見つけた穴、コミット数）
- *   close（場面 11・8 秒）：大きな一行、継続して使うこと、GitHub、クレジット。最後の 2 秒はロゴと一行だけ
+ *   trace（場面 10 後半・12 秒）：Claude Code の跡（並行セッション、役割分担、採点の推移、実際の記事での検証、コミット数）
+ *   close（場面 11・8 秒）：大きな一行、継続して使うこと、GitHub、クレジット。最後の約 3 秒はロゴを大きく中央に出して一行だけ
  * 時刻は、その段が出てからの経過秒数。数字は demo/endcard-facts.json から読んで数え上げる（直前に数え直す）。
  */
 import { Logo } from "../components/Logo.tsx";
@@ -151,20 +151,20 @@ function Trace({ elapsed }: { elapsed: number }) {
           </p>
         </section>
         <section className={`trace-card${on(elapsed, 8.2)}`}>
-          <h2>監査セッションが見つけた穴</h2>
+          <h2>実際の報道記事での検証</h2>
           <p className="trace-num">
-            {approx(f.audits.approx)}
-            <b>{countUp(f.audits.found, elapsed, 8.4, 1.4)}</b>
-            <span>件</span>
+            <b>{countUp(f.articles.count, elapsed, 8.4, 1.4)}</b>
+            <span>本</span>
           </p>
           <ul className="trace-chips">
-            {f.audits.examplesJa.map((e, i) => (
-              <li key={e} className={on(elapsed, 9.2 + i * 0.3).trim()}>
-                {e}
-              </li>
-            ))}
+            <li className={on(elapsed, 9.2).trim()}>
+              被害の型の一致 {f.articles.typeMatch} / {f.articles.count}
+            </li>
+            <li className={on(elapsed, 9.6).trim()}>
+              正解データ {f.articles.goldChecked} 件は、開発者が 1 件ずつ確認
+            </li>
           </ul>
-          <p className="trace-sub">見つけて、直して、テストで固定</p>
+          <p className="trace-sub">読み取りを直しては、測り直した</p>
         </section>
       </div>
     </div>
@@ -172,11 +172,11 @@ function Trace({ elapsed }: { elapsed: number }) {
 }
 
 function Close({ credits, elapsed }: { credits: Narration["credits"]; elapsed: number }) {
-  // 最後の 2 秒は、ロゴと一行だけ
-  const last = elapsed >= 6;
+  // 最後の約 3 秒は、ロゴを大きく中央に出して、一行だけにする
+  const last = elapsed >= 5.2;
   return (
     <div className={`end-wrap close${last ? " last" : ""}`}>
-      <h1 className={`close-line${on(elapsed, 0.3)}`}>壁の外側にいる、ひとりへ。</h1>
+      <h1 className={`close-line${on(elapsed, 0.3)}`}>ひとり情シスにも、専門家と同じ答えを。</h1>
       <div className={`close-small${on(elapsed, 1.4)}`}>
         <p>ニュースが出るたびに、リンクを貼る。カルテは、半年ごとに見直す。</p>
         <p>ローカルで動き、会社のデータは外に預けない。OSS。</p>

@@ -121,7 +121,7 @@ for (const scene of narration.scenes) {
   );
   if (!q.ok) throw new Error(`audio_query（場面 ${scene.n}）が ${q.status}`);
   const query = (await q.json()) as Record<string, unknown>;
-  query.speedScale = speed;
+  query.speedScale = scene.speechSpeed ?? speed;
   query.outputSamplingRate = 48000;
   // 読み上げの前の無音（場面 7 の「2 秒の無音のあと」など）は、音声の先頭に入れる
   if (scene.leadSilenceSeconds) query.prePhonemeLength = scene.leadSilenceSeconds;

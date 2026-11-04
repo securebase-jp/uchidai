@@ -121,7 +121,12 @@ export function useDemoPlayer(scenes: DemoScene[], handlers: DemoHandlers): Demo
         if (elapsedRef.current >= secondsRef.current) {
           if (timer) clearInterval(timer);
           timer = undefined;
+          // 場面の終わりを検知した遅れ（最大 50ms ほど）は、次の場面の経過時間に引き継ぐ。
+          // 引き継がないと、場面の数だけ遅れが積もり、あとの場面の音声・効果音と映像がずれる
+          const over = Math.max(0, elapsedRef.current - secondsRef.current);
           enter(indexRef.current + 1);
+          elapsedRef.current = over;
+          anchor.current = { wall: ts, elapsed: over };
           return;
         }
       } else {
