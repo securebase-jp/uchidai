@@ -660,3 +660,18 @@ table.profile-table input.in.txt {
   border-left: 3px solid var(--amber);
   padding-left: 8px;
 }
+
+/* 製品名の選択（一覧から選ぶ） */
+.profile select.in.sel {
+  width: 100%;
+  background: var(--btn);
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-size: 15px;
+}
+.profile div.f > input.in {
+  font-size: 15px;
+  padding: 7px 10px;
+}

@@ -79,7 +79,7 @@ function BlurInput(props: {
 }
 
 /** 項目名（任意で情報ボタン）と入力部品を縦に並べる。ボタン列の項目は label ではなく div で包む */
-function Field({
+export function Field({
   label,
   htmlFor,
   info,
