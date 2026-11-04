@@ -675,3 +675,56 @@ table.profile-table input.in.txt {
   font-size: 15px;
   padding: 7px 10px;
 }
+
+/* 確認の進み具合の輪（確認済み N / 全 M、根拠の内訳、未確認は黄） */
+.profile .progress {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.profile .count.ring-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px 4px 6px;
+  border-radius: 999px;
+}
+.profile .ring-btn .ring-n {
+  font-size: 20px;
+  font-weight: 800;
+  fill: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.profile .ring-btn .ring-m {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.profile .ring-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.profile .ring-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.profile .ring-legend b {
+  color: var(--ink);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.profile .ring-legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
