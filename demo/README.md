@@ -106,4 +106,4 @@ http://localhost:5173/#/onepager?profile=demo-seiko&case=ipa-case-1&measures=
 - `case`：`eval/recordings/<id>.with-knowledge.json` の記録済みの読解結果。省略すると画面で選んだ事例
 - `measures`：適用する対策ボタンの ID をコンマ区切り。省略すると画面の状態、空なら対策なし
 - `rewrite=0`：Claude の言い換えを使わずテンプレート文にする
-- 「PDF で保存（印刷）」はブラウザの印刷（A4 縦・白地・2 枚以内）。API は `POST /api/onepager`
+- 「PDF をダウンロード」はブラウザの中で .pdf を作って保存（A4 縦・白地・2 ページ以内）。「印刷する」はブラウザの印刷。API は `POST /api/onepager`

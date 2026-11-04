@@ -14,6 +14,16 @@
   flex-wrap: wrap;
 }
 
+/* 「何が起きるか」の文の出所の切り替え（操作列） */
+.op-textsrc-group {
+  display: inline-flex;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .op-paper {
   /* 紙の中だけの色（画面のテーマに依存しない） */
   --paper: #fbfaf5;
@@ -529,7 +539,7 @@
 
 /*
  * 印刷：A4 縦、余白 15mm、白地・黒文字（画面が黒背景でも）。
- * 紙の体裁は :root.printing（印刷の直前に JS が付ける）と :root.print-preview（「印刷の見え方を確認」）で同じ規則を当てる。
+ * 紙の体裁は :root.printing（印刷の直前に JS が付ける）、:root.print-preview（「印刷の見え方を確認」）、.op-capture（PDF 書き出しで画面の外に組むページ）で同じ規則を当てる。
  * 1 枚目：結論・何が起きるか（経路図の静止画）・止まる業務。2 枚目（.op-pb から）：金額・期限・対策・出典と注記
  */
 @page {
@@ -542,10 +552,10 @@
     color: #5a6275;
   }
 }
-:root:is(.printing, .print-preview) .op-sheet {
+:is(:root.printing, :root.print-preview, .op-capture) .op-sheet {
   width: 100%;
 }
-:root:is(.printing, .print-preview) .op-run {
+:is(:root.printing, :root.print-preview, .op-capture) .op-run {
   display: flex;
   justify-content: space-between;
   gap: 6mm;
@@ -556,20 +566,20 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-:root:is(.printing, .print-preview) .op-run b {
+:is(:root.printing, :root.print-preview, .op-capture) .op-run b {
   color: #1b2030;
 }
-:root:is(.printing, .print-preview) .op-run-head {
+:is(:root.printing, :root.print-preview, .op-capture) .op-run-head {
   padding-bottom: 2mm;
   margin-bottom: 3mm;
   border-bottom: 1px solid #d7d2c5;
 }
-:root:is(.printing, .print-preview) .op-run-foot {
+:is(:root.printing, :root.print-preview, .op-capture) .op-run-foot {
   padding-top: 2mm;
   margin-top: 3mm;
   border-top: 1px solid #d7d2c5;
 }
-:root:is(.printing, .print-preview) .op-paper {
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper {
   box-shadow: none;
   border-radius: 0;
   border-left: 2.5mm solid var(--accent);
@@ -579,143 +589,143 @@
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
-:root:is(.printing, .print-preview) .op-paper::before {
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper::before {
   display: none;
 }
-:root:is(.printing, .print-preview) .op-head {
+:is(:root.printing, :root.print-preview, .op-capture) .op-head {
   padding-bottom: 2.5mm;
   break-after: avoid;
 }
-:root:is(.printing, .print-preview) .op-company {
+:is(:root.printing, :root.print-preview, .op-capture) .op-company {
   font-size: 18pt;
   margin-top: 1mm;
 }
-:root:is(.printing, .print-preview) .op-meta {
+:is(:root.printing, :root.print-preview, .op-capture) .op-meta {
   font-size: 8.5pt;
 }
-:root:is(.printing, .print-preview) .op-sec {
+:is(:root.printing, :root.print-preview, .op-capture) .op-sec {
   padding: 3mm 0 3mm;
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-h {
+:is(:root.printing, :root.print-preview, .op-capture) .op-h {
   break-after: avoid;
   margin-bottom: 2mm;
 }
-:root:is(.printing, .print-preview) .op-headline {
+:is(:root.printing, :root.print-preview, .op-capture) .op-headline {
   font-size: 19pt;
 }
-:root:is(.printing, .print-preview) .op-sub {
+:is(:root.printing, :root.print-preview, .op-capture) .op-sub {
   font-size: 10pt;
 }
-:root:is(.printing, .print-preview) .op-figure {
+:is(:root.printing, :root.print-preview, .op-capture) .op-figure {
   margin-bottom: 3mm;
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-figure svg.diagram {
+:is(:root.printing, :root.print-preview, .op-capture) .op-figure svg.diagram {
   /* 幅いっぱい。縦横比は viewBox が保つ（高さの上限に当たれば中央に置かれる） */
   width: 100%;
   height: auto;
   max-height: 92mm;
 }
-:root:is(.printing, .print-preview) .op-lines {
+:is(:root.printing, :root.print-preview, .op-capture) .op-lines {
   font-size: 9.5pt;
 }
-:root:is(.printing, .print-preview) .op-lines li {
+:is(:root.printing, :root.print-preview, .op-capture) .op-lines li {
   margin: 1mm 0;
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-biz {
+:is(:root.printing, :root.print-preview, .op-capture) .op-biz {
   gap: 2mm;
 }
-:root:is(.printing, .print-preview) .op-biz > li {
+:is(:root.printing, :root.print-preview, .op-capture) .op-biz > li {
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-biz-name {
+:is(:root.printing, :root.print-preview, .op-capture) .op-biz-name {
   font-size: 11pt;
 }
-:root:is(.printing, .print-preview) .op-biz-days b {
+:is(:root.printing, :root.print-preview, .op-capture) .op-biz-days b {
   font-size: 16pt;
 }
-:root:is(.printing, .print-preview) .op-biz-note,
-:root:is(.printing, .print-preview) .op-note {
+:is(:root.printing, :root.print-preview, .op-capture) .op-biz-note,
+:is(:root.printing, :root.print-preview, .op-capture) .op-note {
   font-size: 9pt;
 }
 /* 2 枚目の先頭の節 */
-:root:is(.printing, .print-preview) .op-pb {
+:is(:root.printing, :root.print-preview, .op-capture) .op-pb {
   break-before: page;
   padding-top: 0;
 }
-:root:is(.printing, .print-preview) .op-figures {
+:is(:root.printing, :root.print-preview, .op-capture) .op-figures {
   grid-template-columns: 1fr 1fr;
   gap: 3mm;
 }
-:root:is(.printing, .print-preview) .op-figure-box {
+:is(:root.printing, :root.print-preview, .op-capture) .op-figure-box {
   break-inside: avoid;
   padding: 2mm 3mm;
 }
-:root:is(.printing, .print-preview) .op-v {
+:is(:root.printing, :root.print-preview, .op-capture) .op-v {
   font-size: 16pt;
 }
-:root:is(.printing, .print-preview) .op-spine {
+:is(:root.printing, :root.print-preview, .op-capture) .op-spine {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0 6mm;
 }
-:root:is(.printing, .print-preview) .op-spine li {
+:is(:root.printing, :root.print-preview, .op-capture) .op-spine li {
   padding: 0.5mm 0 0.5mm 3mm;
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-day b {
+:is(:root.printing, :root.print-preview, .op-capture) .op-day b {
   font-size: 12pt;
 }
-:root:is(.printing, .print-preview) .op-dl-kind {
+:is(:root.printing, :root.print-preview, .op-capture) .op-dl-kind {
   font-size: 7.5pt;
 }
-:root:is(.printing, .print-preview) .op-dl-label {
+:is(:root.printing, :root.print-preview, .op-capture) .op-dl-label {
   font-size: 9pt;
 }
-:root:is(.printing, .print-preview) .op-cards {
+:is(:root.printing, :root.print-preview, .op-capture) .op-cards {
   grid-template-columns: 1fr 1fr;
   gap: 3mm;
 }
-:root:is(.printing, .print-preview) .op-card {
+:is(:root.printing, :root.print-preview, .op-capture) .op-card {
   padding: 2mm 3mm;
   gap: 0.5mm;
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-card-top {
+:is(:root.printing, :root.print-preview, .op-capture) .op-card-top {
   align-items: flex-start;
 }
-:root:is(.printing, .print-preview) .op-card-name {
+:is(:root.printing, :root.print-preview, .op-capture) .op-card-name {
   /* 長い対策名は折り返す（表の列幅を越えない） */
   font-size: 10pt;
   overflow-wrap: anywhere;
   min-width: 0;
 }
-:root:is(.printing, .print-preview) .op-card-stage,
-:root:is(.printing, .print-preview) .op-card-to {
+:is(:root.printing, :root.print-preview, .op-capture) .op-card-stage,
+:is(:root.printing, :root.print-preview, .op-capture) .op-card-to {
   font-size: 8pt;
 }
-:root:is(.printing, .print-preview) .op-card-cost b {
+:is(:root.printing, :root.print-preview, .op-capture) .op-card-cost b {
   font-size: 12pt;
 }
-:root:is(.printing, .print-preview) .op-foot {
+:is(:root.printing, :root.print-preview, .op-capture) .op-foot {
   font-size: 7pt;
   line-height: 1.35;
   padding-top: 2.5mm;
 }
-:root:is(.printing, .print-preview) .op-foot li {
+:is(:root.printing, :root.print-preview, .op-capture) .op-foot li {
   break-inside: avoid;
 }
-:root:is(.printing, .print-preview) .op-sources {
+:is(:root.printing, :root.print-preview, .op-capture) .op-sources {
   columns: 3;
   column-gap: 5mm;
 }
-:root:is(.printing, .print-preview) .op-paper a {
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper a {
   color: inherit;
   text-decoration: none;
 }
-:root:is(.printing, .print-preview) .op-brand {
+:is(:root.printing, :root.print-preview, .op-capture) .op-brand {
   /* 走り見出し（tfoot）が同じ文を各ページに出すので、紙の中の行は消す */
   display: none;
 }

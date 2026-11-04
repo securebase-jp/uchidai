@@ -101,10 +101,13 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 - 専門用語、英字の略語、ID（例：T1190、M1032）は使わない。入力にある役割名と業務名はそのまま使ってよい
 - 攻撃の段階は入力の順番どおりに「どこから入り、どこへ進み、何が止まるか」として書く。state が blocked の段階があれば、そこで止まることを書く。unknown は「確認が取れていない」、human は「人の判断にかかっている」と書く
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
+- stopped が空（止まる業務が無い）ときは、止まる業務のことも復旧までの日数も書かない。downtimeDays が 0 でも「0日」「0 日」とは書かない。止まらなかったことと、個人情報の報告など入力にあることだけを書く
 - 一文は 70 字以内。2〜4 文。敬体（です・ます）。煽らず、断定は入力の範囲内で
 - 出力は JSON スキーマどおり。文章はすべて日本語`;
 
 const ID_PATTERN = /\bT\d{4}(?:\.\d{3})?\b|\bM\d{4}\b|UD-\d{2}|TA\d{4}/;
+/** 「0日」「0 日」（10日や0日目は除く）。止まる業務が無いのに復旧日数を 0 日と書く癖を弾く */
+const ZERO_DAYS = /(?<![\d.,])0\s*日(?!目)/;
 
 /** 入力の数値から、出力に現れてよい数字の集合を作る（円は万・億の表記も） */
 export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
@@ -148,6 +151,8 @@ export function checkWriterOutput(
     const normalized = line.replace(/[０-９]/g, (c) =>
       String.fromCharCode(c.charCodeAt(0) - 0xfee0),
     );
+    if (input.stopped.length === 0 && ZERO_DAYS.test(normalized))
+      return `止まる業務が無いのに「0日」と書かれています：${line}`;
     for (const m of normalized.matchAll(/\d[\d,]*(?:\.\d+)?/g)) {
       const num = m[0];
       if (!allowed.has(num) && !allowed.has(num.replace(/,/g, "")))
