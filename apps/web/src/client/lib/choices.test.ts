@@ -7,6 +7,7 @@ import {
   formatJpy,
   numberFromText,
   REVENUE_PRESETS,
+  shownBucket,
   TRANSFER_PRESETS,
 } from "./choices.ts";
 
@@ -85,5 +86,22 @@ describe("件数の区分", () => {
   });
   it("1,000 件を超える区分だけ over1000", () => {
     expect(COUNT_BUCKETS.map((b) => b.over1000)).toEqual([false, false, true, true, true]);
+  });
+});
+
+describe("shownBucket（押された状態に見せる件数の区分）", () => {
+  it("正確な件数があれば件数から決める（覚えた区分より優先）", () => {
+    expect(shownBucket(5200, true, "gt100k")).toBe("gt1000");
+    expect(shownBucket(80, false, undefined)).toBe("le100");
+  });
+  it("件数が無ければ覚えた区分。カルテの over1000 と食い違うなら捨てる", () => {
+    expect(shownBucket(undefined, true, "gt10k")).toBe("gt10k");
+    expect(shownBucket(undefined, false, "le100")).toBe("le100");
+    expect(shownBucket(undefined, true, "le100")).toBe("gt1000");
+    expect(shownBucket(undefined, false, "gt10k")).toBeUndefined();
+  });
+  it("覚えが無ければ、1,000 件超だけ「1,000 超」。超えない（未選択かもしれない）ときは何も押さない", () => {
+    expect(shownBucket(undefined, true, undefined)).toBe("gt1000");
+    expect(shownBucket(undefined, false, undefined)).toBeUndefined();
   });
 });

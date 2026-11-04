@@ -305,6 +305,7 @@ export function Profile() {
               </InfoButton>
             </h2>
             <PersonalDataTable
+              profileId={profile.id}
               assets={profile.assets}
               personalData={profile.personalData}
               onChange={(assetId, data) => save(setPersonalData(profile, assetId, data))}

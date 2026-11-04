@@ -90,6 +90,22 @@ export function bucketOfCount(count: number): CountBucket["id"] {
   return "gt100k";
 }
 
+/**
+ * 画面で押された状態に見せる区分。正確な件数があれば件数から、無ければ覚えた区分（カルテの over1000 と食い違えば捨てる）。
+ * 覚えが無くて 1,000 件を超えるなら「1,000 超」（それ以上かもしれないが、分かっているのはここまで）。
+ * 覚えが無くて 1,000 件を超えないときは、まだ選んでいないので何も押された状態にしない
+ */
+export function shownBucket(
+  count: number | undefined,
+  over1000: boolean,
+  remembered: CountBucket["id"] | undefined,
+): CountBucket["id"] | undefined {
+  if (count !== undefined) return bucketOfCount(count);
+  if (remembered && COUNT_BUCKETS.find((b) => b.id === remembered)?.over1000 === over1000)
+    return remembered;
+  return over1000 ? "gt1000" : undefined;
+}
+
 // ---------------------------------------------------------------------------
 // 候補（<datalist>）に出す例
 // ---------------------------------------------------------------------------
