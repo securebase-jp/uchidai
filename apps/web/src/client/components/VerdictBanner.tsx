@@ -10,6 +10,7 @@ import { unknownStepLabels } from "../lib/pending.ts";
 import type { Scene, Script } from "../lib/playback.ts";
 import type { Graph, Verdict } from "../lib/types.ts";
 import { ImpactTiles } from "./ImpactTiles.tsx";
+import { StageStrip } from "./StageStrip.tsx";
 
 type Props = {
   verdict: Verdict;
@@ -114,6 +115,7 @@ export function VerdictBanner({
           {info}
         </div>
         {hasTiles && <ImpactTiles verdict={verdict} />}
+        {hasTiles && <StageStrip verdict={verdict} graph={graph} />}
         {impact && <p className="s verdict-impact">{impact}</p>}
         <AnimatePresence mode="wait">
           {running && (

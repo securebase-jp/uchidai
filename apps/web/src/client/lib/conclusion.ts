@@ -143,3 +143,40 @@ function reportTile(v: Verdict): ImpactTile {
     hot: true,
   };
 }
+
+/** 段階の帯の 1 マス（本線の段階。構成要素の名前と状態） */
+export type StripStage = {
+  nodeId: string;
+  /** 構成要素の名前（グラフのラベル） */
+  label: string;
+  state: PathStep["state"];
+  /** 突破のときの型紙の言葉（「暗号化される」など）。無ければ共通の語 */
+  breachedLabelJa?: string;
+  /** 止まった段階より先（薄く出す） */
+  beyond: boolean;
+};
+
+/**
+ * 経路の本線の段階を並べる。同じ構成要素が続くときは 1 マスにまとめる（先の状態を採る）。
+ * 「止まる」段階（blocked）に当たったら、それより先は beyond にする（実際には起きないため薄く出す）
+ */
+export function stageStrip(v: Verdict, graph: Graph): StripStage[] {
+  const path = primaryPath(v);
+  if (!path) return [];
+  const label = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
+  const out: StripStage[] = [];
+  let stopped = false;
+  for (const s of mainSteps(path)) {
+    const prev = out.at(-1);
+    if (prev && prev.nodeId === s.nodeId) continue;
+    out.push({
+      nodeId: s.nodeId,
+      label: label(s.nodeId),
+      state: s.state,
+      ...(s.breachedLabelJa ? { breachedLabelJa: s.breachedLabelJa } : {}),
+      beyond: stopped,
+    });
+    if (s.state === "blocked") stopped = true;
+  }
+  return out;
+}

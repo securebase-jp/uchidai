@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { impactTiles, reasonSentence } from "./conclusion.ts";
+import { impactTiles, reasonSentence, stageStrip } from "./conclusion.ts";
 import type { Graph, PathStep, Verdict } from "./types.ts";
 
 const step = (nodeId: string, extra: Partial<PathStep> = {}): PathStep => ({
@@ -130,5 +130,34 @@ describe("impactTiles（結論カードの数字タイル）", () => {
     expect(impactTiles(v, yenJa).at(-1)?.sub).toBe("1,000人超");
     expect(impactTiles(withImpact("no_entry", {}), yenJa)).toEqual([]);
     expect(impactTiles(withImpact("out_of_scope", {}), yenJa)).toEqual([]);
+  });
+});
+
+describe("stageStrip（段階の帯）", () => {
+  it("本線の段階を並べ、突破は型紙の言葉を持つ。前提・枝・同じ構成要素の続きは数えない", () => {
+    const v = verdict("breached", [
+      step("vpn", { breachedLabelJa: "侵入される" }),
+      step("admin", { precondition: true }),
+      step("admin"),
+      step("admin", { state: "unknown" }),
+      step("backup", { branch: true }),
+      step("core", { breachedLabelJa: "暗号化される" }),
+    ]);
+    const strip = stageStrip(v, graph);
+    expect(strip.map((s) => [s.label, s.state, s.beyond])).toEqual([
+      ["VPN装置", "breached", false],
+      ["管理者アカウント", "breached", false],
+      ["生産管理システム", "breached", false],
+    ]);
+    expect(strip[2]?.breachedLabelJa).toBe("暗号化される");
+  });
+  it("止まった段階より先は beyond（薄く出す）", () => {
+    const v = verdict("blocked", [
+      step("vpn", { state: "blocked" }),
+      step("admin", { state: "breached" }),
+      step("core", { state: "breached" }),
+    ]);
+    expect(stageStrip(v, graph).map((s) => s.beyond)).toEqual([false, true, true]);
+    expect(stageStrip({ ...v, paths: [] }, graph)).toEqual([]);
   });
 });
