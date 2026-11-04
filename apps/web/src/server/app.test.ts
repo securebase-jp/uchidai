@@ -17,6 +17,44 @@ async function demoFixture() {
   return { theCase: c.case, profile: p.profile };
 }
 
+describe("GET /api/sources", () => {
+  it("分類の順に出典を返し、ATT&CK の項目にだけ版を差し込む", async () => {
+    const res = await app.request("/api/sources");
+    expect(res.status).toBe(200);
+    const body = await loose(res);
+    expect(body.categories.map((c: { id: string }) => c.id)).toEqual([
+      "attack",
+      "cases-costs",
+      "law-stats",
+      "kev",
+      "recon",
+      "fonts-voice",
+    ]);
+    const all = body.categories.flatMap((c: { sources: unknown[] }) => c.sources);
+    expect(all.length).toBeGreaterThan(10);
+    for (const s of all) expect(s.url).toMatch(/^https:\/\//);
+    const knowledge = await loose(app.request("/api/knowledge"));
+    const attack = body.categories[0].sources;
+    expect(attack.map((s: { version: string }) => s.version)).toEqual([
+      knowledge.attackVersion,
+      knowledge.attackVersion,
+    ]);
+    const others = body.categories.slice(1).flatMap((c: { sources: unknown[] }) => c.sources);
+    expect(others.some((s: { version?: string }) => s.version !== undefined)).toBe(false);
+  });
+  it("会社カルテも判定結果も含まない", async () => {
+    const text = await (await app.request("/api/sources")).text();
+    expect(text).not.toContain("demo-seiko");
+    expect(text).not.toContain("verdict");
+  });
+  it("公開 URL（転送ヘッダつき）からも読める", async () => {
+    const res = await app.request("/api/sources", {
+      headers: { "cf-connecting-ip": "203.0.113.5" },
+    });
+    expect(res.status).toBe(200);
+  });
+});
+
 describe("GET /api/knowledge", () => {
   it("ラベル・対策・5問・パターン・ATT&CK のバージョンを返す", async () => {
     const res = await app.request("/api/knowledge");

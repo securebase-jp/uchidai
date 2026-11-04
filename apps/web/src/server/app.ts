@@ -18,6 +18,7 @@ import {
   ProfileAnswers,
   profileFromAnswers,
   repoRoot,
+  sourcesView,
 } from "@uchidai/engine";
 import {
   fetchArticle,
@@ -112,6 +113,9 @@ app.route("/api/requests", requestRoutes());
 // 社長向けの一枚（S8）とデモ用の音声（S8）
 app.route("/", onepagerRoutes);
 app.route("/", demoRoutes);
+
+// 出典の一覧（knowledge/sources.yaml。ATT&CK の版は version.json から差し込む）。会社カルテや判定は読まない読み取り専用
+app.get("/api/sources", (c) => c.json(sourcesView()));
 
 // 知識：ラベル、対策ボタン、5問、緩和策ごとの確認の質問表（カルテ画面と確認依頼で共有）、業種別パターン、役割、ATT&CK のバージョン
 app.get("/api/knowledge", (c) => {

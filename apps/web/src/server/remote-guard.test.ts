@@ -8,6 +8,8 @@ function build(allowAll = false) {
   const app = new Hono();
   app.use("/api/*", remoteGuard({ allowAll }));
   app.get("/api/health", (c) => c.json({ ok: true }));
+  app.get("/api/sources", (c) => c.json({ categories: [] }));
+  app.post("/api/sources", (c) => c.json({ ok: true }));
   app.get("/api/requests", (c) => c.json({ items: [] }));
   app.get("/api/requests/:token", (c) => c.json({ token: c.req.param("token") }));
   app.post("/api/requests/:token/answer", (c) => c.json({ ok: true }));
@@ -44,6 +46,14 @@ describe("remoteGuard", () => {
     expect(((await list.json()) as { error: string }).error).toContain("手元");
     expect((await app.request("/api/evaluate", { method: "POST", headers: h })).status).toBe(403);
     expect((await app.request("/api/requests/short", { headers: h })).status).toBe(403);
+  });
+  it("出典の一覧（GET /api/sources）は公開 URL 経由でも読める。書き込みは通らない", async () => {
+    const app = build();
+    const h = { "cf-connecting-ip": "203.0.113.5" };
+    expect((await app.request("/api/sources", { headers: h })).status).toBe(200);
+    expect((await app.request("/api/sources", { method: "POST", headers: h })).status).toBe(403);
+    expect(allowedRemotely("GET", "/api/sources")).toBe(true);
+    expect(allowedRemotely("GET", "/api/sources/x")).toBe(false);
   });
   it("UCHIDAI_ALLOW_REMOTE_API 相当で全面許可にできる", async () => {
     const app = build(true);
