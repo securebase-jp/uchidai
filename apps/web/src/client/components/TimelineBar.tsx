@@ -1,14 +1,4 @@
 /** 時間軸：Day0 からの出来事と、売上影響の積み上げ。対策で再判定すると出来事が消える */
-import {
-  Banknote,
-  CirclePause,
-  Handshake,
-  type LucideIcon,
-  Scale,
-  Siren,
-  Umbrella,
-  Wrench,
-} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { yen } from "../lib/labels.ts";
@@ -18,6 +8,7 @@ import { eventSourceId, shortLabel } from "../lib/timeline-view.ts";
 import type { CompanyProfile, TimelineEvent, Verdict } from "../lib/types.ts";
 import { InfoButton } from "./InfoButton.tsx";
 import { StaffSourceRef } from "./StaffSourceRef.tsx";
+import { iconOf } from "./timeline-icons.ts";
 
 type Props = {
   view: TimelineView;
@@ -36,16 +27,6 @@ const AXIS_Y = 150;
 const ROW_H = 24;
 const CHAR_W = 12.5;
 const ICON = 16;
-/** 出来事の種類のアイコン（Lucide）。色は種類ごと（staff.css の .tl-ic） */
-const KIND_ICON: Record<TimelineEvent["kind"], LucideIcon> = {
-  legal: Scale,
-  partner: Handshake,
-  insurance: Umbrella,
-  police: Siren,
-  business_stop: CirclePause,
-  recovery: Wrench,
-  money: Banknote,
-};
 const eventKey = (e: TimelineEvent) => `${e.kind}-${e.day}-${e.labelJa}`;
 
 /** ラベルの重なりを避けて行を割り当てる（x の範囲が重なるものは上の行へ） */
@@ -152,7 +133,7 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
         <AnimatePresence>
           {placed.map(({ e, x: lx, px, row }, i) => {
             const y = AXIS_Y - 26 - row * ROW_H;
-            const Icon = KIND_ICON[e.kind];
+            const Icon = iconOf(e.kind);
             const key = eventKey(e);
             const src = eventSourceId(e);
             const short = shortLabel(e);
