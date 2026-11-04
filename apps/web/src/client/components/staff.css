@@ -625,3 +625,81 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* 時間軸：出来事の種類のアイコンと、押すと出る詳細 */
+.tl-ev .tl-hit {
+  cursor: pointer;
+  outline: none;
+}
+.tl-ev .tl-hit-box {
+  fill: transparent;
+  stroke: transparent;
+}
+.tl-ev.picked .tl-hit-box {
+  fill: color-mix(in srgb, var(--edge) 60%, transparent);
+  stroke: var(--edge-strong);
+}
+.tl-ev .tl-hit:hover .tl-hit-box,
+.tl-ev .tl-hit:focus-visible .tl-hit-box {
+  fill: color-mix(in srgb, var(--edge) 45%, transparent);
+  stroke: var(--focus);
+}
+.tl-ev .tl-ic {
+  color: var(--ink-2);
+}
+.tl-ev.k-business_stop .tl-ic,
+.tl-ev.k-partner .tl-ic,
+.tl-ev.k-money .tl-ic {
+  color: var(--red);
+}
+.tl-ev.k-legal .tl-ic,
+.tl-ev.k-insurance .tl-ic {
+  color: var(--amber);
+}
+.tl-ev.k-recovery .tl-ic {
+  color: var(--green);
+}
+.tl-ev.k-police .tl-ic {
+  color: var(--steel);
+}
+.tl-src {
+  font: 700 10px var(--sans);
+  fill: var(--steel);
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+.tl-detail {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--edge-strong);
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 13px;
+}
+.tl-detail.k-business_stop,
+.tl-detail.k-partner,
+.tl-detail.k-money {
+  border-left-color: var(--red);
+}
+.tl-detail.k-legal,
+.tl-detail.k-insurance {
+  border-left-color: var(--amber);
+}
+.tl-detail.k-recovery {
+  border-left-color: var(--green);
+}
+.tl-detail.k-police {
+  border-left-color: var(--steel);
+}
+.tl-detail .tl-detail-day {
+  font-family: var(--mono);
+  margin-right: 8px;
+}
+.tl-detail p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+.tl-detail .tl-detail-src {
+  font-size: 12px;
+}

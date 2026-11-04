@@ -1,9 +1,23 @@
 /** 時間軸：Day0 からの出来事と、売上影響の積み上げ。対策で再判定すると出来事が消える */
+import {
+  Banknote,
+  CirclePause,
+  Handshake,
+  type LucideIcon,
+  Scale,
+  Siren,
+  Umbrella,
+  Wrench,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import { yen } from "../lib/labels.ts";
+import { STAFF_SOURCES } from "../lib/staff-sources.ts";
 import type { TimelineView } from "../lib/timeline.ts";
-import type { CompanyProfile, Verdict } from "../lib/types.ts";
+import { eventSourceId, shortLabel } from "../lib/timeline-view.ts";
+import type { CompanyProfile, TimelineEvent, Verdict } from "../lib/types.ts";
 import { InfoButton } from "./InfoButton.tsx";
+import { StaffSourceRef } from "./StaffSourceRef.tsx";
 
 type Props = {
   view: TimelineView;
@@ -21,6 +35,18 @@ const X1 = W - 40;
 const AXIS_Y = 150;
 const ROW_H = 24;
 const CHAR_W = 12.5;
+const ICON = 16;
+/** 出来事の種類のアイコン（Lucide）。色は種類ごと（staff.css の .tl-ic） */
+const KIND_ICON: Record<TimelineEvent["kind"], LucideIcon> = {
+  legal: Scale,
+  partner: Handshake,
+  insurance: Umbrella,
+  police: Siren,
+  business_stop: CirclePause,
+  recovery: Wrench,
+  money: Banknote,
+};
+const eventKey = (e: TimelineEvent) => `${e.kind}-${e.day}-${e.labelJa}`;
 
 /** ラベルの重なりを避けて行を割り当てる（x の範囲が重なるものは上の行へ） */
 function assignRows<T extends { x: number; width: number }>(items: T[]): (T & { row: number })[] {
@@ -34,6 +60,7 @@ function assignRows<T extends { x: number; width: number }>(items: T[]): (T & { 
 }
 
 export function TimelineBar({ view, verdict, profile, day, concluded, reduced }: Props) {
+  const [pickedKey, setPickedKey] = useState<string | undefined>();
   const lastDay = Math.max(view.lastDay, verdict.impact.downtimeDays, 7);
   const x = (d: number) => X0 + ((X1 - X0) * Math.min(d, lastDay)) / lastDay;
   const ticks: number[] = [];
@@ -48,11 +75,13 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
   const placed = assignRows(
     visible.map((e) => {
       const px = x(e.day);
-      const width = e.labelJa.length * CHAR_W + 14;
+      const width = ICON + 6 + shortLabel(e).length * CHAR_W + 14;
       const flip = px + width > X1;
       return { e, x: flip ? px - width : px, px, width, flip };
     }),
   );
+  const picked = visible.find((e) => eventKey(e) === pickedKey);
+  const pickedSrc = picked ? eventSourceId(picked) : undefined;
   return (
     <div className="timeline panel">
       <h2>
@@ -80,7 +109,8 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
           </span>
         )}
       </h2>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Day 0 からの出来事と売上影響の時間軸">
+      <svg viewBox={`0 0 ${W} ${H}`}>
+        <title>Day 0 からの出来事と売上影響の時間軸</title>
         <line className="tl-axis" x1={X0} y1={AXIS_Y} x2={X1} y2={AXIS_Y} />
         {ticks.map((d) => (
           <g key={d}>
@@ -120,12 +150,17 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
           />
         )}
         <AnimatePresence>
-          {placed.map(({ e, x: lx, px, flip, row }, i) => {
+          {placed.map(({ e, x: lx, px, row }, i) => {
             const y = AXIS_Y - 26 - row * ROW_H;
+            const Icon = KIND_ICON[e.kind];
+            const key = eventKey(e);
+            const src = eventSourceId(e);
+            const short = shortLabel(e);
+            const on = key === pickedKey;
             return (
               <motion.g
-                key={`${e.kind}-${e.day}-${e.labelJa}`}
-                className={`tl-ev k-${e.kind}`}
+                key={key}
+                className={`tl-ev k-${e.kind}${on ? " picked" : ""}`}
                 initial={reduced ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.8 }}
@@ -148,19 +183,81 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
                   fill="currentColor"
                   style={{ color: "var(--ink-2)" }}
                 />
-                <text x={flip ? lx + 4 : lx + 6} y={y}>
-                  {e.labelJa}
-                </text>
+                {/* SVG には button 要素が無いので、押せる出来事は role="button" の g にする（キーボードでも開ける） */}
+                {/* biome-ignore lint/a11y/useSemanticElements: SVG の中では button 要素を使えない */}
+                <g
+                  className="tl-hit"
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={on}
+                  aria-label={`Day ${e.day}　${e.labelJa}。詳しく見る`}
+                  onClick={() => setPickedKey(on ? undefined : key)}
+                  onKeyDown={(ev) => {
+                    if (ev.key === "Enter" || ev.key === " ") {
+                      ev.preventDefault();
+                      setPickedKey(on ? undefined : key);
+                    }
+                  }}
+                >
+                  <rect
+                    className="tl-hit-box"
+                    x={lx - 2}
+                    y={y - 15}
+                    width={ICON + 6 + short.length * CHAR_W + (src ? 14 : 6)}
+                    height={22}
+                    rx={5}
+                  />
+                  <Icon
+                    className="tl-ic"
+                    x={lx}
+                    y={y - 13}
+                    width={ICON}
+                    height={ICON}
+                    strokeWidth={2.2}
+                    aria-hidden="true"
+                  />
+                  <text x={lx + ICON + 6} y={y}>
+                    {short}
+                  </text>
+                </g>
+                {src && (
+                  <a
+                    href={`#/sources?src=${encodeURIComponent(src)}`}
+                    aria-label={`出典 ${STAFF_SOURCES[src].n}：${STAFF_SOURCES[src].titleJa}`}
+                  >
+                    <title>{`出典：${STAFF_SOURCES[src].titleJa}`}</title>
+                    <text
+                      className="tl-src"
+                      x={lx + ICON + 6 + short.length * CHAR_W + 2}
+                      y={y - 6}
+                    >
+                      {STAFF_SOURCES[src].n}
+                    </text>
+                  </a>
+                )}
               </motion.g>
             );
           })}
         </AnimatePresence>
         {concluded && far.length > 0 && (
           <text className="tl-tick" x={X1} y={AXIS_Y + 40} textAnchor="end">
-            {far.map((e) => `Day ${e.day} ${e.labelJa}`).join("　")}
+            {far.map((e) => `Day ${e.day} ${shortLabel(e)}`).join("　")}
           </text>
         )}
       </svg>
+      {picked && (
+        <div className={`tl-detail k-${picked.kind}`} aria-live="polite">
+          <b className="tl-detail-day">Day {picked.day}</b>
+          <span>{picked.labelJa}</span>
+          {picked.detailJa && <p>{picked.detailJa}</p>}
+          {(picked.sourceJa || pickedSrc) && (
+            <p className="tl-detail-src">
+              出典：{picked.sourceJa}
+              {pickedSrc && <StaffSourceRef id={pickedSrc} />}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
