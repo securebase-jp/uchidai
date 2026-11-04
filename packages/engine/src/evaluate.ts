@@ -1,7 +1,13 @@
 /**
  * 経路の組み立てと判定：型紙 × 構成グラフ × 判定ルール表 → Verdict
  */
-import { ATTACKER_NODE_ID, adjacent, buildGraph, connected } from "./graph.ts";
+import {
+  ATTACKER_NODE_ID,
+  adjacent,
+  buildGraph,
+  connected,
+  isDefaultFrameProfile,
+} from "./graph.ts";
 import { computeImpact } from "./impact.ts";
 import {
   canonicalTechnique,
@@ -35,6 +41,11 @@ export const HEADLINES: Record<VerdictResult, string> = {
   no_entry: "この攻撃の入口は御社にはありません",
   out_of_scope: "この事故は攻撃経路で判定できないため、対象外です",
 };
+
+/** 5 問のカルテ（既定の枠だけ）で入口になる資産が見つからないとき：「入口は無い」と断定しない */
+export const COVERAGE_GAP_HEADLINE = "カルテの範囲では、この攻撃の入口はありません";
+export const COVERAGE_GAP_NOTE =
+  "カルテに、この入口になる資産がありません。登録が足りない可能性があります。クラウドの共有設定などを確認してください。";
 
 /** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
 export const UNMAPPED_HEADLINE =
@@ -525,10 +536,11 @@ export function evaluate(
   // 型紙を 1 本に絞れたときだけ Verdict に載せる（複数を展開したときは各経路の templateId を見る）
   const single = selected.length === 1 ? selected[0]?.template : undefined;
   const templateFields = single ? { templateId: single.id, templateLabelJa: single.labelJa } : {};
-  const empty = (result: VerdictResult, headlineJa?: string): Verdict => ({
+  const empty = (result: VerdictResult, headlineJa?: string, coverageGapJa?: string): Verdict => ({
     result,
     headlineJa: headlineJa ?? HEADLINES[result],
     ...templateFields,
+    ...(coverageGapJa ? { coverageGapJa } : {}),
     paths: [],
     contradictions,
     timeline: [],
@@ -553,7 +565,13 @@ export function evaluate(
     paths.push(...r.paths);
     hasEntry ||= r.hasEntry;
   }
-  if (!hasEntry) return empty("no_entry");
+  if (!hasEntry) {
+    // 既定の枠だけのカルテは、クラウドの共有設定などを持たない。入口の資産が無いのは「登録が足りない」かもしれず、
+    // 「御社に入口は無い」と断定すると誤って安心させる。詳細に作り込んだカルテでの「入口なし」は変えない
+    if (isDefaultFrameProfile(profile, knowledge.patterns, knowledge.sites))
+      return empty("pending", COVERAGE_GAP_HEADLINE, COVERAGE_GAP_NOTE);
+    return empty("no_entry");
+  }
 
   const result = decideResult(paths);
   const impact = computeImpact(paths, profile, { damageType: theCase.damageType, knowledge });

@@ -105,7 +105,8 @@ export function VerdictBanner({
   if (conclusionFirst) {
     const tone = RESULT_TONE[verdict.result];
     // 影響は数字のタイルで見せる。タイルを出さない結論（入口なし・対象外）だけ、文を添える
-    const hasTiles = verdict.result !== "no_entry" && verdict.result !== "out_of_scope";
+    const hasTiles =
+      verdict.result !== "no_entry" && verdict.result !== "out_of_scope" && !verdict.coverageGapJa;
     const impact = hasTiles ? "" : summary(verdict, plain);
     const running = swapping || !concluded;
     return (
@@ -183,7 +184,8 @@ export function summary(v: Verdict, plain: boolean, graph?: Graph): string {
         : "個人情報保護委員会への報告義務が生じます",
     );
   if (v.result === "blocked") parts.push("データは流れ続け、現場は動き続けます");
-  if (v.result === "pending") parts.push("未確認の項目を確認すると結論が決まります");
+  if (v.coverageGapJa) parts.push(v.coverageGapJa);
+  else if (v.result === "pending") parts.push("未確認の項目を確認すると結論が決まります");
   if (v.result === "no_entry") parts.push("この事例の入口になる構成が御社にありません");
   return parts.join("。");
 }

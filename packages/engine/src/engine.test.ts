@@ -2,10 +2,18 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { validateAiPath } from "./ai.ts";
 import { classifyMitigations } from "./classify.ts";
-import { evaluate, matchCaseSteps, rankTemplates, UNMAPPED_HEADLINE } from "./evaluate.ts";
-import { buildGraph, profileFromAnswers } from "./graph.ts";
+import {
+  COVERAGE_GAP_HEADLINE,
+  COVERAGE_GAP_NOTE,
+  evaluate,
+  matchCaseSteps,
+  rankTemplates,
+  UNMAPPED_HEADLINE,
+} from "./evaluate.ts";
+import { buildGraph, isDefaultFrameProfile, profileFromAnswers } from "./graph.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
 import { applyAnswer, applyMeasures, pendingControls } from "./measures.ts";
+import { buildOnePager } from "./onepager.ts";
 import type { Case, CaseStep, CompanyProfile, ProfileAnswers } from "./types.ts";
 
 let knowledge: Knowledge;
@@ -815,5 +823,73 @@ describe("枝の段階と結論、AI 経路の到達と廃止済み資産（A4 �
       terminalRoles: new Set(["core"]),
     });
     expect(coreOnly.ok && coreOnly.path.reachedCore).toBe(false);
+  });
+});
+
+describe("カルテの範囲で入口が見つからないとき（TRIAL-002）", () => {
+  const answers: ProfileAnswers = {
+    industry: "wholesale_service",
+    site: "office_only",
+    hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+    remoteAccess: ["rdp"],
+    backup: "same_network",
+  };
+  // ファイルを社内に置く 5 問のカルテには、クラウドストレージの資産が無い（case2 の入口）
+  it("5 問から作ったカルテ：「入口は無い」と断定せず、確認中（pending）で登録不足を案内する", () => {
+    const p = profileFromAnswers(answers, knowledge.patterns, "試験用商事", knowledge.sites);
+    expect(p.coverage).toBe("answers_only");
+    expect(p.assets.some((a) => a.role === "cloud.storage")).toBe(false);
+    const v = evaluate(case2, p, { knowledge });
+    expect(v.result).toBe("pending");
+    expect(v.headlineJa).toBe(COVERAGE_GAP_HEADLINE);
+    expect(v.headlineJa).not.toMatch(/御社にはありません/);
+    expect(v.coverageGapJa).toBe(COVERAGE_GAP_NOTE);
+    expect(v.coverageGapJa).toMatch(/登録が足りない可能性/);
+    expect(v.coverageGapJa).toMatch(/クラウドの共有設定/);
+    expect(v.paths).toEqual([]);
+  });
+  it("一枚の「何が起きるか」は空にならず、登録不足の案内になる", () => {
+    const p = profileFromAnswers(answers, knowledge.patterns, "試験用商事", knowledge.sites);
+    const v = evaluate(case2, p, { knowledge });
+    const op = buildOnePager(v, p, knowledge);
+    expect(op.result).toBe("pending");
+    expect(op.whatHappensJa).toEqual([COVERAGE_GAP_NOTE]);
+  });
+  it("詳細に作り込んだカルテ（demo-seiko など）で入口が本当に無いときは、従来どおり no_entry", () => {
+    const clinic = loadProfile(join(repoRoot, "examples", "demo-clinic.json"));
+    expect(clinic.coverage).toBeUndefined();
+    const v = evaluate(case2, clinic, { knowledge });
+    expect(v.result).toBe("no_entry");
+    expect(v.headlineJa).toBe("この攻撃の入口は御社にはありません");
+    expect(v.coverageGapJa).toBeUndefined();
+    // 経路が無くても「何が起きるか」は空にしない
+    const op = buildOnePager(v, clinic, knowledge);
+    expect(op.whatHappensJa.length).toBeGreaterThan(0);
+  });
+  it("5 問のカルテに資産を足した（枠を出た）ときは、5 問のカルテとして扱わない", () => {
+    const p = profileFromAnswers(answers, knowledge.patterns, "試験用商事", knowledge.sites);
+    const extra = {
+      ...p,
+      assets: [
+        ...p.assets,
+        {
+          id: "extra",
+          kind: "system" as const,
+          role: "cloud.mail" as const,
+          label: "追加の資産",
+          side: "external" as const,
+          controls: [],
+          attrs: {},
+          attrEvidence: {},
+        },
+      ],
+    };
+    expect(isDefaultFrameProfile(p, knowledge.patterns, knowledge.sites)).toBe(true);
+    expect(isDefaultFrameProfile(extra, knowledge.patterns, knowledge.sites)).toBe(false);
+    expect(evaluate(case2, extra, { knowledge }).result).toBe("no_entry");
+  });
+  it("入口が本当にある 5 問のカルテの結論は変えない", () => {
+    const p = profileFromAnswers(answers, knowledge.patterns, "試験用商事", knowledge.sites);
+    expect(evaluate(case1, p, { knowledge }).result).not.toBe("pending");
   });
 });

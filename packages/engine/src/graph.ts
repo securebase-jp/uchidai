@@ -229,6 +229,29 @@ export function withSiteBusiness<B extends { id: string; name: string }>(
   return [...patternBusinesses, toBusiness(undefined, sb)].slice(0, MAX_BUSINESSES);
 }
 
+/**
+ * 5 問の回答から作った既定の枠だけのカルテか（coverage が answers_only で、資産の ID と役割の組が、回答から作り直したものと同じか）。
+ * 既定の枠は、クラウドの共有設定・SaaS・端末管理などの資産を持たないので、「入口になる資産が無い」ことが
+ * 「御社に入口は無い」ことを意味しない（登録が足りないだけかもしれない）。資産を足した詳細なカルテや、手で作り込んだカルテは false
+ */
+export function isDefaultFrameProfile(
+  profile: CompanyProfile,
+  patterns: Pattern[],
+  sites: SiteOption[] = [],
+): boolean {
+  if (profile.coverage !== "answers_only" || !profile.answers) return false;
+  let frame: CompanyProfile;
+  try {
+    frame = profileFromAnswers(profile.answers, patterns, profile.companyName, sites, profile.id);
+  } catch {
+    return false;
+  }
+  const key = (a: Asset) => `${a.id}:${a.role}`;
+  const mine = profile.assets.map(key).sort();
+  const base = frame.assets.map(key).sort();
+  return mine.length === base.length && mine.every((k, i) => k === base[i]);
+}
+
 export function profileFromAnswers(
   answers: ProfileAnswers,
   patterns: Pattern[],
@@ -412,6 +435,7 @@ export function profileFromAnswers(
     domainVerified: false,
     pattern: patternId,
     answers,
+    coverage: "answers_only",
     assets,
     businesses,
     personalData: pattern.personalData.flatMap((pd) =>

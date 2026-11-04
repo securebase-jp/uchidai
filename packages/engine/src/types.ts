@@ -165,6 +165,11 @@ export const CompanyProfile = z.object({
   /** 業種別の構成パターン（knowledge/profiles/*.yaml の id） */
   pattern: PatternId,
   answers: ProfileAnswers.optional(),
+  /**
+   * 5 問の回答だけから作ったカルテ（profileFromAnswers が付ける）。クラウドの共有設定・SaaS・端末管理などの資産は
+   * まだ登録されていないので、入口の資産が無くても「御社に入口は無い」とは言えない。詳細に作り込んだカルテには付けない
+   */
+  coverage: z.literal("answers_only").optional(),
   employees: z.number().int().positive().optional(),
   assets: z.array(Asset),
   businesses: z.array(Business),
@@ -328,6 +333,11 @@ export const Verdict = z.object({
   /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
   templateId: z.string().optional(),
   templateLabelJa: z.string().optional(),
+  /**
+   * カルテの範囲では入口が見つからないが、5 問から作った既定の枠のカルテなので「入口は無い」とは言えないとき、
+   * その案内（result は pending）。登録が足りない可能性があることと、確認してほしいことを書く
+   */
+  coverageGapJa: z.string().optional(),
   paths: z.array(AttackPath),
   contradictions: z.array(Contradiction),
   timeline: z.array(TimelineEvent),
