@@ -2,13 +2,16 @@
  * 最初の5問：1画面1問、すべて選択式、文字入力なし。
  * 回答が確定するたびに構成図のノードが順に現れて図が組み上がる（約5秒）
  */
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import "../components/flow.css";
 import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { layoutGraph } from "../lib/layout.ts";
+import { optionIcon } from "../lib/question-icons.ts";
 import { optionsForIndustry } from "../lib/question-options.ts";
 import { reconHints } from "../lib/reconHints.ts";
 import { hintLabel } from "../lib/reconView.ts";
@@ -35,6 +38,12 @@ function complete(a: Partial5): ProfileAnswers {
     remoteAccess: a.remoteAccess ?? [],
     backup: a.backup ?? "unknown",
   };
+}
+
+/** 選択肢の左のアイコン（無ければ何も出さない）。文字が主で、アイコンは目印 */
+function OptIcon({ icon: Icon }: { icon: LucideIcon | undefined }) {
+  if (!Icon) return null;
+  return <Icon className="opt-icon" size={20} strokeWidth={2} aria-hidden="true" />;
 }
 
 const EMPTY_GRAPH: Graph = { nodes: [], edges: [] };
@@ -197,6 +206,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
                             }))
                           }
                         >
+                          <OptIcon icon={optionIcon("hosting", o.value)} />
                           {o.labelJa}
                         </button>
                       ))}
@@ -228,7 +238,10 @@ export function Questions({ reduced }: { reduced: boolean }) {
                           setRemote((r) => (on ? r.filter((x) => x !== v) : [...r, v]))
                         }
                       >
-                        {o.labelJa}
+                        <span className="opt-label">
+                          <OptIcon icon={optionIcon(q.id, o.value)} />
+                          {o.labelJa}
+                        </span>
                         <span className="muted">
                           {on && hinted("remoteAccess")?.answers.remoteAccess?.includes(v) && (
                             <span
@@ -266,7 +279,10 @@ export function Questions({ reduced }: { reduced: boolean }) {
                     aria-pressed={(answers as Record<string, string | undefined>)[q.id] === o.value}
                     onClick={() => void commit({ ...answers, [q.id]: o.value } as Partial5, isLast)}
                   >
-                    {o.labelJa}
+                    <span className="opt-label">
+                      <OptIcon icon={optionIcon(q.id, o.value)} />
+                      {o.labelJa}
+                    </span>
                     <span className="muted">›</span>
                   </button>
                 ))}

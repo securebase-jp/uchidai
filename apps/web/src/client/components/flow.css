@@ -307,3 +307,19 @@
 .step-status .st-icon {
   flex: none;
 }
+
+/* ---- 最初の5問：選択肢の左のアイコン ---- */
+.opt-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.opt-icon {
+  flex: none;
+  color: var(--cyan);
+}
+.btn .opt-icon {
+  margin-right: 6px;
+  vertical-align: -4px;
+}
