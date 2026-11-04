@@ -20,6 +20,7 @@ export * from "./certspotter.ts";
 export * from "./contradictions.ts";
 export * from "./crtsh.ts";
 export * from "./dns-node.ts";
+export * from "./fallback-ct.ts";
 export * from "./fixture.ts";
 export * from "./ownership.ts";
 export * from "./patterns.ts";

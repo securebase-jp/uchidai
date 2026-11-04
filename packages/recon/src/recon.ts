@@ -1,11 +1,13 @@
 /**
  * 外部確認の本体。所有確認に通ったドメインについて、DNS と CT だけから確認項目を組み立てる。
  *
- * ネットワークに出るのは DnsResolver（DNS サーバへの問い合わせ）と CtLogSource（crt.sh）だけ。
+ * ネットワークに出るのは DnsResolver（DNS サーバへの問い合わせ）と CtLogSource（crt.sh、空か失敗のときだけ Cert Spotter）だけ。
  * ホスト名が見つかっても、そのホストには接続しない（名前解決の問い合わせ先は DNS サーバ）。
  */
 import { FileCache } from "./cache.ts";
+import { CertSpotterSource } from "./certspotter.ts";
 import { CrtShSource } from "./crtsh.ts";
+import { FallbackCtSource } from "./fallback-ct.ts";
 import {
   assertVerified,
   defaultResolver,
@@ -24,7 +26,8 @@ import {
   matchSpfInclude,
   WEB_HOSTING_PATTERNS,
 } from "./patterns.ts";
-import type { CtLogSource, DnsResolver, ReconCache } from "./sources.ts";
+import type { FetchLike } from "./proxy.ts";
+import type { CtLogSource, CtRunInfo, DnsResolver, ReconCache } from "./sources.ts";
 import {
   type CloudService,
   type CtCertificate,
@@ -48,7 +51,7 @@ export interface ReconOptions {
   ownership: VerifiedDomain;
   resolver?: DnsResolver;
   ct?: CtLogSource;
-  /** ct を省いたときの crt.sh のキャッシュ */
+  /** ct を省いたときの crt.sh・Cert Spotter のキャッシュ */
   cache?: ReconCache;
   now?: () => Date;
   /** CT で見つかったホスト名のうち、DNS で名前解決を確かめる上限 */
@@ -61,8 +64,24 @@ export interface ReconOptions {
 const MAX_CNAME_HOPS = 3;
 const SPF_ALL_VALUES = ["-all", "~all", "?all", "+all"] as const;
 
+export interface LiveCtOptions {
+  cache?: ReconCache;
+  /** 差し替え用（テストではここに偽の fetch を渡す）。検査を通った URL でしか呼ばれない */
+  fetch?: FetchLike;
+}
+
+/** 実際の CT 参照：crt.sh を先に使い、空か失敗のときだけ Cert Spotter（同じキャッシュを共有。キーは別） */
+export function createLiveCtSource(options: LiveCtOptions = {}): CtLogSource {
+  const shared = options.cache ?? new FileCache();
+  const fetchOption = options.fetch ? { fetch: options.fetch } : {};
+  return new FallbackCtSource({
+    primary: new CrtShSource({ cache: shared, ...fetchOption }),
+    secondary: new CertSpotterSource({ cache: shared, ...fetchOption }),
+  });
+}
+
 let defaultCtFactory: (cache?: ReconCache) => CtLogSource = (cache) =>
-  new CrtShSource({ cache: cache ?? new FileCache() });
+  createLiveCtSource(cache ? { cache } : {});
 /** 既定の CT 参照の実装を差し替える */
 export function setDefaultCtSource(factory: (cache?: ReconCache) => CtLogSource): void {
   defaultCtFactory = factory;
@@ -519,7 +538,8 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
   });
   const resolver = options.resolver ?? defaultResolver();
   const ct = options.ct ?? defaultCtFactory(options.cache);
-  const ctLive = ct instanceof CrtShSource;
+  // 実際の検索サービスにつなぐ実装は lastRun を持つ（fixture の再生は持たない）
+  const ctLive = typeof ct.lastRun === "function";
   // fixture（記録）で通した所有確認で、実際の DNS や crt.sh に問い合わせることは許さない
   if (ownership.source === "fixture" && (isLiveResolver(resolver) || ctLive)) {
     throw new OwnershipNotVerifiedError(
@@ -533,11 +553,16 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
   // CT：サブドメインの洗い出し
   let ctAvailable = true;
   let certs: CtCertificate[] = [];
+  let ctRun: CtRunInfo | undefined;
   try {
     certs = await ct.listCertificates(domain);
+    ctRun = ct.lastRun?.(domain);
+    if (ctRun) notes.push(...ctRun.notesJa);
   } catch (error) {
     ctAvailable = false;
-    notes.push(`証明書の公開ログ（crt.sh）を参照できなかった: ${(error as Error).message}`);
+    notes.push(
+      `証明書の公開ログ（crt.sh、予備の Cert Spotter）を参照できなかった: ${(error as Error).message}`,
+    );
   }
   const hostMap = collectHostnames(domain, certs, now());
 
@@ -620,6 +645,7 @@ export async function recon(domainInput: string, options: ReconOptions): Promise
     sources: {
       dns: sourceOf(resolver),
       ct: ctAvailable ? (ctLive ? "live" : "fixture") : "unavailable",
+      ...(ctAvailable && ctLive && ctRun ? { ctProvider: ctRun.provider } : {}),
     },
     ownership,
     hostnames,

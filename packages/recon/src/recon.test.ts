@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { reconToAnswers, reconToAssetHints } from "./answers.ts";
+import { MemoryCache } from "./cache.ts";
+import { NodeDnsResolver } from "./dns-node.ts";
 import { fixtureSources, loadDemoFixture, ReconFixture } from "./fixture.ts";
 import { verifyOwnership } from "./ownership.ts";
-import { guessMailProvider, parseDmarc, parseSpf, recon } from "./recon.ts";
+import { createLiveCtSource, guessMailProvider, parseDmarc, parseSpf, recon } from "./recon.ts";
 import type { CtLogSource, DnsResolver } from "./sources.ts";
 import { ReconResult } from "./types.ts";
 
@@ -376,5 +378,166 @@ describe("推定の境界（fixture を組み替えて確かめる）", () => {
     expect(result.remoteAccessCandidates.map((c) => c.hostname)).toEqual([
       "vpn.demo-seiko.example",
     ]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// crt.sh が空か失敗のときだけ Cert Spotter を使う（偽の fetch。実ネットワークには出ない）
+// ---------------------------------------------------------------------------
+/** 実際の DNS の型（所有確認の source が live になる）だが、応答は fixture から返す。ネットワークには出ない */
+class RecordedLiveDns extends NodeDnsResolver {
+  override resolveTxt = (n: string) => resolver.resolveTxt(n);
+  override resolveMx = (n: string) => resolver.resolveMx(n);
+  override resolve4 = (n: string) => resolver.resolve4(n);
+  override resolve6 = (n: string) => resolver.resolve6(n);
+  override resolveCname = (n: string) => resolver.resolveCname(n);
+  override resolvePtr = (ip: string) => resolver.resolvePtr?.(ip) ?? Promise.resolve([]);
+}
+
+const liveDns = new RecordedLiveDns();
+
+const crtshRows = [
+  {
+    id: 1,
+    issuer_name: "C=US, O=Let's Encrypt, CN=R11",
+    common_name: `vpn.${domain}`,
+    name_value: `vpn.${domain}`,
+    not_before: "2026-10-01T00:00:00",
+    not_after: "2026-12-30T23:59:59",
+  },
+];
+const certspotterRows = [
+  {
+    id: "900",
+    dns_names: [`vpn.${domain}`, `campaign2019.${domain}`],
+    issuer: { friendly_name: "Let's Encrypt" },
+    not_before: "2026-11-03T00:00:00Z",
+    not_after: "2027-02-01T00:00:00Z",
+    revoked: false,
+  },
+];
+
+function fakeFetch(handlers: {
+  crtsh: () => Response | Promise<Response>;
+  certspotter: () => Response | Promise<Response>;
+}) {
+  return vi.fn(async (url: URL | string) => {
+    const host = new URL(url.toString()).hostname;
+    if (host === "crt.sh") return handlers.crtsh();
+    if (host === "api.certspotter.com") return handlers.certspotter();
+    throw new Error(`許可していない宛先: ${host}`);
+  });
+}
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status });
+
+async function runLive(fetch: ReturnType<typeof fakeFetch>) {
+  const check = await verifyOwnership(domain, fixture.verificationToken ?? "", {
+    resolver: liveDns,
+  });
+  if (!check.ok) throw new Error(check.reasonJa);
+  expect(check.verified.source).toBe("live");
+  return recon(domain, {
+    ownership: check.verified,
+    resolver: liveDns,
+    ct: createLiveCtSource({ cache: new MemoryCache(), fetch }),
+    now,
+  });
+}
+const calledHosts = (fetch: ReturnType<typeof fakeFetch>) =>
+  fetch.mock.calls.map(([url]) => new URL(url.toString()).hostname);
+
+describe("recon（CT の検索先：crt.sh を先に、空か失敗のときだけ Cert Spotter）", () => {
+  it("(a) crt.sh が空 → Cert Spotter を使い、ctProvider と注記を残す", async () => {
+    const fetch = fakeFetch({
+      crtsh: () => jsonResponse([]),
+      certspotter: () => jsonResponse(certspotterRows),
+    });
+    const result = await runLive(fetch);
+    expect(calledHosts(fetch)).toEqual(["crt.sh", "api.certspotter.com"]);
+    expect(result.sources.ct).toBe("live");
+    expect(result.sources.ctProvider).toBe("certspotter");
+    expect(result.hostnames.map((h) => h.name)).toEqual([
+      `campaign2019.${domain}`,
+      `vpn.${domain}`,
+    ]);
+    expect(
+      result.notesJa.some((n) => n.includes("Cert Spotter") && n.includes("載っていなかった")),
+    ).toBe(true);
+    expect(ReconResult.parse(result)).toEqual(result);
+  });
+
+  it("(b) crt.sh が失敗（502・時間切れ）→ Cert Spotter を使う", async () => {
+    for (const crtsh of [
+      () => new Response("bad gateway", { status: 502 }),
+      () => {
+        throw new TypeError("fetch failed");
+      },
+    ]) {
+      const fetch = fakeFetch({ crtsh, certspotter: () => jsonResponse(certspotterRows) });
+      const result = await runLive(fetch);
+      expect(calledHosts(fetch)).toEqual(["crt.sh", "api.certspotter.com"]);
+      expect(result.sources).toEqual({ dns: "live", ct: "live", ctProvider: "certspotter" });
+      expect(result.remoteAccessCandidates.map((c) => c.hostname)).toEqual([`vpn.${domain}`]);
+      expect(result.notesJa.some((n) => n.includes("crt.sh を参照できなかった"))).toBe(true);
+    }
+  });
+
+  it("(c) crt.sh に 1 件以上あれば Cert Spotter は呼ばない", async () => {
+    const fetch = fakeFetch({
+      crtsh: () => jsonResponse(crtshRows),
+      certspotter: () => jsonResponse(certspotterRows),
+    });
+    const result = await runLive(fetch);
+    expect(calledHosts(fetch)).toEqual(["crt.sh"]);
+    expect(result.sources).toEqual({ dns: "live", ct: "live", ctProvider: "crtsh" });
+    expect(result.hostnames.map((h) => h.name)).toEqual([`vpn.${domain}`]);
+    expect(result.notesJa).toEqual([]);
+  });
+
+  it("(d) 両方失敗 → DNS だけで続け、理由を両方残す", async () => {
+    const fetch = fakeFetch({
+      crtsh: () => new Response("bad gateway", { status: 502 }),
+      certspotter: () => jsonResponse({ code: "rate_limited" }, 429),
+    });
+    const result = await runLive(fetch);
+    expect(calledHosts(fetch)).toEqual(["crt.sh", "api.certspotter.com"]);
+    expect(result.sources.ct).toBe("unavailable");
+    expect(result.sources.ctProvider).toBeUndefined();
+    expect(result.hostnames).toEqual([]);
+    expect(result.mail.spf.present).toBe(true);
+    const note = result.notesJa[0] ?? "";
+    expect(note).toContain("crt.sh");
+    expect(note).toContain("502");
+    expect(note).toContain("Cert Spotter");
+    expect(note).toContain("しばらくして再実行");
+  });
+
+  it("crt.sh が空で Cert Spotter も使えないときは、空のまま続けて予備が使えなかったと注記する", async () => {
+    const fetch = fakeFetch({
+      crtsh: () => jsonResponse([]),
+      certspotter: () => new Response("busy", { status: 503 }),
+    });
+    const result = await runLive(fetch);
+    expect(result.sources).toEqual({ dns: "live", ct: "live", ctProvider: "crtsh" });
+    expect(result.hostnames).toEqual([]);
+    expect(result.notesJa.some((n) => n.includes("予備の Cert Spotter も参照できなかった"))).toBe(
+      true,
+    );
+  });
+
+  it("fixture の所有確認では、Cert Spotter を含む実際の CT 参照も拒否する", async () => {
+    const check = await verifyOwnership(domain, fixture.verificationToken ?? "", { resolver });
+    if (!check.ok) throw new Error(check.reasonJa);
+    const fetch = fakeFetch({ crtsh: () => jsonResponse([]), certspotter: () => jsonResponse([]) });
+    await expect(
+      recon(domain, {
+        ownership: check.verified,
+        resolver,
+        ct: createLiveCtSource({ cache: new MemoryCache(), fetch }),
+        now,
+      }),
+    ).rejects.toThrow(/記録（fixture）/);
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

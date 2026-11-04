@@ -1,6 +1,6 @@
 /**
  * 安全の実装をテストで固定する：
- * - ネットワークに出る経路は DNS（dns-node.ts）と crt.sh（safe-fetch.ts 経由）だけ
+ * - ネットワークに出る経路は DNS（dns-node.ts）と、証明書の公開ログ（crt.sh、予備の Cert Spotter。safe-fetch.ts 経由）だけ
  * - ホスト名への HTTP/TLS/TCP 接続を行う API を import しない。動的 import、require、eval も使わない
  * - 所有確認なしの実行は拒否される（ownership.test.ts）
  */
