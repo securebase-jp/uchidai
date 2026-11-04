@@ -2,12 +2,20 @@
  * 絵コンテと原稿を読み、場面ごとに「操作・原稿・長さ」を一つにまとめる。
  * 長さの優先順位：音声ファイルの長さ（durations.json か、読み込んだ音声の長さ）→ 原稿の targetSeconds
  */
+import endcardFactsJson from "../../../../../demo/endcard-facts.json";
 import narrationJson from "../../../../../demo/narration.json";
 import storyboardJson from "../../../../../demo/storyboard.json";
-import { Narration, type NarrationScene, Storyboard, type StoryboardScene } from "./schema.ts";
+import {
+  EndcardFacts,
+  Narration,
+  type NarrationScene,
+  Storyboard,
+  type StoryboardScene,
+} from "./schema.ts";
 
 export const storyboard: Storyboard = Storyboard.parse(storyboardJson);
 export const narration: Narration = Narration.parse(narrationJson);
+export const endcardFacts: EndcardFacts = EndcardFacts.parse(endcardFactsJson);
 
 export type DemoScene = {
   n: number;

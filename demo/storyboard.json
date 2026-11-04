@@ -1,8 +1,11 @@
 {
-  "$comment": "デモモード（?demo=1）の絵コンテ。場面ごとに画面の操作を時刻（秒）つきで並べる。各場面の長さは demo/narration.json の targetSeconds か、音声ファイル demo/audio/<n>.wav の長さ",
-  "version": 1,
+  "$comment": "デモモード（?demo=1）の絵コンテ（11 場面。脚本は docs/demo-script-v2.md）。場面ごとに、画面の操作（actions）と見た目だけの演出（layers）を時刻（秒）つきで並べる。各場面の長さは demo/narration.json の targetSeconds か、音声ファイル demo/audio/<n>.wav の長さ。overlay の部品の時刻は、その overlay が出た時刻（overlay 操作の at）を 0 とする。layers の when は options の入切（既定は出さない）",
+  "version": 2,
   "profile": "demo-seiko",
   "case": "ipa-case-1",
+  "options": {
+    "policeStat": false
+  },
   "scenes": [
     {
       "n": 1,
@@ -13,6 +16,16 @@
         {
           "at": 0,
           "do": "reset"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "text",
+          "from": 0.5,
+          "to": 15,
+          "pos": "band",
+          "size": "md",
+          "text": "従業員 120 人の部品メーカー（架空）　情シスは、ひとり。"
         }
       ]
     },
@@ -26,90 +39,320 @@
           "at": 0,
           "do": "reset"
         }
+      ],
+      "layers": [
+        {
+          "kind": "dim",
+          "from": 11.8,
+          "to": 15,
+          "opacity": 0.9,
+          "fadeIn": 2.0,
+          "fadeOut": 0
+        },
+        {
+          "kind": "walls",
+          "from": 12.0,
+          "to": 15,
+          "size": "big",
+          "rise": [
+            {
+              "wall": "expert",
+              "at": 12.2
+            },
+            {
+              "wall": "advisor",
+              "at": 12.7
+            },
+            {
+              "wall": "time",
+              "at": 13.2
+            }
+          ]
+        },
+        {
+          "kind": "text",
+          "from": 13.0,
+          "to": 15,
+          "pos": "bottom",
+          "size": "lg",
+          "fade": 0.5,
+          "text": "大企業には、専門チームがいる。この人には、いない。"
+        }
       ]
     },
     {
       "n": 3,
       "id": "paste-link",
       "route": "#/",
-      "overlay": "reading",
+      "overlay": "declaration",
       "actions": [
         {
           "at": 0,
           "do": "reset"
+        },
+        {
+          "at": 10.4,
+          "do": "overlay",
+          "id": "reading"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "text",
+          "from": 8.0,
+          "to": 10.4,
+          "pos": "bottom",
+          "size": "md",
+          "when": "policeStat",
+          "text": "ランサムウェアの感染経路　VPN 機器 61／92 件（警察庁・令和 7 年）"
+        },
+        {
+          "kind": "walls",
+          "from": 14.0,
+          "to": 18,
+          "size": "strip",
+          "standing": ["advisor", "time"],
+          "crumble": [
+            {
+              "wall": "expert",
+              "at": 14.8
+            }
+          ]
         }
       ]
     },
     {
       "n": 4,
-      "id": "replay",
-      "route": "#/staff",
-      "overlay": "none",
+      "id": "company-view",
+      "route": "#/",
+      "overlay": "slot:recon",
       "actions": [
         {
           "at": 0,
           "do": "reset"
         },
         {
-          "at": 0.2,
-          "do": "scroll",
-          "to": "top"
-        },
-        {
-          "at": 0.5,
-          "do": "clock",
-          "cmd": "restart",
-          "speed": 1
-        },
-        {
-          "at": 22,
+          "at": 7.4,
           "do": "overlay",
-          "id": "slot:attacker"
+          "id": "build"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "badge",
+          "from": 0.3,
+          "to": 7.4,
+          "pos": "top-right",
+          "tone": "record",
+          "text": "実際の記録（demo-sec.com）"
+        },
+        {
+          "kind": "text",
+          "from": 1.0,
+          "to": 7.4,
+          "pos": "bottom",
+          "size": "lg",
+          "text": "対象のホストにはアクセスしません"
         }
       ]
     },
     {
       "n": 5,
-      "id": "ask-vendor",
+      "id": "replay-vendor",
       "route": "#/staff",
-      "overlay": "slot:request",
+      "overlay": "none",
       "actions": [
         {
           "at": 0,
           "do": "reset"
         },
         {
-          "at": 0.2,
+          "at": 0.5,
+          "do": "clock",
+          "cmd": "restart",
+          "speed": 1.5
+        },
+        {
+          "at": 0.8,
           "do": "scroll",
-          "to": "top"
+          "to": ".stage-wrap",
+          "block": "start"
         },
         {
-          "at": 11,
-          "do": "answers",
-          "list": [
-            {
-              "assetId": "admin",
-              "mitigation": "M1026",
-              "status": "absent",
-              "evidence": "vendor",
-              "answeredBy": "保守ベンダー",
-              "noteJa": "管理者パスワードは全 PC で共通"
-            }
-          ]
+          "at": 11.4,
+          "do": "overlay",
+          "id": "slot:request"
         },
         {
-          "at": 12.5,
+          "at": 12.6,
+          "do": "click",
+          "target": ".demo-slot.vendor .ask-btn"
+        },
+        {
+          "at": 14.0,
+          "do": "click",
+          "target": ".demo-slot.vendor details:not(.reply) > summary"
+        },
+        {
+          "at": 17.0,
+          "do": "click",
+          "target": ".demo-slot.vendor details:not(.reply) > summary"
+        },
+        {
+          "at": 17.4,
+          "do": "click",
+          "target": ".demo-slot.vendor details.reply > summary"
+        },
+        {
+          "at": 18.4,
+          "do": "click",
+          "target": ".demo-slot.vendor .reply-choice input",
+          "nth": 0
+        },
+        {
+          "at": 19.4,
+          "do": "fill",
+          "target": ".demo-slot.vendor .reply-field input.in",
+          "nth": 0,
+          "value": "山田"
+        },
+        {
+          "at": 20.4,
+          "do": "click",
+          "target": ".demo-slot.vendor .reply-form button[type=submit]"
+        },
+        {
+          "at": 20.4,
           "do": "clock",
           "cmd": "speed",
-          "speed": 1.5
+          "speed": 3
+        },
+        {
+          "at": 21.2,
+          "do": "overlay",
+          "id": "none"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "zoom",
+          "from": 1.4,
+          "to": 2.9,
+          "target": "vpn",
+          "scale": 1.9
+        },
+        {
+          "kind": "zoom",
+          "from": 2.9,
+          "to": 4.0,
+          "target": "admin",
+          "scale": 1.9
+        },
+        {
+          "kind": "zoom",
+          "from": 4.0,
+          "to": 5.1,
+          "target": "server",
+          "scale": 1.9
+        },
+        {
+          "kind": "zoom",
+          "from": 5.1,
+          "to": 6.2,
+          "target": "backup",
+          "scale": 1.9
+        },
+        {
+          "kind": "zoom",
+          "from": 6.2,
+          "to": 7.2,
+          "target": "core",
+          "scale": 1.9
+        },
+        {
+          "kind": "zoom",
+          "from": 10.2,
+          "to": 11.4,
+          "target": "admin",
+          "scale": 1.6
+        },
+        {
+          "kind": "zoom",
+          "from": 21.2,
+          "to": 24.6,
+          "target": "admin",
+          "scale": 1.9
         }
       ]
     },
     {
       "n": 6,
+      "id": "ai-attacker",
+      "route": "#/staff",
+      "overlay": "slot:attacker",
+      "actions": [
+        {
+          "at": 8.0,
+          "do": "overlay",
+          "id": "none"
+        },
+        {
+          "at": 8.0,
+          "do": "clock",
+          "cmd": "speed",
+          "speed": 3
+        },
+        {
+          "at": 8.1,
+          "do": "scroll",
+          "to": ".stage-wrap",
+          "block": "start"
+        },
+        {
+          "at": 9.4,
+          "do": "clock",
+          "cmd": "toEnd"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "badge",
+          "from": 0.3,
+          "to": 8.0,
+          "pos": "top-right",
+          "tone": "record",
+          "text": "実際の出力の記録"
+        },
+        {
+          "kind": "text",
+          "from": 2.5,
+          "to": 12,
+          "pos": "bottom",
+          "size": "md",
+          "text": "AI は下見するだけ。外部通信も実行の権限もありません"
+        },
+        {
+          "kind": "text",
+          "from": 8.6,
+          "to": 12,
+          "pos": "top-left",
+          "size": "md",
+          "text": "点線 ＝ AI が見つけた経路（ルールで検証済み）"
+        },
+        {
+          "kind": "zoom",
+          "from": 9.6,
+          "to": 12,
+          "target": "vendor-remote",
+          "scale": 1.7
+        }
+      ]
+    },
+    {
+      "n": 7,
       "id": "verdict",
       "route": "#/staff",
-      "overlay": "none",
+      "overlay": "conclusion",
       "actions": [
         {
           "at": 0,
@@ -117,38 +360,50 @@
           "ids": []
         },
         {
-          "at": 0,
-          "do": "answers",
-          "list": [
-            {
-              "assetId": "admin",
-              "mitigation": "M1026",
-              "status": "absent",
-              "evidence": "vendor",
-              "answeredBy": "保守ベンダー",
-              "noteJa": "管理者パスワードは全 PC で共通"
-            }
-          ]
-        },
-        {
-          "at": 1,
+          "at": 0.5,
           "do": "clock",
           "cmd": "toEnd"
         },
         {
-          "at": 1.2,
-          "do": "scroll",
-          "to": ".verdict"
+          "at": 9.0,
+          "do": "overlay",
+          "id": "none"
         },
         {
-          "at": 10,
+          "at": 9.2,
           "do": "scroll",
           "to": ".timeline"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "dim",
+          "from": 0,
+          "to": 2.0,
+          "opacity": 1,
+          "fadeIn": 0.01,
+          "fadeOut": 0.3
+        },
+        {
+          "kind": "badge",
+          "from": 2.0,
+          "to": 15,
+          "pos": "top-right",
+          "tone": "fiction",
+          "text": "デモ精工（架空）"
+        },
+        {
+          "kind": "text",
+          "from": 5.0,
+          "to": 15,
+          "pos": "bottom-left",
+          "size": "sm",
+          "text": "この判定は、AI ではなく、ルールと会社カルテで決めています"
         }
       ]
     },
     {
-      "n": 7,
+      "n": 8,
       "id": "one-move",
       "route": "#/staff",
       "overlay": "none",
@@ -164,50 +419,83 @@
           "to": ".btn.measure"
         },
         {
-          "at": 1,
+          "at": 0.4,
           "do": "clock",
           "cmd": "speed",
           "speed": 2
         },
         {
-          "at": 1.5,
+          "at": 1.2,
           "do": "measures",
           "ids": ["vpn-mfa"]
         },
         {
-          "at": 4,
+          "at": 5.4,
           "do": "scroll",
           "to": "top"
         },
         {
-          "at": 9.5,
-          "do": "scroll",
-          "to": ".btn.measure"
-        },
-        {
-          "at": 10.5,
+          "at": 6.0,
           "do": "measures",
           "ids": ["vpn-update"]
         },
         {
-          "at": 12,
+          "at": 10.0,
           "do": "scroll",
           "to": "top"
         },
         {
-          "at": 14.5,
+          "at": 11.6,
           "do": "measures",
           "ids": []
         },
         {
-          "at": 15,
+          "at": 12.0,
           "do": "overlay",
           "id": "slot:comparison"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "zoom",
+          "from": 2.4,
+          "to": 5.0,
+          "target": "vpn",
+          "scale": 2.0
+        },
+        {
+          "kind": "zoom",
+          "from": 7.0,
+          "to": 9.6,
+          "target": "vpn",
+          "scale": 2.0
+        },
+        {
+          "kind": "badge",
+          "from": 12.0,
+          "to": 20,
+          "pos": "top-right",
+          "tone": "record",
+          "text": "実際の出力の記録"
+        },
+        {
+          "kind": "walls",
+          "from": 17.0,
+          "to": 20,
+          "size": "strip",
+          "standing": ["advisor", "time"],
+          "fallen": ["expert"],
+          "crumble": [
+            {
+              "wall": "advisor",
+              "at": 17.6
+            }
+          ]
         }
       ]
     },
     {
-      "n": 8,
+      "n": 9,
       "id": "reply-boss",
       "route": "#/onepager?profile=demo-seiko&case=ipa-case-1&measures=",
       "overlay": "none",
@@ -223,28 +511,77 @@
           "to": "top"
         },
         {
-          "at": 3,
+          "at": 1.8,
           "do": "scroll",
           "to": ".op-stopped"
         },
         {
-          "at": 5.5,
+          "at": 3.4,
           "do": "scroll",
           "to": ".op-measures"
         },
         {
-          "at": 8,
+          "at": 5.1,
           "do": "overlay",
           "id": "chat-reply"
+        }
+      ],
+      "layers": [
+        {
+          "kind": "walls",
+          "from": 10.0,
+          "to": 13,
+          "size": "strip",
+          "standing": ["time"],
+          "fallen": ["expert", "advisor"],
+          "crumble": [
+            {
+              "wall": "time",
+              "at": 10.6
+            }
+          ]
+        },
+        {
+          "kind": "dim",
+          "from": 11.3,
+          "to": 13,
+          "opacity": 0.78,
+          "fadeIn": 0.6,
+          "fadeOut": 0
+        },
+        {
+          "kind": "text",
+          "from": 11.6,
+          "to": 13,
+          "pos": "center",
+          "size": "xl",
+          "serif": true,
+          "fade": 0.5,
+          "text": "数分で、根拠つきで"
         }
       ]
     },
     {
-      "n": 9,
-      "id": "how-it-works",
+      "n": 10,
+      "id": "how-built",
       "route": "#/",
-      "overlay": "endcard",
-      "actions": []
+      "overlay": "endcard-roles",
+      "actions": [
+        {
+          "at": 12,
+          "do": "overlay",
+          "id": "endcard-trace"
+        }
+      ],
+      "layers": []
+    },
+    {
+      "n": 11,
+      "id": "closing",
+      "route": "#/",
+      "overlay": "endcard-close",
+      "actions": [],
+      "layers": []
     }
   ]
 }
