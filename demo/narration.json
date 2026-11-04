@@ -99,7 +99,7 @@
       "id": "verdict",
       "titleJa": "結論",
       "targetSeconds": 15,
-      "leadSilenceSeconds": 2,
+      "leadSilenceSeconds": 2.6,
       "textJa": "結論です。うちの会社は、大丈夫ではありませんでした。業務は最長十日止まり、売上への影響は約一億円。個人情報の報告期限も、時間軸に並びます。",
       "subtitleJa": [
         "結論です。うちの会社は、大丈夫ではありませんでした。",

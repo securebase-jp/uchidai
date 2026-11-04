@@ -1,14 +1,21 @@
 /**
- * デモの差し込み口に入れる部品：AI攻撃者、ベンダーへの確認、知見なし AI との並置の実際の画面を、
+ * デモの差し込み口に入れる部品：AI攻撃者、ベンダーへの確認（記録から）、知見なし AI との並置の実際の画面を、
  * 場面の途中から自動で動かして重ねる。時刻は、その差し込み口が出てからの経過秒数（elapsed）。
  */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { OutboxItem } from "../components/OutboxPanel.tsx";
 import { useAiAttacker } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
-import { useRequests } from "../hooks/useRequests.tsx";
 import "../components/requests.css";
+import vendorRequestJson from "../../../../../demo/recordings/vendor-request.demo-seiko.json";
+import type { ReplyRequest, RequestView } from "../../shared/requests.ts";
+import {
+  answerFromReply,
+  parseVendorRequestRecording,
+  requestFromRecording,
+  type VendorRequestRecording,
+} from "../../shared/vendorRequestRecording.ts";
 import type { ComparedMitigation } from "../lib/attackerApi.ts";
 import type { SlotProps } from "./slots.tsx";
 
@@ -136,34 +143,47 @@ export function ComparisonSlot({ elapsed }: SlotProps) {
 }
 
 /**
- * ベンダーへの確認：場面に入ったら管理者権限（M1026）の確認依頼を 1 件作っておき（画面には出さない）、
- * 絵コンテの操作（click / fill）で「ベンダーに確認する」→ 番号つきのメール → 返信の番号を入力 → 判定の更新、を実際の部品で動かす。
- * 返信の入力は本物の画面と同じ（POST /api/requests/:id/reply → 判定に反映）。
- * 前回の実演で回答済みになった依頼は使わない（毎回「回答待ち」の依頼が 1 件できる）。
+ * ベンダーへの確認：絵コンテの操作（click / fill）で「ベンダーに確認する」→ 番号つきのメール → 返信の番号を入力 →
+ * 判定の更新、を、本物の送信箱の部品（OutboxItem）で動かす。
+ * 依頼は、Claude で実際に生成して残した記録（demo/recordings/vendor-request.demo-seiko.json）から組み立てる。
+ * サーバにも送信箱にも依頼を作らず、Claude も呼ばない（作成が遅く、文面も毎回変わるため。毎回同じ映像になる）。
+ * 返信の入力は、サーバの recordReply と同じ形の回答（answerFromReply）を作り、本物と同じく判定に反映する。
  */
+const REQUEST_RECORDING: VendorRequestRecording = parseVendorRequestRecording(vendorRequestJson);
+
 export function RequestSlot(_props: SlotProps) {
   const app = useApp();
-  const req = useRequests();
-  const [id, setId] = useState<string>();
+  const { addAnswer, removeAnswer } = app;
   const [asked, setAsked] = useState(false);
-  const started = useRef(false);
-  useEffect(() => {
-    if (started.current || id || !app.profile || req.busyKey) return;
-    const open = req.items.find(
-      (r) => r.assetId === "admin" && r.mitigation === "M1026" && !r.answer,
-    );
-    if (open) {
-      started.current = true;
-      setId(open.id);
-      return;
-    }
-    started.current = true;
-    void req.create("admin", "M1026").then((r) => setId(r?.id));
-  }, [app.profile, req, id]);
+  const [item, setItem] = useState<RequestView>(() => requestFromRecording(REQUEST_RECORDING));
 
-  const item = req.items.find((r) => r.id === id);
-  const mit = app.knowledge?.labels.mitigations.M1026 ?? "管理者の権限";
-  const assetLabel = item?.assetLabel ?? "管理者アカウント";
+  const reply = useCallback(
+    async (_id: string, body: ReplyRequest): Promise<string | undefined> => {
+      const answer = answerFromReply(REQUEST_RECORDING, body);
+      const choice = REQUEST_RECORDING.choiceMap.find((c) => c.id === body.choice);
+      if (!answer || !choice) return "回答を入力できませんでした";
+      addAnswer(answer);
+      const enteredBy = body.enteredBy?.trim();
+      setItem((it) => ({
+        ...it,
+        answeredBy: answer.answeredBy,
+        ...(answer.answeredAt ? { answeredAt: answer.answeredAt } : {}),
+        ...(enteredBy ? { enteredBy } : {}),
+        enteredAt: new Date().toISOString(),
+        answer: { choice: choice.id, choiceLabelJa: choice.labelJa, input: answer },
+      }));
+      return undefined;
+    },
+    [addAnswer],
+  );
+  const retract = useCallback(async (): Promise<string | undefined> => {
+    removeAnswer(REQUEST_RECORDING.assetId, REQUEST_RECORDING.mitigation);
+    setItem(requestFromRecording(REQUEST_RECORDING));
+    return undefined;
+  }, [removeAnswer]);
+
+  const mit =
+    app.knowledge?.labels.mitigations[item.mitigation] ?? item.background.mitigationLabelJa;
   return (
     <div className="demo-slot full vendor">
       <div className="panel">
@@ -171,20 +191,19 @@ export function RequestSlot(_props: SlotProps) {
         <div className="req-row">
           <div className="what">
             <b>
-              {assetLabel}　{mit}（<code>M1026</code>）
+              {item.assetLabel}　{mit}（<code>{item.mitigation}</code>）
             </b>
             <span className="chip on-path">この攻撃の経路：管理者の権限</span>
           </div>
           {asked ? (
-            <span className="st amber">{item?.answer ? "回答あり" : "依頼済み・回答待ち"}</span>
+            <span className="st amber">{item.answer ? "回答あり" : "依頼済み・回答待ち"}</span>
           ) : (
             <button type="button" className="btn sm primary ask-btn" onClick={() => setAsked(true)}>
               ベンダーに確認する
             </button>
           )}
         </div>
-        {asked && item && <OutboxItem item={item} onReply={req.reply} onRetract={req.retract} />}
-        {asked && !item && <p className="muted">依頼のメールを作っています…</p>}
+        {asked && <OutboxItem item={item} onReply={reply} onRetract={retract} />}
       </div>
     </div>
   );
