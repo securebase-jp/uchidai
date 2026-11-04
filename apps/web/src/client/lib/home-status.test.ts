@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type HomeInput, homeSteps } from "./home-status.ts";
+import { currentStepId, defaultFormatDateTime, type HomeInput, homeSteps } from "./home-status.ts";
 
 const fmt = (iso: string) => `日時(${iso})`;
 const empty: HomeInput = {
@@ -131,5 +131,67 @@ describe("homeSteps（トップの 5 段と「いまの状態」）", () => {
     expect(byDefault?.tone).toBe("done");
     expect(byDefault?.statusJa).toBe("記録済みの事例 1 を使用中：VPN の事例");
     expect(byDefault?.noteJa).toContain("既定の事例");
+  });
+});
+
+describe("短い状態（カードに出す語）と、いまの段", () => {
+  it("何も無いとき：未実施・未回答・カルテなし・未選択・待ち。いまの段は 2（任意の 1 は飛ばす）", () => {
+    const steps = homeSteps(empty);
+    expect(steps.map((s) => s.shortJa)).toEqual([
+      "未実施",
+      "未回答",
+      "カルテなし",
+      "未選択",
+      "待ち",
+    ]);
+    expect(currentStepId(steps)).toBe("questions");
+  });
+
+  it("外部確認は「確認済み」か「架空のドメイン」。事例は「事例 1」か「記事」", () => {
+    const real = homeSteps({
+      ...empty,
+      recon: { domain: "example.jp", fixture: false, checkedAt: "x" },
+      profile: { companyName: "A", fictional: false, pending: 3 },
+      profileSource: "answers",
+      theCase: { title: "T", recordedId: "ipa-case-1", chosen: true },
+    });
+    expect(real.map((s) => s.shortJa)).toEqual([
+      "確認済み",
+      "回答済み",
+      "未確認 3 件",
+      "事例 1",
+      "見られる",
+    ]);
+    // 未確認が残る 3 がいまの段
+    expect(currentStepId(real)).toBe("profile");
+    const fixture = homeSteps({
+      ...empty,
+      recon: { domain: "demo-seiko.example", fixture: true, checkedAt: "x" },
+      theCase: { title: "T" },
+    });
+    expect(fixture[0]?.shortJa).toBe("架空のドメイン");
+    expect(fixture[3]?.shortJa).toBe("記事");
+  });
+
+  it("架空の会社と事例がそろえば、いまの段は最後の 5", () => {
+    const steps = homeSteps({
+      ...empty,
+      profile: { companyName: "デモ", fictional: true, pending: 4 },
+      profileSource: "example",
+      theCase: { title: "T", recordedId: "ipa-case-2", chosen: true },
+    });
+    expect(steps.map((s) => s.shortJa)).toEqual([
+      "未実施",
+      "架空の会社",
+      "架空の会社",
+      "事例 2",
+      "見られる",
+    ]);
+    expect(currentStepId(steps)).toBe("result");
+  });
+
+  it("日時は月/日の短い形", () => {
+    expect(defaultFormatDateTime("2026-11-03T12:00:00Z")).toBe("11/3");
+    expect(defaultFormatDateTime("壊れた値")).toBe("壊れた値");
   });
 });
