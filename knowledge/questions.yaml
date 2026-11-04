@@ -59,7 +59,7 @@ questions:
         labelJa: 工事現場（現場事務所・仮設）
         industries: [construction]
         siteBusiness:
-          name: 施工管理（現場）
+          name: 現場の施工管理
           roles: [core, pc]
           # 建設業の「施工管理」と同じ値。現場事務所の PC からも工程・原価を扱うので pc も止まる元にする
           manualDays: 2
@@ -71,7 +71,7 @@ questions:
         labelJa: 資材置き場・倉庫
         industries: [construction]
         siteBusiness:
-          name: 資材管理（置き場）
+          name: 置き場の資材管理
           roles: [core]
           # 製造業の出荷より手作業が少し長い（紙の出庫票で回せる）。復旧は建設業の中核システムと同じ
           manualDays: 3
@@ -117,7 +117,7 @@ questions:
         labelJa: データセンター・サーバルーム（自社運用）
         industries: [it]
         siteBusiness:
-          name: サーバ運用（自社）
+          name: 自社サーバの運用
           roles: [server, core]
           # 預かっているサービスは手作業で代替できない（0 日）。復旧は製造業の中核システムと同程度、
           # 切り離したバックアップがあれば再構築が早い。クラウドの中核システムでも core があるので消えない

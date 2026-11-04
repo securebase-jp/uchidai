@@ -133,20 +133,18 @@ describe("現場の回答が足す業務（業種×現場の全組み合わせ�
     }
   });
 
-  it("建設業×工事現場は「施工管理」を「施工管理（現場）」に置き換え、現場事務所の PC でも止まる", () => {
+  it("建設業×工事現場は「施工管理」を「現場の施工管理」に置き換え、現場事務所の PC でも止まる", () => {
     const p = make("construction", "construction_site");
     expect(p.businesses.map((b) => b.name)).toEqual([
       "見積・受注",
-      "施工管理（現場）",
+      "現場の施工管理",
       "資材・調達",
       "請求・精算",
     ]);
     const biz = p.businesses.find((b) => b.id === "biz-construction");
     expect(biz?.assetIds).toEqual(expect.arrayContaining(["core", "pc"]));
     const g = buildGraph(p, k.roles);
-    expect(g.nodes.some((n) => n.label === "施工管理（現場）" && n.layer === "business")).toBe(
-      true,
-    );
+    expect(g.nodes.some((n) => n.label === "現場の施工管理" && n.layer === "business")).toBe(true);
   });
 
   it("医療×介護・福祉施設は「診療」を「介護・ケア」に置き換える（診療と二重にならない）", () => {
@@ -159,14 +157,14 @@ describe("現場の回答が足す業務（業種×現場の全組み合わせ�
   it("置き換えるものが無い現場は、業務を 1 つ足す（5 つ目）", () => {
     const yard = make("construction", "yard").businesses;
     expect(yard).toHaveLength(5);
-    expect(yard.at(-1)?.name).toBe("資材管理（置き場）");
+    expect(yard.at(-1)?.name).toBe("置き場の資材管理");
     expect(make("manufacturing", "warehouse").businesses.at(-1)?.name).toBe("倉庫・物流");
     expect(make("finance", "store").businesses.at(-1)?.name).toBe("店頭・窓口");
   });
 
   it("情報通信×データセンターは中核がクラウドでも業務が消えない。客先常駐は PC に依存する", () => {
     const dc = make("it", "datacenter", "cloud").businesses.find(
-      (b) => b.name === "サーバ運用（自社）",
+      (b) => b.name === "自社サーバの運用",
     );
     expect(dc?.assetIds).toEqual(["core"]);
     expect(make("it", "datacenter").businesses.at(-1)?.assetIds.sort()).toEqual(["core", "server"]);

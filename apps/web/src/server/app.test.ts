@@ -370,7 +370,7 @@ describe("POST /api/profile/from-answers", () => {
     expect(body.graph.nodes.map((n: { id: string }) => n.id)).toContain("vendor-remote");
     expect(body.profile.businesses[0].recoveryDays).toBe(14);
   });
-  it("建設業×工事現場は、施工管理（現場）が業務の層に出る。古い回答の値（工場）も受け付ける", async () => {
+  it("建設業×工事現場は、現場の施工管理が業務の層に出る。古い回答の値（工場）も受け付ける", async () => {
     const answers = {
       industry: "construction",
       site: "construction_site",
@@ -382,11 +382,11 @@ describe("POST /api/profile/from-answers", () => {
     expect(body.profile.pattern).toBe("construction");
     expect(body.profile.businesses.map((b: { name: string }) => b.name)).toEqual([
       "見積・受注",
-      "施工管理（現場）",
+      "現場の施工管理",
       "資材・調達",
       "請求・精算",
     ]);
-    expect(body.graph.nodes.some((n: { label: string }) => n.label === "施工管理（現場）")).toBe(
+    expect(body.graph.nodes.some((n: { label: string }) => n.label === "現場の施工管理")).toBe(
       true,
     );
     const old = await loose(
