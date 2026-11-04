@@ -39,13 +39,17 @@ export function loadQuestions(): Question[] {
         options: keys.map((k) => ({ value: k, labelJa: q.optionLabelsJa?.[k] ?? k })),
       };
     }
-    const opts = (q.options ?? []) as { value: string; labelJa: string }[];
+    const opts = (q.options ?? []) as { value: string; labelJa: string; industries?: string[] }[];
     return {
       id: q.id as "industry" | "site" | "remoteAccess" | "backup",
       textJa: q.textJa,
       ...(q.hintJa ? { hintJa: q.hintJa } : {}),
       multi: q.multi === true,
-      options: opts.map((o) => ({ value: o.value, labelJa: o.labelJa })),
+      options: opts.map((o) => ({
+        value: o.value,
+        labelJa: o.labelJa,
+        ...(o.industries ? { industries: o.industries } : {}),
+      })),
     };
   });
   return cached;

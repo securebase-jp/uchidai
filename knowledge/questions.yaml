@@ -24,15 +24,20 @@ questions:
   - id: site
     textJa: 現場はありますか？
     options:
+      # industries：この選択肢を出す業種（industry の value）。無ければすべての業種に出す。
+      # 製造・建設に診療所は無い、のように、業種に合わない現場は出さない
       - value: factory
         labelJa: 工場・倉庫
         siteBusinessJa: 生産ライン
+        industries: [manufacturing, wholesale_service, other]
       - value: store
         labelJa: 店舗
         siteBusinessJa: 店頭
+        industries: [wholesale_service, finance, other]
       - value: clinic
         labelJa: 診療所・施設
         siteBusinessJa: 診療
+        industries: [healthcare]
       - value: office_only
         labelJa: 事務所のみ
   - id: hosting

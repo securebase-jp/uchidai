@@ -9,6 +9,7 @@ import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { layoutGraph } from "../lib/layout.ts";
+import { optionsForIndustry } from "../lib/question-options.ts";
 import { reconHints } from "../lib/reconHints.ts";
 import { hintLabel } from "../lib/reconView.ts";
 import type { Graph, ProfileAnswers, Question } from "../lib/types.ts";
@@ -257,7 +258,7 @@ export function Questions({ reduced }: { reduced: boolean }) {
               </>
             ) : (
               <div className="opts">
-                {q.options.map((o) => (
+                {optionsForIndustry(q.options, answers.industry).map((o) => (
                   <button
                     type="button"
                     key={o.value}

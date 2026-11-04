@@ -58,6 +58,8 @@ export const Answers = z.array(AnswerInput).max(200).default([]);
 export type QuestionOption = {
   value: string;
   labelJa: string;
+  /** この選択肢を出す業種（最初の問の回答）。無ければすべての業種に出す */
+  industries?: string[];
 };
 export type Question =
   | {
