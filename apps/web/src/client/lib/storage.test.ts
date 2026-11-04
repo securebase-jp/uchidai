@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { parseSavedCase, parseSavedProfile } from "./storage.ts";
 
 const good = {
@@ -62,5 +62,27 @@ describe("parseSavedCase（担当者が選んだ事例の保存）", () => {
     expect(parseSavedCase(null)).toBeUndefined();
     expect(parseSavedCase("{")).toBeUndefined();
     expect(parseSavedCase(JSON.stringify({ case: { title: "t" }, meta: {} }))).toBeUndefined();
+  });
+});
+
+describe("会社の「未選択に戻す」の印（localStorage）", () => {
+  const mem = new Map<string, string>();
+  beforeEach(() => {
+    mem.clear();
+    (globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    };
+  });
+  it("押したら印が付き、選び直したら外れる。自社のカルテの保存には触らない", async () => {
+    const { storage } = await import("./storage.ts");
+    expect(storage.loadNoCompany()).toBe(false);
+    mem.set("uchidai.profile.v1", "{}");
+    storage.saveNoCompany();
+    expect(storage.loadNoCompany()).toBe(true);
+    expect(mem.has("uchidai.profile.v1")).toBe(true);
+    storage.clearNoCompany();
+    expect(storage.loadNoCompany()).toBe(false);
   });
 });

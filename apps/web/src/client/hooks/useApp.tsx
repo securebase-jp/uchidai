@@ -58,6 +58,10 @@ export type AppState = {
   loadExample(id: string): Promise<void>;
   setProfile(p: CompanyProfile, source: ProfileSource): void;
   clearProfile(): void;
+  /** 上部バーの会社を未選択に戻す（自社のカルテの保存は消さない）。再読み込みでも未選択のまま */
+  deselectCompany(): void;
+  /** 上部バーの事例を未選択に戻す（保存した事例の選択だけを外す） */
+  deselectCase(): void;
   /** カルテを初期値に戻す：架空の会社は examples/ から読み直し、自社は 5 問の回答から作り直す（登録した詳細は消える） */
   resetProfile(): Promise<void>;
   setCase(c: Case, meta: CaseMeta): void;
@@ -84,12 +88,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [ownProfile, setOwnProfile] = useState<CompanyProfile | undefined>(() =>
     urlProfileId() ? undefined : storage.loadProfile(),
   );
+  // 「未選択に戻す」を押していたときは、再読み込みでも会社を選んでいない状態から始める（自社の保存は残る）
+  const noCompany = useMemo(() => !urlProfileId() && storage.loadNoCompany(), []);
   const rememberedExample = useMemo(
-    () => (urlProfileId() ? undefined : storage.loadExampleId()),
-    [],
+    () => (urlProfileId() || noCompany ? undefined : storage.loadExampleId()),
+    [noCompany],
   );
   const [profile, setProfileState] = useState<CompanyProfile | undefined>(() =>
-    rememberedExample ? undefined : ownProfile,
+    rememberedExample || noCompany ? undefined : ownProfile,
   );
   const [profileSource, setProfileSource] = useState<ProfileSource | undefined>(() =>
     profile ? "saved" : undefined,
@@ -123,6 +129,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // 自社のカルテ（5 問の回答、カルテ画面の保存）は localStorage に保存する。架空の会社は保存しない
   const setProfile = useCallback((p: CompanyProfile, source: ProfileSource) => {
+    storage.clearNoCompany();
     setProfileState(p);
     setProfileSource(source);
     if (source !== "example") {
@@ -130,6 +137,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       storage.clearExampleId();
       setOwnProfile(p);
     }
+    setMeasureIds([]);
+    setAnswers([]);
+  }, []);
+  const deselectCompany = useCallback(() => {
+    storage.clearExampleId();
+    storage.saveNoCompany();
+    setProfileState(undefined);
+    setProfileSource(undefined);
+    setEvaluation(undefined);
+    setMeasureIds([]);
+    setAnswers([]);
+  }, []);
+  const deselectCase = useCallback(() => {
+    storage.clearCase();
+    setCaseState(undefined);
+    setCaseMeta(undefined);
+    setCaseChosen(false);
+    setEvaluation(undefined);
     setMeasureIds([]);
     setAnswers([]);
   }, []);
@@ -181,6 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return;
       }
       storage.clearExampleId();
+      storage.clearNoCompany();
       setProfileState(ownProfile);
       setProfileSource("saved");
       setMeasureIds([]);
@@ -286,6 +312,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadExample,
       setProfile,
       clearProfile,
+      deselectCompany,
+      deselectCase,
       resetProfile,
       setCase,
       loadRecorded,
@@ -313,6 +341,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadExample,
       setProfile,
       clearProfile,
+      deselectCompany,
+      deselectCase,
       resetProfile,
       setCase,
       loadRecorded,

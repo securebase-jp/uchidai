@@ -10,6 +10,8 @@ const KEY = "uchidai.profile.v1";
 const CASE_KEY = "uchidai.case.v1";
 /** 上部バーで選んだ架空の会社の ID（自社のカルテとは別に覚える。自社の保存は消さない） */
 const EXAMPLE_KEY = "uchidai.example.v1";
+/** 上部バーで「未選択に戻す」を押した印（再読み込みでも会社を選んでいない状態にする。自社の保存は消さない） */
+const NO_COMPANY_KEY = "uchidai.company.none.v1";
 const THEME_KEY = "uchidai.theme";
 const MOTION_KEY = "uchidai.reduceMotion";
 
@@ -105,6 +107,9 @@ export const storage = {
     }, undefined),
   saveExampleId: (id: string) => safe(() => localStorage.setItem(EXAMPLE_KEY, id), undefined),
   clearExampleId: () => safe(() => localStorage.removeItem(EXAMPLE_KEY), undefined),
+  loadNoCompany: (): boolean => safe(() => localStorage.getItem(NO_COMPANY_KEY) === "1", false),
+  saveNoCompany: () => safe(() => localStorage.setItem(NO_COMPANY_KEY, "1"), undefined),
+  clearNoCompany: () => safe(() => localStorage.removeItem(NO_COMPANY_KEY), undefined),
   theme: (): "dark" | "light" | undefined =>
     safe(() => {
       const t = Theme.safeParse(localStorage.getItem(THEME_KEY));

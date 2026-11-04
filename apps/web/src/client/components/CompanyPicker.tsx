@@ -54,7 +54,19 @@ export function CompanyChip() {
           "会社を選ぶ"
         )
       }
-      items={items}
+      items={
+        p
+          ? [
+              ...items.map((it, i) =>
+                i === items.length - 1 ? { ...it, dividerAfter: true } : it,
+              ),
+              { key: "none", labelJa: "未選択に戻す", onPick: app.deselectCompany },
+            ]
+          : items
+      }
+      {...(p && app.ownProfile
+        ? { note: "未選択に戻しても、保存した自社のカルテは消えません。" }
+        : {})}
       emptyJa="架空の会社の一覧を読み込んでいます…"
     />
   );
@@ -111,7 +123,16 @@ export function CaseChip() {
             : "事例を選ぶ"
         }
         {...(label && label.length > CASE_MAX ? { note: `いまの事例：${label}` } : {})}
-        items={items}
+        items={
+          label
+            ? [
+                ...items.map((it, i) =>
+                  i === items.length - 1 ? { ...it, dividerAfter: true } : it,
+                ),
+                { key: "none", labelJa: "未選択に戻す", onPick: app.deselectCase },
+              ]
+            : items
+        }
         emptyJa="記録済みの事例を読み込んでいます…"
       />
       {articleOpen && <ArticleBubble placement="topbar" onClose={() => setArticleOpen(false)} />}
