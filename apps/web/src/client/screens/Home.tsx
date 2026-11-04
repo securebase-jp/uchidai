@@ -4,13 +4,15 @@
  * 画面の文字は最小限にする：仕組みや安全面の説明は各段の見出し横の情報ボタン（i）の中にだけ出す。
  * 架空の会社（デモ精工）で試す導線とデモモードは脇に置く。
  */
+import { Check, Circle, CircleCheck, CircleDashed, TriangleAlert } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { ArticleInput, type RecordedItem } from "../components/ArticleInput.tsx";
 import { CaseChoiceList, CompanyChoiceList } from "../components/CompanyPicker.tsx";
+import "../components/flow.css";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
-import { type HomeStep, homeSteps, type StepId } from "../lib/home-status.ts";
+import { currentStepId, type HomeStep, homeSteps, type StepId } from "../lib/home-status.ts";
 import { pendingCount } from "../lib/profile.ts";
 import { reconHints } from "../lib/reconHints.ts";
 
@@ -20,6 +22,70 @@ const TONE_WORD: Record<HomeStep["tone"], string> = {
   optional: "任意",
   warn: "要確認",
 };
+/** 上部の進み具合の丸の下に出す、段の短い名前 */
+const SHORT_TITLE: Record<StepId, string> = {
+  domain: "ドメイン",
+  questions: "5問",
+  profile: "カルテ",
+  article: "事例",
+  result: "結論",
+};
+
+/** カードの状態の印（済・未・任意・要確認を、形と色で。読み上げ名は語） */
+function ToneMark({ tone }: { tone: HomeStep["tone"] }) {
+  const Icon = { done: CircleCheck, todo: Circle, optional: CircleDashed, warn: TriangleAlert }[
+    tone
+  ];
+  return (
+    <span
+      className={`st-icon tone-${tone === "done" ? "green" : tone === "warn" ? "amber" : "gray"}`}
+      role="img"
+      aria-label={TONE_WORD[tone]}
+    >
+      <Icon size={16} strokeWidth={2.2} aria-hidden="true" />
+    </span>
+  );
+}
+
+/** 上部の進み具合：5 つの丸を線でつなぐ。済は ✓、任意は点線の丸、いまの段は強調。押すとその段のカードへ移る */
+function Progress({ steps, current }: { steps: HomeStep[]; current: StepId }) {
+  const jump = (id: StepId) => {
+    const el = document.getElementById(`step-${id}`);
+    if (!el) return;
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    el.scrollIntoView({ behavior: calm ? "auto" : "smooth", block: "start" });
+  };
+  return (
+    <nav className="flow-progress" aria-label="進み具合">
+      <ol>
+        {steps.map((s, i) => (
+          <li
+            key={s.id}
+            className={`fp-node tone-${s.tone}${s.id === current ? " current" : ""}${steps[i - 1]?.tone === "done" ? " link-done" : ""}`}
+          >
+            <button
+              type="button"
+              onClick={() => jump(s.id)}
+              aria-current={s.id === current ? "step" : undefined}
+              aria-label={`${s.n}　${s.titleJa}：${s.shortJa}`}
+            >
+              <span className="fp-dot" aria-hidden="true">
+                {s.tone === "done" ? (
+                  <Check size={16} strokeWidth={3} />
+                ) : s.tone === "warn" ? (
+                  <TriangleAlert size={15} strokeWidth={2.4} />
+                ) : (
+                  s.n
+                )}
+              </span>
+              <span className="fp-label">{SHORT_TITLE[s.id]}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
 /** 各段の情報ボタンに出す説明（段の定義 leadJa のあとに続ける段落）。箇条書きにせず、です・ます調で書く */
 const STEP_INFO: Record<StepId, { title: string; paragraphs: string[] }> = {
   domain: {
@@ -94,6 +160,7 @@ export function Home() {
   );
 
   const current = app.caseMeta?.recorded?.caseId;
+  const nowStep = currentStepId(steps);
   const ready = Boolean(app.profile && app.theCase);
 
   return (
@@ -119,9 +186,11 @@ export function Home() {
         </div>
       </section>
 
+      <Progress steps={steps} current={nowStep} />
+
       <ol className="steps">
         {steps.map((s) => (
-          <li className={`card step tone-${s.tone}`} key={s.id}>
+          <li className={`card step tone-${s.tone}`} key={s.id} id={`step-${s.id}`}>
             <div className="step-head">
               <span className="step-n" aria-hidden="true">
                 {s.n}
@@ -129,6 +198,7 @@ export function Home() {
               <h2>
                 {s.titleJa}
                 <InfoButton title={STEP_INFO[s.id].title}>
+                  <p>いまの状態：{s.statusJa}</p>
                   <p>{s.leadJa}</p>
                   {s.noteJa && <p>{s.noteJa}</p>}
                   {STEP_INFO[s.id].paragraphs.map((t) => (
@@ -137,8 +207,8 @@ export function Home() {
                 </InfoButton>
               </h2>
               <span className="step-status">
-                <b className={`step-tag ${s.tone}`}>{TONE_WORD[s.tone]}</b>
-                {s.statusJa}
+                <ToneMark tone={s.tone} />
+                {s.shortJa}
               </span>
             </div>
             {s.id === "article" ? (

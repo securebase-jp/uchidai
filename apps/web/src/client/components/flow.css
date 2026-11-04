@@ -206,3 +206,104 @@
   display: block;
   margin-top: 2px;
 }
+
+/* ---- はじめに：上部の進み具合（5 つの丸を線でつなぐ） ---- */
+.flow-progress {
+  margin: 14px 0 16px;
+}
+.flow-progress ol {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+.fp-node {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* 前の丸からの線（前の段が済みなら緑） */
+.fp-node + .fp-node::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  right: 50%;
+  width: 100%;
+  border-top: 2px solid var(--edge-strong);
+  z-index: 0;
+}
+.fp-node.link-done::before {
+  border-top-color: var(--green);
+}
+.fp-node.tone-optional::before {
+  border-top-style: dashed;
+}
+.fp-node button {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  font: inherit;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.fp-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 2px solid var(--edge-strong);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.fp-node.tone-done .fp-dot {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--bg);
+}
+.fp-node.tone-warn .fp-dot {
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.fp-node.tone-optional .fp-dot {
+  border-style: dashed;
+}
+.fp-node.current .fp-dot {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cyan) 22%, transparent);
+}
+.fp-node button:focus-visible .fp-dot {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.fp-node.current.tone-done .fp-dot {
+  color: var(--bg);
+  background: var(--green);
+}
+.fp-node.current.tone-warn .fp-dot {
+  border-color: var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--amber) 22%, transparent);
+}
+.fp-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.fp-node.current .fp-label {
+  color: var(--ink);
+}
+.step-status .st-icon {
+  flex: none;
+}
