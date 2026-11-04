@@ -314,6 +314,7 @@ export function Staff({ settings }: { settings: Settings }) {
               measures={knowledge.measures}
               selected={measureIds}
               verdict={evaluation?.verdict}
+              graph={graphNow}
               costs={evaluation?.measureCosts}
               onToggle={app.toggleMeasure}
               onClear={app.clearMeasures}

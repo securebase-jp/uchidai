@@ -2,7 +2,7 @@
 import { type ImpactTile, impactTiles } from "../lib/conclusion.ts";
 import { yen } from "../lib/labels.ts";
 import type { Verdict } from "../lib/types.ts";
-import { SourceRef } from "./SourceRef.tsx";
+import { StaffSourceRef } from "./StaffSourceRef.tsx";
 
 export function ImpactTiles({ verdict }: { verdict: Verdict }) {
   const tiles = impactTiles(verdict, yen);
@@ -21,13 +21,7 @@ function Tile({ tile }: { tile: ImpactTile }) {
     <div className={`vt-tile ${tile.hot ? "hot" : "none"}`}>
       <dt>
         {tile.label}
-        {tile.key === "report" && tile.hot && (
-          <SourceRef
-            id="ppc-guidelines"
-            n={1}
-            titleJa="個人情報保護委員会「ガイドライン（通則編）」"
-          />
-        )}
+        {tile.key === "report" && tile.hot && <StaffSourceRef id="ppc-guidelines" />}
       </dt>
       <dd>
         <span className="vt-val">{tile.value}</span>

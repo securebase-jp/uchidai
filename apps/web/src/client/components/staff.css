@@ -410,3 +410,218 @@
     font-size: 12px;
   }
 }
+
+/* 対策 × 段階の表：行＝対策、列＝経路の段階、セル＝効く（●）／効かない（×）。--n は列の数 */
+.mx {
+  display: block;
+  width: 100%;
+}
+.mx thead,
+.mx tbody {
+  display: grid;
+  gap: 6px;
+}
+.mx thead {
+  margin-bottom: 6px;
+}
+.mx th {
+  font-weight: inherit;
+  text-align: left;
+}
+.mx-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(170px, 1.5fr) repeat(var(--n), minmax(60px, 1fr)) minmax(
+      120px,
+      1.2fr
+    );
+  gap: 0 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.mx-row.on {
+  border-color: var(--steel);
+}
+.mx-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.mx-row.off .mx-name {
+  opacity: 0.7;
+}
+.mx-head {
+  background: transparent;
+  border-color: transparent;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  align-items: end;
+}
+.mx-col {
+  text-align: center;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+/* 名前のボタンを行いっぱいに広げ、行のどこを押しても対策が入る（印の × は前に出す） */
+.mx-row .btn.measure {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+}
+/* 押している間の 1px の沈み（.btn:active）は、::after の基準を名前のボタンに縮めて、行の押せる範囲を消してしまう */
+.mx-row .btn.measure:active {
+  transform: none;
+}
+.mx-row .btn.measure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+.mx-row .btn.measure[aria-pressed="true"] {
+  box-shadow: none;
+}
+.mx-row .btn.measure:focus-visible::after {
+  outline: 2px solid var(--focus);
+}
+.mx-row:hover:not(.on) {
+  border-color: var(--edge-strong);
+}
+.mx-fx {
+  font-size: 12px;
+  font-weight: 700;
+}
+.mx-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 28px;
+}
+.mx-ok {
+  color: var(--green);
+  font-size: 18px;
+  line-height: 1;
+}
+/* 行いっぱいに広がる名前のボタンより前に出す。吹き出しを開いている間は、後ろの行の × より前 */
+.mx-pop {
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.mx-pop:has(.info-pop) {
+  z-index: 5;
+}
+.mx-x {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--red) 55%, var(--edge));
+  background: transparent;
+  color: var(--red);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.mx-x:hover,
+.mx-x[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.mx-none {
+  grid-column: span var(--n);
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 6px;
+}
+.mx-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.mx-tag.dashed {
+  border-style: dashed;
+}
+.mx-cost {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+.mx-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--edge) 55%, transparent);
+  overflow: hidden;
+}
+.mx-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--steel);
+}
+.mx-cost-text {
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.mx-clear {
+  margin-top: 8px;
+}
+@media (max-width: 720px) {
+  .mx-head {
+    display: none;
+  }
+  .mx-row {
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 6px 4px;
+  }
+  .mx-name,
+  .mx-cost {
+    grid-column: 1 / -1;
+  }
+  .mx-cost {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .mx-bar {
+    flex: 1;
+  }
+  .mx-none {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .mx-cell {
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+  }
+  .mx-cell::after {
+    content: attr(data-stage);
+    font-size: 10px;
+    line-height: 1.25;
+    color: var(--ink-3);
+    overflow-wrap: anywhere;
+  }
+}
