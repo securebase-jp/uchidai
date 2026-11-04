@@ -47,13 +47,13 @@ describe("絵コンテと原稿の整合", () => {
     expect(total).toBe(narration.totalTargetSeconds);
     expect(total).toBeLessThanOrEqual(180);
   });
-  it("11 場面で、読み上げは 750 字前後に収まり、先頭の無音は場面の長さより短い", () => {
+  it("11 場面で、読み上げは 800 字以内に収まり（実際の音声は各場面の長さに収まることを確かめてある）、先頭の無音は場面の長さより短い", () => {
     expect(narration.scenes).toHaveLength(11);
     const chars = narration.scenes.reduce(
       (n, s) => n + s.textJa.replace(/[\s「」『』、。・！？!?（）()：:…—]/g, "").length,
       0,
     );
-    expect(chars).toBeLessThanOrEqual(760);
+    expect(chars).toBeLessThanOrEqual(800);
     for (const s of narration.scenes) {
       expect(s.leadSilenceSeconds ?? 0).toBeLessThan(s.targetSeconds);
       // 読み上げは読みで書く（字幕には正式表記を残す）

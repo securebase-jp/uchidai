@@ -252,6 +252,8 @@
   --bubble-staff-ink: #ffffff;
   width: min(900px, 92vw);
   height: min(760px, 86vh);
+  /* 動画で読みやすいよう、窓ごと大きくする（文字も同じ比率） */
+  zoom: 1.3;
   background: var(--panel);
   border: 1px solid var(--edge);
   border-radius: 18px;
@@ -417,10 +419,26 @@
   font-size: 12px;
   color: var(--ink-3);
 }
+.chat-card-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-family: var(--sans, inherit);
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: color-mix(in srgb, var(--red) 80%, #000);
+}
 .chat-card-title {
   font-weight: 700;
   font-size: 19px;
   margin: 2px 0;
+}
+.chat-card-summary {
+  font-size: 14px;
+  color: var(--ink);
+  margin: 2px 0 4px;
 }
 .chat-card.sheet .chat-card-title {
   font-family: var(--serif);
@@ -779,6 +797,86 @@
   opacity: 1;
   color: var(--green);
   font-weight: 700;
+}
+
+/* AI の点検役：怖い印象を避け、守る側の点検として見せる（配色は青緑、ハッカー風の赤い記号を使わない） */
+.demo-slot.attacker {
+  --violet: var(--cyan);
+}
+.demo-slot.attacker .ai-panel > h2,
+.demo-slot.attacker .ai-panel > .row:first-of-type {
+  display: none;
+}
+.demo-slot.attacker .term .pr {
+  color: var(--cyan);
+}
+/* 動画で読めるよう、ログの文字を大きくする */
+.demo-slot.attacker .ai-term .ln {
+  font-size: 19px;
+  line-height: 1.55;
+}
+.demo-slot.attacker .ai-term {
+  max-height: 520px;
+}
+.ai-safe {
+  margin-bottom: 14px;
+}
+.ai-safe-title {
+  margin: 0 0 10px;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--cyan);
+}
+.ai-safe-title span {
+  margin-left: 16px;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+.ai-safe-chips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ai-safe-chips li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--cyan) 50%, var(--edge));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 90%, var(--cyan));
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.35s,
+    transform 0.35s;
+}
+.ai-safe-chips li.in {
+  opacity: 1;
+  transform: none;
+}
+.ai-safe-chips b {
+  font-size: 24px;
+  color: var(--cyan);
+}
+.ai-safe-chips small {
+  font-size: 18px;
+  color: var(--ink-2);
+}
+.ai-safety-check {
+  margin-left: auto;
+  color: var(--green);
+  font-weight: 700;
+}
+.ai-safety-check small {
+  margin-left: 10px;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink-2);
 }
 
 /* 知見なし AI との並置 */

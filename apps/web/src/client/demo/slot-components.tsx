@@ -22,6 +22,12 @@ import type { SlotProps } from "./slots.tsx";
 /** AiAttackerPanel が 1 行ずつ出す間隔（秒）。検証の瞬間を、ログを出し終えた時刻に合わせる */
 const LOG_LINE_SECONDS = 0.42;
 const VERIFY_POINTS = ["手法 ID", "役割", "つながり", "判定ルール"];
+/** 動画での見せ方：攻撃ではなく「守る側の点検」。AI がしないことを、実際の仕組みの事実だけで 3 つ並べる */
+const AI_SAFETY_CHIPS = [
+  { head: "会社の外に出ない", body: "通信も実行の権限もなく、渡すのは役割だけに抽象化したカルテ" },
+  { head: "手順・コマンドは出さない", body: "手法の分類の水準まで。製品名も出力させない" },
+  { head: "ルールで検証して、通ったものだけ", body: "手法 ID・役割・つながり・判定ルールの 4 点" },
+];
 
 /**
  * AI攻撃者：場面に入ったら記録した下見の出力を再生し（毎回同じ映像にする）、過程と結果を表示。
@@ -39,7 +45,20 @@ export function AiAttackerSlot({ elapsed }: SlotProps) {
   if (!app.evaluation || !app.knowledge) return null;
   const t = elapsed - (ai.log.length * LOG_LINE_SECONDS + 0.4);
   return (
-    <div className="demo-slot full">
+    <div className="demo-slot full attacker">
+      <header className="ai-safe">
+        <p className="ai-safe-title">
+          AI の点検役 <span>攻撃者の目線で、弱点を先に探す（守る側のための点検）</span>
+        </p>
+        <ul className="ai-safe-chips">
+          {AI_SAFETY_CHIPS.map((c, i) => (
+            <li key={c.head} className={elapsed >= 0.6 + i * 0.5 ? "in" : ""}>
+              <b>{c.head}</b>
+              <small>{c.body}</small>
+            </li>
+          ))}
+        </ul>
+      </header>
       <AiAttackerPanel
         graph={app.evaluation.graph}
         verdict={app.evaluation.verdict}
@@ -59,6 +78,9 @@ export function AiAttackerSlot({ elapsed }: SlotProps) {
                 ✓ {p}
               </span>
             ))}
+          </span>
+          <span className="ai-safety-check" role="status">
+            安全検査 ✓<small>手順・コマンド・製品名なし</small>
           </span>
         </div>
       )}

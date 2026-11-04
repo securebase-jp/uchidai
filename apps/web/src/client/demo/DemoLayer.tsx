@@ -238,6 +238,12 @@ function DemoRunner({
   }, [ready, autostart, player, startIndex]);
 
   const scene = player.scene;
+  // 同じ文を字で出している間は、画面の字幕を重ねない（二重に見えるため）
+  const captionHidden =
+    scene?.board.layers.some(
+      (l) =>
+        l.kind === "text" && l.hideCaption && player.elapsed >= l.from && player.elapsed < l.to,
+    ) ?? false;
   const audioCount = scenes?.filter((s) => s.audioUrl).length ?? 0;
   const total = scenes?.reduce((n, s) => n + s.seconds, 0) ?? 0;
 
@@ -315,7 +321,7 @@ function DemoRunner({
         />
       )}
 
-      {captions && scene && (
+      {captions && scene && !captionHidden && (
         <div className="demo-caption" aria-live="off">
           <span>{cueAt({ ...scene, seconds: player.seconds }, player.elapsed)}</span>
         </div>

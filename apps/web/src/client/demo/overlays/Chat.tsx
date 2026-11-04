@@ -12,6 +12,10 @@ type Props = { variant: Variant; elapsed: number; seconds: number };
 const IPA_TITLE = "被害事例1：VPN装置の脆弱性悪用によるランサムウェア感染";
 const IPA_SUB = "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）";
 const IPA_HOST = "ipa.go.jp";
+/** サイバー攻撃の被害を伝える記事だと、前提知識のない人にも分かるようにする札と要約（題は実際の事例のまま） */
+const IPA_TAG = "サイバー攻撃";
+const IPA_SUMMARY =
+  "ランサムウェア（データを人質に取るサイバー攻撃）で、製造業の業務が止まった事例";
 
 /** 開始秒 from から 1 秒あたり cps 文字を打つ */
 function typed(text: string, elapsed: number, from: number, cps = 9): string {
@@ -82,11 +86,27 @@ function Bubble({
   );
 }
 
-function LinkCard({ title, sub, host }: { title: string; sub: string; host: string }) {
+function LinkCard({
+  title,
+  sub,
+  host,
+  tag,
+  summary,
+}: {
+  title: string;
+  sub: string;
+  host: string;
+  tag?: string;
+  summary?: string;
+}) {
   return (
     <div className="chat-card">
-      <div className="chat-card-host">{host}</div>
+      <div className="chat-card-host">
+        {tag && <span className="chat-card-tag">{tag}</span>}
+        {host}
+      </div>
       <div className="chat-card-title">{title}</div>
+      {summary && <div className="chat-card-summary">{summary}</div>}
       <div className="chat-card-sub">{sub}</div>
     </div>
   );
@@ -115,7 +135,15 @@ export function ChatOverlay({ variant, elapsed }: Props) {
       <Bubble
         who="boss"
         time="8:41"
-        card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+        card={
+          <LinkCard
+            title={IPA_TITLE}
+            sub={IPA_SUB}
+            host={IPA_HOST}
+            tag={IPA_TAG}
+            summary={IPA_SUMMARY}
+          />
+        }
       />
       <Bubble who="boss" time="8:41">
         これ、うちは大丈夫？
@@ -137,7 +165,15 @@ export function ChatOverlay({ variant, elapsed }: Props) {
                 <Bubble
                   who="boss"
                   time="8:41"
-                  card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+                  card={
+                    <LinkCard
+                      title={IPA_TITLE}
+                      sub={IPA_SUB}
+                      host={IPA_HOST}
+                      tag={IPA_TAG}
+                      summary={IPA_SUMMARY}
+                    />
+                  }
                 />
               )}
               {elapsed >= 4 && (

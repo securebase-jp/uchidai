@@ -43,40 +43,41 @@
       "layers": [
         {
           "kind": "dim",
-          "from": 11.8,
-          "to": 15,
+          "from": 10.4,
+          "to": 17.5,
           "opacity": 0.9,
-          "fadeIn": 2.0,
+          "fadeIn": 1.6,
           "fadeOut": 0
         },
         {
           "kind": "walls",
-          "from": 12.0,
-          "to": 15,
+          "from": 10.6,
+          "to": 17.5,
           "size": "big",
           "rise": [
             {
               "wall": "expert",
-              "at": 12.2
+              "at": 11.0
             },
             {
               "wall": "advisor",
-              "at": 12.7
+              "at": 11.6
             },
             {
               "wall": "time",
-              "at": 13.2
+              "at": 12.2
             }
           ]
         },
         {
           "kind": "text",
-          "from": 13.0,
-          "to": 15,
+          "from": 10.8,
+          "to": 17.5,
           "pos": "bottom",
           "size": "lg",
           "fade": 0.5,
-          "text": "大企業には、専門チームがいる。この人には、いない。"
+          "text": "大企業にはセキュリティ専門のチームがあるけれど、うちの会社にはそれがない。",
+          "hideCaption": true
         }
       ]
     },
@@ -109,7 +110,7 @@
         {
           "kind": "walls",
           "from": 14.0,
-          "to": 18,
+          "to": 16.5,
           "size": "strip",
           "standing": ["advisor", "time"],
           "crumble": [
@@ -308,11 +309,11 @@
         },
         {
           "kind": "text",
-          "from": 2.5,
+          "from": 8.0,
           "to": 12,
           "pos": "bottom",
           "size": "md",
-          "text": "AI は下見するだけ。外部通信も実行の権限もありません"
+          "text": "AI は点検するだけ。見つけた入口には、止める対策もセットで示します"
         },
         {
           "kind": "text",

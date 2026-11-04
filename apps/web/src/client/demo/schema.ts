@@ -105,6 +105,8 @@ export const Layer = z.discriminatedUnion("kind", [
     size: z.enum(["xl", "lg", "md", "sm"]).default("md"),
     serif: z.boolean().default(false),
     fade: z.number().nonnegative().default(0.4),
+    /** この文と同じ読み上げを画面の字幕で重ねて出さない（字幕ファイルには残る） */
+    hideCaption: z.boolean().default(false),
     when: LayerFlag.optional(),
   }),
   /** 札：「架空の会社」「実際の記録」 */
