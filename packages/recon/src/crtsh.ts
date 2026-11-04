@@ -7,7 +7,7 @@ import { z } from "zod";
 import { FileCache } from "./cache.ts";
 import type { FetchLike } from "./proxy.ts";
 import { crtshUrl, restrictedFetch } from "./safe-fetch.ts";
-import type { CtLogSource, ReconCache } from "./sources.ts";
+import type { CtLogSource, CtRunInfo, ReconCache } from "./sources.ts";
 import { CtCertificate, normalizeDomain } from "./types.ts";
 
 /** crt.sh の JSON 出力の 1 行（使う項目だけ） */
@@ -66,6 +66,8 @@ export class CrtShSource implements CtLogSource {
   private readonly cache: ReconCache;
   private readonly fetchImpl: FetchLike | undefined;
   private readonly timeoutMs: number | undefined;
+  /** 取得に成功したドメイン（lastRun 用） */
+  private readonly ran = new Set<string>();
 
   constructor(options: CrtShOptions = {}) {
     this.cache = options.cache ?? new FileCache();
@@ -73,11 +75,18 @@ export class CrtShSource implements CtLogSource {
     this.timeoutMs = options.timeoutMs;
   }
 
+  lastRun(domain: string): CtRunInfo | undefined {
+    return this.ran.has(normalizeDomain(domain)) ? { provider: "crtsh", notesJa: [] } : undefined;
+  }
+
   async listCertificates(domain: string): Promise<CtCertificate[]> {
     const normalized = normalizeDomain(domain);
     const key = `crtsh:${normalized}`;
     const cached = await this.cache.get(key);
-    if (cached !== undefined) return z.array(CtCertificate).parse(JSON.parse(cached));
+    if (cached !== undefined) {
+      this.ran.add(normalized);
+      return z.array(CtCertificate).parse(JSON.parse(cached));
+    }
 
     const response = await restrictedFetch(crtshUrl(normalized), {
       ...(this.fetchImpl ? { fetch: this.fetchImpl } : {}),
@@ -104,6 +113,7 @@ export class CrtShSource implements CtLogSource {
     // 0 件は保存しない。発行したばかりの証明書が公開ログに載るまで数時間かかることがあり、
     // 空の応答を 24 時間覚えると、その間はやり直しても同じ結果になってしまう
     if (certificates.length > 0) await this.cache.set(key, JSON.stringify(certificates));
+    this.ran.add(normalized);
     return certificates;
   }
 }

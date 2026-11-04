@@ -16,6 +16,7 @@
  */
 export * from "./answers.ts";
 export * from "./cache.ts";
+export * from "./certspotter.ts";
 export * from "./contradictions.ts";
 export * from "./crtsh.ts";
 export * from "./dns-node.ts";
