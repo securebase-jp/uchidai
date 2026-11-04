@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "damageTypes": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "shortJa": {
+            "type": "string"
+          },
+          "readingHintJa": {
+            "type": "string"
+          },
+          "day0": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "business_stop",
+                  "partner",
+                  "legal",
+                  "insurance",
+                  "police",
+                  "recovery",
+                  "money"
+                ]
+              },
+              "labelJa": {
+                "type": "string"
+              },
+              "sourceJa": {
+                "type": "string"
+              },
+              "showMoneyLoss": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "kind",
+              "labelJa",
+              "showMoneyLoss"
+            ],
+            "additionalProperties": false
+          },
+          "reachesMoney": {
+            "default": false,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "shortJa",
+          "readingHintJa",
+          "day0",
+          "reachesMoney"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "damageTypes"
+  ],
+  "additionalProperties": false
+}

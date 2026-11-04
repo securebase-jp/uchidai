@@ -6,7 +6,7 @@
  */
 
 import { damageTypeOf, formatJpy, pathsOf } from "./impact.ts";
-import { type DeadlinesFile, type Knowledge, loadDeadlines } from "./knowledge.ts";
+import { type DeadlinesFile, type Knowledge, loadDeadlines, loadKnowledge } from "./knowledge.ts";
 import type { CompanyProfile, DamageType, Impact, TimelineEvent, Verdict } from "./types.ts";
 
 export type TimelineOptions = {
@@ -41,27 +41,22 @@ export function buildTimeline(
   const events: TimelineEvent[] = [];
   const push = (e: TimelineEvent) => events.push(e);
 
-  // Day 0：何が起きるか
-  if (damageType === "bec") {
+  // Day 0：何が起きるか（出来事は damage-types.yaml の day0）
+  // 型紙に紐づかない経路（AI 攻撃者の経路）は種類が決まらないので、先頭の種類の出来事を使う
+  const types = options.knowledge?.damageTypes ?? loadKnowledge().damageTypes;
+  const day0 = (types.find((d) => d.id === damageType) ?? types[0])?.day0;
+  if (day0) {
     push({
       day: 0,
-      kind: "money",
-      labelJa: "なりすましの指示で送金してしまう",
-      ...(impact.moneyLossJpy !== undefined
+      kind: day0.kind,
+      labelJa: day0.labelJa,
+      ...(day0.showMoneyLoss && impact.moneyLossJpy !== undefined
         ? {
             detailJa: `送金額の目安 ${formatJpy(impact.moneyLossJpy)}（会社カルテの想定額）`,
             sourceJa: "会社カルテ（送金額の目安）",
           }
         : {}),
-    });
-  } else if (damageType === "data_breach") {
-    push({ day: 0, kind: "legal", labelJa: "個人情報の流出が発覚する" });
-  } else {
-    push({
-      day: 0,
-      kind: "business_stop",
-      labelJa: "侵入され、社内のシステムが暗号化される",
-      sourceJa: "判定した攻撃経路",
+      ...(day0.sourceJa ? { sourceJa: day0.sourceJa } : {}),
     });
   }
 
@@ -169,8 +164,8 @@ export function buildTimeline(
         });
         break;
       }
-      case "bec": {
-        if (damageType !== "bec" || d.days === undefined) break;
+      case "damage_type": {
+        if (!damageType || !d.damageTypes?.includes(damageType) || d.days === undefined) break;
         push({ ...base, day: d.days, labelJa: d.labelJa, detailJa: d.basisJa });
         break;
       }

@@ -1,0 +1,37 @@
+# 被害の種類
+# 型紙（templates/*.yaml）の damageType は、ここの id を指す。1 つの種類に型紙を複数持てる。
+# 新しい攻撃を足すときは、ここに 1 件足し、型紙・判定ルール・（必要なら）役割を足す。コードは変えない。
+# out_of_scope（攻撃経路では判定できない事故）は組み込みなので、ここには書かない。
+#
+# id：英小文字・数字・アンダースコア。型紙の damageType、会社の評価データ、読解の出力に使う
+# labelJa：画面に出す名前
+# shortJa：Claude への出力指示で使う短い言い方（「〜=○○」の形で並べる）
+# readingHintJa：Claude が記事を読むときの分類基準。他の種類との境目が分かるように書く
+# day0：時間軸の最初に置く出来事（発覚日）。showMoneyLoss は、送金額の目安を添える
+# reachesMoney：到達すると送金額の目安を出す種類（なりすまし送金など）
+# 型紙に紐づかない経路（AI 攻撃者の経路）は種類が決まらないので、先頭の種類の day0 を使う
+damageTypes:
+  - id: ransomware
+    labelJa: 業務停止（ランサムウェア）
+    shortJa: 暗号化・業務停止
+    readingHintJa: ランサムウェアによる暗号化・業務停止。データの持ち出しやリークサイトでの公開（二重恐喝）を伴っていても ransomware
+    day0:
+      kind: business_stop
+      labelJa: 侵入され、社内のシステムが暗号化される
+      sourceJa: 判定した攻撃経路
+  - id: bec
+    labelJa: なりすまし送金（ビジネスメール詐欺）
+    shortJa: なりすまし・送金詐欺
+    readingHintJa: 社長・役員・取引先などになりすました送金指示（メール、チャット、SNS、電話を問わない）で資金を送金させる詐欺。アカウントの乗っ取りの有無は問わない
+    day0:
+      kind: money
+      labelJa: なりすましの指示で送金してしまう
+      showMoneyLoss: true
+    reachesMoney: true
+  - id: data_breach
+    labelJa: 情報漏えい
+    shortJa: 情報漏えい
+    readingHintJa: 外部の攻撃者による不正アクセス（脆弱性の悪用、認証情報の悪用、Web サイトの改ざん）やクラウドの公開設定の誤りで、顧客・従業員などの情報が外部に出たもの
+    day0:
+      kind: legal
+      labelJa: 個人情報の流出が発覚する

@@ -4,7 +4,7 @@
  * 数字はすべて会社カルテと固定データ（knowledge/deadlines.yaml）から決定的に計算する。
  * 外部統計からの損害額の推計はしない（売上影響は「1 日あたりの売上 × 停止日数」の目安だけ）。
  */
-import { type DeadlinesFile, type Knowledge, loadDeadlines } from "./knowledge.ts";
+import { type DeadlinesFile, type Knowledge, loadDeadlines, loadKnowledge } from "./knowledge.ts";
 import type {
   AttackPath,
   CompanyProfile,
@@ -41,19 +41,16 @@ export function hasRecoverableStep(paths: AttackPath[]): boolean {
   return reached.length > 0 && reached.every((p) => p.steps.some((s) => s.state === "recoverable"));
 }
 
-/** 経路の型紙 ID から事例の種類を引く（型紙 ID は damageType と同名） */
+/** 経路の型紙 ID から事例の種類を引く */
 export function damageTypeOf(
   input: Pick<Verdict, "paths"> | AttackPath[],
   knowledge?: Knowledge,
 ): DamageType | undefined {
   const first = pathsOf(input).find((p) => p.templateId)?.templateId;
   if (!first) return undefined;
-  const t = knowledge?.templates.find((x) => x.id === first);
-  if (t) return t.damageType;
-  const parsed = DamageTypeValues.find((d) => d === first);
-  return parsed;
+  const templates = knowledge?.templates ?? loadKnowledge().templates;
+  return templates.find((x) => x.id === first)?.damageType;
 }
-const DamageTypeValues: DamageType[] = ["ransomware", "bec", "data_breach", "out_of_scope"];
 
 /** 到達した個人情報に、報告義務の条件（規則第7条）を当てはめる。攻撃経路による到達はすべて不正アクセス由来とみなす */
 export function reportReasons(
@@ -115,9 +112,10 @@ export function computeImpact(
   const personalDataReached = profile.personalData.filter((p) => reached.has(p.assetId));
   const reasons = reportReasons(personalDataReached, deadlines);
 
+  const damageTypes = options.knowledge?.damageTypes ?? loadKnowledge().damageTypes;
   const moneyReached =
     reachedPaths.length > 0 &&
-    (damageType === "bec" ||
+    (damageTypes.find((d) => d.id === damageType)?.reachesMoney === true ||
       reachedPaths.some((p) =>
         p.steps.some((s) => s.role === "impact.money" && s.state !== "blocked"),
       ));

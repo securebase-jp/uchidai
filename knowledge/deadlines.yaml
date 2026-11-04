@@ -104,7 +104,8 @@ deadlines:
     kind: money
     labelJa: 送金元の銀行へ組戻しを依頼
     days: 0
-    appliesTo: bec
+    appliesTo: damage_type
+    damageTypes: [bec]
     basisJa: 送金してしまった場合は、速やかに送金元の銀行に送金のキャンセルや組戻しを依頼する（目安）
     sourceId: mpd-bec
     status: confirmed

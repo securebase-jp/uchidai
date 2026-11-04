@@ -27,7 +27,7 @@ const safe = <T>(fn: () => T, fallback: T): T => {
 const SavedProfile = z.looseObject({
   id: z.string().min(1),
   companyName: z.string(),
-  pattern: z.enum(["manufacturing", "construction", "office", "healthcare"]),
+  pattern: z.string().min(1), // 構成パターンの id（存在はサーバの CompanyProfile.parse と knowledge:check が確かめる）
   assets: z.array(
     z.looseObject({
       id: z.string(),

@@ -127,9 +127,16 @@
               "insurance",
               "partner",
               "police",
-              "bec",
+              "damage_type",
               "all"
             ]
+          },
+          "damageTypes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*$"
+            }
           },
           "basisJa": {
             "type": "string"

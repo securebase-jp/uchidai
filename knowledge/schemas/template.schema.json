@@ -7,12 +7,7 @@
     },
     "damageType": {
       "type": "string",
-      "enum": [
-        "ransomware",
-        "bec",
-        "data_breach",
-        "out_of_scope"
-      ]
+      "pattern": "^[a-z][a-z0-9_]*$"
     },
     "labelJa": {
       "type": "string"

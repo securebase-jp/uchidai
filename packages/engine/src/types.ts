@@ -20,7 +20,14 @@ export type MitigationId = z.infer<typeof MitigationId>;
 // ---------------------------------------------------------------------------
 // 記事から抽出した事例（packages/llm の出力。照合済みのものだけが engine に入る）
 // ---------------------------------------------------------------------------
-export const DamageType = z.enum(["ransomware", "bec", "data_breach", "out_of_scope"]);
+/**
+ * 被害の種類の id。一覧は knowledge/damage-types.yaml が決める（形だけここで見る）。
+ * out_of_scope は「攻撃経路では判定できない事故」を表す組み込みの値
+ */
+export const OUT_OF_SCOPE = "out_of_scope";
+export const DamageType = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]*$/, "被害の種類は英小文字・数字・_ で書く");
 export const Clarity = z.enum(["clear", "partial", "unknown"]);
 export const CaseStepSource = z.enum(["stated", "inferred", "unknown"]);
 
@@ -123,39 +130,20 @@ export const PersonalData = z.object({
   sensitive: z.boolean(),
 });
 
-/** 業種別の構成パターンの id（knowledge/profiles/*.yaml） */
-export const PatternId = z.enum(["manufacturing", "construction", "office", "healthcare"]);
+/** 業種別の構成パターンの id（knowledge/profiles/*.yaml。存在は checkKnowledge が確かめる） */
+export const PatternId = z.string().regex(/^[a-z][a-z0-9_]*$/);
 export type PatternId = z.infer<typeof PatternId>;
 
 /**
- * 最初の5問の「現場」の値。どの業種にどれを出すかは knowledge/questions.yaml の industries が決める。
- * factory / store / clinic / office_only は初期からある値で、保存済みの回答も読めるように残す
+ * 最初の5問の「現場」の値。選択肢とどの業種に出すかは knowledge/questions.yaml が決める
+ * （カルテの回答がその選択肢にあるかは checkKnowledge が確かめる）
  */
-export const Site = z.enum([
-  "factory",
-  "warehouse",
-  "construction_site",
-  "yard",
-  "store",
-  "clinic",
-  "care",
-  "datacenter",
-  "onsite_team",
-  "office_only",
-]);
+export const Site = z.string().regex(/^[a-z][a-z0-9_]*$/);
 export type Site = z.infer<typeof Site>;
 
-/** 最初の5問の回答 */
+/** 最初の5問の回答。業種の選択肢は knowledge/questions.yaml が決める */
 export const ProfileAnswers = z.object({
-  industry: z.enum([
-    "manufacturing",
-    "construction",
-    "wholesale_service",
-    "healthcare",
-    "it",
-    "finance",
-    "other",
-  ]),
+  industry: z.string().regex(/^[a-z][a-z0-9_]*$/),
   site: Site,
   hosting: z.object({
     mail: z.enum(["onprem", "cloud", "provider", "unknown"]),

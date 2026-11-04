@@ -21,42 +21,18 @@
     },
     "pattern": {
       "type": "string",
-      "enum": [
-        "manufacturing",
-        "construction",
-        "office",
-        "healthcare"
-      ]
+      "pattern": "^[a-z][a-z0-9_]*$"
     },
     "answers": {
       "type": "object",
       "properties": {
         "industry": {
           "type": "string",
-          "enum": [
-            "manufacturing",
-            "construction",
-            "wholesale_service",
-            "healthcare",
-            "it",
-            "finance",
-            "other"
-          ]
+          "pattern": "^[a-z][a-z0-9_]*$"
         },
         "site": {
           "type": "string",
-          "enum": [
-            "factory",
-            "warehouse",
-            "construction_site",
-            "yard",
-            "store",
-            "clinic",
-            "care",
-            "datacenter",
-            "onsite_team",
-            "office_only"
-          ]
+          "pattern": "^[a-z][a-z0-9_]*$"
         },
         "hosting": {
           "type": "object",

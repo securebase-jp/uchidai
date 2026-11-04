@@ -4,12 +4,7 @@
   "properties": {
     "id": {
       "type": "string",
-      "enum": [
-        "manufacturing",
-        "construction",
-        "office",
-        "healthcare"
-      ]
+      "pattern": "^[a-z][a-z0-9_]*$"
     },
     "labelJa": {
       "type": "string"

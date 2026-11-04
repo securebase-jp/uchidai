@@ -6,7 +6,8 @@ export const TechniqueId = z
   .string()
   .regex(/^T\d{4}(\.\d{3})?$/, "手法IDは T0000 または T0000.000 の形式");
 
-export const DamageType = z.enum(["ransomware", "bec", "data_breach", "out_of_scope"]);
+/** 被害の種類の id。一覧は knowledge/damage-types.yaml が決める（out_of_scope は組み込み） */
+export const DamageType = z.string().regex(/^[a-z][a-z0-9_]*$/);
 export const Clarity = z.enum(["clear", "partial", "unknown"]);
 export const StepSource = z.enum(["stated", "inferred", "unknown"]);
 export const VerdictResult = z.enum([

@@ -36,7 +36,8 @@ describe("parseSavedProfile（localStorage の検証）", () => {
     expect(parseSavedProfile("null")).toBeUndefined();
     expect(parseSavedProfile(JSON.stringify({ id: "x", companyName: "y" }))).toBeUndefined();
     expect(parseSavedProfile(JSON.stringify({ ...good, assets: "nope" }))).toBeUndefined();
-    expect(parseSavedProfile(JSON.stringify({ ...good, pattern: "retail" }))).toBeUndefined();
+    // 構成パターンは knowledge/profiles で増やせる。画面では形（空でない文字列）だけ見る
+    expect(parseSavedProfile(JSON.stringify({ ...good, pattern: "" }))).toBeUndefined();
     expect(parseSavedProfile(JSON.stringify({ ...good, assets: [{ id: "a" }] }))).toBeUndefined();
   });
 });

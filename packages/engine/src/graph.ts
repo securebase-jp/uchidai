@@ -2,7 +2,13 @@
  * 構成グラフの生成：会社カルテ（資産・業務・回答）→ Graph
  * 判定、経路探索、AI攻撃者の検証、描画はすべてこのグラフの上で行う。手で座標を置いた固定の図は持たない
  */
-import type { Pattern, RoleDef, SiteOption } from "./knowledge.ts";
+import {
+  type IndustryOption,
+  loadIndustries,
+  type Pattern,
+  type RoleDef,
+  type SiteOption,
+} from "./knowledge.ts";
 import type {
   Asset,
   CompanyProfile,
@@ -16,40 +22,6 @@ import type {
 } from "./types.ts";
 
 export const ATTACKER_NODE_ID = "attacker";
-
-/** 役割どうしの通信のつながり（役割の枠で定義し、会社ごとの資産に展開する） */
-const NETWORK_LINKS: [Role, Role][] = [
-  ["attacker", "entry.vpn"],
-  ["attacker", "entry.rdp"],
-  ["attacker", "entry.vendor_remote"],
-  ["attacker", "entry.web"],
-  ["attacker", "cloud.mail"],
-  ["attacker", "pc"],
-  ["attacker", "cloud.mail_account.exec"],
-  ["attacker", "cloud.storage"],
-  // 取引先を装う偽の請求メールは、アカウントの乗っ取りなしに経理担当へ直接届く（型紙 bec-invoice）
-  ["attacker", "person.accounting"],
-  ["entry.vpn", "pc"],
-  ["entry.vpn", "admin"],
-  ["entry.vpn", "server"],
-  ["entry.rdp", "pc"],
-  ["entry.rdp", "admin"],
-  ["entry.rdp", "server"],
-  ["cloud.mail", "pc"],
-  ["cloud.mail", "cloud.mail_account.exec"],
-  ["pc", "admin"],
-  ["pc", "server"],
-  ["admin", "server"],
-  ["server", "core"],
-  ["server", "file_server"],
-  ["server", "backup"],
-  ["backup", "core"],
-  ["cloud.mail_account.exec", "person.accounting"],
-  ["cloud.mail_account.exec", "person.exec"],
-  ["cloud.mail_account.exec", "person.staff"],
-  ["person.accounting", "cloud.accounting"],
-  ["pc", "cloud.storage"],
-];
 
 export function roleDefOf(role: Role, roles: RoleDef[]): RoleDef | undefined {
   return roles.find((r) => r.id === role);
@@ -90,10 +62,11 @@ export function buildGraph(profile: CompanyProfile, roles: RoleDef[]): Graph {
   }
 
   const byRole = (role: Role) => nodes.filter((n) => n.role === role);
-  for (const [r1, r2] of NETWORK_LINKS) {
-    for (const n1 of byRole(r1))
-      for (const n2 of byRole(r2)) addEdge(edge(n1.id, n2.id, "network"));
-  }
+  // 役割どうしの通信のつながりは roles.yaml の links（役割の枠で定義し、会社ごとの資産に展開する）
+  for (const def of roles)
+    for (const to of def.links)
+      for (const n1 of byRole(def.id))
+        for (const n2 of byRole(to)) addEdge(edge(n1.id, n2.id, "network"));
   // 社内に置いたホームページだけが社内のサーバ区画・管理者権限につながる（事業者側のホームページは社内へつながらない）
   for (const web of byRole("entry.web").filter((n) => n.side === "internal")) {
     for (const s of byRole("server")) addEdge(edge(web.id, s.id, "network"));
@@ -219,18 +192,19 @@ function asset(
   };
 }
 
-/** 業種の回答 → 構成パターン。questions.yaml の industry の pattern と同じ対応（knowledge.test.ts で突き合わせる） */
-export function patternIdOf(industry: ProfileAnswers["industry"]): PatternId {
-  switch (industry) {
-    case "manufacturing":
-      return "manufacturing";
-    case "construction":
-      return "construction";
-    case "healthcare":
-      return "healthcare";
-    default:
-      return "office";
-  }
+/**
+ * 業種の回答 → 構成パターン。対応は questions.yaml の industry の pattern が決める。
+ * 選択肢にない業種は「その他（other）」の構成パターン、それも無ければ office
+ */
+export function patternIdOf(
+  industry: ProfileAnswers["industry"],
+  industries: IndustryOption[] = loadIndustries(),
+): PatternId {
+  return (
+    industries.find((o) => o.value === industry)?.pattern ??
+    industries.find((o) => o.value === "other")?.pattern ??
+    "office"
+  );
 }
 
 /** 業務の層の上限（buildGraph が描くのは先頭の 5 つ） */

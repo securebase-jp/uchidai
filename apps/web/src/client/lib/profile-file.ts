@@ -60,7 +60,7 @@ export const ProfileFile = z.looseObject({
   fictional: z.boolean().default(false),
   domain: z.string().optional(),
   domainVerified: z.boolean().default(false),
-  pattern: z.enum(["manufacturing", "construction", "office", "healthcare"]),
+  pattern: z.string().min(1), // 構成パターンの id（存在はサーバの CompanyProfile.parse と knowledge:check が確かめる）
   employees: z.number().int().positive().optional(),
   assets: z.array(Asset).min(1, "資産が 1 つもありません"),
   businesses: z.array(Business),

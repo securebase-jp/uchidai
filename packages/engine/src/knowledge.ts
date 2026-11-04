@@ -2,7 +2,7 @@
  * 知識ファイル（knowledge/）と会社カルテ（examples/）の読み込みと検証
  */
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import { z } from "zod";
@@ -16,6 +16,7 @@ import {
   DamageType,
   Layer,
   MitigationId,
+  OUT_OF_SCOPE,
   PatternId,
   Role,
   Side,
@@ -27,17 +28,36 @@ import {
 } from "./types.ts";
 
 export const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-export const knowledgeDir = join(repoRoot, "knowledge");
+/**
+ * 知識ファイルの置き場。既定はリポジトリの knowledge/。
+ * 環境変数 UCHIDAI_KNOWLEDGE_DIR で別の場所（knowledge/ を複製して攻撃や業種を足したもの）に差し替えられる
+ */
+export const knowledgeDir = process.env.UCHIDAI_KNOWLEDGE_DIR
+  ? resolve(process.env.UCHIDAI_KNOWLEDGE_DIR)
+  : join(repoRoot, "knowledge");
 
 // ---------------------------------------------------------------------------
 // 役割・ラベル
 // ---------------------------------------------------------------------------
+/** 資産の属性の宣言。判定ルールと対策ボタンが使える属性は、役割ごとにここへ書いたものだけ */
+export const AttrDef = z.object({
+  type: z.enum(["boolean", "string", "number"]),
+  descriptionJa: z.string(),
+});
+export type AttrDef = z.infer<typeof AttrDef>;
 export const RoleDef = z.object({
   id: Role,
   labelJa: z.string(),
   layer: Layer,
   side: Side,
   descriptionJa: z.string().optional(),
+  /**
+   * この役割から通信で届く役割（構成グラフの通信の線になる）。
+   * 型紙の次の段階や AI 攻撃者の経路は、ここでつながっている役割の間でだけ組み立てる
+   */
+  links: z.array(Role).default([]),
+  /** この役割の資産が持てる属性（判定ルールの attr 条件、対策ボタンの attrs で使う名前） */
+  attrs: z.record(z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/), AttrDef).default({}),
 });
 export const RolesFile = z.object({ roles: z.array(RoleDef) });
 
@@ -145,6 +165,31 @@ export const Template = z.object({
 });
 export type Template = z.infer<typeof Template>;
 export type TemplateStage = z.infer<typeof TemplateStage>;
+
+// ---------------------------------------------------------------------------
+// 被害の種類（knowledge/damage-types.yaml）。型紙の damageType はここの id を指す
+// ---------------------------------------------------------------------------
+export const DamageTypeDef = z.object({
+  id: DamageType.refine((id) => id !== OUT_OF_SCOPE, "out_of_scope は組み込みなので定義しない"),
+  /** 画面に出す名前 */
+  labelJa: z.string(),
+  /** Claude への出力指示で使う短い言い方 */
+  shortJa: z.string(),
+  /** Claude が記事を読むときの分類基準 */
+  readingHintJa: z.string(),
+  /** 時間軸の最初に置く出来事 */
+  day0: z.object({
+    kind: TimelineEvent.shape.kind,
+    labelJa: z.string(),
+    sourceJa: z.string().optional(),
+    /** 送金額の目安（カルテの typicalTransferJpy）を添える */
+    showMoneyLoss: z.boolean().default(false),
+  }),
+  /** 到達すると送金額の目安を出す種類（なりすまし送金など） */
+  reachesMoney: z.boolean().default(false),
+});
+export const DamageTypesFile = z.object({ damageTypes: z.array(DamageTypeDef).min(1) });
+export type DamageTypeDef = z.infer<typeof DamageTypeDef>;
 
 // ---------------------------------------------------------------------------
 // 対策、業種別パターン、5問、入口候補
@@ -278,7 +323,9 @@ export const Deadline = z.object({
   daysFromProfile: z.enum(["cyberInsurance.notifyWithinDays"]).optional(),
   /** 日数ではなく出来事に相対して置く */
   placement: z.enum(["before_partner_impact"]).optional(),
-  appliesTo: z.enum(["report", "insurance", "partner", "police", "bec", "all"]),
+  /** damage_type は、damageTypes に挙げた被害の種類のときだけ置く */
+  appliesTo: z.enum(["report", "insurance", "partner", "police", "damage_type", "all"]),
+  damageTypes: z.array(DamageType).optional(),
   basisJa: z.string(),
   sourceId: z.string(),
   status: z.enum(["confirmed", "unverified"]),
@@ -407,6 +454,18 @@ export function loadSites(): SiteOption[] {
   const q = file.questions.find((x) => x.id === "site");
   return z.array(SiteOption).parse(q?.options ?? []);
 }
+/** questions.yaml の「業種」の選択肢と、それが指す構成パターン */
+export type IndustryOption = { value: string; labelJa: string; pattern: string };
+export function loadIndustries(): IndustryOption[] {
+  const file = QuestionsFile.parse(readYaml("questions.yaml"));
+  const q = file.questions.find((x) => x.id === "industry");
+  return z
+    .array(z.object({ value: z.string(), labelJa: z.string(), pattern: z.string() }))
+    .parse(q?.options ?? []);
+}
+export function loadDamageTypes(): DamageTypeDef[] {
+  return DamageTypesFile.parse(readYaml("damage-types.yaml")).damageTypes;
+}
 export function loadEntryCandidates(): EntryCandidates {
   return EntryCandidates.parse(readYaml("entry-candidates.yaml"));
 }
@@ -454,6 +513,8 @@ export type Knowledge = {
   rules: Rule[];
   measures: MeasureDef[];
   patterns: Pattern[];
+  /** 被害の種類（damage-types.yaml） */
+  damageTypes: DamageTypeDef[];
   /** 「現場」の選択肢と、それが足す現場の業務 */
   sites: SiteOption[];
   entryCandidates: EntryCandidates;
@@ -470,6 +531,7 @@ export function loadKnowledge(): Knowledge {
     rules: loadRules(),
     measures: loadMeasures(),
     patterns: loadPatterns(),
+    damageTypes: loadDamageTypes(),
     sites: loadSites(),
     entryCandidates: loadEntryCandidates(),
     deadlines: loadDeadlines(),
@@ -489,6 +551,20 @@ export function canonicalTechnique(id: string, attack: AttackData): string | und
   const target = replaced ?? id;
   const t = attack.techniques.find((x) => x.id === target);
   return t && !t.revoked ? t.id : undefined;
+}
+
+/** 条件式に出てくる attr の名前を集める */
+function attrKeysIn(conds: (Condition | undefined)[]): string[] {
+  const keys: string[] = [];
+  const walk = (c: Condition | undefined): void => {
+    if (!c) return;
+    if ("all" in c) c.all.forEach(walk);
+    else if ("any" in c) c.any.forEach(walk);
+    else if ("not" in c) walk(c.not);
+    else if ("attr" in c) keys.push(c.attr.key);
+  };
+  conds.forEach(walk);
+  return keys;
 }
 
 /** 知識ファイルと会社カルテの整合性を検証し、問題の一覧を返す */
@@ -518,6 +594,21 @@ export function checkKnowledge(profilePaths: string[]): string[] {
 
   const dup = roles.map((r) => r.id).filter((id, i, a) => a.indexOf(id) !== i);
   for (const id of dup) problems.push(`roles: ${id} が重複`);
+  for (const r of roles)
+    for (const to of r.links)
+      if (!isKnownRole(to, roles))
+        problems.push(`roles: ${r.id} の links ${to} は roles.yaml にない`);
+  if (!roles.some((r) => r.id === "attacker" && r.links.length > 0))
+    problems.push("roles: attacker に links（攻撃者が最初に届く役割）がない");
+  // 属性の宣言：役割 → 属性名 → 型。product / version は資産の項目なので宣言不要
+  const declaredAttr = (role: string, key: string) =>
+    key === "product" ||
+    key === "version" ||
+    roles.find((r) => r.id === role)?.attrs[key] !== undefined;
+  const attrTypeOk = (role: string, key: string, value: unknown) => {
+    const t = roles.find((r) => r.id === role)?.attrs[key]?.type;
+    return t === undefined || typeof value === t;
+  };
 
   const collect = <T>(label: string, fn: () => T): T | undefined => {
     try {
@@ -533,9 +624,18 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   for (const id of templateIds.filter((id, i) => templateIds.indexOf(id) !== i))
     problems.push(`templates: ${id} が重複`);
   // 被害の型ごとに複数の型紙を持てる。同じ型で priority が同じ型紙は、記事への当てはまりが同数のとき読み込み順で決まる
-  for (const dt of ["ransomware", "bec", "data_breach"] as const)
+  const damageTypes = collect("damage-types", loadDamageTypes) ?? [];
+  const damageTypeIds = new Set(damageTypes.map((d) => d.id));
+  for (const id of damageTypes.map((d) => d.id).filter((id, i, a) => a.indexOf(id) !== i))
+    problems.push(`damage-types: ${id} が重複`);
+  for (const dt of damageTypeIds)
     if (!templates.some((t) => t.damageType === dt))
-      problems.push(`templates: 被害の型 ${dt} の型紙がない`);
+      problems.push(`templates: 被害の種類 ${dt} の型紙がない`);
+  for (const t of templates)
+    if (!damageTypeIds.has(t.damageType))
+      problems.push(
+        `templates/${t.id}: 被害の種類 ${t.damageType} が damage-types.yaml にない（先に定義する）`,
+      );
   for (const t of templates) {
     if (t.stages.filter((s) => s.entry).length !== 1)
       problems.push(`templates/${t.id}: 入口（entry）の段階はちょうど 1 つにする`);
@@ -605,6 +705,13 @@ export function checkKnowledge(profilePaths: string[]): string[] {
     for (const i of r.ineffective)
       if (!knownMitigation(i.mitigation))
         problems.push(`rules/${r.id}: 効かない緩和策 ${i.mitigation} が未定義`);
+    // 条件式の属性名：宣言のない名前は書き間違いで、判定が静かに「未確認」へ流れるため、ここで止める
+    for (const key of attrKeysIn([
+      ...r.outcomes.map((o) => o.when),
+      ...r.ineffective.map((i) => i.when),
+    ]))
+      if (!declaredAttr(r.role, key))
+        problems.push(`rules/${r.id}: 属性 ${key} は roles.yaml の ${r.role} に宣言されていない`);
   }
 
   const measures = collect("measures", loadMeasures) ?? [];
@@ -616,6 +723,14 @@ export function checkKnowledge(profilePaths: string[]): string[] {
         problems.push(`measures/${m.id}: 役割 ${p.role} は roles.yaml にない`);
       if (!knownMitigation(p.mitigation))
         problems.push(`measures/${m.id}: 緩和策 ${p.mitigation} が未定義`);
+      for (const [key, value] of Object.entries(p.attrs ?? {})) {
+        if (!declaredAttr(p.role, key))
+          problems.push(
+            `measures/${m.id}: 属性 ${key} は roles.yaml の ${p.role} に宣言されていない`,
+          );
+        else if (!attrTypeOk(p.role, key, value))
+          problems.push(`measures/${m.id}: 属性 ${key} の型が roles.yaml の宣言と違う`);
+      }
     }
   }
 
@@ -665,8 +780,6 @@ export function checkKnowledge(profilePaths: string[]): string[] {
       if (!patternBusinessIds.has(id))
         problems.push(`questions/site: ${s.value} が置き換える業務 ${id} は profiles にない`);
   }
-  for (const v of Site.options)
-    if (!sites.some((s) => s.value === v)) problems.push(`questions/site: ${v} の選択肢がない`);
   for (const i of industryValues)
     if (!sites.some((s) => !s.industries || s.industries.includes(i)))
       problems.push(`questions/site: 業種 ${i} に出す現場の選択肢がない`);
@@ -680,6 +793,11 @@ export function checkKnowledge(profilePaths: string[]): string[] {
     for (const d of deadlines.deadlines) {
       if (!sourceIds.has(d.sourceId))
         problems.push(`deadlines/${d.id}: 出典 ${d.sourceId} が sources にない`);
+      if (d.appliesTo === "damage_type" && !(d.damageTypes?.length ?? 0))
+        problems.push(`deadlines/${d.id}: appliesTo が damage_type のときは damageTypes が必要`);
+      for (const dt of d.damageTypes ?? [])
+        if (!damageTypeIds.has(dt))
+          problems.push(`deadlines/${d.id}: 被害の種類 ${dt} が damage-types.yaml にない`);
       if (d.days === undefined && !d.daysFromProfile && !d.placement)
         problems.push(`deadlines/${d.id}: days、daysFromProfile、placement のいずれかが必要`);
       if (d.daysFrom !== undefined && d.days !== undefined && d.daysFrom > d.days)
@@ -768,9 +886,21 @@ export function checkKnowledge(profilePaths: string[]): string[] {
     const profile = collect(path, () => loadProfile(path));
     if (!profile) continue;
     const assetIds = new Set(profile.assets.map((a) => a.id));
+    if (!patterns.some((p) => p.id === profile.pattern))
+      problems.push(`${path}: 構成パターン ${profile.pattern} が profiles にない`);
+    if (profile.answers) {
+      if (!industryValues.has(profile.answers.industry))
+        problems.push(`${path}: 業種 ${profile.answers.industry} が questions.yaml にない`);
+      if (!sites.some((s) => s.value === profile.answers?.site))
+        problems.push(`${path}: 現場 ${profile.answers.site} が questions.yaml にない`);
+    }
     for (const a of profile.assets) {
       if (!isKnownRole(a.role, roles))
         problems.push(`${path}: 資産 ${a.id} の役割 ${a.role} は roles.yaml にない`);
+      // 宣言のある属性は型を確かめる（宣言のない属性は、外部確認が足す参考情報などとして許す）
+      for (const [key, value] of Object.entries(a.attrs))
+        if (!attrTypeOk(a.role, key, value))
+          problems.push(`${path}: 資産 ${a.id} の属性 ${key} の型が roles.yaml の宣言と違う`);
       for (const c of a.controls) {
         if (!knownMitigation(c.mitigation))
           problems.push(`${path}: 資産 ${a.id} の緩和策 ${c.mitigation} が未定義`);
@@ -802,6 +932,7 @@ export const schemaExports = {
   "rules.schema.json": RulesFile,
   "measures.schema.json": MeasuresFile,
   "pattern.schema.json": Pattern,
+  "damage-types.schema.json": DamageTypesFile,
   "entry-candidates.schema.json": EntryCandidates,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,

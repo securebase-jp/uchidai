@@ -7,15 +7,17 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { parse as parseYaml } from "yaml";
 import { buildGraph, MAX_BUSINESSES, patternIdOf, profileFromAnswers } from "./graph.ts";
-import { type Knowledge, knowledgeDir, loadKnowledge } from "./knowledge.ts";
-import { ProfileAnswers, Site } from "./types.ts";
+import { type Knowledge, knowledgeDir, loadIndustries, loadKnowledge } from "./knowledge.ts";
+import type { ProfileAnswers } from "./types.ts";
 
 let k: Knowledge;
 beforeAll(() => {
   k = loadKnowledge();
 });
 
-const INDUSTRIES = ProfileAnswers.shape.industry.options;
+// 業種と現場の選択肢は knowledge/questions.yaml が決める（型の固定一覧は持たない）
+const INDUSTRIES = loadIndustries().map((o) => o.value);
+const SITE_VALUES = loadKnowledge().sites.map((s) => s.value);
 const baseAnswers = (
   industry: ProfileAnswers["industry"],
   site: ProfileAnswers["site"],
@@ -71,8 +73,8 @@ describe("業種の選択肢", () => {
     questions: { id: string; options: { value: string; pattern?: string }[] }[];
   };
   const industry = questions.questions.find((q) => q.id === "industry")?.options ?? [];
-  it("製造業と建設業が別の選択肢で、ProfileAnswers の業種と一致する", () => {
-    expect(industry.map((o) => o.value).sort()).toEqual([...INDUSTRIES].sort());
+  it("製造業と建設業が別の選択肢で、業種の値に重複がない", () => {
+    expect(new Set(industry.map((o) => o.value)).size).toBe(industry.length);
     expect(industry.find((o) => o.value === "construction")?.pattern).toBe("construction");
   });
   it("patternIdOf が questions.yaml の pattern と同じ対応になる", () => {
@@ -92,10 +94,10 @@ describe("現場の選択肢", () => {
     }
   });
   it("現場の値は 10 個で、すべてに選択肢がある。古い回答の値（工場・店舗・診療所・事務所のみ）も読める", () => {
-    expect(Site.options).toHaveLength(10);
-    expect(k.sites.map((s) => s.value).sort()).toEqual([...Site.options].sort());
+    expect(k.sites).toHaveLength(10);
+    expect(new Set(SITE_VALUES).size).toBe(SITE_VALUES.length);
     for (const old of ["factory", "store", "clinic", "office_only"])
-      expect(Site.safeParse(old).success).toBe(true);
+      expect(SITE_VALUES).toContain(old);
   });
   it("事務所のみは現場の業務を足さない。ほかはすべて持つ", () => {
     for (const s of k.sites)
@@ -104,7 +106,7 @@ describe("現場の選択肢", () => {
 });
 
 describe("現場の回答が足す業務（業種×現場の全組み合わせ）", () => {
-  const cases = INDUSTRIES.flatMap((i) => Site.options.map((s) => [i, s] as const));
+  const cases = INDUSTRIES.flatMap((i) => SITE_VALUES.map((s) => [i, s] as const));
   it.each(cases)("%s × %s：例外なく作れ、業務は 5 以下で重複しない", (industry, site) => {
     for (const core of ["onprem", "cloud"] as const) {
       const p = make(industry, site, core);

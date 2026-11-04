@@ -32,13 +32,52 @@
           },
           "descriptionJa": {
             "type": "string"
+          },
+          "links": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+            }
+          },
+          "attrs": {
+            "default": {},
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "boolean",
+                    "string",
+                    "number"
+                  ]
+                },
+                "descriptionJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type",
+                "descriptionJa"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
           "id",
           "labelJa",
           "layer",
-          "side"
+          "side",
+          "links",
+          "attrs"
         ],
         "additionalProperties": false
       }

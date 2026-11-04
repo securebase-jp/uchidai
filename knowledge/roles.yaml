@@ -1,43 +1,85 @@
 # 役割の枠（Role）
 # 型紙と判定ルールはこの枠に対して書き、会社ごとの具体名は会社カルテの label に持つ。
 # layer: system / business / management、side: internal / external / person
+# links：この役割から通信で届く役割。構成グラフの線になり、型紙の次の段階や AI 攻撃者の経路はこの線の上でだけ組み立てる
+#   新しい攻撃の入口や中継を足すときは、ここに役割と links を足す
+# attrs：この役割の資産が持てる属性（型と意味）。判定ルールの attr 条件と対策ボタンの attrs は、ここに宣言した名前だけ書ける
+#   （書き間違いは pnpm knowledge:check が止める。product / version は資産の項目なので宣言しない）
 roles:
   - id: attacker
     labelJa: 攻撃者
     layer: system
     side: external
+    links:
+      [
+        entry.vpn,
+        entry.rdp,
+        entry.vendor_remote,
+        entry.web,
+        cloud.mail,
+        pc,
+        cloud.mail_account.exec,
+        cloud.storage,
+        person.accounting,
+      ]
     descriptionJa: 経路の起点。会社カルテには現れない仮想ノード
   - id: entry.vpn
     labelJa: VPN装置
     layer: system
     side: internal
+    links: [pc, admin, server]
+    attrs:
+      exposed: { type: boolean, descriptionJa: 外部から見えるか（外部確認の結果） }
+      knownExploited:
+        { type: boolean, descriptionJa: 製品・バージョンが悪用確認済みの脆弱性に該当するか }
+      authBypass: { type: boolean, descriptionJa: その脆弱性が認証を回避するか }
+      cve: { type: string, descriptionJa: 該当する脆弱性の番号 }
+      hostname: { type: string, descriptionJa: 外部確認の対象ホスト名 }
     descriptionJa: 社外から社内ネットワークへの入口。T1190 の対象
   - id: entry.rdp
     labelJa: 公開されたリモートデスクトップ
     layer: system
     side: internal
+    links: [pc, admin, server]
   - id: entry.vendor_remote
     labelJa: 保守ベンダーの遠隔接続
     layer: system
     side: external
+    attrs:
+      alwaysOn:
+        { type: boolean, descriptionJa: 常時接続か（必要なときだけ有効にする運用なら false） }
+      sharedPassword: { type: boolean, descriptionJa: ベンダー共通のパスワードか }
+      connectsTo: { type: string, descriptionJa: つながる先の資産 ID または役割（既定は core） }
     descriptionJa: 保守ツールによる常時接続など。T1133・T1199 の対象
   - id: entry.web
     labelJa: 公開ホームページ
     layer: system
     side: external
+    attrs:
+      decommissioned: { type: boolean, descriptionJa: 廃止済みか }
+      hostname: { type: string, descriptionJa: 外部確認の対象ホスト名 }
+      knownExploited:
+        { type: boolean, descriptionJa: 製品・バージョンが悪用確認済みの脆弱性に該当するか }
   - id: pc
     labelJa: 社員PC
     layer: system
     side: internal
+    links: [admin, server, cloud.storage]
   - id: admin
     labelJa: 管理者アカウント
     layer: system
     side: internal
+    links: [server]
+    attrs:
+      monitored: { type: boolean, descriptionJa: EDR のアラートを見る体制があるか }
     descriptionJa: 管理者権限。T1003 の対象
   - id: server
     labelJa: 業務サーバ区画
     layer: system
     side: internal
+    links: [core, file_server, backup]
+    attrs:
+      segmented: { type: boolean, descriptionJa: PC と別の区画に分かれているか }
     descriptionJa: 横展開（T1021）の対象。区画の分離と管理用通信の制限を判定する
   - id: file_server
     labelJa: ファイルサーバ
@@ -52,20 +94,41 @@ roles:
     labelJa: バックアップ
     layer: system
     side: internal
+    links: [core]
+    attrs:
+      method: { type: string, descriptionJa: 方式（same_network / cloud_sync / isolated / none） }
+      isolated:
+        { type: boolean, descriptionJa: 社内ネットワークやクラウド同期から切り離した保管先か }
+      restoreTested: { type: boolean, descriptionJa: 復旧テストをしたか }
+      restoreTestedAt: { type: string, descriptionJa: 最後に復旧テストをした日 }
     descriptionJa: T1490 の対象。方式（同一ネットワーク／クラウド同期／切り離し）を属性で持つ
   - id: cloud.mail
     labelJa: クラウドメール
     layer: system
     side: external
+    links: [pc, cloud.mail_account.exec]
+    attrs:
+      spf: { type: boolean, descriptionJa: SPF を設定しているか }
+      dmarc: { type: boolean, descriptionJa: DMARC を設定しているか }
+      mfaMethod: { type: string, descriptionJa: 多要素認証の方式（app / push など） }
   - id: cloud.mail_account.exec
     labelJa: 社長のメールアカウント
     layer: system
     side: external
+    links: [person.accounting, person.exec, person.staff]
+    attrs:
+      mfaException:
+        { type: boolean, descriptionJa: 社長のアカウントだけ多要素認証の例外になっているか }
+      mfaMethod: { type: string, descriptionJa: 多要素認証の方式（app / push など） }
     descriptionJa: T1078.004 の対象
   - id: cloud.storage
     labelJa: クラウドストレージ
     layer: system
     side: external
+    attrs:
+      publicLinksDisabled:
+        { type: boolean, descriptionJa: 公開リンクでの共有を設定で禁止しているか }
+      reviewCadence: { type: string, descriptionJa: 共有範囲の棚卸しの頻度 }
     descriptionJa: T1530 の対象
   - id: cloud.accounting
     labelJa: 会計クラウド
@@ -79,6 +142,7 @@ roles:
     labelJa: 経理担当
     layer: system
     side: person
+    links: [cloud.accounting]
     descriptionJa: 人のノード。送金・振込先変更の手順（UD-01）を判定する
   - id: person.staff
     labelJa: 社員
