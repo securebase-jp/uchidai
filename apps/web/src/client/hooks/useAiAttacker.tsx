@@ -42,6 +42,8 @@ export type AiAttackerState = {
   run(opts?: { replay?: boolean }): Promise<void>;
   clear(): void;
   comparison: Comparison | undefined;
+  /** 知見なしの AI が挙げた対策（挙げた順）。デモの左右の並置が元の順で並べるのに使う */
+  compareItems: GenericMitigationItem[] | undefined;
   compareBusy: boolean;
   compareError: string | undefined;
   compareRecorded: boolean | undefined;
@@ -215,6 +217,7 @@ export function AiAttackerProvider({ children }: { children: ReactNode }) {
       run,
       clear,
       comparison,
+      compareItems: items,
       compareBusy,
       compareError,
       compareRecorded,
@@ -234,6 +237,7 @@ export function AiAttackerProvider({ children }: { children: ReactNode }) {
       run,
       clear,
       comparison,
+      items,
       compareBusy,
       compareError,
       compareRecorded,

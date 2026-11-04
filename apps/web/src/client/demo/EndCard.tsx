@@ -1,132 +1,211 @@
 /**
- * エンドカード（場面 9）：仕組みの図、期間中に作った範囲、Claude Code での進め方、GitHub、クレジット。
+ * エンドカード（場面 10・11）。2 段に動く図と締め。
+ *   roles（場面 10 前半・12 秒）：左に Claude の使い道、中央に検証、右に「判定と計算は、プログラム」
+ *   trace（場面 10 後半・12 秒）：Claude Code の跡（並行セッション、役割分担、採点の推移、実際の記事での検証、コミット数）
+ *   close（場面 11・8 秒）：大きな一行、継続して使うこと、GitHub、クレジット。最後の約 3 秒はロゴを大きく中央に出して一行だけ
+ * 時刻は、その段が出てからの経過秒数。数字は demo/endcard-facts.json から読んで数え上げる（直前に数え直す）。
  */
+import { Logo } from "../components/Logo.tsx";
+import { endcardFacts } from "./data.ts";
+import { countUp } from "./layers.tsx";
 import type { Narration } from "./schema.ts";
 
-type Props = { credits: Narration["credits"]; elapsed: number };
+export type EndPhase = "roles" | "trace" | "close";
+type Props = { phase: EndPhase; credits: Narration["credits"]; elapsed: number };
 
-const FLOW: { label: string; sub: string; who: "claude" | "program" | "input" | "output" }[] = [
-  { label: "記事", sub: "報道・事例集・PDF", who: "input" },
-  { label: "Claude が読む", sub: "段階と手法の候補", who: "claude" },
-  { label: "照合", sub: "ID の実在・根拠文・型紙", who: "program" },
-  { label: "構成グラフ上の判定", sub: "ルール表 × 会社カルテ", who: "program" },
-  { label: "経営への影響", sub: "日数・金額・期限（固定データ）", who: "program" },
-  { label: "出力", sub: "画面・一枚・依頼文", who: "output" },
+const on = (elapsed: number, t: number) => (elapsed >= t ? " in" : "");
+
+const CLAUDE_USES: { verb: string; what: string; at: number }[] = [
+  { verb: "読む", what: "記事を段階に分ける（根拠文つき）", at: 0.6 },
+  { verb: "探す", what: "AI 攻撃者が、別の入口を下見する", at: 1.4 },
+  { verb: "書く", what: "ベンダーへのメール、社長の一枚", at: 2.2 },
+  { verb: "比べる", what: "知見のない AI の答えと並べる", at: 3.0 },
+];
+const CHECKS: { text: string; at: number; drop?: boolean }[] = [
+  { text: "手法 ID の照合（存在しない ID は捨てる）", at: 4.4 },
+  { text: "根拠文（記事に書いてあるか）", at: 5.0 },
+  { text: "判定ルール（型紙にある手法だけ）", at: 5.6 },
+  { text: "数値の検証（金額・日数をプログラムで確かめる）", at: 6.2 },
+  { text: "通らなければ、捨てる", at: 6.8, drop: true },
 ];
 
-const BUILT = [
-  "記事の読解と手法 ID の対応づけ（記載／推定／不明、根拠文つき）",
-  "構成グラフの上を攻撃が進む再生と、判定ルール表（5 状態）",
-  "ベンダーへの確認依頼・回答による判定の更新",
-  "結論と時間軸（停止日数、売上影響、報告・保険の期限）",
-  "対策ボタンによる再判定（効く／効かない）",
-  "社長向けの一枚（共有リンク・PDF）",
-  "知見なし AI の回答との並置",
-  "AI攻撃者（保守ベンダー経路の発見と 4 点検証）",
-  "外部確認（DNS と証明書の公開ログだけ）",
-  "最初の 5 問からの構成グラフ生成と自動レイアウト",
-  "デモモード（このデモ自身）と評価の仕組み",
-];
-
-const SESSIONS = [
-  ["S0", "基盤・統合・監査の指揮"],
-  ["S1", "記事の読解"],
-  ["S2", "判定エンジン"],
-  ["S3", "描画と動き"],
-  ["S4", "経営の層"],
-  ["S5", "外部確認"],
-  ["S6", "AI攻撃者・比較"],
-  ["S7", "確認依頼・回答"],
-  ["S8", "デモ・一枚"],
-];
-
-export function EndCard({ credits, elapsed }: Props) {
-  const step = (t: number) => (elapsed >= t ? " in" : "");
+function Roles({ elapsed }: { elapsed: number }) {
   return (
-    <div className="demo-overlay endcard" role="dialog" aria-label="仕組みと締め">
-      <div className="end-wrap">
-        <header className={`end-head${step(0)}`}>
-          <h1>ウチダイ</h1>
-          <p>うちの会社は大丈夫か？　に、根拠つきで答えるツール</p>
-        </header>
+    <div className="end-wrap roles">
+      <header className="end-title in">
+        <h1>Claude は、読む・探す・書く・比べる。決めるのは、プログラム。</h1>
+      </header>
+      <div className="end-diagram">
+        <section className={`end-col claude${on(elapsed, 0.3)}`} aria-label="Claude の使い道">
+          <h2>Claude の使い道</h2>
+          <ul>
+            {CLAUDE_USES.map((u) => (
+              <li key={u.verb} className={on(elapsed, u.at).trim()}>
+                <b>{u.verb}</b>
+                <span>{u.what}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <div className={`end-arrow${on(elapsed, 3.7)}`} aria-hidden="true">
+          →
+        </div>
+        <section className={`end-col verify${on(elapsed, 4.0)}`} aria-label="検証">
+          <h2>検証</h2>
+          <ul>
+            {CHECKS.map((c) => (
+              <li key={c.text} className={`${c.drop ? "drop " : ""}${on(elapsed, c.at).trim()}`}>
+                <i aria-hidden="true">{c.drop ? "✕" : "✓"}</i>
+                <span>{c.text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+        <div className={`end-arrow${on(elapsed, 7.6)}`} aria-hidden="true">
+          →
+        </div>
+        <section className={`end-col program${on(elapsed, 8.0)}`} aria-label="判定と計算">
+          <h2>判定と計算は、プログラム</h2>
+          <p>ルールと固定データで、決定的に。</p>
+          <ul>
+            <li className={on(elapsed, 8.6).trim()}>
+              <span>突破か、止まるか</span>
+            </li>
+            <li className={on(elapsed, 9.0).trim()}>
+              <span>止まる日数と、金額</span>
+            </li>
+            <li className={on(elapsed, 9.4).trim()}>
+              <span>報告の期限</span>
+            </li>
+          </ul>
+          <p className="end-note">記事や AI の出力では、結論を動かせません。</p>
+        </section>
+      </div>
+    </div>
+  );
+}
 
-        <section className={`end-flow${step(0.6)}`} aria-label="処理の流れ">
-          <svg
-            viewBox="0 0 1200 190"
-            role="img"
-            aria-label="記事 → Claude が読む → 照合 → 構成グラフ上の判定 → 経営への影響 → 出力"
-          >
-            <title>処理の流れ</title>
-            {FLOW.map((f, i) => {
-              const x = 20 + i * 195;
-              const cls = `end-box ${f.who}`;
+function Trace({ elapsed }: { elapsed: number }) {
+  const f = endcardFacts;
+  const approx = (v: boolean) => (v ? "約 " : "");
+  const bars = f.scoring.series;
+  return (
+    <div className="end-wrap trace">
+      <header className="end-title in">
+        <h1>Claude Code で、1 週間で。</h1>
+      </header>
+      <div className="trace-grid">
+        <section className={`trace-card${on(elapsed, 0.4)}`}>
+          <h2>並行セッション</h2>
+          <p className="trace-num">
+            {approx(f.sessions.approx)}
+            <b>{countUp(f.sessions.total, elapsed, 0.6, 1.6)}</b>
+          </p>
+          <p className="trace-sub">領域ごとの worktree（{f.sessions.areasJa.length} 領域）</p>
+          <ul className="trace-chips">
+            {f.sessions.areasJa.map((a, i) => (
+              <li key={a} className={on(elapsed, 1.0 + i * 0.12).trim()}>
+                {a}
+              </li>
+            ))}
+          </ul>
+        </section>
+        <section className={`trace-card${on(elapsed, 2.2)}`}>
+          <h2>役割分担</h2>
+          <dl className="trace-roles">
+            {f.roles.map((r, i) => (
+              <div key={r.model} className={on(elapsed, 2.6 + i * 0.5).trim()}>
+                <dt>{r.model}</dt>
+                <dd>{r.roleJa}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="trace-sub">計画と実装を分け、領域ごとに並行して回す</p>
+        </section>
+        <section className={`trace-card${on(elapsed, 3.8)}`}>
+          <h2>コミット</h2>
+          <p className="trace-num">
+            <b>{countUp(f.commits, elapsed, 4.0, 1.6)}</b>
+          </p>
+          <p className="trace-sub">2026-11-02 〜 11-08</p>
+        </section>
+        <section className={`trace-card wide${on(elapsed, 5.6)}`}>
+          <h2>採点の推移（知見あり）</h2>
+          <ul className="trace-bars">
+            {bars.map((b, i) => {
+              const at = 6.0 + i * 0.9;
               return (
-                <g key={f.label} className={cls} style={{ animationDelay: `${0.15 * i}s` }}>
-                  <rect x={x} y={40} width={170} height={74} rx={10} />
-                  <text className="l" x={x + 85} y={72} textAnchor="middle">
-                    {f.label}
-                  </text>
-                  <text className="s" x={x + 85} y={96} textAnchor="middle">
-                    {f.sub}
-                  </text>
-                  {i < FLOW.length - 1 && (
-                    <path className="arrow" d={`M${x + 172} 77 h18 l-6 -6 m6 6 l-6 6`} />
-                  )}
-                </g>
+                <li key={b.labelJa} className={on(elapsed, at).trim()}>
+                  <span className="lab">{b.labelJa}</span>
+                  <span className="bar">
+                    <i style={{ width: elapsed >= at ? `${b.withKnowledge}%` : "0%" }} />
+                  </span>
+                  <b>{countUp(b.withKnowledge, elapsed, at, 0.9)}%</b>
+                </li>
               );
             })}
-            <g className="end-legend">
-              <rect x={20} y={140} width={14} height={14} rx={3} className="claude" />
-              <text x={42} y={152}>
-                Claude：読む・言い換える・書く・探す（構造化出力を zod で検証）
-              </text>
-              <rect x={560} y={140} width={14} height={14} rx={3} className="program" />
-              <text x={582} y={152}>
-                プログラム：照合・判定・計算（ルールと固定データ。記事では結論を動かせない）
-              </text>
-            </g>
-          </svg>
+          </ul>
+          <p className="trace-sub">
+            採点の記録 {countUp(f.scoring.records, elapsed, 6.0, 1.6)} 回（正解データ{" "}
+            {f.scoring.cases} 件）
+          </p>
         </section>
-
-        <div className="end-cols">
-          <section className={`end-col${step(1.4)}`}>
-            <h2>期間中に作った範囲</h2>
-            <ul>
-              {BUILT.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
-          </section>
-          <section className={`end-col${step(2.0)}`}>
-            <h2>Claude Code での進め方</h2>
-            <p className="end-note">
-              主セッション（S0）が契約（型・知識スキーマ・デモ用カルテ）を先に固め、領域ごとの並行セッションを
-              worktree で分けて進めました。各領域の完了時に監査セッションを回し、評価（`pnpm
-              eval`）の点数で読解を改善しています。
-            </p>
-            <ul className="end-sessions">
-              {SESSIONS.map(([id, label]) => (
-                <li key={id}>
-                  <b className="mono">{id}</b> {label}
-                </li>
-              ))}
-            </ul>
-            <p className="end-note">2026-11-02 〜 11-08　Built with Claude: Japan 2026</p>
-          </section>
-        </div>
-
-        <footer className={`end-foot${step(2.6)}`}>
-          <p className="end-url mono">{credits.github}</p>
-          <p className="end-credits">
-            音声合成：{credits.voice}　／　書体：{credits.fonts}
-            {credits.attack ? `　／　${credits.attack}` : ""}
+        <section className={`trace-card${on(elapsed, 8.2)}`}>
+          <h2>実際の報道記事での検証</h2>
+          <p className="trace-num">
+            <b>{countUp(f.articles.count, elapsed, 8.4, 1.4)}</b>
+            <span>本</span>
           </p>
-          <p className="end-credits">
-            デモの会社（デモ精工株式会社）と数値はすべて架空です。事例は IPA
-            事例集の公開情報にもとづきます。MIT License.
-          </p>
-        </footer>
+          <ul className="trace-chips">
+            <li className={on(elapsed, 9.2).trim()}>
+              被害の型の一致 {f.articles.typeMatch} / {f.articles.count}
+            </li>
+            <li className={on(elapsed, 9.6).trim()}>
+              正解データ {f.articles.goldChecked} 件は、開発者が 1 件ずつ確認
+            </li>
+          </ul>
+          <p className="trace-sub">読み取りを直しては、測り直した</p>
+        </section>
       </div>
+    </div>
+  );
+}
+
+function Close({ credits, elapsed }: { credits: Narration["credits"]; elapsed: number }) {
+  // 最後の約 3 秒は、ロゴを大きく中央に出して、一行だけにする
+  const last = elapsed >= 5.2;
+  return (
+    <div className={`end-wrap close${last ? " last" : ""}`}>
+      <h1 className={`close-line${on(elapsed, 0.3)}`}>ひとり情シスにも、専門家と同じ答えを。</h1>
+      <div className={`close-small${on(elapsed, 1.4)}`}>
+        <p>ニュースが出るたびに、リンクを貼る。カルテは、半年ごとに見直す。</p>
+        <p>ローカルで動き、会社のデータは外に預けない。OSS。</p>
+      </div>
+      <p className={`end-url mono${on(elapsed, 2.6)}`}>{credits.github}</p>
+      <div className={`end-credits-block${on(elapsed, 3.4)}`}>
+        <p className="end-credits">
+          音声合成：{credits.voice}　／　書体：{credits.fonts}
+          {credits.attack ? `　／　${credits.attack}` : ""}
+        </p>
+        <p className="end-credits">
+          デモの会社（デモ精工株式会社）と数値はすべて架空です。事例は IPA
+          事例集の公開情報にもとづきます。MIT License.
+        </p>
+      </div>
+      <div className={`close-logo${on(elapsed, 0.3)}`}>
+        <Logo />
+        <p>うちの会社は大丈夫か？　に、根拠つきで答える</p>
+      </div>
+    </div>
+  );
+}
+
+export function EndCard({ phase, credits, elapsed }: Props) {
+  return (
+    <div className={`demo-overlay endcard ${phase}`} role="dialog" aria-label="仕組みと締め">
+      {phase === "roles" && <Roles elapsed={elapsed} />}
+      {phase === "trace" && <Trace elapsed={elapsed} />}
+      {phase === "close" && <Close credits={credits} elapsed={elapsed} />}
     </div>
   );
 }

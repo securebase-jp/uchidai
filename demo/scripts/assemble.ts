@@ -1,18 +1,37 @@
 /**
- * 録画（デモモードの画面収録 MP4/MOV）と音声、字幕、タイトルカードを ffmpeg で結合して 1 本の MP4 にする。
+ * 録画（デモモードの画面収録 MP4/MOV）と音声、効果音、字幕、タイトルカードを ffmpeg で結合して 1 本の MP4 にする。
  *   node demo/scripts/assemble.ts --video demo/capture/screen.mov [--out demo/out/uchidai-demo.mp4]
  *        [--title demo/assets/title.png] [--title-seconds 3] [--font "BIZ UDPGothic"] [--no-subtitles] [--no-audio]
- *        [--fps 60] [--dry-run]
+ *        [--no-sfx] [--sfx-gain -14] [--sfx demo/sfx.json] [--sfx-dir demo/audio/sfx]
+ *        [--timeline demo/out/timeline.json] [--work-dir demo/out] [--fps 60] [--dry-run]
  * 手順：
  *   1. build-subtitles.ts で demo/out/narration.srt と timeline.json を作る（音声があれば長さを反映）
  *   2. 場面ごとの音声を場面の長さにそろえて 1 本の WAV にする（無い場面は無音）
- *   3. 録画 + 音声 + 字幕の焼き込み（+ タイトルカード）→ 1920×1080・60fps・H.264/AAC
- * エンドカードはデモモードの場面 9 として録画に含まれる。
+ *   3. 効果音（demo/sfx.json の cue を場面の開始時刻から絶対時刻にして並べたトラック）をナレーションとミックス。
+ *      効果音は --sfx-gain（既定 -14 dB）だけ小さくし、ナレーションの発話中はさらに自動で下げる（ダッキング）
+ *   4. 録画 + 音声 + 字幕（+ タイトルカード）→ 1920×1080・60fps・H.264/AAC
+ * --timeline を渡すと、原稿から計算せずにその timeline.json の場面の時刻を使う。
+ * エンドカードはデモモードの最後の場面として録画に含まれる。
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
-import { buildTimeline, loadDurations, loadNarration, outDir } from "./lib.ts";
+import {
+  audioDir,
+  buildTimeline,
+  loadDurations,
+  loadNarration,
+  outDir,
+  type TimelineScene,
+} from "./lib.ts";
+import {
+  buildMixArgs,
+  buildSfxTrackArgs,
+  DEFAULT_SFX_GAIN_DB,
+  loadSfx,
+  resolveCues,
+  sfxJsonPath,
+} from "./sfx-lib.ts";
 
 function arg(name: string, fallback?: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -30,6 +49,12 @@ const fps = Number(arg("fps", "60"));
 const dry = flag("dry-run");
 const withSubs = !flag("no-subtitles");
 const withAudio = !flag("no-audio");
+const withSfx = withAudio && !flag("no-sfx");
+const sfxGainDb = Number(arg("sfx-gain", String(DEFAULT_SFX_GAIN_DB)));
+const sfxPath = resolve(arg("sfx", sfxJsonPath) ?? "");
+const sfxDir = resolve(arg("sfx-dir", join(audioDir, "sfx")) ?? "");
+const timelinePath = arg("timeline") ? resolve(arg("timeline") ?? "") : undefined;
+const workDir = resolve(arg("work-dir", outDir) ?? "");
 
 if (!video || !existsSync(video)) {
   console.error(
@@ -41,7 +66,11 @@ if (spawnSync("ffmpeg", ["-version"]).status !== 0) {
   console.error("ffmpeg が見つかりません：brew install ffmpeg");
   process.exit(2);
 }
-mkdirSync(outDir, { recursive: true });
+if (!Number.isFinite(sfxGainDb)) {
+  console.error("--sfx-gain には dB の数値を渡してください（例：-14）");
+  process.exit(2);
+}
+mkdirSync(workDir, { recursive: true });
 // 字幕の焼き込みには libass つきの ffmpeg（subtitles フィルタ）が要る。無ければ字幕トラックとして埋め込む
 const hasSubtitlesFilter = /\bsubtitles\b/.test(
   spawnSync("ffmpeg", ["-hide_banner", "-filters"], { encoding: "utf8" }).stdout ?? "",
@@ -65,10 +94,26 @@ const run = (args: string[]) => {
 };
 
 // 1. タイムライン（build-subtitles.ts と同じ計算）
-const narration = loadNarration();
-const timeline = buildTimeline(narration, loadDurations());
+function loadTimelineFile(path: string): TimelineScene[] {
+  const raw = JSON.parse(readFileSync(path, "utf8")) as { scenes?: TimelineScene[] };
+  if (!Array.isArray(raw.scenes) || raw.scenes.length === 0) {
+    console.error(`${path} に scenes がありません`);
+    process.exit(2);
+  }
+  for (const s of raw.scenes)
+    if (
+      ![s.n, s.start, s.end, s.seconds].every((v) => typeof v === "number" && Number.isFinite(v))
+    ) {
+      console.error(`${path} の場面の形が不正です：${JSON.stringify(s).slice(0, 120)}`);
+      process.exit(2);
+    }
+  return raw.scenes;
+}
+const timeline = timelinePath
+  ? loadTimelineFile(timelinePath)
+  : buildTimeline(loadNarration(), loadDurations());
 const total = timeline[timeline.length - 1]?.end ?? 0;
-const srt = join(outDir, "narration.srt");
+const srt = join(workDir, "narration.srt");
 if (withSubs && !existsSync(srt)) {
   console.error(
     `字幕 ${srt} がありません。先に node demo/scripts/build-subtitles.ts を実行してください`,
@@ -81,7 +126,7 @@ let narrationWav: string | undefined;
 if (withAudio) {
   const parts: string[] = [];
   for (const s of timeline) {
-    const part = join(outDir, `part-${s.n}.wav`);
+    const part = join(workDir, `part-${s.n}.wav`);
     if (s.audio) {
       run([
         "-i",
@@ -97,14 +142,44 @@ if (withAudio) {
     }
     parts.push(part);
   }
-  const list = join(outDir, "parts.txt");
+  const list = join(workDir, "parts.txt");
   writeFileSync(list, `${parts.map((p) => `file '${basename(p)}'`).join("\n")}\n`);
-  narrationWav = join(outDir, "narration.wav");
+  narrationWav = join(workDir, "narration.wav");
   run(["-f", "concat", "-safe", "0", "-i", list, "-c", "copy", narrationWav]);
   if (timeline.every((s) => !s.audio))
     console.warn(
       "注意：音声ファイルが一つもないので、無音のトラックを付けます（synth-voicevox.ts で作れます）",
     );
+}
+
+// 2b. 効果音：cue を絶対時刻に並べたトラックを作り、ナレーションとミックスする（発話中は自動で下げる）
+let audioWav = narrationWav;
+if (withSfx && narrationWav) {
+  const sfx = loadSfx(sfxPath);
+  const { resolved, skipped, warnings } = resolveCues(sfx.cues, timeline);
+  for (const k of skipped)
+    console.warn(`効果音を飛ばします：${k.cue.sound}（場面 ${k.cue.scene}）— ${k.reason}`);
+  for (const w of warnings) console.warn(`注意：${w}`);
+  // 音が作られていない cue は飛ばす（--dry-run のときは全部並べてコマンドを見せる）
+  const missing = [...new Set(resolved.map((r) => r.cue.sound))].filter(
+    (name) => !existsSync(join(sfxDir, `${name}.wav`)),
+  );
+  const playable = dry ? resolved : resolved.filter((r) => !missing.includes(r.cue.sound));
+  if (!dry && missing.length)
+    console.warn(
+      `注意：効果音の WAV がありません（${missing.join(", ")}）。node demo/scripts/synth-sfx.ts で作ってください。その cue は飛ばします`,
+    );
+  if (playable.length > 0) {
+    const sfxTrack = join(workDir, "sfx-track.wav");
+    run(buildSfxTrackArgs({ cues: playable, sfxDir, totalSeconds: total, out: sfxTrack }));
+    audioWav = join(workDir, "audio-mix.wav");
+    run(buildMixArgs({ narration: narrationWav, sfxTrack, sfxGainDb, out: audioWav }));
+    console.log(
+      `効果音：${playable.length} 件（${sfxGainDb} dB、ナレーションの発話中はさらに下げる）`,
+    );
+  } else {
+    console.warn("注意：鳴らす効果音がないので、ナレーションだけにします");
+  }
 }
 
 // 3. 結合
@@ -120,8 +195,8 @@ if (title) {
 }
 inputs.push("-i", video);
 const aIndex = vIndex + 1;
-if (narrationWav) inputs.push("-i", narrationWav);
-const sIndex = narrationWav ? aIndex + 1 : aIndex;
+if (audioWav) inputs.push("-i", audioWav);
+const sIndex = audioWav ? aIndex + 1 : aIndex;
 if (softSubs) inputs.push("-i", srt);
 
 const filters: string[] = [];
@@ -132,14 +207,14 @@ filters.push(
   `[${vIndex}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p${subFilter}[main]`,
 );
 let vOut = "[main]";
-let aOut = narrationWav ? `${aIndex}:a` : "";
+let aOut = audioWav ? `${aIndex}:a` : "";
 if (title) {
   filters.push(
     `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p[tv]`,
   );
   filters.push("[tv][main]concat=n=2:v=1:a=0[vcat]");
   vOut = "[vcat]";
-  if (narrationWav) {
+  if (audioWav) {
     filters.push(`[${aIndex}:a]adelay=${Math.round(titleSeconds * 1000)}:all=1[acat]`);
     aOut = "[acat]";
   }
@@ -172,7 +247,7 @@ const args = [
 ];
 const cwd = process.cwd();
 try {
-  process.chdir(outDir); // subtitles フィルタにパスの特殊文字を渡さないため
+  process.chdir(workDir); // subtitles フィルタにパスの特殊文字を渡さないため
   run(args);
 } finally {
   process.chdir(cwd);

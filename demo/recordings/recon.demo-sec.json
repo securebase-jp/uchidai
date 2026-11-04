@@ -1,0 +1,428 @@
+{
+  "version": 1,
+  "domain": "demo-sec.com",
+  "recordedAt": "2026-11-04T11:06:10.618Z",
+  "note": "実際の外部確認の記録。DNS の公開レコードと証明書の公開ログだけを参照。対象のホストにはアクセスしていない。リクエストヘッダは保存していない",
+  "provenance": {
+    "dns": "live",
+    "ct": {
+      "provider": "certspotter",
+      "cachedAt": "2026-11-04T04:33:53.617Z",
+      "queriedNow": false
+    },
+    "redactions": [
+      "IP アドレス（文書用の予約範囲 203.0.113.0/24、2001:db8::/32 に置き換え）",
+      "所有確認のトークン（TXT の値は省略）",
+      "リクエストヘッダ（保存していない）"
+    ],
+    "targetHostsAccessed": false
+  },
+  "run": {
+    "domain": "demo-sec.com",
+    "fixture": false,
+    "result": {
+      "domain": "demo-sec.com",
+      "checkedAt": "2026-11-04T11:06:10.666Z",
+      "sources": {
+        "dns": "live",
+        "ct": "live",
+        "ctProvider": "certspotter"
+      },
+      "ownership": {
+        "domain": "demo-sec.com",
+        "record": "uchidai-verify=（記録では省略）",
+        "verifiedAt": "2026-11-04T11:06:10.657Z",
+        "source": "live"
+      },
+      "hostnames": [
+        {
+          "name": "*.demo-sec.com",
+          "wildcard": true,
+          "sources": ["ct"],
+          "certCount": 2,
+          "activeCertCount": 2,
+          "firstIssued": "2026-11-03T01:45:48Z",
+          "lastExpiry": "2027-02-01T02:42:14Z",
+          "resolves": null,
+          "addresses": []
+        },
+        {
+          "name": "campaign2019.demo-sec.com",
+          "wildcard": false,
+          "sources": ["ct", "dns"],
+          "certCount": 1,
+          "activeCertCount": 1,
+          "firstIssued": "2026-11-03T03:49:17Z",
+          "lastExpiry": "2027-02-01T03:49:16Z",
+          "resolves": true,
+          "addresses": ["203.0.113.82"]
+        },
+        {
+          "name": "demo-sec.com",
+          "wildcard": false,
+          "sources": ["ct"],
+          "certCount": 2,
+          "activeCertCount": 2,
+          "firstIssued": "2026-11-03T01:45:48Z",
+          "lastExpiry": "2027-02-01T02:42:14Z",
+          "resolves": false,
+          "addresses": []
+        },
+        {
+          "name": "vpn.demo-sec.com",
+          "wildcard": false,
+          "sources": ["ct", "dns"],
+          "certCount": 1,
+          "activeCertCount": 1,
+          "firstIssued": "2026-11-03T03:29:37Z",
+          "lastExpiry": "2027-02-01T03:29:36Z",
+          "resolves": true,
+          "addresses": ["203.0.113.10"]
+        }
+      ],
+      "remoteAccessCandidates": [
+        {
+          "hostname": "vpn.demo-sec.com",
+          "kind": "vpn",
+          "pattern": "vpn",
+          "current": true,
+          "reasonJa": "ホスト名の「vpn」がVPN を表す語に当たる。DNS で名前も解決できる",
+          "evidence": [
+            {
+              "kind": "ct",
+              "recordType": "certificate",
+              "name": "demo-sec.com",
+              "value": "vpn.demo-sec.com（発行 2026-11-03、期限 2027-02-01、Let's Encrypt）"
+            },
+            {
+              "kind": "dns",
+              "recordType": "A",
+              "name": "vpn.demo-sec.com",
+              "value": "203.0.113.10"
+            }
+          ],
+          "ipaCases": [8, 9]
+        }
+      ],
+      "mail": {
+        "mx": [
+          {
+            "exchange": "demo-sec-com.mail.protection.outlook.com",
+            "priority": 0
+          }
+        ],
+        "spf": {
+          "present": true,
+          "record": "v=spf1 include:spf.protection.outlook.com -all",
+          "includes": ["spf.protection.outlook.com"],
+          "allMechanism": "-all",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "TXT",
+              "name": "demo-sec.com",
+              "value": "v=spf1 include:spf.protection.outlook.com -all"
+            }
+          ]
+        },
+        "dmarc": {
+          "present": false,
+          "evidence": []
+        },
+        "provider": {
+          "name": "Microsoft 365",
+          "kind": "cloud",
+          "reasonJa": "MX（demo-sec-com.mail.protection.outlook.com）が Microsoft 365 の配下にある",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "MX",
+              "name": "demo-sec.com",
+              "value": "0 demo-sec-com.mail.protection.outlook.com"
+            }
+          ]
+        }
+      },
+      "cloudServices": [
+        {
+          "name": "Microsoft 365",
+          "via": "spf_include",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "TXT",
+              "name": "demo-sec.com",
+              "value": "include:spf.protection.outlook.com"
+            }
+          ]
+        }
+      ],
+      "web": {
+        "hostnames": ["demo-sec.com", "www.demo-sec.com"],
+        "records": [
+          {
+            "kind": "dns",
+            "recordType": "CNAME",
+            "name": "www.demo-sec.com",
+            "value": "www0000.exe-com.com"
+          }
+        ],
+        "hosting": {
+          "kind": "unknown",
+          "reasonJa": "レコードはあるが、表にある事業者の手がかりはない",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "CNAME",
+              "name": "www.demo-sec.com",
+              "value": "www0000.exe-com.com"
+            }
+          ]
+        }
+      },
+      "findings": [
+        {
+          "id": "hostnames.ct",
+          "category": "hostnames",
+          "severity": "info",
+          "titleJa": "証明書の公開ログに 4 件のホスト名",
+          "detailJa": "demo-sec.com とそのサブドメインに発行された証明書から集めた名前。うち現在も有効な証明書があるのは 4 件、DNS で名前が解決できるのは 2 件。ワイルドカード証明書（*.）が 1 件あり、その配下の個別のホスト名は公開ログからは分からない",
+          "evidence": [],
+          "ipaCases": []
+        },
+        {
+          "id": "remote_access.vpn",
+          "category": "remote_access",
+          "severity": "warn",
+          "titleJa": "VPN 用と推定されるホスト名が 1 件公開されている",
+          "detailJa": "vpn.demo-sec.com。名前のパターンからの推定で、装置の有無や種類は断定しない。公開された VPN 装置の更新漏れは事例集の脆弱性事例 8・9 で中小企業に実際に見つかった弱点",
+          "evidence": [
+            {
+              "kind": "ct",
+              "recordType": "certificate",
+              "name": "demo-sec.com",
+              "value": "vpn.demo-sec.com（発行 2026-11-03、期限 2027-02-01、Let's Encrypt）"
+            },
+            {
+              "kind": "dns",
+              "recordType": "A",
+              "name": "vpn.demo-sec.com",
+              "value": "203.0.113.10"
+            }
+          ],
+          "ipaCases": [8, 9],
+          "sourceJa": "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）"
+        },
+        {
+          "id": "mail_auth.spf",
+          "category": "mail_auth",
+          "severity": "ok",
+          "titleJa": "SPF が設定されている",
+          "detailJa": "送信元として許可するサーバが宣言されている（-all）。include: spf.protection.outlook.com",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "TXT",
+              "name": "demo-sec.com",
+              "value": "v=spf1 include:spf.protection.outlook.com -all"
+            }
+          ],
+          "ipaCases": [19, 20]
+        },
+        {
+          "id": "mail_auth.dmarc",
+          "category": "mail_auth",
+          "severity": "warn",
+          "titleJa": "DMARC が設定されていない",
+          "detailJa": "_dmarc.demo-sec.com の TXT レコードがない。自社ドメインを装ったメールが取引先に届いても、受信側が隔離・拒否する根拠がない",
+          "evidence": [],
+          "ipaCases": [19, 20]
+        },
+        {
+          "id": "mail_provider.mx",
+          "category": "mail_provider",
+          "severity": "info",
+          "titleJa": "メールの提供元は Microsoft 365 と推定",
+          "detailJa": "MX（demo-sec-com.mail.protection.outlook.com）が Microsoft 365 の配下にある",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "MX",
+              "name": "demo-sec.com",
+              "value": "0 demo-sec-com.mail.protection.outlook.com"
+            }
+          ],
+          "ipaCases": []
+        },
+        {
+          "id": "cloud_services.spf",
+          "category": "cloud_services",
+          "severity": "info",
+          "titleJa": "SPF の include から Microsoft 365 の利用が分かる",
+          "detailJa": "メール送信を許可しているサービス。利用中のクラウドサービスの手がかり",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "TXT",
+              "name": "demo-sec.com",
+              "value": "include:spf.protection.outlook.com"
+            }
+          ],
+          "ipaCases": []
+        },
+        {
+          "id": "web_hosting.hint",
+          "category": "web_hosting",
+          "severity": "info",
+          "titleJa": "ホームページの置き場所は不明",
+          "detailJa": "レコードはあるが、表にある事業者の手がかりはない",
+          "evidence": [
+            {
+              "kind": "dns",
+              "recordType": "CNAME",
+              "name": "www.demo-sec.com",
+              "value": "www0000.exe-com.com"
+            }
+          ],
+          "ipaCases": []
+        }
+      ],
+      "notesJa": []
+    },
+    "answersHints": {
+      "answers": {
+        "hosting": {
+          "mail": "cloud"
+        },
+        "remoteAccess": ["vpn"]
+      },
+      "inferred": ["hosting.mail", "remoteAccess"],
+      "reasonsJa": {
+        "hosting.mail": "MX（demo-sec-com.mail.protection.outlook.com）が Microsoft 365 の配下にある",
+        "remoteAccess": "vpn.demo-sec.com（ホスト名の「vpn」がVPN を表す語に当たる。DNS で名前も解決できる）"
+      }
+    },
+    "assetHints": [
+      {
+        "role": "entry.vpn",
+        "attrs": {
+          "exposed": true,
+          "hostname": "vpn.demo-sec.com"
+        },
+        "attrEvidence": {
+          "exposed": "external",
+          "hostname": "external"
+        },
+        "controls": [
+          {
+            "mitigation": "M1042",
+            "status": "absent",
+            "evidence": "external",
+            "noteJa": "外部確認：VPN 用と推定されるホスト名が公開されている（vpn.demo-sec.com）"
+          }
+        ],
+        "hostnames": ["vpn.demo-sec.com"],
+        "reasonJa": "ホスト名の「vpn」がVPN を表す語に当たる。DNS で名前も解決できる"
+      },
+      {
+        "role": "cloud.mail",
+        "attrs": {
+          "spf": true,
+          "dmarc": false,
+          "mailProvider": "Microsoft 365"
+        },
+        "attrEvidence": {
+          "spf": "external",
+          "dmarc": "external",
+          "mailProvider": "external"
+        },
+        "controls": [],
+        "hostnames": ["demo-sec-com.mail.protection.outlook.com"],
+        "reasonJa": "SPF あり、DMARC なし。MX（demo-sec-com.mail.protection.outlook.com）が Microsoft 365 の配下にある"
+      },
+      {
+        "role": "entry.web",
+        "attrs": {
+          "exposed": true
+        },
+        "attrEvidence": {
+          "exposed": "external"
+        },
+        "controls": [],
+        "hostnames": ["demo-sec.com", "www.demo-sec.com"],
+        "reasonJa": "レコードはあるが、表にある事業者の手がかりはない"
+      }
+    ]
+  },
+  "applied": {
+    "profile": {
+      "id": "demo-seiko",
+      "companyName": "デモ精工株式会社",
+      "fictional": true,
+      "domain": "demo-seiko.example"
+    },
+    "contradictions": [
+      {
+        "assetId": "campaign-site",
+        "messageJa": "「旧キャンペーンサイト（廃止済み）」はカルテで廃止済みだが、ホスト名 campaign2019.demo-sec.com が外部に残っている可能性がある",
+        "external": "DNS で名前が解決できる（203.0.113.82）。有効期限内の証明書が 1 件（期限 2027-02-01）",
+        "registered": "廃止済み（attrs.decommissioned = true）",
+        "assetLabel": "旧キャンペーンサイト（廃止済み）",
+        "hostname": "campaign2019.demo-sec.com"
+      }
+    ],
+    "changes": {
+      "attrs": [
+        {
+          "assetId": "vpn",
+          "assetLabel": "VPN装置",
+          "key": "hostname",
+          "before": "vpn.demo-seiko.example",
+          "after": "vpn.demo-sec.com",
+          "overwrite": true
+        },
+        {
+          "assetId": "vpn",
+          "assetLabel": "VPN装置",
+          "key": "certExpiry",
+          "after": "2027-02-01T03:29:36Z",
+          "overwrite": false
+        },
+        {
+          "assetId": "cloud-mail",
+          "assetLabel": "クラウドメール",
+          "key": "mailProvider",
+          "after": "Microsoft 365",
+          "overwrite": false
+        },
+        {
+          "assetId": "campaign-site",
+          "assetLabel": "旧キャンペーンサイト（廃止済み）",
+          "key": "externallySeen",
+          "after": "あり",
+          "overwrite": false
+        },
+        {
+          "assetId": "campaign-site",
+          "assetLabel": "旧キャンペーンサイト（廃止済み）",
+          "key": "externallySeenAt",
+          "after": "2026-11-04T11:06:10.666Z",
+          "overwrite": false
+        },
+        {
+          "assetId": "campaign-site",
+          "assetLabel": "旧キャンペーンサイト（廃止済み）",
+          "key": "lastCertExpiry",
+          "after": "2027-02-01T03:49:16Z",
+          "overwrite": false
+        }
+      ],
+      "controls": [],
+      "answers": [],
+      "domainChange": {
+        "before": "demo-seiko.example",
+        "after": "demo-sec.com"
+      }
+    }
+  }
+}

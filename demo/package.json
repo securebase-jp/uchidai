@@ -1,0 +1,18 @@
+{
+  "name": "@uchidai/demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "デモ動画の制作スクリプト（字幕・音声・効果音・結合）。効果音の cue の検証に zod を使う",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "vitest": "^5.0.5"
+  }
+}

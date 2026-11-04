@@ -1,0 +1,111 @@
+/* デモ場面 4：外部確認の再生。行の見た目は flow.css の .chk-*（外部確認の画面と同じ）を使い、ここは枠と札だけ */
+.recon-replay {
+  display: grid;
+  gap: 18px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.rr-head {
+  display: grid;
+  gap: 10px;
+}
+.rr-noaccess {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--green);
+}
+.rr-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.rr-record {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  font-weight: 700;
+}
+.rr-panel h2 {
+  font-size: 18px;
+}
+.rr-input {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 4px 14px;
+}
+.rr-label {
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.rr-domain {
+  flex: 1 1 auto;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 28px;
+  border: 1px solid var(--edge-strong);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.rr-caret {
+  color: var(--cyan);
+  margin-left: 2px;
+}
+.rr-btn {
+  font-size: 17px;
+}
+.rr-owner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 8px;
+  font-size: 20px;
+  font-weight: 700;
+}
+.rr-list .chk-line {
+  min-height: 62px;
+}
+.rr-list .chk-name {
+  font-size: 22px;
+  min-width: 0;
+}
+.rr-list .chk-result {
+  font-size: 20px;
+}
+.rr-list .chk-result.mono {
+  font-size: 19px;
+}
+.rr-list .chk-sub {
+  flex-basis: 100%;
+}
+.rr-list .chk-tag {
+  font-size: 14px;
+  padding: 3px 12px;
+  color: var(--amber);
+  border-color: var(--amber);
+}
+.rr-more-title {
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.rr-more .chk-line {
+  min-height: 38px;
+}
+.rr-more .chk-name {
+  min-width: 0;
+  font-size: 16px;
+}
+.rr-more .chk-result {
+  font-size: 16px;
+}
+.rr-foot {
+  margin: 0;
+}

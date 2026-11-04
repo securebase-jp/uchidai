@@ -283,22 +283,24 @@ export function Staff({ settings }: { settings: Settings }) {
               }
             />
             <div className="stage">
-              <Diagram
-                layout={layout}
-                graph={stage.input.graph}
-                scene={scene}
-                script={script}
-                profile={stage.input.profile}
-                showIds
-                measureLabel={measureLabel}
-              />
-              <Particles
-                layout={layout}
-                scene={scene}
-                script={script}
-                clock={clock}
-                reduced={settings.reduced}
-              />
+              <div className="stage-zoom">
+                <Diagram
+                  layout={layout}
+                  graph={stage.input.graph}
+                  scene={scene}
+                  script={script}
+                  profile={stage.input.profile}
+                  showIds
+                  measureLabel={measureLabel}
+                />
+                <Particles
+                  layout={layout}
+                  scene={scene}
+                  script={script}
+                  clock={clock}
+                  reduced={settings.reduced}
+                />
+              </div>
             </div>
           </section>
           <TimelineBar

@@ -1,8 +1,9 @@
 /**
- * 社長と担当者のチャット風の演出（場面 1・2・8）。比喩は使わず、簡素に。
- * 文字は場面の経過秒数（elapsed）から決める（一時停止すると止まる）。
+ * 社長と担当者のチャット風の演出（場面 1・2・9）。比喩は使わず、簡素に。
+ * 文字は overlay が出てからの経過秒数（elapsed）から決める（一時停止すると止まる）。
+ * chat-reply は場面 9 の途中（社長向けの一枚を見せたあと）から出るので、時刻は出た時点を 0 とする。
  */
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { useApp } from "../../hooks/useApp.tsx";
 import { yen } from "../../lib/labels.ts";
 
@@ -12,6 +13,10 @@ type Props = { variant: Variant; elapsed: number; seconds: number };
 const IPA_TITLE = "被害事例1：VPN装置の脆弱性悪用によるランサムウェア感染";
 const IPA_SUB = "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）";
 const IPA_HOST = "ipa.go.jp";
+/** サイバー攻撃の被害を伝える記事だと、前提知識のない人にも分かるようにする札と要約（題は実際の事例のまま） */
+const IPA_TAG = "サイバー攻撃";
+const IPA_SUMMARY =
+  "ランサムウェア（データを人質に取るサイバー攻撃）で、製造業の業務が止まった事例";
 
 /** 開始秒 from から 1 秒あたり cps 文字を打つ */
 function typed(text: string, elapsed: number, from: number, cps = 9): string {
@@ -33,6 +38,11 @@ function reducedMotion(): boolean {
   if (set === "false") return false;
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
+
+/** chat-reply の時刻：一枚を送る、社長が入力中になる、一拍おいて返事が出る */
+const T_SHEET = 0.3;
+const T_BOSS_TYPING = 2.6;
+const T_BOSS_REPLY = 4.8;
 
 /** 情シス担当の返答が出てから、社長が読んだことにするまでの秒数 */
 const READ_AFTER = 1;
@@ -77,11 +87,27 @@ function Bubble({
   );
 }
 
-function LinkCard({ title, sub, host }: { title: string; sub: string; host: string }) {
+function LinkCard({
+  title,
+  sub,
+  host,
+  tag,
+  summary,
+}: {
+  title: string;
+  sub: string;
+  host: string;
+  tag?: string;
+  summary?: string;
+}) {
   return (
     <div className="chat-card">
-      <div className="chat-card-host">{host}</div>
+      <div className="chat-card-host">
+        {tag && <span className="chat-card-tag">{tag}</span>}
+        {host}
+      </div>
       <div className="chat-card-title">{title}</div>
+      {summary && <div className="chat-card-summary">{summary}</div>}
       <div className="chat-card-sub">{sub}</div>
     </div>
   );
@@ -99,20 +125,36 @@ function Typing() {
 
 export function ChatOverlay({ variant, elapsed }: Props) {
   const app = useApp();
-  // 場面 8 では場面の途中（8 秒）からこの画面に切り替わる。返答が出た時刻は、画面に出た時刻と 0.8 秒の遅い方
-  const mountedAt = useRef(elapsed).current;
   const ev = app.evaluation;
   const company = app.profile?.companyName ?? "うちの会社";
   // 既読：情シス担当の返答が出て 1 秒後（動きを減らす設定では最初から）
   const reduced = reducedMotion();
   const isRead = (shownAt: number) => reduced || elapsed >= shownAt + READ_AFTER;
 
+  // 吹き出しは上から下へ積む（ふつうのチャットと同じ）。窓に収まらなくなったときだけ、新しい発言が見えるよう下へ送る
+  const logRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = logRef.current;
+    if (!el) return;
+    const over = el.scrollHeight > el.clientHeight + 1;
+    el.dataset.overflow = over ? "true" : "false";
+    if (over) el.scrollTop = el.scrollHeight;
+  });
+
   const history = (
     <>
       <Bubble
         who="boss"
         time="8:41"
-        card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+        card={
+          <LinkCard
+            title={IPA_TITLE}
+            sub={IPA_SUB}
+            host={IPA_HOST}
+            tag={IPA_TAG}
+            summary={IPA_SUMMARY}
+          />
+        }
       />
       <Bubble who="boss" time="8:41">
         これ、うちは大丈夫？
@@ -127,14 +169,22 @@ export function ChatOverlay({ variant, elapsed }: Props) {
           <span>社内チャット</span>
           <span className="muted">社長、情シス担当</span>
         </div>
-        <div className="chat-log">
+        <div className="chat-log" ref={logRef}>
           {variant === "chat-boss" && (
             <>
               {elapsed >= 1 && (
                 <Bubble
                   who="boss"
                   time="8:41"
-                  card={<LinkCard title={IPA_TITLE} sub={IPA_SUB} host={IPA_HOST} />}
+                  card={
+                    <LinkCard
+                      title={IPA_TITLE}
+                      sub={IPA_SUB}
+                      host={IPA_HOST}
+                      tag={IPA_TAG}
+                      summary={IPA_SUMMARY}
+                    />
+                  }
                 />
               )}
               {elapsed >= 4 && (
@@ -165,11 +215,11 @@ export function ChatOverlay({ variant, elapsed }: Props) {
               <Bubble who="staff" time="8:53" read>
                 少し時間をください。調べます。
               </Bubble>
-              {elapsed >= 0.8 && (
+              {elapsed >= T_SHEET && (
                 <Bubble
                   who="staff"
                   time="10:12"
-                  read={isRead(Math.max(0.8, mountedAt))}
+                  read={isRead(T_SHEET)}
                   card={
                     <div className="chat-card sheet">
                       <div className="chat-card-host">社長向けの一枚　／　{company}</div>
@@ -199,17 +249,22 @@ export function ChatOverlay({ variant, elapsed }: Props) {
                     </div>
                   }
                 >
-                  {typed("まとめました。結論と、やることと、費用の目安です。", elapsed, 1.5, 10)}
+                  {typed(
+                    "まとめました。結論と、やることと、費用の目安です。",
+                    elapsed,
+                    T_SHEET + 0.5,
+                    10,
+                  )}
                 </Bubble>
               )}
-              {elapsed >= 8 && elapsed < 10.5 && (
+              {elapsed >= T_BOSS_TYPING && elapsed < T_BOSS_REPLY && (
                 <Bubble who="boss">
                   <Typing />
                 </Bubble>
               )}
-              {elapsed >= 10.5 && (
+              {elapsed >= T_BOSS_REPLY && (
                 <Bubble who="boss" time="10:14">
-                  {typed("じゃあ、それやろう", elapsed, 10.5, 7)}
+                  {typed("じゃあ、それやろう", elapsed, T_BOSS_REPLY, 7)}
                 </Bubble>
               )}
             </>

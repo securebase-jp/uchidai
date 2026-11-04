@@ -30,7 +30,7 @@ const STATE_VIEW: Record<
 };
 
 /** チェックの状態のアイコン（形と色と読み上げ名で区別する） */
-function CheckIcon({ state, size = 18 }: { state: CheckState; size?: number }) {
+export function CheckIcon({ state, size = 18 }: { state: CheckState; size?: number }) {
   const { Icon, tone } = STATE_VIEW[state];
   return (
     <span className={`st-icon tone-${tone}`} role="img" aria-label={CHECK_STATE_LABEL[state]}>

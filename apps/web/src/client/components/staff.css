@@ -714,3 +714,10 @@
 .tl-detail .tl-detail-src {
   font-size: 12px;
 }
+
+/* 構成図の寄り（デモモード）：通常の画面では何もしない。transform はデモモードが付ける */
+.stage-zoom {
+  position: relative;
+  transform-origin: 0 0;
+  transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}

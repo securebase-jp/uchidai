@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "note": "脚本 v2（docs/demo-script-v2.md）の「効果音」の表と各場面の演出から置いた cue を、実際の画面（storyboard.json と演出の部品の定数、台本 playback.ts の時刻）から数え直したもの。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。再生時計の入る cue（場面 5 の flip、場面 8 の盾と緑）は、判定 API・巻き戻し 0.7 秒・台本の時刻からの概算なので、録画の映像で ±0.3 秒を調整する。場面 10・11（エンドカード）に鳴らす音は、既存の音の使い道が sfx.test.ts で場面ごとに固定されているため足していない。調べ方と直し方は demo/sfx.md。",
+  "cues": [
+    {
+      "scene": 1,
+      "label": "社長の一言",
+      "at": 1.0,
+      "sound": "message",
+      "gain": 0.8,
+      "note": "チャットの着信。storyboard の chat-boss で、リンクのカードが出る時刻（overlays/Chat.tsx：elapsed >= 1）。2 通目「これ、うちは大丈夫？」は 4.0 秒（同じ音は場面 1 に 1 回だけ）"
+    },
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 11.0,
+      "sound": "wall-up",
+      "gain": 0.9,
+      "note": "壁が立つ時刻。storyboard 場面 2 の walls 層の rise（11.0／11.6／12.2 秒）。読み上げの「大企業には…」の始まり（約 10.7 秒）に合わせる"
+    },
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 11.6,
+      "sound": "wall-up",
+      "gain": 0.9,
+      "note": "壁が立つ時刻。storyboard 場面 2 の walls 層の rise（11.0／11.6／12.2 秒）。読み上げの「大企業には…」の始まり（約 10.7 秒）に合わせる"
+    },
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 12.2,
+      "sound": "wall-up",
+      "gain": 1,
+      "note": "壁が立つ時刻。storyboard 場面 2 の walls 層の rise（11.0／11.6／12.2 秒）。読み上げの「大企業には…」の始まり（約 10.7 秒）に合わせる"
+    },
+    {
+      "scene": 3,
+      "label": "ウチダイ登場・リンクを貼る",
+      "at": 14.8,
+      "sound": "wall-down",
+      "gain": 0.5,
+      "note": "「専門知識」の壁が崩れる。storyboard 場面 3 の walls 層の crumble（14.8 秒）。読解の 3 段目が出る時刻（overlay reading は 10.4 秒、結果は +3.2 秒、1 段ごとに 0.4 秒）"
+    },
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 3.21,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "外部確認の結果 ①VPN 用のホスト名。ReconReplay の時刻表 REPLAY_AT.items[0] = 5.0 秒（14 秒の時計）を、差し込み口の 9 秒に引き伸ばした値（5.0 × 9 / 14）"
+    },
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 4.24,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "②DMARC なし。REPLAY_AT.items[1] = 6.6 秒 × 9 / 14"
+    },
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 5.27,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "③廃止したはずの旧キャンペーンサイトの証明書。REPLAY_AT.items[2] = 8.2 秒 × 9 / 14"
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 0.8,
+      "sound": "scan",
+      "gain": 0.45,
+      "note": "赤い線が進む間の走査音（細い音）。再生は 0.5 秒に始まり ×1.5。台本（playback.ts）の traverse の時刻を 0.5 + t / 1.5 にした：攻撃者 → VPN 装置 0.8 秒、→ 管理者 2.2 秒、→ サーバ 3.3 秒、→ バックアップ 4.5 秒、→ 生産管理 5.6 秒。1 本が 1.0 秒なので、線の動き 1 区間ごとに鳴らす"
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 2.2,
+      "sound": "scan",
+      "gain": 0.45
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 3.3,
+      "sound": "scan",
+      "gain": 0.45
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 4.5,
+      "sound": "scan",
+      "gain": 0.45
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 5.6,
+      "sound": "scan",
+      "gain": 0.45
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 7.3,
+      "sound": "scan",
+      "gain": 0.45,
+      "note": "業務の層が落ちる（台本の hit biz-order 10.22 秒 → 0.5 + 10.22 / 1.5）。売上・取引先の計器は 7.9〜8.1 秒"
+    },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 23.0,
+      "sound": "flip",
+      "gain": 0.9,
+      "note": "黄 → 赤（返事を送った 22.4 秒の直後。読み上げの「赤に変わりました」と合わせる）"
+    },
+    {
+      "scene": 6,
+      "label": "AI 攻撃者",
+      "at": 5.84,
+      "sound": "verify",
+      "gain": 0.7,
+      "note": "検証 ✓ が順に出る。slot-components.tsx の AiAttackerSlot：ログ 12 行 × 0.42 秒 + 0.4 秒 = 5.44 秒に帯が出て、✓ は 0.4 秒後から 0.35 秒おき（5.84、6.19、6.54、6.89 秒）"
+    },
+    {
+      "scene": 6,
+      "label": "AI 攻撃者",
+      "at": 6.19,
+      "sound": "verify",
+      "gain": 0.7
+    },
+    {
+      "scene": 6,
+      "label": "AI 攻撃者",
+      "at": 6.54,
+      "sound": "verify",
+      "gain": 0.7
+    },
+    {
+      "scene": 6,
+      "label": "AI 攻撃者",
+      "at": 6.89,
+      "sound": "verify",
+      "gain": 0.7
+    },
+    {
+      "scene": 7,
+      "label": "結論",
+      "at": 2.0,
+      "sound": "impact",
+      "gain": 1,
+      "note": "2 秒の暗転のあと、結論が出る瞬間。overlays/Conclusion.tsx の T_HEAD = 2.0。読み上げの先頭の無音（leadSilenceSeconds）を 2.6 秒にして、この一打が声に潰されないようにした"
+    },
+    {
+      "scene": 7,
+      "label": "結論",
+      "at": 3.8,
+      "sound": "count",
+      "gain": 0.6,
+      "note": "売上の数字を 0 から数え上げる。Conclusion.tsx：数え上げは T_TILES + 0.4 = 3.8 秒から 2.4 秒（立方の減速で 1.6 秒で約 96%）"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 4.0,
+      "sound": "shield-bounce",
+      "gain": 0.9,
+      "note": "多要素認証の盾が弾かれる（盾に「効かない」が出る）。measures 1.2 秒 → 判定 API 約 0.2 秒 → 巻き戻し 0.7 秒 → 再生（×2）で VPN 装置に届く（台本 2.2 秒 / 2 = 1.1 秒後）で 1.2 + 0.2 + 0.7 + 1.1 ≒ 3.2 秒の概算。図は 2.4 秒から VPN 装置に寄る。録画で ±0.3 秒の調整が要る。「直前の無音の間」は読み上げ側で作る（場面 8 の 2 文目「ログインの鍵を二重にしても…」と重なる）"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 9.5,
+      "sound": "green-spread",
+      "gain": 0.8,
+      "note": "装置の更新で緑が広がる（入口の壁で止まる）。measures 6.0 秒 → 判定 API 約 0.2 秒 → 巻き戻し（MFA の再生の途中から 0.7 秒）→ 再生で VPN 装置に届く 1.1 秒後 ≒ 8.0 秒の概算。結論の文字の反転は、判定が差し替わる 6.9 秒前後（担当者画面は結論を常に出す）。緑に合わせた"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 17.6,
+      "sound": "wall-down",
+      "gain": 0.5,
+      "note": "「相談相手と予算」の壁が崩れる。storyboard 場面 8 の walls 層の crumble（17.6 秒）。比較の差し込み口（12.0 秒に出る）が 9 行を出し終えるのは約 16.4 秒"
+    },
+    {
+      "scene": 9,
+      "label": "社長への回答",
+      "at": 9.9,
+      "sound": "message",
+      "gain": 0.8,
+      "note": "社長の返事「じゃあ、それやろう」。chat-reply は 5.1 秒に出て、返事は overlay が出てから 4.8 秒（Chat.tsx の T_BOSS_REPLY）。5.1 + 4.8 = 9.9 秒。入力中の点は 7.7 秒から（一拍おく）"
+    },
+    {
+      "scene": 9,
+      "label": "社長への回答",
+      "at": 10.6,
+      "sound": "wall-down",
+      "gain": 0.8,
+      "note": "最後の壁「時間」が崩れる。storyboard 場面 9 の walls 層の crumble（10.6 秒）。「数分で、根拠つきで」は 11.6 秒から"
+    }
+  ]
+}
