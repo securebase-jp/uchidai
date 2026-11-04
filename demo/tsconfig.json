@@ -2,7 +2,6 @@
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "types": ["node"],
-    "typeRoots": ["../apps/web/node_modules/@types"],
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
