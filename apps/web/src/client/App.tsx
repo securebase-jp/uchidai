@@ -1,6 +1,7 @@
 import { MotionConfig } from "motion/react";
 import { useEffect } from "react";
 import { CaseChip, CompanyChip } from "./components/CompanyPicker.tsx";
+import { Footer } from "./components/Footer.tsx";
 import { TopBar } from "./components/TopBar.tsx";
 import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
@@ -48,6 +49,7 @@ function Shell({ settings }: { settings: Settings }) {
       {route === "staff" && <Staff settings={settings} />}
       {route === "exec" && <Exec settings={settings} />}
       {route === "onepager" && <OnePager />}
+      <Footer />
     </div>
   );
 }

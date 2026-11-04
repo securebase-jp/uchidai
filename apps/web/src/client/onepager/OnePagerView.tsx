@@ -328,6 +328,9 @@ export function OnePagerView({ data, measureLabel }: Props) {
                     </li>
                   )}
                 </ul>
+                <p className="op-all-sources">
+                  <a href="#/sources">このツール全体の出典はこちら</a>
+                </p>
                 <p className="op-brand">
                   ウチダイ　うちの会社は大丈夫か？　— 攻撃の段階の対応づけは MITRE ATT&amp;CK
                   Enterprise v{data.attackVersion}
