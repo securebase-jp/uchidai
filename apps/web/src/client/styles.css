@@ -2018,3 +2018,105 @@ dialog.confirm-dialog::backdrop {
   justify-content: flex-end;
   margin-top: 14px;
 }
+
+/* 出典の画面（#/sources）と下端のリンク。吹き出しが隠れないよう、項目は .panel にせず罫線だけで区切る */
+.sources {
+  max-width: 860px;
+  margin: 18px auto 0;
+}
+.src-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 22px;
+}
+.src-cat {
+  margin-top: 28px;
+}
+.src-cat h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--steel);
+}
+.src-cat-note {
+  margin: 0 0 6px;
+  line-height: 1.7;
+}
+.src-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.src-item {
+  padding: 12px 0;
+  border-top: 1px solid var(--edge);
+}
+.src-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.src-link {
+  color: var(--steel);
+}
+.src-version {
+  font: 700 12px var(--mono);
+  padding: 1px 7px;
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  color: var(--ink-2);
+}
+.src-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.src-meta-row {
+  display: flex;
+  gap: 6px;
+}
+.src-meta dt {
+  flex: none;
+  white-space: nowrap;
+  color: var(--ink-3);
+}
+.src-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.src-use {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.src-use-label {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.site-foot {
+  margin-top: 8px;
+  text-align: right;
+  font-size: 12px;
+  line-height: 20px;
+}
+.site-foot-link {
+  color: var(--ink-3);
+}
+:root[data-presenting] .site-foot {
+  display: none;
+}
+@media print {
+  .site-foot {
+    display: none;
+  }
+}

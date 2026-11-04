@@ -49,7 +49,7 @@ sources:
     noticeJa: 本文は収録せず、出典つきの短い抜粋と開発者自身の言葉での要約だけを使っています。
   - id: ipa-sme-jirei-cost
     categoryId: cases-costs
-    nameJa: 同 別紙「想定被害額計算明細」
+    nameJa: IPA 事例集 別紙「想定被害額計算明細」
     url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
     publisherJa: 独立行政法人情報処理推進機構（IPA）
     checkedAt: "2026-11-02"

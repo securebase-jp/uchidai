@@ -1,4 +1,4 @@
-/** ハッシュによる画面の切り替え：#/ #/domain #/questions #/profile #/staff #/exec #/onepager #/answer/:token */
+/** ハッシュによる画面の切り替え：#/ #/domain #/questions #/profile #/staff #/exec #/onepager #/sources #/answer/:token */
 import { useEffect, useMemo, useState } from "react";
 
 export type Route =
@@ -9,6 +9,7 @@ export type Route =
   | "staff"
   | "exec"
   | "onepager"
+  | "sources"
   | "answer";
 
 function parse(hash: string): Route {
@@ -20,7 +21,8 @@ function parse(hash: string): Route {
     h === "profile" ||
     h === "staff" ||
     h === "exec" ||
-    h === "onepager"
+    h === "onepager" ||
+    h === "sources"
   )
     return h;
   return "home";
