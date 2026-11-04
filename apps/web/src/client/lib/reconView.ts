@@ -273,3 +273,91 @@ export function hintLabel(key: InferredAnswerKey, value: string): string {
   if (key === "remoteAccess") return REMOTE_LABEL[value] ?? value;
   return HOSTING_LABEL[value] ?? value;
 }
+
+/** 反映の表の「種類」。上書き＝登録済みの値が変わる、新しく付く＝空欄が埋まる、根拠だけ＝同じ値で根拠が外部確認になる、追加＝記録が増える */
+export type ApplyKind = "overwrite" | "new" | "same" | "add";
+export const APPLY_KIND_LABEL: Record<ApplyKind, string> = {
+  overwrite: "上書き",
+  new: "新しく付く",
+  same: "根拠だけ",
+  add: "記録を追加",
+};
+
+/** 反映の表の 1 行：構成要素／項目／いま → 反映後／種類 */
+export type ApplyRow = {
+  key: string;
+  /** 構成要素（資産の名前。5 問の初期値は「最初の5問」、ドメインは「会社」） */
+  componentJa: string;
+  /** 項目（属性名、緩和策の番号、質問の名前） */
+  itemJa: string;
+  /** いまの値。無ければ undefined（空欄） */
+  before: string | undefined;
+  after: string;
+  kind: ApplyKind;
+  /** 「外部から推定」「所有確認済み」など、反映後の値に添える短い札 */
+  tagJa?: string;
+  /** 緩和策の記録に付いた注記 */
+  noteJa?: string;
+};
+
+const CONTROL_STATUS_LABEL: Record<string, string> = {
+  present: "あり",
+  absent: "なし",
+  unknown: "未確認",
+};
+
+/** 反映の差分を、表に並べる行にする（5 問の初期値、資産の属性、緩和策の記録、ドメインの順） */
+export function applyRows(d: ApplyChanges, before: CompanyProfile): ApplyRow[] {
+  const rows: ApplyRow[] = [];
+  for (const a of d.answers) {
+    rows.push({
+      key: `answer-${a.key}`,
+      componentJa: "最初の5問",
+      itemJa: a.labelJa,
+      before: undefined,
+      after: a.after,
+      kind: "new",
+      tagJa: "外部から推定",
+    });
+  }
+  for (const a of d.attrs) {
+    rows.push({
+      key: `attr-${a.assetId}-${a.key}`,
+      componentJa: a.assetLabel,
+      itemJa: a.key,
+      before: a.before,
+      after: a.after,
+      kind: a.before === undefined ? "new" : a.overwrite ? "overwrite" : "same",
+    });
+  }
+  for (const c of d.controls) {
+    const prev = before.assets
+      .find((x) => x.id === c.assetId)
+      ?.controls.find((x) => x.mitigation === c.mitigation);
+    rows.push({
+      key: `control-${c.assetId}-${c.mitigation}`,
+      componentJa: c.assetLabel,
+      itemJa: c.mitigation,
+      before: prev ? (CONTROL_STATUS_LABEL[prev.status] ?? prev.status) : undefined,
+      after: CONTROL_STATUS_LABEL[c.status] ?? c.status,
+      kind: "add",
+      ...(c.noteJa ? { noteJa: c.noteJa } : {}),
+    });
+  }
+  if (d.domainChange) {
+    rows.push({
+      key: "domain",
+      componentJa: "会社",
+      itemJa: "ドメイン",
+      before: d.domainChange.before,
+      after: d.domainChange.after,
+      kind: !d.domainChange.before
+        ? "new"
+        : d.domainChange.before === d.domainChange.after
+          ? "same"
+          : "overwrite",
+      tagJa: "所有確認済み",
+    });
+  }
+  return rows;
+}

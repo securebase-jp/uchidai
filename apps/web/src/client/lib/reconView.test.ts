@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import type { AppliedView, ReconResult } from "./reconApi.ts";
 import { parseReconHints } from "./reconHints.ts";
-import { applyChanges, checkRows, countStates, ctSourceIds, ctSourceLabel } from "./reconView.ts";
+import {
+  applyChanges,
+  applyRows,
+  checkRows,
+  countStates,
+  ctSourceIds,
+  ctSourceLabel,
+} from "./reconView.ts";
 import type { CompanyProfile } from "./types.ts";
 
 const result = {
@@ -241,6 +248,19 @@ describe("applyChanges（反映の差分）", () => {
       { key: "remoteAccess", labelJa: "社外からのつなぎ方", after: "VPN装置" },
     ]);
     expect(d.domainChange).toEqual({ before: undefined, after: "example.jp" });
+  });
+  it("差分を表の行にする：5 問、属性、緩和策、ドメインの順で、種類は上書き・新しく付く・記録を追加", () => {
+    const rows = applyRows(applyChanges(before, applied), before);
+    expect(rows.map((r) => [r.componentJa, r.itemJa, r.before, r.after, r.kind])).toEqual([
+      ["最初の5問", "メールの置き場所", undefined, "クラウドサービス", "new"],
+      ["最初の5問", "社外からのつなぎ方", undefined, "VPN装置", "new"],
+      ["VPN装置", "exposed", "なし", "あり", "overwrite"],
+      ["VPN装置", "hostname", undefined, "vpn.example.jp", "new"],
+      ["メール", "dmarc", undefined, "なし", "new"],
+      ["VPN装置", "M1042", undefined, "なし", "add"],
+      ["会社", "ドメイン", undefined, "example.jp", "new"],
+    ]);
+    expect(rows[0]?.tagJa).toBe("外部から推定");
   });
   it("同じ値が既に外部確認で入っていれば差分にしない", () => {
     const same: AppliedView = { profile: before, contradictions: applied.contradictions };
