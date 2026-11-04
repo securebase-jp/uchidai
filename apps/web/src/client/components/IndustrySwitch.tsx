@@ -53,7 +53,16 @@ export type IndustryResult = { labelJa: string; evaluation: Evaluation };
 export function IndustrySwitch() {
   const app = useApp();
   const { theCase, profile, measureIds, knowledge } = app;
-  const [results, setResults] = useState<IndustryResult[]>();
+  // 比べた条件（事例・登録済みの対策・借りた数値）も一緒に持つ。条件が変わったら古い結果は出さない
+  const [done, setDone] = useState<{ key: string; out: IndustryResult[] }>();
+  const conditionKey = JSON.stringify([
+    theCase,
+    measureIds,
+    profile?.dailyRevenue,
+    profile?.employees,
+    profile?.typicalTransferJpy,
+  ]);
+  const results = done?.key === conditionKey ? done.out : undefined;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [picked, setPicked] = useState(0);
@@ -62,6 +71,7 @@ export function IndustrySwitch() {
 
   async function run() {
     if (!theCase) return;
+    const key = conditionKey;
     setBusy(true);
     setError(undefined);
     try {
@@ -79,7 +89,7 @@ export function IndustrySwitch() {
           return { labelJa: label(ind), evaluation };
         }),
       );
-      setResults(out);
+      setDone({ key, out });
     } catch (e) {
       setError(e instanceof ApiError || e instanceof Error ? e.message : "通信に失敗しました");
     } finally {
