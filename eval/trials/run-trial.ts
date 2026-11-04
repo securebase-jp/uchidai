@@ -12,7 +12,7 @@
  * <profile>.onepager.json、summary.json（所要時間とトークン）。リクエストヘッダや API キーは保存しない。
  * 本文はリポジトリに入れない（著作権）。
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -27,6 +27,8 @@ const { values } = parseArgs({
     "read-only": { type: "boolean", default: false },
     /** 5 問の回答（JSON）。省略時は卸売・サービス業、事務所のみ、メールはクラウド、ファイルと基幹は社内、リモートは RDP、バックアップは同じ網 */
     answers: { type: "string" },
+    /** 保存済みの read.json（以前の読解の結果）を使い、記事の取得と読解の呼び出しを省く。修正の前後を同じ読解で比べるときに使う */
+    "read-from": { type: "string" },
   },
 });
 if (!values.id || !values.url) {
@@ -101,17 +103,25 @@ async function call(
 
 const summary: Record<string, unknown> = { id, url, startedAt: new Date().toISOString() };
 
-// 1. 本文を取る（確認用）。ウチダイの URL 読みと同じ fetchArticle（本文の抽出）を通す
-const tFetch = performance.now();
-const article = await fetchArticle({ kind: "url", url }, { fetch: guardedFetch(resolveFetch()) });
-summary.fetchMs = Math.round(performance.now() - tFetch);
-writeFileSync(join(outDir, "article.txt"), article.text);
-summary.article = { title: article.title, chars: article.text.length, kind: article.kind };
+const readFrom = values["read-from"];
+let read: { status: number; ms: number; json: any };
+if (readFrom) {
+  // 保存済みの読解の結果を使う（記事の取得も読解の呼び出しもしない）
+  read = { status: 200, ms: 0, json: JSON.parse(readFileSync(readFrom, "utf8")) };
+  summary.readFrom = readFrom;
+} else {
+  // 1. 本文を取る（確認用）。ウチダイの URL 読みと同じ fetchArticle（本文の抽出）を通す
+  const tFetch = performance.now();
+  const article = await fetchArticle({ kind: "url", url }, { fetch: guardedFetch(resolveFetch()) });
+  summary.fetchMs = Math.round(performance.now() - tFetch);
+  writeFileSync(join(outDir, "article.txt"), article.text);
+  summary.article = { title: article.title, chars: article.text.length, kind: article.kind };
 
-// 2. 読解（API 経由）
-const read = await call("POST", "/api/case/read", { input: { kind: "url", url } });
-summary.read = { status: read.status, ms: read.ms };
-save("read.json", read.json);
+  // 2. 読解（API 経由）
+  read = await call("POST", "/api/case/read", { input: { kind: "url", url } });
+  summary.read = { status: read.status, ms: read.ms };
+  save("read.json", read.json);
+}
 if (read.status !== 200) {
   console.error("read failed", read.status, JSON.stringify(read.json).slice(0, 500));
   summary.usage = usage;
