@@ -90,11 +90,69 @@ function OnePagerSkeleton() {
   );
 }
 
+/**
+ * まだ作っていないときの画面。ボタンを押すまで、API にも AI にも何も送らない。
+ * 「AI で作る」は Claude が「何が起きるか」の文を書く。「AI を使わずに作る」はプログラムの固定の文
+ */
+function GeneratePanel({
+  available,
+  onGenerate,
+}: {
+  available: boolean | undefined;
+  onGenerate(ai: boolean): void;
+}) {
+  const noKey = available === false;
+  return (
+    <div className="panel op-generate no-print">
+      <h2>
+        社長向けの一枚を作る
+        <InfoButton title="AI を使うときの扱い">
+          <p>
+            「AI で一枚を作る」を押したときだけ、Claude
+            に「何が起きるか」の文を書かせます。送るのは、役割名（VPN装置、バックアップなど）と数値だけで、会社名・製品名・ホスト名は送りません。
+          </p>
+          <p>
+            止まる業務、日数、金額、期限は、AI
+            を使っても使わなくても、プログラムが同じ計算で出します。AI が書いた文に、手法の ID
+            や入力にない数値が混じっていたときは、捨てて固定の文に戻します。
+          </p>
+          <p>
+            「AI を使わずに作る」を選ぶと、Claude
+            には何も送りません。ボタンを押すまでは、この画面を開いただけでは何も作られず、何も送られません。
+          </p>
+          {noKey && (
+            <p>
+              このサーバには Claude の API キーが設定されていないため、AI
+              は使えません。キーはサーバ側の環境変数にあり、ブラウザには渡りません。
+            </p>
+          )}
+        </InfoButton>
+      </h2>
+      <p className="muted small">ボタンを押すまで、何も作らず、AI にも何も送りません。</p>
+      <p className="row" style={{ marginTop: 10, gap: 8 }}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={noKey}
+          title={noKey ? "このサーバには Claude の API キーが設定されていません" : undefined}
+          onClick={() => onGenerate(true)}
+        >
+          AI で一枚を作る
+        </button>
+        <button type="button" className="btn" onClick={() => onGenerate(false)}>
+          AI を使わずに作る
+        </button>
+      </p>
+      {noKey && <p className="muted small">AI は、このサーバにキーが無いため選べません。</p>}
+    </div>
+  );
+}
+
 /** API で作る一枚（自分のカルテ、または架空の会社の記録）。共有リンク（d=）で開いた一枚は SharedOnePager */
 export function OnePager() {
   const app = useApp();
   const params = useOnePagerParams();
-  const state = useOnePager(params);
+  const { state, generate, rewrite } = useOnePager(params);
   const [copied, setCopied] = useState<string>();
   const [shareNote, setShareNote] = useState<string>();
   const [shareError, setShareError] = useState<string>();
@@ -105,7 +163,7 @@ export function OnePager() {
   const print = usePrintPreview();
   const available = useReadAvailable();
   const textView = textSourceView({
-    rewrite: params.rewrite,
+    rewrite,
     available,
     busy: state.status === "loading" || (state.status === "ready" && state.writing),
     text: state.status === "ready" ? state.data.text : undefined,
@@ -176,7 +234,11 @@ export function OnePager() {
 
   return (
     <div className="onepager">
-      <div className="op-toolbar no-print">
+      {/* まだ作っていない間は、操作列（PDF・共有など）を出さない */}
+      <div
+        className="op-toolbar no-print"
+        style={state.status === "idle" ? { display: "none" } : undefined}
+      >
         <PdfActions filename={pdfName} />
         <PrintPreviewToggle preview={print.preview} onToggle={print.toggle} />
         {state.status === "ready" && (
@@ -222,7 +284,7 @@ export function OnePager() {
         )}
       </div>
       {(state.status === "loading" || state.status === "ready") && !params.d && (
-        <TextSourceRow view={textView} />
+        <TextSourceRow view={textView} onChoose={generate} />
       )}
       {state.status === "ready" && (shareError || shareNote) && (
         <div className="op-toolbar no-print small muted" style={{ display: "block" }}>
@@ -244,6 +306,7 @@ export function OnePager() {
           />
         </div>
       )}
+      {state.status === "idle" && <GeneratePanel available={available} onGenerate={generate} />}
       {state.status === "loading" && (
         <>
           <p className="muted" role="status">

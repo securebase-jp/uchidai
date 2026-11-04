@@ -4,13 +4,17 @@
  * 切り替えると取り直し、紙面（PDF と印刷）にも反映される
  */
 import { InfoButton } from "../components/InfoButton.tsx";
-import { withRewrite } from "./params.ts";
 import type { TextSourceView } from "./text-source.ts";
 
-export function TextSourceRow({ view }: { view: TextSourceView }) {
-  const choose = (rewrite: boolean) => {
-    location.hash = withRewrite(location.hash, rewrite);
-  };
+export function TextSourceRow({
+  view,
+  onChoose,
+}: {
+  view: TextSourceView;
+  /** 文の書き方を選ぶ（true は Claude）。選んだときだけ取り直す */
+  onChoose(rewrite: boolean): void;
+}) {
+  const choose = onChoose;
   return (
     <div className="op-toolbar no-print op-textsrc">
       <span className="small muted">文章：</span>

@@ -15,6 +15,8 @@ export type OnePagerParams = {
   /** undefined は「画面の状態に従う」、[] は「対策なし」 */
   measures?: string[];
   rewrite: boolean;
+  /** ボタンを押さなくても作る（録画・テスト用）。generate=1 */
+  generate?: boolean;
 };
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -23,6 +25,7 @@ export function parseOnePagerHash(hash: string = location.hash): OnePagerParams 
   const q = hash.slice(hash.indexOf("?") + 1 || hash.length);
   const p = new URLSearchParams(q);
   const out: OnePagerParams = { rewrite: p.get("rewrite") !== "0" };
+  if (p.get("generate") === "1") out.generate = true;
   // d= は形が崩れていても渡す（開く側が「壊れています」と理由を出す。黙ってカルテの一枚に落とさない）
   const d = p.get("d");
   if (d) out.d = d;
