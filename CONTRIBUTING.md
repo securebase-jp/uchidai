@@ -180,7 +180,9 @@ rules:
 ## 業種別パターンと最初の5問（`profiles/`、`questions.yaml`）
 
 - `profiles/<id>.yaml`：中核システムの名前、業務（手作業で回せる日数、復旧日数、切り離したバックアップがあるときの復旧日数、影響先）、個人情報の既定。業種を足すときは `questions.yaml` の業種の選択肢に `pattern` を対応づける
-- 「現場はありますか？」の選択肢（`site`）には `industries`（出す業種の `value` の配列）を付けられる。付けた選択肢は、その業種を選んだときだけ出る（製造・建設に「診療所・施設」は出さない）。付けなければすべての業種に出る。業種を足すときは、その業種に出す現場を `industries` に加える
+- 「現場はありますか？」の選択肢（`site`）には `industries`（出す業種の `value` の配列）を付けられる。付けた選択肢は、その業種を選んだときだけ出る（製造業に「診療所・病院」は出さない）。付けなければすべての業種に出る。複数選べる問にはしない（単一選択）
+- 現場の選択肢には `siteBusiness`（`name`、`roles`、`manualDays`、`recoveryDays`、`recoveryDaysWithBackup`、`affectsJa`）を付けられる。選ぶと、構成図の業務の層に「現場の業務」が足される（事務所のみは足さない）。`roles` はその業務が止まる元の役割（`roles.yaml`）。構成パターンに同じ業務（製造業の「生産ライン」、医療の「診療」など）が既にあるときは、`replaces` にその業務 ID を書くと、足さずに置き換える。業務の層は 5 つまでなので、構成パターンの業務は 4 つ以下にする。数値は叩き台なので、根拠を 1 行のコメントで書く
+- 業種を足す手順：（1）`profiles/<id>.yaml` を作り、`types.ts` の `PatternId` と `ProfileAnswers.industry` に加える。（2）`questions.yaml` の `industry` に選択肢（`value`、`labelJa`、`pattern`）を足し、`graph.ts` の `patternIdOf` に対応を書く。（3）`site` の各選択肢の `industries` に、その業種を出すものだけ加える（合うものが無ければ `siteBusiness` 付きの選択肢を足す）。（4）担当者画面の「業種を切り替えて比べる」（`IndustrySwitch.tsx`）に足す。`pnpm knowledge:check` が、業種と構成パターンの対応、現場の役割と `replaces` の整合を確かめる
 - `questions.yaml`：5 問の文言と選択肢、選択肢が作る役割（`addsRole`）と確認する緩和策（`checks`）。問いを増やすと「2 分で終わる」が崩れるので、既存の問いの選択肢を足す方を先に考える
 - 入口候補の並び順（`entry-candidates.yaml`）は警察庁の統計の件数順。更新するときは統計の版と URL、転記した日を書く
 
