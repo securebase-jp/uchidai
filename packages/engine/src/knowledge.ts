@@ -294,6 +294,50 @@ export type CostEntry = z.infer<typeof CostEntry>;
 export type CostsFile = z.infer<typeof CostsFile>;
 
 // ---------------------------------------------------------------------------
+// ツール全体の出典（sources.yaml）。画面の「出典」、README、NOTICE はここと食い違わないようにする
+// ---------------------------------------------------------------------------
+const HttpsUrl = z.url({ protocol: /^https$/ });
+export const SourceCategory = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+  titleJa: z.string().min(1),
+  /** 分類の見出しの下に添える一言（他のファイルへの案内など） */
+  noteJa: z.string().optional(),
+});
+export const SourceItem = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/),
+  categoryId: z.string(),
+  nameJa: z.string().min(1),
+  url: HttpsUrl,
+  publisherJa: z.string().min(1),
+  /** 利用条件の一言（CC0 1.0、SIL OFL 1.1、MITRE の規約など） */
+  licenseJa: z.string().optional(),
+  checkedAt: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  /** このツールで何に使っているか（1 文） */
+  usedForJa: z.string().min(1),
+  /** 引用の表記や注意 */
+  noticeJa: z.string().optional(),
+});
+export const SourcesFile = z.object({
+  categories: z.array(SourceCategory).min(1),
+  sources: z.array(SourceItem).min(1),
+});
+export type SourceCategory = z.infer<typeof SourceCategory>;
+export type SourceItem = z.infer<typeof SourceItem>;
+export type SourcesFile = z.infer<typeof SourcesFile>;
+
+/** ATT&CK の版を画面で添える項目（版は yaml にべた書きせず、attack/version.json から差し込む） */
+export const ATTACK_VERSIONED_SOURCE_IDS: readonly string[] = ["mitre-attack", "mitre-attack-stix"];
+const AttackVersionFile = z.object({ version: z.string() });
+
+/** 画面と API に返す形。分類の順に並べ、各項目に ATT&CK の版を差し込む */
+export type SourcesView = {
+  categories: (SourceCategory & { sources: (SourceItem & { version?: string })[] })[];
+};
+
+// ---------------------------------------------------------------------------
 // 読み込み
 // ---------------------------------------------------------------------------
 function readYaml(rel: string): unknown {
@@ -337,6 +381,31 @@ export function loadDeadlines(): DeadlinesFile {
 }
 export function loadCosts(): CostsFile {
   return CostsFile.parse(readYaml("costs.yaml"));
+}
+export function loadSources(): SourcesFile {
+  return SourcesFile.parse(readYaml("sources.yaml"));
+}
+export function loadAttackVersion(): string {
+  return AttackVersionFile.parse(
+    JSON.parse(readFileSync(join(knowledgeDir, "attack/version.json"), "utf8")),
+  ).version;
+}
+/** 出典の一覧を、分類の順に並べて返す（会社カルテや判定は読まない） */
+export function sourcesView(
+  file: SourcesFile = loadSources(),
+  attackVersion = loadAttackVersion(),
+) {
+  const view: SourcesView = {
+    categories: file.categories.map((c) => ({
+      ...c,
+      sources: file.sources
+        .filter((s) => s.categoryId === c.id)
+        .map((s) =>
+          ATTACK_VERSIONED_SOURCE_IDS.includes(s.id) ? { ...s, version: attackVersion } : s,
+        ),
+    })),
+  };
+  return view;
 }
 export function loadProfile(path: string): CompanyProfile {
   return CompanyProfile.parse(JSON.parse(readFileSync(path, "utf8")));
@@ -556,6 +625,31 @@ export function checkKnowledge(profilePaths: string[]): string[] {
         problems.push(`deadlines: 報告条件 ${t.id} の出典 ${t.sourceId} が sources にない`);
   }
 
+  const sourcesFile = collect("sources", loadSources);
+  if (sourcesFile) {
+    const categoryIds = new Set<string>();
+    for (const c of sourcesFile.categories) {
+      if (categoryIds.has(c.id)) problems.push(`sources: 分類 ${c.id} が重複`);
+      categoryIds.add(c.id);
+      if (!sourcesFile.sources.some((s) => s.categoryId === c.id))
+        problems.push(`sources: 分類 ${c.id} に項目がない`);
+    }
+    const ids = new Set<string>();
+    for (const s of sourcesFile.sources) {
+      if (ids.has(s.id)) problems.push(`sources: ${s.id} が重複`);
+      ids.add(s.id);
+      if (!categoryIds.has(s.categoryId))
+        problems.push(`sources/${s.id}: 分類 ${s.categoryId} が categories にない`);
+    }
+    for (const id of ATTACK_VERSIONED_SOURCE_IDS)
+      if (!ids.has(id)) problems.push(`sources: ATT&CK の版を差し込む項目 ${id} がない`);
+    // 判定が使っている出典（deadlines.yaml）が、この一覧にも載っていること
+    const urls = new Set(sourcesFile.sources.map((s) => s.url));
+    for (const s of deadlines?.sources ?? [])
+      if (s.url && !urls.has(s.url))
+        problems.push(`sources: deadlines の出典 ${s.id}（${s.url}）が sources.yaml にない`);
+  }
+
   const costs = collect("costs", loadCosts);
   if (costs) {
     const unitIds = new Set(costs.unitPrices.map((u) => u.id));
@@ -644,5 +738,6 @@ export const schemaExports = {
   "entry-candidates.schema.json": EntryCandidates,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
+  "sources.schema.json": SourcesFile,
   "kev-products.schema.json": KevProductsFile,
 } as const;
