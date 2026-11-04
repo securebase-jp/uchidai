@@ -1,7 +1,7 @@
 /**
  * VOICEVOX エンジン（ローカル、既定 http://localhost:50021）で場面ごとの WAV を作り、長さを demo/audio/durations.json に書く。
  *   node demo/scripts/synth-voicevox.ts [--host http://localhost:50021] [--name 四国めたん] [--style ノーマル] [--speaker 2]
- *                                       [--speed 1.0] [--scene 4] [--list]
+ *                                       [--speed 1.0] [--scene 4] [--no-pad] [--list]
  * エンジンが無ければ手順を表示して終了する。音声ファイルは git 管理外（demo/audio/）。
  * 作った音声を使うときは、音声ライブラリの規約に従いクレジット（例：VOICEVOX:四国めたん）を表記する（demo/README.md）。
  */
@@ -21,6 +21,8 @@ const flag = (name: string) => process.argv.includes(`--${name}`);
 const host = (arg("host", "http://localhost:50021") ?? "").replace(/\/$/, "");
 const speed = Number(arg("speed", "1.0"));
 const only = arg("scene");
+/** 音声が targetSeconds に満たないとき、末尾を無音で伸ばす（場面の長さと画面の操作の時刻をそろえる）。--no-pad で外す */
+const pad = !flag("no-pad");
 const wantName = arg("name", "四国めたん") ?? "四国めたん";
 const wantStyle = arg("style", "ノーマル") ?? "ノーマル";
 
@@ -82,6 +84,33 @@ if (speakerLabel && !narration.credits.voice.includes(speakerLabel.split("（")[
   );
 }
 
+/** WAV（PCM）の末尾に無音を足して、長さを seconds にそろえる。長ければそのまま（場面が伸びる） */
+function padWav(buf: Buffer, seconds: number): Buffer {
+  const have = wavDurationSeconds(buf);
+  if (have >= seconds) return buf;
+  let pos = 12;
+  let byteRate = 0;
+  let blockAlign = 0;
+  while (pos + 8 <= buf.length) {
+    const id = buf.toString("ascii", pos, pos + 4);
+    const size = buf.readUInt32LE(pos + 4);
+    if (id === "fmt ") {
+      byteRate = buf.readUInt32LE(pos + 16);
+      blockAlign = buf.readUInt16LE(pos + 20);
+    }
+    if (id === "data") {
+      const extra = Math.ceil((seconds - have) * byteRate);
+      const silence = Buffer.alloc(extra - (extra % blockAlign));
+      const head = Buffer.from(buf.subarray(0, pos + 8 + size));
+      head.writeUInt32LE(size + silence.length, pos + 4);
+      head.writeUInt32LE(buf.length + silence.length - 8, 4);
+      return Buffer.concat([head, silence, buf.subarray(pos + 8 + size)]);
+    }
+    pos += 8 + size + (size % 2);
+  }
+  return buf;
+}
+
 mkdirSync(audioDir, { recursive: true });
 const durations: Record<string, number> = {};
 for (const scene of narration.scenes) {
@@ -94,6 +123,8 @@ for (const scene of narration.scenes) {
   const query = (await q.json()) as Record<string, unknown>;
   query.speedScale = speed;
   query.outputSamplingRate = 48000;
+  // 読み上げの前の無音（場面 7 の「2 秒の無音のあと」など）は、音声の先頭に入れる
+  if (scene.leadSilenceSeconds) query.prePhonemeLength = scene.leadSilenceSeconds;
   const s = await fetch(
     `${host}/synthesis?${new URLSearchParams({ speaker: String(speakerId) })}`,
     {
@@ -103,7 +134,8 @@ for (const scene of narration.scenes) {
     },
   );
   if (!s.ok) throw new Error(`synthesis（場面 ${scene.n}）が ${s.status}`);
-  const buf = Buffer.from(await s.arrayBuffer());
+  let buf: Buffer = Buffer.from(await s.arrayBuffer());
+  if (pad) buf = padWav(buf, scene.targetSeconds);
   const path = join(audioDir, `${scene.n}.wav`);
   writeFileSync(path, buf);
   const sec = wavDurationSeconds(buf);
@@ -111,6 +143,10 @@ for (const scene of narration.scenes) {
   console.log(
     `場面 ${scene.n} ${scene.titleJa}：${sec.toFixed(1)} 秒（目安 ${scene.targetSeconds} 秒）→ ${path}`,
   );
+  if (sec > scene.targetSeconds + 0.05)
+    console.warn(
+      `  注意：読み上げが目安より ${(sec - scene.targetSeconds).toFixed(1)} 秒長く、場面が伸びます。--speed を上げるか、原稿を詰めてください`,
+    );
 }
 const durPath = join(audioDir, "durations.json");
 const merged = { ...(await import("./lib.ts")).loadDurations(), ...durations };
