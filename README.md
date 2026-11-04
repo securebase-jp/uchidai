@@ -111,12 +111,15 @@ pnpm attack:import                          # ATT&CK の再取り込み
 
 ## 出典
 
+画面の「出典」（`#/sources`）に同じ一覧がある。元データは `knowledge/sources.yaml`。
+
 - MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は [NOTICE](NOTICE)。日本語ラベルは本プロジェクト独自の訳）
 - IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの短い抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）
 - 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」「漏えい等の対応とお役立ち資料」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）
-- 警察庁「サイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）。警視庁「ビジネスメール詐欺（BEC）対策」：送金後の実務上の期限
+- 警察庁サイバー警察局「令和7年におけるサイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）。警察庁「サイバー事案に関する相談窓口」：被害にあったときの相談先。警視庁「ビジネスメール詐欺（BEC）対策」：送金後の実務上の期限（相談窓口と BEC 対策は `knowledge/deadlines.yaml`）
 - crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（[packages/recon/README.md](packages/recon/README.md)）
 - CISA Known Exploited Vulnerabilities (KEV) Catalog: https://www.cisa.gov/known-exploited-vulnerabilities-catalog — 悪用確認済み脆弱性の突き合わせ（CC0 1.0。JSON は手元のサーバが取得し `apps/web/.data/` に保存。リポジトリには含めない）。影響を受ける版の範囲はベンダーの公表資料（PSIRT）から `knowledge/kev/products.yaml` に URL と確認日つきで転記
+- 書体：BIZ UDPGothic、BIZ UDPMincho、JetBrains Mono（いずれも SIL Open Font License 1.1。Fontsource 経由）。デモ動画の音声：VOICEVOX（四国めたん。クレジット「VOICEVOX:四国めたん」、規約は [demo/README.md](demo/README.md)）
 
 ## ライセンス
 

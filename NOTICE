@@ -1,6 +1,6 @@
 # NOTICE
 
-ウチダイのコードは MIT License（LICENSE）で提供する。以下の外部データとフォントは、それぞれの提供元の規約に従い、コードのライセンスとは別に扱う。
+ウチダイのコードは MIT License（LICENSE）で提供する。以下の外部データ、フォント、音声は、それぞれの提供元の規約に従い、コードのライセンスとは別に扱う。参考にした資料の全体の一覧は `knowledge/sources.yaml`（画面の「出典」＝ `#/sources`）にある。
 
 ## MITRE ATT&CK®
 
@@ -35,5 +35,9 @@ https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 
 ## フォント
 
-- BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1）
-- JetBrains Mono（SIL Open Font License 1.1）
+- BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）
+- JetBrains Mono（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）
+
+## 音声（デモ動画）
+
+デモ動画のナレーションは VOICEVOX で合成した音声（既定の話者は四国めたん）を使う。クレジット表記：VOICEVOX:四国めたん。VOICEVOX の利用規約（https://voicevox.hiroshiba.jp/term/ ）と、音声ライブラリ（東北ずん子・ずんだもんプロジェクト 音源利用規約）に従う。確認した内容は `demo/README.md` に書いている。
