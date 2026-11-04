@@ -1,3 +1,5 @@
+import { join } from "node:path";
+import { Case, evaluate, loadKnowledge, loadProfile, repoRoot } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import {
   allowedNumbers,
@@ -5,14 +7,20 @@ import {
   formatYenInText,
   type OnePagerWriterInput,
   OnePagerWriterOutput,
+  writerInputFrom,
 } from "./onepager-writer.ts";
 
 const input: OnePagerWriterInput = {
   result: "breached",
   stages: [
-    { labelJa: "入口から侵入", roleJa: "VPN装置", state: "breached" },
-    { labelJa: "管理者権限を奪う", roleJa: "管理者アカウント", state: "unknown" },
-    { labelJa: "暗号化・業務停止", roleJa: "中核システム", state: "breached" },
+    { labelJa: "入口から侵入", roleJa: "VPN装置", state: "breached", source: "stated" },
+    {
+      labelJa: "管理者権限を奪う",
+      roleJa: "管理者アカウント",
+      state: "breached",
+      source: "stated",
+    },
+    { labelJa: "暗号化・業務停止", roleJa: "中核システム", state: "breached", source: "stated" },
   ],
   stopped: [{ name: "受注・生産管理", days: 10, manualDays: 2, affectsJa: "取引先の納期" }],
   downtimeDays: 10,
@@ -88,5 +96,85 @@ describe("formatYenInText（金額の書き方を読みやすくする）", () =
   it("すでに万円・日数などは変えない", () => {
     const s = "売上への影響は140万円で、復旧まで7日かかります。1日の売上は20万円です。";
     expect(formatYenInText(s)).toBe(s);
+  });
+});
+
+describe("段階の確認状況（source）に合わない言い方を捨てる（TRIAL-001・005）", () => {
+  const stage = (
+    source: "stated" | "inferred" | "candidate",
+    state: "breached" | "unknown" | "blocked" = "breached",
+  ) => ({ labelJa: "段階", roleJa: "役割", state, source });
+  const base: OnePagerWriterInput = { ...input, stages: [], stopped: [], downtimeDays: 0 };
+  const lines = (...l: string[]) => ({ whatHappensJa: l });
+
+  it("記載（stated）の段階を「確認が取れていません」と書いた文は捨てる", () => {
+    const i = { ...base, stages: [stage("stated")] };
+    for (const line of [
+      "データの持ち出しは確認が取れていません。",
+      "データの持ち出しは確認できていません。",
+      "データの持ち出しは確認されていません。",
+    ])
+      expect(checkWriterOutput(lines(line), i), line).toMatch(/確認が取れていません/);
+    expect(checkWriterOutput(lines("データの持ち出しは確認されています。"), i)).toBeUndefined();
+  });
+  it("記載の段階があるとき、「不明」も捨てる", () => {
+    const i = { ...base, stages: [stage("stated")] };
+    expect(checkWriterOutput(lines("持ち出しの有無は不明です。"), i)).toMatch(/不明/);
+  });
+  it("推定（inferred）の段階を断定した文は捨て、「考えられます」なら通す", () => {
+    const i = { ...base, stages: [stage("inferred")] };
+    expect(checkWriterOutput(lines("バックアップも消されます。"), i)).toMatch(/断定/);
+    expect(checkWriterOutput(lines("バックアップも消されたと考えられます。"), i)).toBeUndefined();
+    expect(checkWriterOutput(lines("バックアップも消されるおそれがあります。"), i)).toBeUndefined();
+  });
+  it("入口が候補（candidate）なら「入口はまだ分かっていません」が要る", () => {
+    const i = { ...base, stages: [stage("candidate"), stage("inferred")] };
+    expect(checkWriterOutput(lines("VPN装置から入られ、暗号化されると考えられます。"), i)).toMatch(
+      /入口が候補/,
+    );
+    expect(
+      checkWriterOutput(
+        lines(
+          "入口はまだ分かっていません。たとえばVPN装置から入られた場合は、暗号化されると考えられます。",
+        ),
+        i,
+      ),
+    ).toBeUndefined();
+  });
+  it("state が unknown の段階は固定の言い回しで書く（攻撃が起きたかの話に使わない）", () => {
+    const i = { ...base, stages: [stage("stated", "unknown")] };
+    expect(checkWriterOutput(lines("管理者権限が奪われました。"), i)).toMatch(/止める対策/);
+    expect(
+      checkWriterOutput(
+        lines("管理者権限が奪われました。この段階を止める対策が確認できていません。"),
+        i,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("writerInputFrom は各段階の source を渡す", () => {
+  const k = loadKnowledge();
+  it("入口が不明の記事では最初の段階が candidate、記載の段階は stated", () => {
+    const theCase = Case.parse({
+      id: "t",
+      title: "t",
+      damageType: "ransomware",
+      clarity: "unknown",
+      steps: [
+        {
+          tactic: "TA0040",
+          techniques: ["T1486"],
+          summaryJa: "データが暗号化された",
+          source: "stated",
+          quote: "データが暗号化された",
+        },
+      ],
+      suspiciousInstructions: [],
+    });
+    const profile = loadProfile(join(repoRoot, "examples", "demo-seiko.json"));
+    const input2 = writerInputFrom(evaluate(theCase, profile, { knowledge: k }), k);
+    expect(input2.stages[0]?.source).toBe("candidate");
+    expect(input2.stages.some((s) => s.source === "stated")).toBe(true);
   });
 });
