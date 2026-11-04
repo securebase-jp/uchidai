@@ -1,0 +1,148 @@
+/* 画面の流れ（外部確認・はじめに・最初の5問）で使う、図とアイコン中心の表示の共通スタイル */
+
+/* ---- 外部確認：チェックの一覧 ---- */
+.st-icon.tone-gray {
+  color: var(--ink-3);
+}
+.chk-summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: 12px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+.chk-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.chk-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.chk-item {
+  border-top: 1px solid var(--edge);
+}
+.chk-item:first-child {
+  border-top: 0;
+}
+.chk-line {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  min-height: 44px;
+}
+.chk-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+/* 行全体を押せるようにする（出典番号のリンクは前に出して押せるまま） */
+.chk-toggle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.chk-toggle:focus-visible {
+  outline: none;
+}
+.chk-toggle:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+.chk-name {
+  font-weight: 700;
+  min-width: 9.5em;
+}
+.chk-result {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.chk-result.mono {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.chk-guess {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--ink-3);
+  border: 1px solid var(--edge-strong);
+  border-radius: 5px;
+  padding: 0 5px;
+}
+.chk-tag {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  font-size: 11px;
+  color: var(--ink-2);
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.chk-tag .src-ref {
+  margin-left: 5px;
+  font-size: 11px;
+}
+.chk-chev {
+  flex: none;
+  color: var(--ink-3);
+  transition: transform 0.15s;
+}
+.chk-chev.open {
+  transform: rotate(180deg);
+}
+.chk-body {
+  padding: 2px 6px 12px 32px;
+  display: grid;
+  gap: 6px;
+}
+.chk-notes {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--edge);
+  display: grid;
+  gap: 4px;
+  color: var(--ink-2);
+}
+.chk-notes li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+@media (max-width: 560px) {
+  .chk-name {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .chk-line {
+    flex-wrap: wrap;
+  }
+  .chk-chev {
+    margin-left: auto;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chk-chev {
+    transition: none;
+  }
+}

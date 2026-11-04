@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AppliedView, ReconResult } from "./reconApi.ts";
 import { parseReconHints } from "./reconHints.ts";
-import { applyChanges, ctSourceLabel, groupFindings, warningsOf } from "./reconView.ts";
+import { applyChanges, checkRows, countStates, ctSourceIds, ctSourceLabel } from "./reconView.ts";
 import type { CompanyProfile } from "./types.ts";
 
 const result = {
@@ -68,20 +68,62 @@ describe("ctSourceLabel", () => {
   });
 });
 
-describe("groupFindings / warningsOf", () => {
+describe("checkRows / countStates", () => {
   it("カテゴリの固定順に並べ、推定のカテゴリに印を付ける", () => {
-    const groups = groupFindings(result);
-    expect(groups.map((g) => g.category)).toEqual(["remote_access", "mail_auth", "web_hosting"]);
-    expect(groups[0]?.inferred).toBe(true);
-    expect(groups[1]?.inferred).toBe(false);
-    expect(groups[0]?.findings[0]?.ipaCases).toEqual([8, 9]);
-  });
-  it("警告は warn の見出しと注記", () => {
-    expect(warningsOf(result)).toEqual([
-      "DMARC なし",
-      "VPN 用と推定されるホスト名",
-      "証明書の公開ログ（crt.sh）を参照できなかった: timeout",
+    const rows = checkRows(result);
+    expect(rows.map((r) => r.id)).toEqual([
+      "remote_access.vpn",
+      "mail_auth.dmarc",
+      "web_hosting.hint",
     ]);
+    expect(rows[0]?.inferred).toBe(true);
+    expect(rows[1]?.inferred).toBe(false);
+    expect(rows[0]?.finding.ipaCases).toEqual([8, 9]);
+  });
+  it("項目名と結果は短く、DMARC が無ければ「問題あり」、VPN の公開は「要確認」", () => {
+    const rows = checkRows(result);
+    expect(rows.map((r) => [r.nameJa, r.resultJa, r.state])).toEqual([
+      ["VPN 用ホスト", "見つからず", "warn"],
+      ["DMARC", "なし", "bad"],
+      ["ホームページの置き場所", "不明", "info"],
+    ]);
+  });
+  it("VPN 用と推定されるホスト名が公開されていれば、その名前を結果に出す。3 件目からは件数にまとめる", () => {
+    const cand = (hostname: string, current: boolean) => ({
+      hostname,
+      kind: "vpn" as const,
+      pattern: "p",
+      current,
+      reasonJa: "",
+      evidence: [],
+      ipaCases: [],
+    });
+    const r = {
+      ...result,
+      remoteAccessCandidates: [
+        cand("vpn.a.example", true),
+        cand("vpn2.a.example", true),
+        cand("ssl.a.example", true),
+        cand("old.a.example", false),
+      ],
+    } as unknown as ReconResult;
+    expect(checkRows(r)[0]?.resultJa).toBe("vpn.a.example、vpn2.a.example ほか 1 件");
+    expect(checkRows(r)[0]?.candidates).toHaveLength(4);
+  });
+  it("状態ごとに数える", () => {
+    expect(countStates(checkRows(result))).toEqual({ ok: 0, warn: 1, bad: 1, info: 1 });
+  });
+});
+
+describe("ctSourceIds", () => {
+  it("使った検索先の出典 id。予備を使ったときは両方、使っていなければ無し", () => {
+    expect(ctSourceIds({ dns: "live", ct: "live", ctProvider: "crtsh" })).toEqual(["crtsh"]);
+    expect(ctSourceIds({ dns: "live", ct: "live", ctProvider: "certspotter" })).toEqual([
+      "certspotter",
+      "crtsh",
+    ]);
+    expect(ctSourceIds({ dns: "fixture", ct: "fixture" })).toEqual([]);
+    expect(ctSourceIds({ dns: "live", ct: "unavailable" })).toEqual([]);
   });
 });
 
