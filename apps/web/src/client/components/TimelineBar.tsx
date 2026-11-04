@@ -19,13 +19,11 @@ type Props = {
   reduced: boolean;
 };
 
-const W = 1240;
-const H = 200;
-const X0 = 120;
+const W = 900;
+const X0 = 56;
 const X1 = W - 40;
-const AXIS_Y = 150;
 const ROW_H = 24;
-const CHAR_W = 12.5;
+const CHAR_W = 13.5;
 const ICON = 16;
 const eventKey = (e: TimelineEvent) => `${e.kind}-${e.day}-${e.labelJa}`;
 
@@ -61,6 +59,10 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
       return { e, x: flip ? px - width : px, px, width, flip };
     }),
   );
+  // 出来事の行が増えたら、軸を下げて上の行が切れないようにする
+  const rows = Math.max(3, ...placed.map((p) => p.row + 1));
+  const AXIS_Y = 38 + rows * ROW_H;
+  const H = AXIS_Y + 50;
   const picked = visible.find((e) => eventKey(e) === pickedKey);
   const pickedSrc = picked ? eventSourceId(picked) : undefined;
   return (
@@ -90,142 +92,144 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
           </span>
         )}
       </h2>
-      <svg viewBox={`0 0 ${W} ${H}`}>
-        <title>Day 0 からの出来事と売上影響の時間軸</title>
-        <line className="tl-axis" x1={X0} y1={AXIS_Y} x2={X1} y2={AXIS_Y} />
-        {ticks.map((d) => (
-          <g key={d}>
-            <line className="tl-axis" x1={x(d)} y1={AXIS_Y - 4} x2={x(d)} y2={AXIS_Y + 4} />
-            <text className="tl-tick" x={x(d)} y={AXIS_Y + 20} textAnchor="middle">
-              {d === 0 ? "Day 0" : d}
-            </text>
-          </g>
-        ))}
-        {daily > 0 && money > 0 && (
-          <>
-            <rect
-              className="tl-money"
-              x={X0}
-              y={AXIS_Y + 4}
-              width={Math.max(0, x(stopDays) - X0)}
-              height={8}
-              rx={2}
-            />
-            <text
-              className="tl-tick"
-              x={x(stopDays) + 6}
-              y={AXIS_Y + 12}
-              style={{ fill: "var(--cash)", fontWeight: 700 }}
-            >
-              売上影響 {yen(money)}
-            </text>
-          </>
-        )}
-        {day > 0 && (
-          <line
-            className="tl-cursor glowf"
-            x1={x(day)}
-            y1={AXIS_Y - 14}
-            x2={x(day)}
-            y2={AXIS_Y + 6}
-          />
-        )}
-        <AnimatePresence>
-          {placed.map(({ e, x: lx, px, row }, i) => {
-            const y = AXIS_Y - 26 - row * ROW_H;
-            const Icon = iconOf(e.kind);
-            const key = eventKey(e);
-            const src = eventSourceId(e);
-            const short = shortLabel(e);
-            const on = key === pickedKey;
-            return (
-              <motion.g
-                key={key}
-                className={`tl-ev k-${e.kind}${on ? " picked" : ""}`}
-                initial={reduced ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ delay: reduced ? 0 : i * 0.08, duration: 0.3 }}
+      <div className="tl-scroll">
+        <svg viewBox={`0 0 ${W} ${H}`}>
+          <title>Day 0 からの出来事と売上影響の時間軸</title>
+          <line className="tl-axis" x1={X0} y1={AXIS_Y} x2={X1} y2={AXIS_Y} />
+          {ticks.map((d) => (
+            <g key={d}>
+              <line className="tl-axis" x1={x(d)} y1={AXIS_Y - 4} x2={x(d)} y2={AXIS_Y + 4} />
+              <text className="tl-tick" x={x(d)} y={AXIS_Y + 20} textAnchor="middle">
+                {d === 0 ? "Day 0" : d}
+              </text>
+            </g>
+          ))}
+          {daily > 0 && money > 0 && (
+            <>
+              <rect
+                className="tl-money"
+                x={X0}
+                y={AXIS_Y + 4}
+                width={Math.max(0, x(stopDays) - X0)}
+                height={8}
+                rx={2}
+              />
+              <text
+                className="tl-tick"
+                x={x(stopDays) + 6}
+                y={AXIS_Y + 12}
+                style={{ fill: "var(--cash)", fontWeight: 700 }}
               >
-                <title>{`Day ${e.day}　${e.labelJa}${e.detailJa ? `：${e.detailJa}` : ""}${e.sourceJa ? `（${e.sourceJa}）` : ""}`}</title>
-                <line
-                  className="lead"
-                  x1={px}
-                  y1={y + 4}
-                  x2={px}
-                  y2={AXIS_Y - 6}
-                  stroke="currentColor"
-                  style={{ color: "var(--ink-3)" }}
-                />
-                <circle
-                  cx={px}
-                  cy={AXIS_Y - 4}
-                  r={4}
-                  fill="currentColor"
-                  style={{ color: "var(--ink-2)" }}
-                />
-                {/* SVG には button 要素が無いので、押せる出来事は role="button" の g にする（キーボードでも開ける） */}
-                {/* biome-ignore lint/a11y/useSemanticElements: SVG の中では button 要素を使えない */}
-                <g
-                  className="tl-hit"
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={on}
-                  aria-label={`Day ${e.day}　${e.labelJa}。詳しく見る`}
-                  onClick={() => setPickedKey(on ? undefined : key)}
-                  onKeyDown={(ev) => {
-                    if (ev.key === "Enter" || ev.key === " ") {
-                      ev.preventDefault();
-                      setPickedKey(on ? undefined : key);
-                    }
-                  }}
+                売上影響 {yen(money)}
+              </text>
+            </>
+          )}
+          {day > 0 && (
+            <line
+              className="tl-cursor glowf"
+              x1={x(day)}
+              y1={AXIS_Y - 14}
+              x2={x(day)}
+              y2={AXIS_Y + 6}
+            />
+          )}
+          <AnimatePresence>
+            {placed.map(({ e, x: lx, px, row }, i) => {
+              const y = AXIS_Y - 26 - row * ROW_H;
+              const Icon = iconOf(e.kind);
+              const key = eventKey(e);
+              const src = eventSourceId(e);
+              const short = shortLabel(e);
+              const on = key === pickedKey;
+              return (
+                <motion.g
+                  key={key}
+                  className={`tl-ev k-${e.kind}${on ? " picked" : ""}`}
+                  initial={reduced ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ delay: reduced ? 0 : i * 0.08, duration: 0.3 }}
                 >
-                  <rect
-                    className="tl-hit-box"
-                    x={lx - 2}
-                    y={y - 15}
-                    width={ICON + 6 + short.length * CHAR_W + (src ? 14 : 6)}
-                    height={22}
-                    rx={5}
+                  <title>{`Day ${e.day}　${e.labelJa}${e.detailJa ? `：${e.detailJa}` : ""}${e.sourceJa ? `（${e.sourceJa}）` : ""}`}</title>
+                  <line
+                    className="lead"
+                    x1={px}
+                    y1={y + 4}
+                    x2={px}
+                    y2={AXIS_Y - 6}
+                    stroke="currentColor"
+                    style={{ color: "var(--ink-3)" }}
                   />
-                  <Icon
-                    className="tl-ic"
-                    x={lx}
-                    y={y - 13}
-                    width={ICON}
-                    height={ICON}
-                    strokeWidth={2.2}
-                    aria-hidden="true"
+                  <circle
+                    cx={px}
+                    cy={AXIS_Y - 4}
+                    r={4}
+                    fill="currentColor"
+                    style={{ color: "var(--ink-2)" }}
                   />
-                  <text x={lx + ICON + 6} y={y}>
-                    {short}
-                  </text>
-                </g>
-                {src && (
-                  <a
-                    href={`#/sources?src=${encodeURIComponent(src)}`}
-                    aria-label={`出典 ${STAFF_SOURCES[src].n}：${STAFF_SOURCES[src].titleJa}`}
+                  {/* SVG には button 要素が無いので、押せる出来事は role="button" の g にする（キーボードでも開ける） */}
+                  {/* biome-ignore lint/a11y/useSemanticElements: SVG の中では button 要素を使えない */}
+                  <g
+                    className="tl-hit"
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={on}
+                    aria-label={`Day ${e.day}　${e.labelJa}。詳しく見る`}
+                    onClick={() => setPickedKey(on ? undefined : key)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === " ") {
+                        ev.preventDefault();
+                        setPickedKey(on ? undefined : key);
+                      }
+                    }}
                   >
-                    <title>{`出典：${STAFF_SOURCES[src].titleJa}`}</title>
-                    <text
-                      className="tl-src"
-                      x={lx + ICON + 6 + short.length * CHAR_W + 2}
-                      y={y - 6}
-                    >
-                      {STAFF_SOURCES[src].n}
+                    <rect
+                      className="tl-hit-box"
+                      x={lx - 2}
+                      y={y - 15}
+                      width={ICON + 6 + short.length * CHAR_W + (src ? 14 : 6)}
+                      height={22}
+                      rx={5}
+                    />
+                    <Icon
+                      className="tl-ic"
+                      x={lx}
+                      y={y - 13}
+                      width={ICON}
+                      height={ICON}
+                      strokeWidth={2.2}
+                      aria-hidden="true"
+                    />
+                    <text x={lx + ICON + 6} y={y}>
+                      {short}
                     </text>
-                  </a>
-                )}
-              </motion.g>
-            );
-          })}
-        </AnimatePresence>
-        {concluded && far.length > 0 && (
-          <text className="tl-tick" x={X1} y={AXIS_Y + 40} textAnchor="end">
-            {far.map((e) => `Day ${e.day} ${shortLabel(e)}`).join("　")}
-          </text>
-        )}
-      </svg>
+                  </g>
+                  {src && (
+                    <a
+                      href={`#/sources?src=${encodeURIComponent(src)}`}
+                      aria-label={`出典 ${STAFF_SOURCES[src].n}：${STAFF_SOURCES[src].titleJa}`}
+                    >
+                      <title>{`出典：${STAFF_SOURCES[src].titleJa}`}</title>
+                      <text
+                        className="tl-src"
+                        x={lx + ICON + 6 + short.length * CHAR_W + 2}
+                        y={y - 6}
+                      >
+                        {STAFF_SOURCES[src].n}
+                      </text>
+                    </a>
+                  )}
+                </motion.g>
+              );
+            })}
+          </AnimatePresence>
+          {concluded && far.length > 0 && (
+            <text className="tl-tick" x={X1} y={AXIS_Y + 40} textAnchor="end">
+              {far.map((e) => `Day ${e.day} ${shortLabel(e)}`).join("　")}
+            </text>
+          )}
+        </svg>
+      </div>
       {picked && (
         <div className={`tl-detail k-${picked.kind}`} aria-live="polite">
           <b className="tl-detail-day">Day {picked.day}</b>

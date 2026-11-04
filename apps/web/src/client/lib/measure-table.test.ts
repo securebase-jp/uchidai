@@ -88,6 +88,19 @@ describe("measureColumns / measureRow（対策 × 段階の表）", () => {
   });
 });
 
+describe("measureColumns（同じ構成要素が続くとき）", () => {
+  it("同じ構成要素の 2 つ目以降の列は、段階の見出しで見分ける", () => {
+    const v = verdict([
+      step("admin", "admin", { stageId: "a", labelJa: "認証情報を取る" }),
+      step("admin", "admin", { stageId: "b", labelJa: "管理者権限を奪う" }),
+    ]);
+    expect(measureColumns(v, graph, []).map((c) => c.label)).toEqual([
+      "管理者アカウント",
+      "管理者権限を奪う",
+    ]);
+  });
+});
+
 describe("costJpyOf / costCells（費用の棒）", () => {
   it("engine の formatJpy の書式から金額を読む。単価だけ・見積もり待ち・社内ルールは金額なし", () => {
     expect(costJpyOf(`${formatJpy(1_584_000)}／年（13,200 円 × 120 台）`)).toBe(1_584_000);

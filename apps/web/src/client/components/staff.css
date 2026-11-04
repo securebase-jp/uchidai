@@ -62,6 +62,7 @@
 .vt-tile.none .vt-val {
   color: var(--ink-2);
   font-weight: 400;
+  font-size: 18px;
 }
 .vt-sub {
   font-size: 12px;
@@ -627,6 +628,16 @@
 }
 
 /* 時間軸：出来事の種類のアイコンと、押すと出る詳細 */
+/* 狭い幅では図を縮めず、横にスクロールして読む（幅 375px で文字が潰れない） */
+.tl-scroll {
+  overflow-x: auto;
+}
+.timeline .tl-scroll svg {
+  min-width: 640px;
+}
+.timeline .tl-ev text {
+  font-size: 13px;
+}
 .tl-ev .tl-hit {
   cursor: pointer;
   outline: none;

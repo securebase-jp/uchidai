@@ -64,7 +64,13 @@ export function measureColumns(v: Verdict, graph: Graph, measures: MeasureDef[])
       ...(stageJa ? { stageJa } : {}),
     });
   }
-  return cols;
+  // 同じ構成要素が別の段階で続くとき（社長のメールアカウントが 2 段階など）は、2 つ目以降を段階の見出しで見分ける
+  const seen = new Set<string>();
+  return cols.map((c) => {
+    const dup = seen.has(c.label);
+    seen.add(c.label);
+    return dup && c.stageJa ? { ...c, label: c.stageJa } : c;
+  });
 }
 
 /** 対策 1 行ぶんのセル（列と同じ並び） */
