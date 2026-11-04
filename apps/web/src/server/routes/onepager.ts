@@ -88,13 +88,17 @@ onepagerRoutes.post("/api/onepager", async (c) => {
   const verdict = evaluate(body.case, profile, { knowledge: k, graph });
   const base = buildOnePager(verdict, profile, k, { caseTitle: body.case.title });
   const { onePager, text } =
-    body.rewrite && process.env.ANTHROPIC_API_KEY
+    // 経路が無い（入口なし・対象外・カルテの範囲で入口が見つからない）ときは言い換える段階が無い。
+    // Claude に任せると「入力には含まれていません」のような文になるので、エンジンの固定文のままにする
+    body.rewrite && process.env.ANTHROPIC_API_KEY && verdict.paths.length > 0
       ? await rewrite(base, verdict, k)
       : {
           onePager: base,
           text: {
             source: "template" as const,
-            ...(body.rewrite ? { noteJa: "API キーが無いためテンプレート文です" } : {}),
+            ...(body.rewrite && verdict.paths.length > 0
+              ? { noteJa: "API キーが無いためテンプレート文です" }
+              : {}),
           },
         };
   return c.json({ onePager, graph, verdict, measures, profile, text });

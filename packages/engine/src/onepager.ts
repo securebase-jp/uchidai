@@ -112,8 +112,15 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     })
     .join(" → ");
   const lines: string[] = [];
+  // 入口が記事から分からず仮に置いた候補のときは、その入口から入られたと断定しない
+  const first = path.steps.find((s) => !s.precondition);
+  const entryNode = first ? nodeLabel(first.nodeId, first.role, profile, knowledge) : "";
+  const lead =
+    first?.source === "candidate"
+      ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた場合、`
+      : "";
   if (path.reachedCore) {
-    lines.push(`攻撃は次の順に進みます：${chain}。`);
+    lines.push(`${lead}攻撃は次の順に進みます：${chain}。`);
   } else {
     const stop = path.steps.find((s) => s.state === "blocked");
     const where = stop
@@ -134,6 +141,16 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
       );
   }
   return lines;
+}
+
+/** 経路が無いときの「何が起きるか」の代わりの文 */
+function emptyPathLines(verdict: Verdict): string[] {
+  if (verdict.coverageGapJa) return [verdict.coverageGapJa];
+  if (verdict.result === "no_entry")
+    return ["この攻撃が入る入口は、登録されたカルテにありません。"];
+  if (verdict.result === "out_of_scope")
+    return ["この事故は攻撃経路で判定できないため、被害の見込みは出していません。"];
+  return [];
 }
 
 /** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
@@ -257,6 +274,8 @@ export function buildOnePager(
     ...(s.affectsJa ? { affectsJa: s.affectsJa } : {}),
   }));
   const whatHappens = describePath(verdict, profile, knowledge);
+  // 経路が無いとき（入口なし・対象外・カルテの範囲で入口が見つからない）に「何が起きるか」を空にしない
+  if (whatHappens.length === 0) whatHappens.push(...emptyPathLines(verdict));
   if (stopped.length > 0) {
     const names = stopped.map((s) => `「${s.name}」`).join("、");
     whatHappens.push(

@@ -423,3 +423,36 @@ describe("POST /api/profile/from-answers", () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe("カルテの範囲で入口が見つからないとき（TRIAL-002）", () => {
+  const answers = {
+    industry: "wholesale_service",
+    site: "office_only",
+    hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+    remoteAccess: ["rdp"],
+    backup: "same_network",
+  };
+  it("5 問のカルテ × 情報漏えい（クラウドストレージ）は pending。一枚は空でなく、登録不足を案内する", async () => {
+    const { profile } = await loose(json("/api/profile/from-answers", { answers }));
+    expect(profile.coverage).toBe("answers_only");
+    const { case: theCase } = await loose(app.request("/api/case/recorded/ipa-case-2"));
+    // API キーが無くても有っても、経路が無いときは言い換えを呼ばない（rewrite を true にして確かめる）
+    const res = await loose(
+      json("/api/onepager", { case: theCase, profile, measureIds: [], answers: [], rewrite: true }),
+    );
+    expect(res.verdict.result).toBe("pending");
+    expect(res.verdict.headlineJa).toBe("カルテの範囲では、この攻撃の入口はありません");
+    expect(res.onePager.whatHappensJa).toEqual([res.verdict.coverageGapJa]);
+    expect(res.onePager.whatHappensJa[0]).toMatch(/登録が足りない可能性/);
+    expect(res.text.source).toBe("template");
+  });
+  it("詳細なカルテ（demo-clinic）× 同じ事例は、従来どおり no_entry で、一枚も空でない", async () => {
+    const { profile } = await loose(app.request("/api/examples/demo-clinic"));
+    const { case: theCase } = await loose(app.request("/api/case/recorded/ipa-case-2"));
+    const res = await loose(
+      json("/api/onepager", { case: theCase, profile, measureIds: [], answers: [], rewrite: true }),
+    );
+    expect(res.verdict.result).toBe("no_entry");
+    expect(res.onePager.whatHappensJa.length).toBeGreaterThan(0);
+  });
+});

@@ -91,7 +91,7 @@ const NONE = "なし";
  * 止められる結論でも「なし」のタイルを並べ、何も起きないことを数字で示す
  */
 export function impactTiles(v: Verdict, yenJa: (n: number | undefined) => string): ImpactTile[] {
-  if (v.result === "no_entry" || v.result === "out_of_scope") return [];
+  if (v.result === "no_entry" || v.result === "out_of_scope" || v.coverageGapJa) return [];
   const i = v.impact;
   const longest = [...i.stopped].sort((a, b) => b.days - a.days)[0];
   const tiles: ImpactTile[] = [
