@@ -26,6 +26,8 @@ export type PackItem = {
 
 /**
  * 節を順にページへ詰める。節の途中では切らない：収まらない節は次のページの先頭に送る。
+ * breakBefore は 1 枚目から 2 枚目への区切りだけ強制する。1 枚目から溢れた節がすでに 2 枚目の先頭にあるときは、
+ * その 2 枚目に続けて流す（止まる業務が溢れて、ほぼ空白の 2 枚目ができるのを避ける）。
  * 戻り値は、ページごとの節の番号。ページが空のまま次へ送ることはしない（1 つの節がページより高くても、その節だけで 1 ページ）
  */
 export function packPages(items: PackItem[], available: number): number[][] {
@@ -33,7 +35,8 @@ export function packPages(items: PackItem[], available: number): number[][] {
   let used = 0;
   items.forEach((item, i) => {
     const page = pages[pages.length - 1] as number[];
-    if (page.length > 0 && (item.breakBefore || used + item.height > available)) {
+    const forced = item.breakBefore && pages.length === 1;
+    if (page.length > 0 && (forced || used + item.height > available)) {
       pages.push([i]);
       used = item.height;
     } else {

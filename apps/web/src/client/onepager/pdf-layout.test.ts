@@ -31,6 +31,12 @@ describe("packPages", () => {
       [2, 3],
     ]);
   });
+  it("1 枚目から溢れた節が 2 枚目の先頭にあるときは、break-before で 3 枚目を作らず続けて流す", () => {
+    expect(packPages([item(700), item(400), item(200, true), item(100)], 1000)).toEqual([
+      [0],
+      [1, 2, 3],
+    ]);
+  });
   it("ページより高い節は、その節だけで 1 ページにする（空のページを作らない）", () => {
     expect(packPages([item(1500), item(100)], 1000)).toEqual([[0], [1]]);
     expect(packPages([item(100, true), item(100)], 1000)).toEqual([[0, 1]]);
