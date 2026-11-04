@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   assertAllowedUrl,
+  CERTSPOTTER_ORIGIN,
   CRTSH_ORIGIN,
+  certspotterUrl,
   crtshUrl,
   ForbiddenDestinationError,
   restrictedFetch,
@@ -19,11 +21,83 @@ describe("crtshUrl", () => {
   });
 });
 
+describe("certspotterUrl", () => {
+  it("Cert Spotter の発行記録検索 URL だけを作る", () => {
+    expect(certspotterUrl("Example.JP").href).toBe(
+      "https://api.certspotter.com/v1/issuances?domain=example.jp&include_subdomains=true&expand=dns_names&expand=issuer",
+    );
+  });
+  it("ドメインとして不正な文字列は拒否する", () => {
+    expect(() => certspotterUrl("example.jp&after=1")).toThrow();
+    expect(() => certspotterUrl("exa mple.jp")).toThrow();
+    expect(() => certspotterUrl("localhost")).toThrow();
+  });
+});
+
 describe("assertAllowedUrl", () => {
-  it("許可した形の URL は通す", () => {
+  it("許可した 2 形の URL は通す", () => {
     expect(assertAllowedUrl("https://crt.sh/?q=%25.example.jp&output=json").origin).toBe(
       CRTSH_ORIGIN,
     );
+    expect(assertAllowedUrl(certspotterUrl("example.jp")).origin).toBe(CERTSPOTTER_ORIGIN);
+  });
+  const CS = "https://api.certspotter.com/v1/issuances";
+  const CS_Q = "domain=example.jp&include_subdomains=true&expand=dns_names&expand=issuer";
+  it.each([
+    [`http://api.certspotter.com/v1/issuances?${CS_Q}`, "http"],
+    [`https://api.certspotter.com.example.jp/v1/issuances?${CS_Q}`, "似たホスト名"],
+    [`https://certspotter.com/v1/issuances?${CS_Q}`, "別ホスト"],
+    [`https://api.certspotter.com/v1/issuances/firehose?${CS_Q}`, "別パス"],
+    [`https://api.certspotter.com/v1/other?${CS_Q}`, "別パス"],
+    [`https://api.certspotter.com/?${CS_Q}`, "ルートのパス"],
+    [`${CS}?${CS_Q}&after=12345`, "after の付加"],
+    [`${CS}?${CS_Q}&match_wildcards=true`, "余分なパラメータ"],
+    [
+      `${CS}?domain=example.jp&include_subdomains=false&expand=dns_names&expand=issuer`,
+      "include_subdomains=false の改変",
+    ],
+    [`${CS}?domain=example.jp&expand=dns_names&expand=issuer`, "include_subdomains なし"],
+    [
+      `${CS}?include_subdomains=true&domain=example.jp&expand=dns_names&expand=issuer`,
+      "順序の入れ替え",
+    ],
+    [`${CS}?domain=example.jp&include_subdomains=true&expand=dns_names`, "expand の欠落"],
+    [
+      `${CS}?domain=example.jp&include_subdomains=true&expand=dns_names&expand=issuer&expand=cert_der`,
+      "expand の付加",
+    ],
+    [
+      `${CS}?domain=EXAMPLE.jp&include_subdomains=true&expand=dns_names&expand=issuer`,
+      "大文字のドメイン",
+    ],
+    [
+      `${CS}?domain=exa_mple.jp&include_subdomains=true&expand=dns_names&expand=issuer`,
+      "ホスト名として不正",
+    ],
+    [
+      `${CS}?domain=*.example.jp&include_subdomains=true&expand=dns_names&expand=issuer`,
+      "ワイルドカード",
+    ],
+    [`${CS}?domain=&include_subdomains=true&expand=dns_names&expand=issuer`, "ドメイン空"],
+    [`${CS}?${CS_Q}#frag`, "フラグメント"],
+    [`https://user:pw@api.certspotter.com/v1/issuances?${CS_Q}`, "認証情報"],
+    [`https://key@api.certspotter.com/v1/issuances?${CS_Q}`, "ユーザ名だけ"],
+    [`https://api.certspotter.com:8443/v1/issuances?${CS_Q}`, "別ポート"],
+    ["https://api.certspotter.com/v1/issuances", "クエリなし"],
+  ])("%s は拒否する（%s）", (url) => {
+    expect(() => assertAllowedUrl(url)).toThrow(ForbiddenDestinationError);
+  });
+  it("crt.sh の形を Cert Spotter のホストへ持ち込むのも、その逆も拒否する", () => {
+    expect(() =>
+      assertAllowedUrl("https://api.certspotter.com/?q=%25.example.jp&output=json"),
+    ).toThrow(ForbiddenDestinationError);
+    expect(() => assertAllowedUrl(`https://crt.sh/v1/issuances?${CS_Q}`)).toThrow(
+      ForbiddenDestinationError,
+    );
+    expect(() => assertAllowedUrl(`https://crt.sh/?${CS_Q}`)).toThrow(ForbiddenDestinationError);
+  });
+  it("拒否の文言は 2 つの宛先を言う", () => {
+    expect(() => assertAllowedUrl("https://vpn.example.jp/")).toThrow(/crt\.sh.*Cert Spotter/);
   });
   it.each([
     ["http://crt.sh/?q=%25.example.jp&output=json", "http"],
@@ -42,6 +116,19 @@ describe("assertAllowedUrl", () => {
 });
 
 describe("restrictedFetch", () => {
+  it("Cert Spotter の URL も GET・リダイレクト不追従で、検査を通ったときだけ fetch を呼ぶ", async () => {
+    const fake = vi.fn(async () => new Response("[]", { status: 200 }));
+    await restrictedFetch(certspotterUrl("example.jp"), { fetch: fake });
+    const [url, init] = fake.mock.calls[0] as unknown as [URL, RequestInit];
+    expect(url.hostname).toBe("api.certspotter.com");
+    expect(init.method).toBe("GET");
+    expect(init.redirect).toBe("error");
+    expect(init.headers).not.toHaveProperty("authorization");
+    await expect(
+      restrictedFetch(`${certspotterUrl("example.jp").href}&after=1`, { fetch: fake }),
+    ).rejects.toBeInstanceOf(ForbiddenDestinationError);
+    expect(fake).toHaveBeenCalledTimes(1);
+  });
   it("検査を通った URL でだけ、GET・リダイレクト不追従で fetch を呼ぶ", async () => {
     const fake = vi.fn(async () => new Response("[]", { status: 200 }));
     const res = await restrictedFetch(crtshUrl("example.jp"), { fetch: fake });
