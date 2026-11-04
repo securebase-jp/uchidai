@@ -11,8 +11,8 @@ import { layoutGraph } from "../../lib/layout.ts";
 import { optionsForIndustry } from "../../lib/question-options.ts";
 
 /** 1 問あたりの秒数と、選んだ答え（デモ精工：製造業の工場、遠隔は VPN と保守ベンダー、バックアップはクラウド同期） */
-const STEP = 1.25;
-const PICK_AT = 0.45;
+const STEP = 1.0;
+const PICK_AT = 0.35;
 const ANSWERS: Record<string, string | string[] | Record<string, string>> = {
   industry: "manufacturing",
   site: "factory",
@@ -35,7 +35,7 @@ export function BuildOverlay({ elapsed }: { elapsed: number }) {
 
   // 質問の進みに合わせて、ノードを順に現す（最後の質問の少し後までに全部）
   const n = graph.nodes.length;
-  const span = questions.length * STEP - 0.6;
+  const span = questions.length * STEP - 0.7;
   const at = (i: number) => 0.4 + (span * i) / Math.max(1, n);
   const hidden = new Set(graph.nodes.filter((_, i) => elapsed < at(i)).map((x) => x.id));
   const appearing = new Set(

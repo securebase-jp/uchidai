@@ -115,6 +115,9 @@ describe("絵コンテと原稿の整合", () => {
   it("差し込み口の overlay は slot:recon を含み、場面 4 で使われる", () => {
     const s4 = storyboard.scenes.find((s) => s.n === 4);
     expect(s4?.overlay).toBe("slot:recon");
+    // 前半は外部確認の再生、後半は 5 問で図が組み上がる（再生に 9 秒、組み上がりに 5 秒）
+    const sw = s4?.actions.find((x) => x.do === "overlay" && x.id === "build");
+    expect(sw?.at).toBe(9);
   });
   it("click / fill のセレクタは画面の部品に実在するクラス（場面 5 のベンダー確認）", () => {
     const ops = storyboard.scenes.flatMap((s) =>

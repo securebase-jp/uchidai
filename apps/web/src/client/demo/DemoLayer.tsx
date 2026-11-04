@@ -30,6 +30,14 @@ import "./demo.css";
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
+/** この overlay が出ている終わりの時刻：次の overlay 操作の時刻（無ければ場面の終わり） */
+function overlayEnd(scene: DemoScene, since: number, sceneSeconds: number): number {
+  const next = scene.board.actions
+    .filter((a) => a.do === "overlay" && a.at > since)
+    .map((a) => a.at);
+  return next.length > 0 ? Math.min(...next) : sceneSeconds;
+}
+
 /** セレクタに合う要素から、text を含むものの nth 番目（絵コンテの click / fill の対象） */
 function pick(selector: string, nth = 0, text?: string): Element | undefined {
   const all = [...document.querySelectorAll(selector)].filter(
@@ -290,7 +298,7 @@ function DemoRunner({
           id={overlay.id}
           scene={scene}
           elapsed={Math.max(0, player.elapsed - overlay.since)}
-          seconds={Math.max(0.1, player.seconds - overlay.since)}
+          seconds={Math.max(0.1, overlayEnd(scene, overlay.since, player.seconds) - overlay.since)}
         />
       )}
       {scene && <LayerStack layers={scene.board.layers} elapsed={player.elapsed} flags={flags} />}
@@ -365,7 +373,13 @@ function Overlay({
     const sid = id as SlotId;
     const C = SLOTS[sid];
     const props = { elapsed, seconds, onScreen: scene.script.onScreen };
-    return C ? <C {...props} /> : <SlotPlaceholder id={sid} {...props} />;
+    // 外部確認の再生は、下のホーム画面が枠の外に見えないよう、黒地を敷く
+    return (
+      <>
+        {sid === "slot:recon" && <div className="demo-overlay" aria-hidden="true" />}
+        {C ? <C {...props} /> : <SlotPlaceholder id={sid} {...props} />}
+      </>
+    );
   }
   return null;
 }

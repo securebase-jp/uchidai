@@ -1,15 +1,16 @@
 /**
- * 差し込み口：場面 4 の外部確認の再生（slot:recon）は demo-recon-record の ReconReplay を PM があとでつなぐ。
+ * 差し込み口：場面 4 の外部確認の再生（slot:recon）は components/ReconReplay.tsx（記録の再生、ネットワークに出ない）、
  * ほかの 3 つ（AI攻撃者、ベンダー確認、知見なし AI との並置）は slot-components.tsx の実際の画面がつながっている。
  *
  * 接続のしかた：SLOTS の該当キーに、(props: SlotProps) => ReactNode の部品を入れる。
  *   import { AiAttackerDemo } from "../components/AiAttackerDemo.tsx";
- *   SLOTS["slot:recon"] = ReconReplay;   // props は { elapsed, seconds }
+ *   SLOTS["slot:recon"] = ReconReplaySlot;   // props は { elapsed, seconds }。seconds は差し込み口が出ている長さ
  * props.elapsed は場面の開始からの秒数（一時停止中は進まない）。props.seconds は場面の長さ。
  * 部品は画面の右下に重ねて描かれる（.demo-slot）。全画面にしたいときは .demo-slot.full を付ける。
  * 未接続のあいだは、時刻だけ確保した空の枠（プレースホルダ）を描く。
  */
 import type { ComponentType } from "react";
+import { ReconReplaySlot } from "../components/ReconReplay.tsx";
 import type { OverlayId } from "./schema.ts";
 import { AiAttackerSlot, ComparisonSlot, RequestSlot } from "./slot-components.tsx";
 
@@ -33,7 +34,7 @@ export const SLOT_TITLE: Record<SlotId, [string, string]> = {
 };
 
 export const SLOTS: Record<SlotId, ComponentType<SlotProps> | undefined> = {
-  "slot:recon": undefined, // 未接続（プレースホルダ）。ReconReplay ができたらここに入れる
+  "slot:recon": ReconReplaySlot, // 場面 4 前半：demo-sec.com の外部確認の記録の再生（ネットワークに出ない）
   "slot:attacker": AiAttackerSlot,
   "slot:request": RequestSlot,
   "slot:comparison": ComparisonSlot,

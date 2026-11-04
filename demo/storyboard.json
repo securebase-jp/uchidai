@@ -132,29 +132,12 @@
           "do": "reset"
         },
         {
-          "at": 7.4,
+          "at": 9.0,
           "do": "overlay",
           "id": "build"
         }
       ],
-      "layers": [
-        {
-          "kind": "badge",
-          "from": 0.3,
-          "to": 7.4,
-          "pos": "top-right",
-          "tone": "record",
-          "text": "実際の記録（demo-sec.com）"
-        },
-        {
-          "kind": "text",
-          "from": 1.0,
-          "to": 7.4,
-          "pos": "bottom",
-          "size": "lg",
-          "text": "対象のホストにはアクセスしません"
-        }
-      ]
+      "layers": []
     },
     {
       "n": 5,
