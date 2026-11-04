@@ -123,6 +123,14 @@ sources:
     usedForJa: crt.sh に載っていないときの予備として、所有確認したドメインの証明書から、公開されているホスト名の手がかりを集めます。
     noticeJa: crt.sh が空か失敗のときだけ、1 ドメインにつき 1 回取得し、結果を 24 時間保存します。対象のホストにはつなぎません。
 
+  - id: lucide
+    categoryId: fonts-voice
+    nameJa: Lucide（lucide-react）
+    url: https://lucide.dev/
+    publisherJa: Lucide の貢献者（Feather の派生）
+    licenseJa: ISC License
+    checkedAt: "2026-11-04"
+    usedForJa: 段階の状態（止まる・未確認・突破など）、出来事の種類、業種や現場などを表すアイコンです。
   - id: biz-udpgothic
     categoryId: fonts-voice
     nameJa: BIZ UDPGothic（@fontsource/biz-udpgothic）

@@ -40,6 +40,10 @@ https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 - crt.sh（Sectigo Limited、https://crt.sh/ ）：先に使う。利用条件の明文はなく、運営側の発言を根拠に 1 ドメイン 1 回だけ取得する
 - Cert Spotter（SSLMate, Inc.。利用規約上の運営は Opsmate, Inc.、https://sslmate.com/ct_search_api ）：crt.sh が空か失敗のときだけ使う予備。認証なし（API キーは使わない）。API リファレンス（https://sslmate.com/help/reference/ct_search_api_v1 ）は認証なしの利用を個人・評価の目的としており、利用規約（https://sslmate.com/policies/tos 、2026-01-03 改訂）に帰属表示の要求はない（2026-11-04 確認）。それでも出典として SSLMate, Inc. の Cert Spotter を使ったことは、画面の「参照」の行と出典の一覧に表示する。SSLMate による推奨・保証を示すものではない
 
+## アイコン
+
+- Lucide（lucide-react、ISC License）：https://lucide.dev/ 。Copyright (c) Lucide Contributors。Feather（MIT License、Copyright (c) 2013-2023 Cole Bemis）の派生
+
 ## フォント
 
 - BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）

@@ -2132,3 +2132,44 @@ dialog.confirm-dialog::backdrop {
   font-size: 20px;
   margin: 28px 0 4px;
 }
+
+/* 段階の状態の共通アイコン（StatusIcon）。色だけに頼らず、形と読み上げ名でも区別する */
+.st-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+  font-weight: 700;
+}
+.st-icon.tone-green {
+  color: var(--green);
+}
+.st-icon.tone-amber {
+  color: var(--amber);
+}
+.st-icon.tone-red {
+  color: var(--red);
+}
+.st-icon-label {
+  font-size: 12px;
+}
+/* 出典番号（SourceRef）：数値の横の小さな上付きの番号。押すと出典の項目へ */
+.src-ref {
+  font-size: 10px;
+  margin-left: 2px;
+  line-height: 0;
+}
+sup.src-ref > a.src-ref-link {
+  color: var(--steel);
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+}
+sup.src-ref > a.src-ref-link:hover {
+  color: var(--cyan);
+}
+/* 出典番号から来た出典の項目の目印 */
+.sources .src-target {
+  outline: 2px solid var(--cyan);
+  outline-offset: 4px;
+  border-radius: 8px;
+}

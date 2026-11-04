@@ -13,7 +13,7 @@ type Item = SourcesView["categories"][number]["sources"][number];
 
 function SourceItem({ s }: { s: Item }) {
   return (
-    <li className="src-item">
+    <li className="src-item" id={`src-${s.id}`}>
       <div className="src-name">
         <a className="src-link" href={s.url} target="_blank" rel="noreferrer">
           {s.nameJa}
@@ -67,6 +67,18 @@ export function Sources({ settings }: { settings: Settings }) {
       alive = false;
     };
   }, []);
+
+  // 出典番号（SourceRef）から来たときは、その項目まで送り、目印を付ける（#/sources?src=<id>）
+  useEffect(() => {
+    if (!view) return;
+    const q = location.hash.slice(location.hash.indexOf("?") + 1 || location.hash.length);
+    const id = new URLSearchParams(q).get("src");
+    if (!id) return;
+    const el = document.getElementById(`src-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    el.classList.add("src-target");
+  }, [view]);
 
   return (
     <div className="wrap">
