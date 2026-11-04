@@ -86,7 +86,7 @@ async function buildFontEmbedCss(text: string): Promise<string> {
       jobs.push(
         fontDataUrl(src).then(
           (data) =>
-            `@font-face{font-family:"${family}";font-weight:${weight};font-style:${style};src:url(${data}) format("woff2");${
+            `@font-face{font-family:"${family}";font-weight:${weight};font-style:${style};src:url(${data}) format("woff2");font-display:swap;${
               unicodeRange ? `unicode-range:${unicodeRange};` : ""
             }}`,
         ),
@@ -265,6 +265,32 @@ async function pageToJpeg(
   return canvas.toDataURL("image/jpeg", JPEG_QUALITY);
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/** 描き直しの間隔と上限。日本語フォントの取り込みは数百ミリ秒かかることがある */
+const SETTLE_WAIT_MS = 250;
+const SETTLE_MAX_TRIES = 12;
+
+/**
+ * 埋め込んだフォントは、画像化した文書の中で非同期に読み込まれる。最初の描画では間に合わず、
+ * 日本語が抜けた（または代わりの書体になった）ページが出ることがある（読み込み後の 2 回目からは正しく出る）。
+ * 画像には「フォントの読み込み完了」を知る手段がないので、前回と同じ絵になるまで描き直し、変化が止まったものを使う
+ */
+async function pageToJpegSettled(
+  toSvg: (node: HTMLElement, options?: Options) => Promise<string>,
+  page: HTMLElement,
+  fontEmbedCSS: string,
+): Promise<string> {
+  let prev = await pageToJpeg(toSvg, page, fontEmbedCSS);
+  for (let i = 0; i < SETTLE_MAX_TRIES; i++) {
+    await sleep(SETTLE_WAIT_MS);
+    const cur = await pageToJpeg(toSvg, page, fontEmbedCSS);
+    if (cur === prev) return cur;
+    prev = cur;
+  }
+  return prev;
+}
+
 /** 一枚（.op-sheet）を PDF の Blob にする。ページは A4 縦。失敗は PdfExportError に理由を載せる */
 export async function renderOnePagerPdf(sheet: HTMLElement): Promise<Blob> {
   let built: Built | undefined;
@@ -276,7 +302,7 @@ export async function renderOnePagerPdf(sheet: HTMLElement): Promise<Blob> {
     const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
     doc.setProperties({ title: "uchidai one-pager", creator: "uchidai" });
     for (const [i, page] of built.pages.entries()) {
-      const png = await pageToJpeg(toSvg, page, fontEmbedCSS);
+      const png = await pageToJpegSettled(toSvg, page, fontEmbedCSS);
       if (i > 0) doc.addPage("a4", "portrait");
       doc.addImage(png, "JPEG", 0, 0, 210, 297, undefined, "FAST");
     }
