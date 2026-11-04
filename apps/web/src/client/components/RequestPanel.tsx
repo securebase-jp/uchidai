@@ -150,7 +150,7 @@ export function RequestPanel() {
           items={req.items}
           onReply={req.reply}
           onRetract={req.retract}
-          onClear={() => void requestsApi.clear().then(() => req.refresh())}
+          onClear={() => void requestsApi.clear(profile?.id).then(() => req.refresh())}
         />
       </div>
       {selectedMeasures.length > 0 && (

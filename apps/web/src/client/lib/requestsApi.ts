@@ -35,7 +35,12 @@ export function excerpt(p: CompanyProfile) {
 export const requestsApi = {
   list: () => call<{ items: RequestView[] }>("/api/requests"),
   /** 送信箱を空にする */
-  clear: () => call<{ ok: true; cleared: number }>("/api/requests", { method: "DELETE" }),
+  /** profileId を渡すと、そのカルテの依頼だけを消す */
+  clear: (profileId?: string) =>
+    call<{ ok: true; cleared: number }>(
+      profileId ? `/api/requests?profileId=${encodeURIComponent(profileId)}` : "/api/requests",
+      { method: "DELETE" },
+    ),
   create: (profile: CompanyProfile, assetId: string, mitigation: string) =>
     post<{ request: RequestView; writerNoteJa?: string }>("/api/requests", {
       profile: excerpt(profile),

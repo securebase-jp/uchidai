@@ -22,6 +22,7 @@ import { requestsApi } from "../lib/requestsApi.ts";
 import { useApp } from "./useApp.tsx";
 
 export type RequestsState = {
+  /** いまのカルテの依頼（新しい順） */
   items: RequestView[];
   busyKey: string | undefined;
   error: string | undefined;
@@ -168,9 +169,15 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     [profile],
   );
 
+  // 画面に出すのは、いまのカルテの依頼だけ（別の会社の依頼を「依頼済み」と見せない）。
+  // 保存形式が古く profileId の無い依頼は、どのカルテにも出す
+  const visible = useMemo(
+    () => items.filter((it) => !it.profileId || it.profileId === profileId),
+    [items, profileId],
+  );
   const value = useMemo<RequestsState>(
-    () => ({ items, busyKey, error, lastAnswer, create, reply, retract, refresh }),
-    [items, busyKey, error, lastAnswer, create, reply, retract, refresh],
+    () => ({ items: visible, busyKey, error, lastAnswer, create, reply, retract, refresh }),
+    [visible, busyKey, error, lastAnswer, create, reply, retract, refresh],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

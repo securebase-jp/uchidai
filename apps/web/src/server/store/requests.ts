@@ -147,10 +147,17 @@ export class RequestStore {
     this.persist();
     return item;
   }
-  /** 送信箱を空にする（録画前などに使う）。メモリと保存ファイルの両方を空にし、消した件数を返す */
-  clear(): number {
-    const n = this.items.size;
-    this.items.clear();
+  /**
+   * 送信箱を空にする（録画前などに使う）。メモリと保存ファイルの両方を空にし、消した件数を返す。
+   * profileId を渡すと、そのカルテの依頼だけを消す（他のカルテの依頼は残す）
+   */
+  clear(profileId?: string): number {
+    let n = 0;
+    for (const [id, it] of this.items) {
+      if (profileId !== undefined && it.profileId !== profileId) continue;
+      this.items.delete(id);
+      n++;
+    }
     this.persist();
     return n;
   }

@@ -87,7 +87,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
 
   r.get("/", (c) => c.json({ items: store.list().map(toView) }));
 
-  r.delete("/", (c) => c.json({ ok: true, cleared: store.clear() }));
+  r.delete("/", (c) => c.json({ ok: true, cleared: store.clear(c.req.query("profileId")) }));
 
   r.get("/events", (c) => {
     if (store.subscriberCount >= maxSubscribers)

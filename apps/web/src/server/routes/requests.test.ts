@@ -327,4 +327,20 @@ describe("DELETE /api/requests（送信箱を空にする）", () => {
       ).status,
     ).toBe(404);
   });
+
+  it("profileId を渡すと、そのカルテの依頼だけを消す（他のカルテの依頼は残る）", async () => {
+    const { app, post } = build();
+    await post("/api/requests", { profile, assetId: "admin", mitigation: "M1026" });
+    await post("/api/requests", {
+      profile: { ...profile, id: "other-company" },
+      assetId: "admin",
+      mitigation: "M1026",
+    });
+    const res = await app.request(`/api/requests?profileId=${encodeURIComponent(profile.id)}`, {
+      method: "DELETE",
+    });
+    expect(await loose(res)).toMatchObject({ ok: true, cleared: 1 });
+    const list = await loose(await app.request("/api/requests"));
+    expect(list.items.map((x: { profileId?: string }) => x.profileId)).toEqual(["other-company"]);
+  });
 });
