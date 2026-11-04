@@ -4,9 +4,11 @@
  * 共有リンク（内容を URL に載せた形）から開いたときは、経路図（構成グラフが要る）だけ無い一枚になる。
  */
 
+import { SourceRef } from "../components/SourceRef.tsx";
 import type { OnePagerResponse } from "../lib/api.ts";
 import { RESULT_TONE, yen } from "../lib/labels.ts";
 import type { SharePayload } from "../lib/onepager-share.ts";
+import { eventSourceId } from "../lib/timeline-view.ts";
 import type {
   CompanyProfile,
   Graph,
@@ -16,7 +18,9 @@ import type {
   OnePagerMeasure,
   Verdict,
 } from "../lib/types.ts";
+import { DeadlineAxis } from "./DeadlineAxis.tsx";
 import { StaticDiagram } from "./StaticDiagram.tsx";
+import { sourceNumbers, sourceTitle } from "./source-numbers.ts";
 import "./onepager.css";
 
 const KIND_JA: Record<OnePagerDeadline["kind"], string> = {
@@ -106,6 +110,8 @@ export function OnePagerView({ data, measureLabel }: Props) {
   const maxDays = Math.max(1, ...op.stopped.map((s) => s.days));
   const deadlines = [...op.deadlines].sort((a, b) => a.day - b.day);
   const date = generatedAtJa(generatedAt, data.fromShare === true);
+  const nums = sourceNumbers(op);
+  const costNo = nums.n("ipa-sme-jirei-cost");
   const appliedNames = data.appliedJa;
   // 印刷の各ページの上下に出す走り見出し（紙では thead / tfoot がページごとに繰り返される。画面では出さない）
   const asOf = `${generatedAtJa(generatedAt, true)} 時点の判定${data.fromShare ? "（共有リンク）" : ""}`;
@@ -244,20 +250,32 @@ export function OnePagerView({ data, measureLabel }: Props) {
                 {deadlines.length === 0 ? (
                   <p className="op-none">この攻撃では、届け出や連絡の期限は生じません。</p>
                 ) : (
-                  <ol className="op-spine">
-                    {deadlines.map((d) => (
-                      <li key={`${d.day}-${d.labelJa}`} className={`k-${d.kind}`}>
-                        <span className="op-day">
-                          <b>{d.day}</b>
-                          <small>日目</small>
-                        </span>
-                        <span className="op-dl">
-                          <span className="op-dl-kind">{KIND_JA[d.kind]}</span>
-                          <span className="op-dl-label">{d.labelJa}</span>
-                        </span>
-                      </li>
-                    ))}
-                  </ol>
+                  <>
+                    <DeadlineAxis deadlines={deadlines} numbers={nums} />
+                    <ol className="op-spine">
+                      {deadlines.map((d) => {
+                        const src = eventSourceId(d);
+                        const n = nums.n(src);
+                        return (
+                          <li key={`${d.day}-${d.labelJa}`} className={`k-${d.kind}`}>
+                            <span className="op-day">
+                              <b>{d.day}</b>
+                              <small>日目</small>
+                            </span>
+                            <span className="op-dl">
+                              <span className="op-dl-kind">{KIND_JA[d.kind]}</span>
+                              <span className="op-dl-label">
+                                {d.labelJa}
+                                {src && n && (
+                                  <SourceRef id={src} n={n} titleJa={sourceTitle(src)} />
+                                )}
+                              </span>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ol>
+                  </>
                 )}
               </section>
 
@@ -282,7 +300,16 @@ export function OnePagerView({ data, measureLabel }: Props) {
                         <p className="op-card-cost">
                           {m.costJpy !== undefined ? (
                             <>
-                              <b>{yen(m.costJpy)}</b>
+                              <b>
+                                {yen(m.costJpy)}
+                                {m.basis === "ipa" && costNo && (
+                                  <SourceRef
+                                    id="ipa-sme-jirei-cost"
+                                    n={costNo}
+                                    titleJa={sourceTitle("ipa-sme-jirei-cost")}
+                                  />
+                                )}
+                              </b>
                               <span>{m.costJa.replace(/^[^（]*/, "")}</span>
                             </>
                           ) : (
@@ -303,6 +330,15 @@ export function OnePagerView({ data, measureLabel }: Props) {
                     <li key={s}>{s}</li>
                   ))}
                 </ul>
+                {nums.ids.length > 0 && (
+                  <ol className="op-src-n" aria-label="出典の番号">
+                    {nums.ids.map((id, i) => (
+                      <li key={id}>
+                        <b>{i + 1}</b> {sourceTitle(id)}
+                      </li>
+                    ))}
+                  </ol>
+                )}
                 <ul className="op-notes">
                   {op.notesJa.map((n) => (
                     <li key={n}>{n}</li>

@@ -793,3 +793,120 @@
     padding: 0;
   }
 }
+
+/* 期限の図：Day 0 から最大日数までの横の時間軸（紙の上の色だけを使う）。下の一覧は詳しい語を小さく残したもの */
+.op-axis {
+  margin: 0 0 6px;
+}
+.op-axis-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.op-ax-line {
+  stroke: var(--ink);
+  stroke-width: 1.2;
+}
+.op-ax-tick {
+  font: 400 10.5px var(--mono);
+  fill: var(--ink-2);
+}
+.op-ax-lead {
+  stroke: var(--ink-3);
+  stroke-width: 1;
+}
+.op-ax-dot {
+  fill: var(--ink);
+}
+.op-ax-label {
+  font: 700 11px var(--sans);
+  fill: var(--ink);
+  /* 紙の色の縁取りで、後ろを通る線を文字から離す */
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+.op-ax-src {
+  font: 700 9px var(--sans);
+  fill: var(--steel);
+}
+.op-ax-ev .op-ax-ic {
+  color: var(--ink);
+}
+.op-ax-ev.k-legal .op-ax-ic {
+  color: var(--amber);
+}
+.op-ax-ev.k-partner .op-ax-ic,
+.op-ax-ev.k-money .op-ax-ic {
+  color: var(--accent);
+}
+.op-ax-ev.k-insurance .op-ax-ic {
+  color: var(--steel);
+}
+.op-deadlines .op-axis + .op-spine {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0 18px;
+}
+.op-axis + .op-spine .op-day b {
+  font-size: 15px;
+}
+.op-axis + .op-spine .op-dl-label {
+  font-size: 12.5px;
+}
+.op-axis + .op-spine li::before {
+  top: 12px;
+}
+.op-src-n {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.op-paper .op-foot .op-src-n li {
+  min-width: 0;
+}
+.op-paper .op-foot .op-src-n b {
+  margin-right: 4px;
+  font-family: var(--mono);
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine {
+  grid-template-columns: 1fr 1fr;
+  gap: 0 6mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine .op-day b {
+  font-size: 10pt;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine .op-dl-label {
+  font-size: 8pt;
+  line-height: 1.3;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine .op-dl {
+  flex-direction: row;
+  gap: 2mm;
+  align-items: baseline;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine .op-dl-kind {
+  font-size: 7pt;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine .op-day {
+  min-width: 0;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine li {
+  padding: 0.2mm 0 0.2mm 3mm;
+  gap: 2mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis {
+  margin: 0;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-axis + .op-spine li::before {
+  top: 9px;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper .src-ref-link {
+  border-bottom: 0;
+}

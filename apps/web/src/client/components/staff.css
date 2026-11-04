@@ -21,6 +21,130 @@
   font-size: 13px;
   margin-top: 4px;
 }
+/* 数字のタイル：停止・売上影響・取引先・報告義務。文の代わりに、被害の大きさを数字で見せる */
+.vt-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+.vt-tile {
+  background: var(--panel-2);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 8px 12px 9px;
+  min-width: 0;
+}
+.vt-tile dt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.vt-tile dd {
+  margin: 2px 0 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.vt-val {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.vt-tile.hot {
+  border-color: color-mix(in srgb, var(--red) 55%, var(--edge));
+}
+.vt-tile.hot .vt-val {
+  color: var(--red);
+}
+.vt-tile.none .vt-val {
+  color: var(--ink-2);
+  font-weight: 400;
+  font-size: 18px;
+}
+.vt-sub {
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+
+/* 段階の帯：経路の本線を横一列に。止まった段階より先は薄く。狭いときは折り返す */
+.vt-strip {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 0;
+  align-items: stretch;
+}
+.vt-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  margin-right: 18px;
+  min-width: 0;
+  max-width: 100%;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: var(--panel-2);
+}
+.vt-stage::after {
+  content: "→";
+  position: absolute;
+  right: -17px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.vt-stage:last-child {
+  margin-right: 0;
+}
+.vt-stage:last-child::after {
+  content: none;
+}
+.vt-stage.st-breached {
+  border-color: color-mix(in srgb, var(--red) 60%, var(--edge));
+}
+.vt-stage.st-blocked,
+.vt-stage.st-recoverable {
+  border-color: color-mix(in srgb, var(--green) 60%, var(--edge));
+}
+.vt-stage.st-unknown,
+.vt-stage.st-human {
+  border-color: color-mix(in srgb, var(--amber) 60%, var(--edge));
+}
+.vt-stage.beyond {
+  opacity: 0.42;
+  border-style: dashed;
+}
+.vt-stage-name {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.vt-stage .st-icon {
+  font-size: 12px;
+}
+@media (max-width: 480px) {
+  .vt-stage {
+    margin-right: 16px;
+    padding: 5px 8px;
+  }
+  .vt-stage::after {
+    right: -15px;
+    width: 14px;
+  }
+}
+
 .verdict-progress {
   margin-top: 8px;
   font-size: 13px;
@@ -286,4 +410,307 @@
     color: var(--ink-2);
     font-size: 12px;
   }
+}
+
+/* 対策 × 段階の表：行＝対策、列＝経路の段階、セル＝効く（●）／効かない（×）。--n は列の数 */
+.mx {
+  display: block;
+  width: 100%;
+}
+.mx thead,
+.mx tbody {
+  display: grid;
+  gap: 6px;
+}
+.mx thead {
+  margin-bottom: 6px;
+}
+.mx th {
+  font-weight: inherit;
+  text-align: left;
+}
+.mx-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(170px, 1.5fr) repeat(var(--n), minmax(60px, 1fr)) minmax(
+      120px,
+      1.2fr
+    );
+  gap: 0 8px;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  background: var(--panel-2);
+}
+.mx-row.on {
+  border-color: var(--steel);
+}
+.mx-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.mx-row.off .mx-name {
+  opacity: 0.7;
+}
+.mx-head {
+  background: transparent;
+  border-color: transparent;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  align-items: end;
+}
+.mx-col {
+  text-align: center;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+/* 名前のボタンを行いっぱいに広げ、行のどこを押しても対策が入る（印の × は前に出す） */
+.mx-row .btn.measure {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+}
+/* 押している間の 1px の沈み（.btn:active）は、::after の基準を名前のボタンに縮めて、行の押せる範囲を消してしまう */
+.mx-row .btn.measure:active {
+  transform: none;
+}
+.mx-row .btn.measure::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+}
+.mx-row .btn.measure[aria-pressed="true"] {
+  box-shadow: none;
+}
+.mx-row .btn.measure:focus-visible::after {
+  outline: 2px solid var(--focus);
+}
+.mx-row:hover:not(.on) {
+  border-color: var(--edge-strong);
+}
+.mx-fx {
+  font-size: 12px;
+  font-weight: 700;
+}
+.mx-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 28px;
+}
+.mx-ok {
+  color: var(--green);
+  font-size: 18px;
+  line-height: 1;
+}
+/* 行いっぱいに広がる名前のボタンより前に出す。吹き出しを開いている間は、後ろの行の × より前 */
+.mx-pop {
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.mx-pop:has(.info-pop) {
+  z-index: 5;
+}
+.mx-x {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--red) 55%, var(--edge));
+  background: transparent;
+  color: var(--red);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.mx-x:hover,
+.mx-x[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--red) 14%, transparent);
+}
+.mx-none {
+  grid-column: span var(--n);
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 6px;
+}
+.mx-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-2);
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.mx-tag.dashed {
+  border-style: dashed;
+}
+.mx-cost {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  justify-content: center;
+}
+.mx-bar {
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--edge) 55%, transparent);
+  overflow: hidden;
+}
+.mx-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--steel);
+}
+.mx-cost-text {
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.mx-clear {
+  margin-top: 8px;
+}
+@media (max-width: 720px) {
+  .mx-head {
+    display: none;
+  }
+  .mx-row {
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 6px 4px;
+  }
+  .mx-name,
+  .mx-cost {
+    grid-column: 1 / -1;
+  }
+  .mx-cost {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .mx-bar {
+    flex: 1;
+  }
+  .mx-none {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+  .mx-cell {
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+  }
+  .mx-cell::after {
+    content: attr(data-stage);
+    font-size: 10px;
+    line-height: 1.25;
+    color: var(--ink-3);
+    overflow-wrap: anywhere;
+  }
+}
+
+/* 時間軸：出来事の種類のアイコンと、押すと出る詳細 */
+/* 狭い幅では図を縮めず、横にスクロールして読む（幅 375px で文字が潰れない） */
+.tl-scroll {
+  overflow-x: auto;
+}
+.timeline .tl-scroll svg {
+  min-width: 640px;
+}
+.timeline .tl-ev text {
+  font-size: 13px;
+}
+.tl-ev .tl-hit {
+  cursor: pointer;
+  outline: none;
+}
+.tl-ev .tl-hit-box {
+  fill: transparent;
+  stroke: transparent;
+}
+.tl-ev.picked .tl-hit-box {
+  fill: color-mix(in srgb, var(--edge) 60%, transparent);
+  stroke: var(--edge-strong);
+}
+.tl-ev .tl-hit:hover .tl-hit-box,
+.tl-ev .tl-hit:focus-visible .tl-hit-box {
+  fill: color-mix(in srgb, var(--edge) 45%, transparent);
+  stroke: var(--focus);
+}
+.tl-ev .tl-ic {
+  color: var(--ink-2);
+}
+.tl-ev.k-business_stop .tl-ic,
+.tl-ev.k-partner .tl-ic,
+.tl-ev.k-money .tl-ic {
+  color: var(--red);
+}
+.tl-ev.k-legal .tl-ic,
+.tl-ev.k-insurance .tl-ic {
+  color: var(--amber);
+}
+.tl-ev.k-recovery .tl-ic {
+  color: var(--green);
+}
+.tl-ev.k-police .tl-ic {
+  color: var(--steel);
+}
+.tl-src {
+  font: 700 10px var(--sans);
+  fill: var(--steel);
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+.tl-detail {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--edge);
+  border-left: 4px solid var(--edge-strong);
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 13px;
+}
+.tl-detail.k-business_stop,
+.tl-detail.k-partner,
+.tl-detail.k-money {
+  border-left-color: var(--red);
+}
+.tl-detail.k-legal,
+.tl-detail.k-insurance {
+  border-left-color: var(--amber);
+}
+.tl-detail.k-recovery {
+  border-left-color: var(--green);
+}
+.tl-detail.k-police {
+  border-left-color: var(--steel);
+}
+.tl-detail .tl-detail-day {
+  font-family: var(--mono);
+  margin-right: 8px;
+}
+.tl-detail p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+}
+.tl-detail .tl-detail-src {
+  font-size: 12px;
 }
