@@ -190,11 +190,11 @@
   font-weight: 700;
   letter-spacing: 0.1em;
   color: var(--ink);
-  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
   border: 1px solid var(--edge-strong);
   border-radius: 999px;
   pointer-events: none;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 /* 差し込み口（右下の枠） */
@@ -241,6 +241,11 @@
 
 /* チャット */
 .chat-window {
+  /* 吹き出しの色：社長は灰、情シス担当（画面の「自分」）は緑。文字はどちらも 4.5:1 以上 */
+  --bubble-boss: #2d333d;
+  --bubble-boss-ink: #eef1f6;
+  --bubble-staff: #1f7a45;
+  --bubble-staff-ink: #ffffff;
   width: min(900px, 92vw);
   height: min(760px, 86vh);
   background: var(--panel);
@@ -249,6 +254,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+:root[data-theme="light"] .chat-window {
+  --bubble-boss: #cfd5de;
+  --bubble-boss-ink: #1b2330;
+  --bubble-staff: #95ec69;
+  --bubble-staff-ink: #0d2410;
 }
 .chat-head {
   display: flex;
@@ -265,11 +276,20 @@
   gap: 16px;
   overflow: hidden;
   justify-content: flex-end;
+  /* 古い発言が上で切れるとき、途中で切れた吹き出しを目立たせない */
+  mask-image: linear-gradient(to bottom, transparent, #000 36px);
 }
 .chat-msg {
+  --bubble: var(--bubble-boss);
+  --bubble-ink: var(--bubble-boss-ink);
   display: flex;
   gap: 12px;
   animation: chat-in 0.35s ease-out both;
+}
+.chat-msg.staff {
+  --bubble: var(--bubble-staff);
+  --bubble-ink: var(--bubble-staff-ink);
+  flex-direction: row-reverse;
 }
 @keyframes chat-in {
   from {
@@ -301,38 +321,92 @@
   background: #0f2a3a;
   color: var(--cyan);
 }
+.chat-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: calc(100% - 60px);
+}
+.chat-msg.staff .chat-body {
+  align-items: flex-end;
+}
 .chat-name {
   font-size: 13px;
   color: var(--ink-2);
   margin-bottom: 4px;
 }
-.chat-time {
-  margin-left: 8px;
+/* 吹き出し（またはカード）と時刻を下端でそろえる。情シス担当は時刻が吹き出しの左に来る */
+.chat-line {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+}
+.chat-line + .chat-line {
+  margin-top: 8px;
+}
+.chat-msg.staff .chat-line {
+  flex-direction: row-reverse;
+}
+.chat-time,
+.chat-read {
   font-family: var(--mono);
-  font-size: 11px;
-  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.2;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.chat-time {
+  flex: none;
+}
+.chat-read {
+  margin-top: 4px;
+  animation: chat-in 0.3s ease-out both;
 }
 .chat-bubble {
+  position: relative;
   font-size: 26px;
   line-height: 1.5;
-  padding: 8px 14px;
-  background: var(--panel-2);
-  border: 1px solid var(--edge);
-  border-radius: 12px;
-  display: inline-block;
+  padding: 8px 16px;
+  color: var(--bubble-ink);
+  background: var(--bubble);
+  border-radius: 14px;
   min-height: 1.5em;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
+/* しっぽ：アバターの側に向ける */
+.chat-bubble::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  border: 7px solid transparent;
+}
+.chat-msg.boss .chat-bubble::before {
+  left: -12px;
+  border-right-color: var(--bubble);
+}
+.chat-msg.staff .chat-bubble::before {
+  right: -12px;
+  border-left-color: var(--bubble);
+}
+/* リンクカードの枠は、送った側の色に揃える */
 .chat-card {
+  --card-edge: var(--bubble-boss);
   background: var(--panel-2);
-  border: 1px solid var(--edge-strong);
-  border-left: 4px solid var(--steel);
+  border: 2px solid var(--card-edge);
   border-radius: 10px;
   padding: 10px 14px;
   max-width: 640px;
-  margin-bottom: 8px;
+  min-width: 0;
+  text-align: left;
 }
-.chat-card.onepager {
-  border-left-color: var(--red);
+.chat-msg.boss .chat-card {
+  --card-edge: color-mix(in srgb, var(--bubble-boss) 70%, var(--ink-2));
+}
+.chat-msg.staff .chat-card {
+  --card-edge: var(--bubble-staff);
 }
 .chat-card-host {
   font-family: var(--mono);
@@ -344,7 +418,7 @@
   font-size: 19px;
   margin: 2px 0;
 }
-.chat-card.onepager .chat-card-title {
+.chat-card.sheet .chat-card-title {
   font-family: var(--serif);
   color: var(--red);
   font-size: 22px;
@@ -368,7 +442,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--ink-2);
+  background: currentColor;
   animation: chat-dot 1s infinite;
 }
 .chat-typing > i:nth-child(2) {
@@ -412,6 +486,23 @@
   animation: blink 1s steps(1) infinite;
 }
 
+@media (max-width: 480px) {
+  .chat-log {
+    padding: 14px 12px;
+  }
+  .chat-bubble {
+    font-size: 18px;
+  }
+  .chat-input {
+    font-size: 16px;
+  }
+  .chat-card-title {
+    font-size: 15px;
+  }
+  .chat-card.sheet .chat-card-title {
+    font-size: 17px;
+  }
+}
 /* 記事の読解 */
 .reading-window {
   width: min(1200px, 94vw);

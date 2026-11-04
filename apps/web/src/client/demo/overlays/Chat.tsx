@@ -2,6 +2,7 @@
  * 社長と担当者のチャット風の演出（場面 1・2・8）。比喩は使わず、簡素に。
  * 文字は場面の経過秒数（elapsed）から決める（一時停止すると止まる）。
  */
+import { useRef } from "react";
 import { useApp } from "../../hooks/useApp.tsx";
 import { yen } from "../../lib/labels.ts";
 
@@ -25,29 +26,52 @@ function typedThenDeleted(text: string, elapsed: number, from: number, hold: num
   return text.slice(0, Math.max(0, text.length - removed));
 }
 
+/** 動きを減らす設定か（画面の設定を優先し、なければ OS の設定） */
+function reducedMotion(): boolean {
+  const set = document.documentElement.dataset.reduced;
+  if (set === "true") return true;
+  if (set === "false") return false;
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** 情シス担当の返答が出てから、社長が読んだことにするまでの秒数 */
+const READ_AFTER = 1;
+
+/** 社長は左、情シス担当は右から出す。時刻は吹き出しの外側の下端、既読は情シス担当の吹き出しの下 */
 function Bubble({
   who,
   children,
   card,
   time,
+  read,
 }: {
   who: "boss" | "staff";
   children?: React.ReactNode;
   card?: React.ReactNode;
   time?: string;
+  read?: boolean;
 }) {
+  const stamp = time && <span className="chat-time">{time}</span>;
   return (
     <div className={`chat-msg ${who}`}>
       <div className="chat-avatar" aria-hidden="true">
         {who === "boss" ? "社長" : "情シス"}
       </div>
       <div className="chat-body">
-        <div className="chat-name">
-          {who === "boss" ? "社長" : "情シス担当"}
-          {time && <span className="chat-time">{time}</span>}
-        </div>
-        {card}
-        {children && <div className="chat-bubble">{children}</div>}
+        <div className="chat-name">{who === "boss" ? "社長" : "情シス担当"}</div>
+        {card && (
+          <div className="chat-line">
+            {card}
+            {!children && stamp}
+          </div>
+        )}
+        {children && (
+          <div className="chat-line">
+            <div className="chat-bubble">{children}</div>
+            {stamp}
+          </div>
+        )}
+        {read && <div className="chat-read">既読</div>}
       </div>
     </div>
   );
@@ -75,8 +99,13 @@ function Typing() {
 
 export function ChatOverlay({ variant, elapsed }: Props) {
   const app = useApp();
+  // 場面 8 では場面の途中（8 秒）からこの画面に切り替わる。返答が出た時刻は、画面に出た時刻と 0.8 秒の遅い方
+  const mountedAt = useRef(elapsed).current;
   const ev = app.evaluation;
   const company = app.profile?.companyName ?? "うちの会社";
+  // 既読：情シス担当の返答が出て 1 秒後（動きを減らす設定では最初から）
+  const reduced = reducedMotion();
+  const isRead = (shownAt: number) => reduced || elapsed >= shownAt + READ_AFTER;
 
   const history = (
     <>
@@ -124,7 +153,7 @@ export function ChatOverlay({ variant, elapsed }: Props) {
             <>
               {history}
               {elapsed >= 13.2 && (
-                <Bubble who="staff" time="8:53">
+                <Bubble who="staff" time="8:53" read={isRead(13.2)}>
                   少し時間をください。調べます。
                 </Bubble>
               )}
@@ -133,15 +162,16 @@ export function ChatOverlay({ variant, elapsed }: Props) {
           {variant === "chat-reply" && (
             <>
               {history}
-              <Bubble who="staff" time="8:53">
+              <Bubble who="staff" time="8:53" read>
                 少し時間をください。調べます。
               </Bubble>
               {elapsed >= 0.8 && (
                 <Bubble
                   who="staff"
                   time="10:12"
+                  read={isRead(Math.max(0.8, mountedAt))}
                   card={
-                    <div className="chat-card onepager">
+                    <div className="chat-card sheet">
                       <div className="chat-card-host">社長向けの一枚　／　{company}</div>
                       <div className="chat-card-title">
                         {ev?.verdict.headlineJa ?? "うちの会社は、大丈夫ではありませんでした"}
