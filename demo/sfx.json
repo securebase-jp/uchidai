@@ -1,0 +1,170 @@
+{
+  "version": 1,
+  "note": "脚本 v2（docs/demo-script-v2.md）の「効果音」の表と各場面の演出から仮置きした cue。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。時刻は録画の映像を見て PM が調整する。調べ方と直し方は demo/sfx.md。",
+  "cues": [
+    {
+      "scene": 1,
+      "label": "社長の一言",
+      "at": 0.4,
+      "sound": "message",
+      "gain": 0.8,
+      "note": "チャットの着信。映像でメッセージが出る時刻に合わせる"
+    },
+
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 2.9,
+      "anchor": "end",
+      "sound": "wall-up",
+      "gain": 0.9,
+      "note": "最後の 3 秒に 3 枚の壁が順に立つ（1 枚目：専門知識）"
+    },
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 1.9,
+      "anchor": "end",
+      "sound": "wall-up",
+      "gain": 0.9,
+      "note": "2 枚目：相談相手と予算"
+    },
+    {
+      "scene": 2,
+      "label": "答えられない担当者",
+      "at": 0.9,
+      "anchor": "end",
+      "sound": "wall-up",
+      "gain": 1,
+      "note": "3 枚目：時間"
+    },
+
+    {
+      "scene": 3,
+      "label": "ウチダイ登場・リンクを貼る",
+      "at": 15,
+      "sound": "wall-down",
+      "gain": 0.5,
+      "note": "「専門知識」の壁が最初に崩れる（演出のみ。脚本の表は場面 9 だけ）。記事が段階に分かれて読める形になる時刻に合わせる"
+    },
+
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 3,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "外部確認の結果 ①VPN 用のホスト名（各 1.5 秒）"
+    },
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 4.5,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "②DMARC なし"
+    },
+    {
+      "scene": 4,
+      "label": "自社の姿",
+      "at": 6,
+      "sound": "tick",
+      "gain": 0.7,
+      "note": "③旧キャンペーンサイトの証明書"
+    },
+
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 4,
+      "sound": "scan",
+      "gain": 0.45,
+      "note": "赤い線が進む間（約 10 秒）、1.5 秒おきにくり返す"
+    },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 5.5, "sound": "scan", "gain": 0.45 },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 7, "sound": "scan", "gain": 0.45 },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 8.5, "sound": "scan", "gain": 0.45 },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 10, "sound": "scan", "gain": 0.45 },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 11.5, "sound": "scan", "gain": 0.45 },
+    { "scene": 5, "label": "攻撃の再生とベンダー確認", "at": 13, "sound": "scan", "gain": 0.45 },
+    {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 21,
+      "sound": "flip",
+      "gain": 0.9,
+      "note": "黄 → 赤（返事の番号を入れた直後）"
+    },
+
+    {
+      "scene": 6,
+      "label": "AI 攻撃者",
+      "at": 7,
+      "sound": "verify",
+      "gain": 0.7,
+      "note": "検証 ✓ ✓ ✓ ✓（0.5 秒おき）"
+    },
+    { "scene": 6, "label": "AI 攻撃者", "at": 7.5, "sound": "verify", "gain": 0.7 },
+    { "scene": 6, "label": "AI 攻撃者", "at": 8, "sound": "verify", "gain": 0.7 },
+    { "scene": 6, "label": "AI 攻撃者", "at": 8.5, "sound": "verify", "gain": 0.7 },
+
+    {
+      "scene": 7,
+      "label": "結論",
+      "at": 2,
+      "sound": "impact",
+      "gain": 1,
+      "note": "2 秒の無音と暗転のあと、結論の文字が出る瞬間"
+    },
+    {
+      "scene": 7,
+      "label": "結論",
+      "at": 8,
+      "sound": "count",
+      "gain": 0.6,
+      "note": "売上の数字を 0 から約 1 億円まで数え上げる間（約 1.6 秒）"
+    },
+
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 4,
+      "sound": "shield-bounce",
+      "gain": 0.9,
+      "note": "多要素認証の盾が弾かれる。直前の無音の間を残す"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 11,
+      "sound": "green-spread",
+      "gain": 0.8,
+      "note": "装置の更新で緑が広がり、結論の文字が反転する"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
+      "at": 17.5,
+      "sound": "wall-down",
+      "gain": 0.5,
+      "note": "「相談相手と予算」の壁が崩れる（演出のみ。脚本の表は場面 9 だけ）"
+    },
+
+    {
+      "scene": 9,
+      "label": "社長への回答",
+      "at": 8.5,
+      "sound": "message",
+      "gain": 0.8,
+      "note": "社長の返事「じゃあ、それやろう」。一拍おいてから"
+    },
+    {
+      "scene": 9,
+      "label": "社長への回答",
+      "at": 10.3,
+      "sound": "wall-down",
+      "gain": 0.8,
+      "note": "最後の壁「時間」が崩れる"
+    }
+  ]
+}
