@@ -381,3 +381,95 @@ table.profile-table input.in.txt {
 .kev .kev-sources {
   font-size: 11px;
 }
+
+/* よくある値のボタン ＋ 数値の欄（ChoiceNumber）と、2〜5 択のボタン（ChoiceSet） */
+.cn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+.cn-presets,
+.cs {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.cn-btn,
+.cs-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--btn);
+  border: 1px solid var(--edge-strong);
+  border-radius: 999px;
+  padding: 4px 12px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+.cs-btn {
+  font-size: 14px;
+  padding: 6px 14px;
+  min-height: 36px;
+}
+.cn-btn:hover:not(:disabled),
+.cs-btn:hover:not(:disabled) {
+  border-color: var(--steel);
+}
+.cn-btn[aria-pressed="true"],
+.cs-btn[aria-pressed="true"] {
+  border-color: var(--steel);
+  color: var(--steel);
+  background: color-mix(in srgb, var(--steel) 16%, transparent);
+  box-shadow: 0 0 0 1px var(--steel);
+}
+.cn-btn:disabled,
+.cs-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.cn.compact .cn-btn,
+.cs.compact .cs-btn {
+  font-size: 12px;
+  padding: 2px 9px;
+  min-height: 28px;
+}
+.cn-field {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+.profile .cn .cn-field input.in.num {
+  width: 130px;
+  max-width: 100%;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 15px;
+  padding: 6px 10px;
+}
+.cn.compact .profile .cn .cn-field input.in.num {
+  width: 96px;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+.cn-unit {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.cn-readout {
+  color: var(--ink-2);
+  font-size: 12px;
+  font-family: var(--mono);
+}
