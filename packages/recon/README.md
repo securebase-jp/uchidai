@@ -5,7 +5,7 @@
 参照するのは次の 2 つだけ。
 
 - DNS の公開レコード（TXT、MX、A、AAAA、CNAME、PTR）
-- 証明書の公開ログ（Certificate Transparency）。検索サービスは crt.sh の JSON 出力
+- 証明書の公開ログ（Certificate Transparency）。検索サービスは crt.sh の JSON 出力を先に使い、結果が空か失敗のときだけ予備として Cert Spotter（SSLMate）の発行記録 API を使う
 
 **対象のホストへは一切アクセスしない。** ポートスキャン、Web ページの取得、ログイン画面の確認、TLS 接続による証明書の取得を含めて行わない。見つかったホスト名の名前解決は DNS サーバへの問い合わせであり、ホストにはつながない。
 
@@ -56,20 +56,20 @@ if (check.ok) {
 
 ## 公開する関数と型
 
-| 種別     | 名前                                                                                                                                                                                              | 内容                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| 所有確認 | `generateVerificationToken()`、`verificationRecord(token)`、`verificationInstructionsJa(domain, token)`                                                                                           | トークンの生成、TXT の値、担当者向けの手順                                                           |
-| 所有確認 | `verifyOwnership(domain, token, { resolver? })` → `OwnershipCheck`                                                                                                                                | 通れば `verified: VerifiedDomain`。通らなければ `reasonJa` と見つかった TXT                          |
-| 所有確認 | `isVerifiedDomain(x)`、`assertVerified(domain, proof)`、`OwnershipNotVerifiedError`                                                                                                               | 発行済みの VerifiedDomain か（同じ形のオブジェクトでは通らない）                                     |
-| 確認     | `recon(domain, { ownership, resolver?, ct?, cache?, now?, maxHostLookups? })` → `ReconResult`                                                                                                     | 本体。zod の `ReconResult` で検証して返す                                                            |
-| 反映     | `reconToAnswers(result)` → `AnswerHints`、`mergeAnswers(current, hints)`                                                                                                                          | 5 問の初期値（`hosting.mail`、`hosting.web`、`remoteAccess`）と「外部から推定」の項目                |
-| 反映     | `reconToAssetHints(result)` → `AssetHint[]`、`applyAssetHints(profile, hints)`                                                                                                                    | 役割ごとの属性（`entry.vpn` の `exposed`、`cloud.mail` の `spf`/`dmarc` など）と緩和策（M1042 なし） |
-| 矛盾     | `findContradictions(result, profile)` → `Contradiction[]`                                                                                                                                         | engine の `Contradiction` の形                                                                       |
-| 参照先   | `DnsResolver`、`CtLogSource`、`ReconCache`、`ReconSources`                                                                                                                                        | インターフェース                                                                                     |
-| 実装     | `NodeDnsResolver`、`CrtShSource`、`FileCache`、`MemoryCache`                                                                                                                                      | 実際の参照。`setDefaultResolver()`、`setDefaultCtSource()` で既定を差し替え可能                      |
-| fixture  | `ReconFixture`、`loadFixture(path)`、`loadDemoFixture()`、`fixtureSources(fixture)`、`FixtureDnsResolver`、`FixtureCtSource`                                                                      | 記録した応答の再生                                                                                   |
-| 型       | `ReconResult`、`Finding`、`HostnameEntry`、`RemoteAccessCandidate`、`MailInfo`、`SpfInfo`、`DmarcInfo`、`ProviderGuess`、`CloudService`、`WebInfo`、`Evidence`、`OwnershipProof`、`CtCertificate` | すべて zod スキーマと TypeScript 型の両方                                                            |
-| 表       | `REMOTE_ACCESS_PATTERNS`、`MX_PROVIDERS`、`SPF_INCLUDE_SERVICES`、`WEB_HOSTING_PATTERNS`、`IPA_VULN_CASES`                                                                                        | 推定に使う固定表                                                                                     |
+| 種別     | 名前                                                                                                                                                                                                    | 内容                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 所有確認 | `generateVerificationToken()`、`verificationRecord(token)`、`verificationInstructionsJa(domain, token)`                                                                                                 | トークンの生成、TXT の値、担当者向けの手順                                                           |
+| 所有確認 | `verifyOwnership(domain, token, { resolver? })` → `OwnershipCheck`                                                                                                                                      | 通れば `verified: VerifiedDomain`。通らなければ `reasonJa` と見つかった TXT                          |
+| 所有確認 | `isVerifiedDomain(x)`、`assertVerified(domain, proof)`、`OwnershipNotVerifiedError`                                                                                                                     | 発行済みの VerifiedDomain か（同じ形のオブジェクトでは通らない）                                     |
+| 確認     | `recon(domain, { ownership, resolver?, ct?, cache?, now?, maxHostLookups? })` → `ReconResult`（`sources.ct` が `"live"` のときは `sources.ctProvider` に実際に使った検索先 `"crtsh"`／`"certspotter"`） | 本体。zod の `ReconResult` で検証して返す                                                            |
+| 反映     | `reconToAnswers(result)` → `AnswerHints`、`mergeAnswers(current, hints)`                                                                                                                                | 5 問の初期値（`hosting.mail`、`hosting.web`、`remoteAccess`）と「外部から推定」の項目                |
+| 反映     | `reconToAssetHints(result)` → `AssetHint[]`、`applyAssetHints(profile, hints)`                                                                                                                          | 役割ごとの属性（`entry.vpn` の `exposed`、`cloud.mail` の `spf`/`dmarc` など）と緩和策（M1042 なし） |
+| 矛盾     | `findContradictions(result, profile)` → `Contradiction[]`                                                                                                                                               | engine の `Contradiction` の形                                                                       |
+| 参照先   | `DnsResolver`、`CtLogSource`、`ReconCache`、`ReconSources`                                                                                                                                              | インターフェース                                                                                     |
+| 実装     | `NodeDnsResolver`、`CrtShSource`、`CertSpotterSource`、`FallbackCtSource`、`createLiveCtSource()`、`FileCache`、`MemoryCache`                                                                           | 実際の参照。`setDefaultResolver()`、`setDefaultCtSource()` で既定を差し替え可能                      |
+| fixture  | `ReconFixture`、`loadFixture(path)`、`loadDemoFixture()`、`fixtureSources(fixture)`、`FixtureDnsResolver`、`FixtureCtSource`                                                                            | 記録した応答の再生                                                                                   |
+| 型       | `ReconResult`、`Finding`、`HostnameEntry`、`RemoteAccessCandidate`、`MailInfo`、`SpfInfo`、`DmarcInfo`、`ProviderGuess`、`CloudService`、`WebInfo`、`Evidence`、`OwnershipProof`、`CtCertificate`       | すべて zod スキーマと TypeScript 型の両方                                                            |
+| 表       | `REMOTE_ACCESS_PATTERNS`、`MX_PROVIDERS`、`SPF_INCLUDE_SERVICES`、`WEB_HOSTING_PATTERNS`、`IPA_VULN_CASES`                                                                                              | 推定に使う固定表                                                                                     |
 
 ## 確認項目（`ReconResult.findings`）
 
@@ -89,13 +89,16 @@ if (check.ok) {
 ## 安全の実装
 
 - **所有確認なしの実行を拒否する**：`recon()` は `verifyOwnership()` が返した `VerifiedDomain` を要求する。発行は WeakSet に記録され、同じ形のオブジェクトを外で作っても `OwnershipNotVerifiedError` になる。別ドメインの確認結果も拒否する
-- **ネットワークに出る経路は 2 つだけ**：DNS（`src/dns-node.ts`、Node 標準 `dns/promises`）と crt.sh（`src/safe-fetch.ts` の `restrictedFetch`）
-- **宛先の限定**：`restrictedFetch` は `https://crt.sh/?q=%25.<domain>&output=json` の形以外を `ForbiddenDestinationError` で拒否する。別ホスト、別パス、余分なパラメータ、認証情報、フラグメント、http を含む。リダイレクトは追わない（`redirect: "error"`）。GET のみ
+- **ネットワークに出る経路は 2 種類だけ**：DNS（`src/dns-node.ts`、Node 標準 `dns/promises`）と、証明書の公開ログの検索（`src/safe-fetch.ts` の `restrictedFetch`。宛先は crt.sh と Cert Spotter の 2 つ）
+- **宛先の限定**：`restrictedFetch` は次の 2 形以外を `ForbiddenDestinationError` で拒否する。別ホスト、別パス、余分なパラメータ（`after=` の付加を含む）、順序や値の改変（`include_subdomains=false` など）、認証情報、フラグメント、http を含む。リダイレクトは追わない（`redirect: "error"`）。GET のみ
+  - `https://crt.sh/?q=%25.<domain>&output=json`
+  - `https://api.certspotter.com/v1/issuances?domain=<domain>&include_subdomains=true&expand=dns_names&expand=issuer`（`domain` は検証済みのホスト名だけ）
+- **予備の使い方**：`FallbackCtSource` は crt.sh を先に呼び、0 件または失敗（HTTP エラー、壊れた応答、時間切れ）のときだけ Cert Spotter を呼ぶ。crt.sh が 1 件以上返したら Cert Spotter には問い合わせない。両方使えないときは DNS だけで続け（`sources.ct = "unavailable"`）、`notesJa` に理由を両方残す。Cert Spotter のページングは追わない（1 ページ 100 件に収まらないドメインは「一部のみ」と注記）。API キーは使わない
 - **コード上の固定**：`src/safety.test.ts` が、`node:http`／`node:https`／`node:net`／`node:tls`／`node:child_process` などを import しないこと、`fetch` を呼ぶのが `proxy.ts` と `safe-fetch.ts` だけであること、`recon()` が最初に `assertVerified` を通すことをソース走査で確かめる
-- **キャッシュ**：crt.sh の応答は既定で `packages/recon/.cache/`（gitignore 済み）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない。0 件の応答は保存しない（発行したばかりの証明書が公開ログに載るまで数時間かかるため、やり直せば拾える）
+- **キャッシュ**：crt.sh と Cert Spotter の応答は既定で `packages/recon/.cache/`（gitignore 済み。キーは `crtsh:<domain>`、`certspotter:<domain>`）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない。0 件の応答は保存しない（発行したばかりの証明書が公開ログに載るまで数時間かかるため、やり直せば拾える）
 - **プロキシ**：`HTTPS_PROXY` が設定された環境では undici の `EnvHttpProxyAgent` を使う（`packages/llm/src/proxy.ts` と同じ方針）
 
-実ネットワークのテストは書かない（CI では fixture だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。
+実ネットワークのテストは書かない（CI では fixture と偽の fetch だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。Cert Spotter は、開発者のデモ用ドメインに対して手元で確かめた（結果は `docs/claude-code-log.md`）。
 
 ## crt.sh の利用条件（2026-11-02 確認）
 
@@ -158,6 +161,7 @@ crt.sh が空か失敗のときだけ使う予備の検索先。SSLMate, Inc.（
 
 - IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）：VPN 用ホスト名の推定の根拠として脆弱性事例 8・9 を注記。本文はリポジトリに入れない
 - crt.sh（Sectigo Limited）：https://crt.sh/ 。証明書の公開ログの検索サービス
+- Cert Spotter（SSLMate, Inc.）：https://sslmate.com/ct_search_api 。crt.sh が空か失敗のときの予備。利用条件の確認は上の「Cert Spotter の利用条件」
 - Node.js `dns/promises`：DNS の問い合わせ
 
 ## 監査後の補足（2026-11-02）
