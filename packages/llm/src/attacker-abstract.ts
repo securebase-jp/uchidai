@@ -29,7 +29,7 @@ export type AbstractedRole = {
 };
 
 export type AbstractedProfile = {
-  /** 業種別の構成パターン（manufacturing / office / healthcare） */
+  /** 業種別の構成パターン（manufacturing / construction / office / healthcare） */
   pattern: string;
   roles: AbstractedRole[];
   /** 到達を目標とする役割（型紙の終点） */

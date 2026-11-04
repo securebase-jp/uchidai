@@ -26,6 +26,10 @@ describe("parseSavedProfile（localStorage の検証）", () => {
     expect(p?.id).toBe("demo-seiko");
     expect(p?.fictional).toBe(true);
   });
+  it("建設業の構成パターンのカルテも読める", () => {
+    const p = parseSavedProfile(JSON.stringify({ ...good, pattern: "construction" }));
+    expect(p?.pattern).toBe("construction");
+  });
   it("壊れた JSON・古い形式・型違いは捨てる", () => {
     expect(parseSavedProfile(null)).toBeUndefined();
     expect(parseSavedProfile("{broken")).toBeUndefined();

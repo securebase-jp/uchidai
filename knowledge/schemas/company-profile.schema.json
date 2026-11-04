@@ -23,6 +23,7 @@
       "type": "string",
       "enum": [
         "manufacturing",
+        "construction",
         "office",
         "healthcare"
       ]
@@ -34,6 +35,7 @@
           "type": "string",
           "enum": [
             "manufacturing",
+            "construction",
             "wholesale_service",
             "healthcare",
             "it",
@@ -45,8 +47,14 @@
           "type": "string",
           "enum": [
             "factory",
+            "warehouse",
+            "construction_site",
+            "yard",
             "store",
             "clinic",
+            "care",
+            "datacenter",
+            "onsite_team",
             "office_only"
           ]
         },

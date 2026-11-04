@@ -2,7 +2,7 @@
  * 構成グラフの生成：会社カルテ（資産・業務・回答）→ Graph
  * 判定、経路探索、AI攻撃者の検証、描画はすべてこのグラフの上で行う。手で座標を置いた固定の図は持たない
  */
-import type { Pattern, RoleDef } from "./knowledge.ts";
+import type { Pattern, RoleDef, SiteOption } from "./knowledge.ts";
 import type {
   Asset,
   CompanyProfile,
@@ -10,6 +10,7 @@ import type {
   Graph,
   GraphEdge,
   GraphNode,
+  PatternId,
   ProfileAnswers,
   Role,
 } from "./types.ts";
@@ -218,17 +219,50 @@ function asset(
   };
 }
 
+/** 業種の回答 → 構成パターン。questions.yaml の industry の pattern と同じ対応（knowledge.test.ts で突き合わせる） */
+export function patternIdOf(industry: ProfileAnswers["industry"]): PatternId {
+  switch (industry) {
+    case "manufacturing":
+      return "manufacturing";
+    case "construction":
+      return "construction";
+    case "healthcare":
+      return "healthcare";
+    default:
+      return "office";
+  }
+}
+
+/** 業務の層の上限（buildGraph が描くのは先頭の 5 つ） */
+export const MAX_BUSINESSES = 5;
+
+/**
+ * 構成パターンの業務に、「現場」の回答が決める現場の業務を足す。
+ * 構成パターンに同じ業務（製造業の「生産ライン」、医療の「診療」など）が既にあるときは、足さずに置き換える
+ * （replaces に業務 ID を持たせた現場だけ）。同じ役割の業務はほぼ全部ある（役割は core ばかり）ので、役割では
+ * 重複を判定せず、業務ごとに明示する。置き換えると位置と ID はパターンのまま、名前と日数と影響先は現場の値になる。
+ * パターンの業務は最大 4 つ（knowledge.ts）なので、足しても 5 を超えない
+ */
+export function withSiteBusiness<B extends { id: string; name: string }>(
+  patternBusinesses: B[],
+  site: SiteOption | undefined,
+  toBusiness: (b: B | undefined, s: NonNullable<SiteOption["siteBusiness"]>) => B,
+): B[] {
+  const sb = site?.siteBusiness;
+  if (!sb) return patternBusinesses;
+  const hit = patternBusinesses.find((b) => sb.replaces.includes(b.id) || b.name === sb.name);
+  if (hit) return patternBusinesses.map((b) => (b === hit ? toBusiness(b, sb) : b));
+  return [...patternBusinesses, toBusiness(undefined, sb)].slice(0, MAX_BUSINESSES);
+}
+
 export function profileFromAnswers(
   answers: ProfileAnswers,
   patterns: Pattern[],
   companyName = "うちの会社",
+  /** 「現場」の選択肢（knowledge の sites）。渡さなければ現場の業務は足さない */
+  sites: SiteOption[] = [],
 ): CompanyProfile {
-  const patternId =
-    answers.industry === "manufacturing"
-      ? "manufacturing"
-      : answers.industry === "healthcare"
-        ? "healthcare"
-        : "office";
+  const patternId = patternIdOf(answers.industry);
   const pattern = patterns.find((p) => p.id === patternId);
   if (!pattern) throw new Error(`構成パターン ${patternId} が knowledge/profiles にない`);
 
@@ -365,7 +399,23 @@ export function profileFromAnswers(
 
   const assetIdsByRole = (roleList: Role[]) =>
     assets.filter((a) => roleList.includes(a.role)).map((a) => a.id);
-  const businesses = pattern.businesses
+  type Biz = Pattern["businesses"][number];
+  const patternBusinesses: Biz[] = pattern.businesses;
+  const businesses = withSiteBusiness(
+    patternBusinesses,
+    sites.find((s) => s.value === answers.site),
+    (hit, sb) => ({
+      id: hit?.id ?? `biz-site-${answers.site}`,
+      name: sb.name,
+      roles: sb.roles,
+      manualDays: sb.manualDays,
+      recoveryDays: sb.recoveryDays,
+      ...(sb.recoveryDaysWithBackup !== undefined
+        ? { recoveryDaysWithBackup: sb.recoveryDaysWithBackup }
+        : {}),
+      affectsJa: sb.affectsJa,
+    }),
+  )
     .map((b) => ({
       id: b.id,
       name: b.name,

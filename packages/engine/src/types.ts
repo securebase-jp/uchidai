@@ -123,10 +123,40 @@ export const PersonalData = z.object({
   sensitive: z.boolean(),
 });
 
+/** 業種別の構成パターンの id（knowledge/profiles/*.yaml） */
+export const PatternId = z.enum(["manufacturing", "construction", "office", "healthcare"]);
+export type PatternId = z.infer<typeof PatternId>;
+
+/**
+ * 最初の5問の「現場」の値。どの業種にどれを出すかは knowledge/questions.yaml の industries が決める。
+ * factory / store / clinic / office_only は初期からある値で、保存済みの回答も読めるように残す
+ */
+export const Site = z.enum([
+  "factory",
+  "warehouse",
+  "construction_site",
+  "yard",
+  "store",
+  "clinic",
+  "care",
+  "datacenter",
+  "onsite_team",
+  "office_only",
+]);
+export type Site = z.infer<typeof Site>;
+
 /** 最初の5問の回答 */
 export const ProfileAnswers = z.object({
-  industry: z.enum(["manufacturing", "wholesale_service", "healthcare", "it", "finance", "other"]),
-  site: z.enum(["factory", "store", "clinic", "office_only"]),
+  industry: z.enum([
+    "manufacturing",
+    "construction",
+    "wholesale_service",
+    "healthcare",
+    "it",
+    "finance",
+    "other",
+  ]),
+  site: Site,
   hosting: z.object({
     mail: z.enum(["onprem", "cloud", "provider", "unknown"]),
     files: z.enum(["onprem", "cloud", "provider", "unknown"]),
@@ -145,7 +175,7 @@ export const CompanyProfile = z.object({
   domain: z.string().optional(),
   domainVerified: z.boolean().default(false),
   /** 業種別の構成パターン（knowledge/profiles/*.yaml の id） */
-  pattern: z.enum(["manufacturing", "office", "healthcare"]),
+  pattern: PatternId,
   answers: ProfileAnswers.optional(),
   employees: z.number().int().positive().optional(),
   assets: z.array(Asset),

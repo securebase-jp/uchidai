@@ -77,7 +77,7 @@ describe("GET /api/knowledge", () => {
       "web",
     ]);
     expect(hosting.options[0]).toEqual({ value: "onprem", labelJa: "社内のサーバ" });
-    expect(body.patterns.length).toBe(3);
+    expect(body.patterns.length).toBe(4);
   });
   it("緩和策ごとの確認の質問表（controlQuestions）を選択肢と属性つきで返す", async () => {
     const body = await loose(app.request("/api/knowledge"));
@@ -369,5 +369,31 @@ describe("POST /api/profile/from-answers", () => {
     expect(body.profile.pattern).toBe("healthcare");
     expect(body.graph.nodes.map((n: { id: string }) => n.id)).toContain("vendor-remote");
     expect(body.profile.businesses[0].recoveryDays).toBe(14);
+  });
+  it("建設業×工事現場は、現場の施工管理が業務の層に出る。古い回答の値（工場）も受け付ける", async () => {
+    const answers = {
+      industry: "construction",
+      site: "construction_site",
+      hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+      remoteAccess: ["vpn"],
+      backup: "isolated",
+    };
+    const body = await loose(json("/api/profile/from-answers", { answers }));
+    expect(body.profile.pattern).toBe("construction");
+    expect(body.profile.businesses.map((b: { name: string }) => b.name)).toEqual([
+      "見積・受注",
+      "現場の施工管理",
+      "資材・調達",
+      "請求・精算",
+    ]);
+    expect(body.graph.nodes.some((n: { label: string }) => n.label === "現場の施工管理")).toBe(
+      true,
+    );
+    const old = await loose(
+      json("/api/profile/from-answers", {
+        answers: { ...answers, industry: "manufacturing", site: "factory" },
+      }),
+    );
+    expect(old.profile.businesses.map((b: { name: string }) => b.name)).toContain("生産ライン");
   });
 });
