@@ -18,8 +18,9 @@
 knowledge/
   attack/                 取り込んだ ATT&CK（生成物。pnpm attack:import で更新）。version.json に版
   labels.ja.yaml          戦術・手法・緩和策・独自基準（UD-xx）の日本語ラベル
-  roles.yaml              役割の枠（entry.vpn、admin、backup、core、cloud.mail_account.exec …）
-  templates/*.yaml        型紙：被害の型ごとの段階 → 役割 → 典型手法 → 受け入れる手法
+  damage-types.yaml       被害の種類（ransomware、bec、data_breach …）：画面の名前、読解の分類基準、時間軸の最初の出来事
+  roles.yaml              役割の枠（entry.vpn、admin、backup、core、cloud.mail_account.exec …）：通信でつながる先（links）と、持てる属性（attrs）
+  templates/*.yaml        型紙：被害の種類ごとの段階 → 役割 → 典型手法 → 受け入れる手法
   rules/*.yaml            判定ルール表：役割 × 手法 → 条件式 → 5 状態と理由、効かない緩和策
   profiles/*.yaml         業種別の構成パターン（製造、事務、医療）：中核の名前、業務と日数、個人情報の既定
   questions.yaml          最初の5問 → 役割の枠と確認する緩和策
@@ -33,17 +34,38 @@ apps/web/src/server/requests/questions.ts   確認の質問表（緩和策 ID �
 examples/demo-seiko.json                    架空の会社のカルテ（検証にも使う）
 ```
 
-すべて `pnpm knowledge:check` で検証される（役割・手法・緩和策の存在、日本語ラベルの有無、カルテの形）。
+すべて `pnpm knowledge:check` で検証される（役割・手法・緩和策の存在、日本語ラベルの有無、被害の種類と型紙・判定ルールの対応、判定ルールと対策ボタンが使う属性の宣言、カルテの形）。
+
+知識の置き場は環境変数 `UCHIDAI_KNOWLEDGE_DIR` で差し替えられる（`knowledge/` を複製して攻撃や業種を足し、`UCHIDAI_KNOWLEDGE_DIR=/path/to/knowledge pnpm knowledge:check` で検査する）。
+
+## 新しい攻撃の種類を足す（コードの変更なし）
+
+「ランサムウェア」「なりすまし送金」「情報漏えい」のほかに、新しい種類の攻撃を足す手順。**YAML だけで足せる**。足したものは、記事の読解（分類の選択肢と基準）、型紙の選択、判定、時間軸、検証にそのまま効く。動く例は `packages/engine/src/extension.test.ts`（架空の攻撃「会計クラウドの乗っ取り」を足して判定まで通している）。
+
+1. **被害の種類を定義する**（`damage-types.yaml`）。`id`（英小文字・数字・`_`）、画面の名前（`labelJa`）、Claude への出力指示で使う短い言い方（`shortJa`）、記事の分類基準（`readingHintJa`。ほかの種類との境目が分かるように書く）、時間軸の最初の出来事（`day0`）。送金額の目安を出す種類は `reachesMoney: true`。`out_of_scope`（攻撃経路で判定できない事故）は組み込みなので書かない
+2. **役割を足す**（必要なときだけ。`roles.yaml`）。新しい入口や中継が要るとき。`links` に「この役割から通信で届く役割」を、`attrs` に判定ルールが見る属性（型と意味）を書く。攻撃者が最初に届く役割は `attacker` の `links` に足す。型紙の次の段階や AI攻撃者の経路は、`links` でつながった役割の間でだけ組み立てられる
+3. **型紙を書く**（`templates/<id>.yaml`、次項）。`damageType` は手順 1 の `id`
+4. **判定ルールを書く**（`rules/<id>.yaml`、その次の項）。型紙の全段階（役割 × 典型手法）に要る
+5. **ラベルを足す**（`labels.ja.yaml`）。型紙・ルールで使う手法・緩和策のうち、日本語ラベルが無いもの
+6. **対策ボタンを足す**（任意。`measures.yaml`、`costs.yaml`）。`patches` の `attrs` も、手順 2 で宣言した属性だけ書ける。`costs.yaml` は全対策の費用の扱い（`ipa` / `quote` / `internal`）が必要
+7. **期限を足す**（任意。`deadlines.yaml`）。その種類のときだけ出す期限は `appliesTo: damage_type` と `damageTypes: [<id>]`
+8. **検査する**：`pnpm knowledge:check` → `pnpm test` → `pnpm eval`。宣言のない属性、定義にない被害の種類、役割の書き間違い、ルールの無い段階は、ここで止まる
+
+**ここは YAML だけでは足せない（今のところ）**：
+
+- **最初の5問から作る資産**：5問の回答から作る資産の役割は標準のもの（VPN、PC、サーバ、バックアップ、クラウドメールなど）に決まっている（`graph.ts` の `profileFromAnswers`）。新しい役割の資産は、会社カルテ（`assets` に `role` を書いた JSON）に直接書けば判定できる。5問から自動で作るには、`profileFromAnswers` の変更が要る
+- **画面の固定の場面**：「業種を切り替えて比べる」（`IndustrySwitch.tsx`）の業種、デモモードの演出（記録済みの事例の再生）は固定の内容
+- **AI攻撃者への「型紙と同じ入口は避ける」の一文**：`packages/llm/src/attacker.ts` の指示文に、標準の 3 つの入口が書かれている（型紙の一覧は別に渡されるので、足した型紙は伝わる）
 
 ## 型紙を足す・直す（`knowledge/templates/`）
 
-> 被害の型（damageType）ごとに型紙は複数持てます。判定は、記事の段階が手法まで対応づいた数 → 記事の手法の一致数 → `priority`（大きいほど優先）の順で 1 本を選びます。入口が不明な記事では同点の型紙を全部展開します。段階の `branch: true` は、記事に対応づいたときだけ入る枝で、止まっても本線は進みます（ランサムウェアの持ち出し＝二重恐喝）。
+> 被害の種類（damageType）ごとに型紙は複数持てます。判定は、記事の段階が手法まで対応づいた数 → 記事の手法の一致数 → `priority`（大きいほど優先）の順で 1 本を選びます。入口が不明な記事では同点の型紙を全部展開します。段階の `branch: true` は、記事に対応づいたときだけ入る枝で、止まっても本線は進みます（ランサムウェアの持ち出し＝二重恐喝）。
 
 型紙は「この型の攻撃はどんな段階で進むか」を役割の枠に対して書く。会社ごとの具体名は書かない。
 
 ```yaml
 id: ransomware # 一意。ファイル名と合わせる
-damageType: ransomware # ransomware | bec | data_breach | out_of_scope
+damageType: ransomware # damage-types.yaml の id（ここに無い種類は knowledge:check が止める）
 labelJa: 業務停止（ランサムウェア）
 descriptionJa: 入口から侵入し、管理者権限を奪って社内に広がり、バックアップを消してから暗号化する
 stages:
@@ -75,7 +97,7 @@ stages:
 - `precondition: true` は前提として表示するだけの段階（なりすまし送金の「パスワードが流出している」など）
 - `breachedJa` と `breachedDoneJa` は、その段階が突破されたときに画面が使う言葉（構成図の札は現在形、再生中の帯は過去形）。インシデントの内容に合わせて「暗号化される」「だまされる」「漏えいする」のように書く。省略すると汎用の「突破される／突破されました」になる
 - `accepts` に書いた手法だけが記事から対応づけられる。書いていない手法は読解の結果から捨てられる。記事でよく使われる言い回しが別の手法 ID に読まれるなら、ここに足す（例：「システムが停止した」は T1489）。足すときは `labels.ja.yaml` にラベルも足す
-- 段階の役割は `roles.yaml` に無いと検証で落ちる。新しい役割が要るときは `roles.yaml` と、その役割を作る `questions.yaml`／`profiles/`、描く側の列（`layer`、`side`）も合わせる
+- 段階の役割は `roles.yaml` に無いと検証で落ちる。新しい役割が要るときは `roles.yaml`（`layer`、`side`、`links`、`attrs`）に足す。5問から作る資産にしたいときは `questions.yaml`／`profiles/` と `graph.ts` も合わせる
 - 型紙を足したら、その段階ごとに判定ルール（次項）が要る。ルールの無い段階は判定できない
 
 ## 判定ルールを足す・直す（`knowledge/rules/`）
@@ -182,7 +204,7 @@ rules:
 - `profiles/<id>.yaml`：中核システムの名前、業務（手作業で回せる日数、復旧日数、切り離したバックアップがあるときの復旧日数、影響先）、個人情報の既定。業種を足すときは `questions.yaml` の業種の選択肢に `pattern` を対応づける
 - 「現場はありますか？」の選択肢（`site`）には `industries`（出す業種の `value` の配列）を付けられる。付けた選択肢は、その業種を選んだときだけ出る（製造業に「診療所・病院」は出さない）。付けなければすべての業種に出る。複数選べる問にはしない（単一選択）
 - 現場の選択肢には `siteBusiness`（`name`、`roles`、`manualDays`、`recoveryDays`、`recoveryDaysWithBackup`、`affectsJa`）を付けられる。選ぶと、構成図の業務の層に「現場の業務」が足される（事務所のみは足さない）。`roles` はその業務が止まる元の役割（`roles.yaml`）。構成パターンに同じ業務（製造業の「生産ライン」、医療の「診療」など）が既にあるときは、`replaces` にその業務 ID を書くと、足さずに置き換える。業務の層は 5 つまでなので、構成パターンの業務は 4 つ以下にする。数値は叩き台なので、根拠を 1 行のコメントで書く
-- 業種を足す手順：（1）`profiles/<id>.yaml` を作り、`types.ts` の `PatternId` と `ProfileAnswers.industry` に加える。（2）`questions.yaml` の `industry` に選択肢（`value`、`labelJa`、`pattern`）を足し、`graph.ts` の `patternIdOf` に対応を書く。（3）`site` の各選択肢の `industries` に、その業種を出すものだけ加える（合うものが無ければ `siteBusiness` 付きの選択肢を足す）。（4）担当者画面の「業種を切り替えて比べる」（`IndustrySwitch.tsx`）に足す。`pnpm knowledge:check` が、業種と構成パターンの対応、現場の役割と `replaces` の整合を確かめる
+- 業種を足す手順：（1）`profiles/<id>.yaml` を作る。（2）`questions.yaml` の `industry` に選択肢（`value`、`labelJa`、`pattern`）を足す。構成パターンへの対応は、このファイルの `pattern` が決める（コードは読むだけ）。（3）`site` の各選択肢の `industries` に、その業種を出すものだけ加える（合うものが無ければ `siteBusiness` 付きの選択肢を足す）。`pnpm knowledge:check` が、業種と構成パターンの対応、現場の役割と `replaces`、サンプルのカルテの回答の整合を確かめる。画面の選択肢のアイコンは `apps/web/src/client/lib/question-icons.ts` にあれば付き、無ければ無しで出る。担当者画面の「業種を切り替えて比べる」（`IndustrySwitch.tsx`）は固定の 4 業種なので、足したい業種はそこに別途足す
 - `questions.yaml`：5 問の文言と選択肢、選択肢が作る役割（`addsRole`）と確認する緩和策（`checks`）。問いを増やすと「2 分で終わる」が崩れるので、既存の問いの選択肢を足す方を先に考える
 - 入口候補の並び順（`entry-candidates.yaml`）は警察庁の統計の件数順。更新するときは統計の版と URL、転記した日を書く
 

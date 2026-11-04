@@ -97,7 +97,7 @@ pnpm secrets                                # gitleaks（コミット前にも l
 pnpm attack:import                          # ATT&CK の再取り込み
 ```
 
-知見（型紙、判定ルール、質問表、対策と費用、期限）の足し方は [CONTRIBUTING.md](CONTRIBUTING.md)。計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code でどう進めたかの記録は [docs/claude-code-log.md](docs/claude-code-log.md)。
+知見（被害の種類、型紙、判定ルール、質問表、対策と費用、期限）の足し方は [CONTRIBUTING.md](CONTRIBUTING.md)。新しい攻撃の種類は、`knowledge/` の YAML を足すだけでコードを変えずに足せる（手順は CONTRIBUTING.md の「新しい攻撃の種類を足す」）。計画は [docs/development-plan.md](docs/development-plan.md)、Claude Code でどう進めたかの記録は [docs/claude-code-log.md](docs/claude-code-log.md)。
 
 ### Claude Code での進め方
 
