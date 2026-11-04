@@ -212,6 +212,9 @@ export function Home() {
             {app.knowledge ? ` v${app.knowledge.attackVersion}` : ""}、IPA
             事例集、警察庁統計（入口候補の順）、個人情報保護委員会の資料です。ICS は対象外です。
           </p>
+          <p>
+            <a href="#/sources">出典の一覧を見る</a>
+          </p>
         </InfoButton>
       </div>
       {app.error && (

@@ -13,6 +13,27 @@ import type {
   Verdict,
 } from "./types.ts";
 
+/** 出典の一覧（GET /api/sources）。会社カルテや判定は含まない */
+export type SourcesView = {
+  categories: {
+    id: string;
+    titleJa: string;
+    noteJa?: string;
+    sources: {
+      id: string;
+      nameJa: string;
+      url: string;
+      publisherJa: string;
+      licenseJa?: string;
+      checkedAt?: string;
+      usedForJa: string;
+      noticeJa?: string;
+      /** ATT&CK の項目だけ（version.json から差し込まれる） */
+      version?: string;
+    }[];
+  }[];
+};
+
 export type KnowledgeView = {
   attackVersion: string;
   labels: LabelsFile;
@@ -87,6 +108,7 @@ const post = <T>(path: string, body: unknown) =>
 
 export const api = {
   knowledge: () => call<KnowledgeView>("/api/knowledge"),
+  sources: () => call<SourcesView>("/api/sources"),
   examples: () => call<{ items: ExampleSummary[] }>("/api/examples"),
   example: (id: string) => call<{ profile: CompanyProfile; graph: Graph }>(`/api/examples/${id}`),
   health: () => call<{ ok: boolean; readAvailable: boolean }>("/api/health"),

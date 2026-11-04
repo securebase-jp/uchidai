@@ -40,7 +40,10 @@ export function useFitScale(
     if (!ready || !o || !i) return;
     const measure = () => {
       const top = o.getBoundingClientRect().top + window.scrollY;
-      const availH = window.innerHeight - top - BOTTOM_GAP;
+      // 下端の「出典」リンク（Footer）がある画面では、その高さの分も空ける（発表モード・デモでは出ない）
+      const foot = document.querySelector<HTMLElement>(".site-foot");
+      const footH = foot ? foot.offsetHeight + parseFloat(getComputedStyle(foot).marginTop) : 0;
+      const availH = window.innerHeight - top - BOTTOM_GAP - footH;
       const availW = o.clientWidth;
       const w = i.offsetWidth;
       const h = i.offsetHeight;

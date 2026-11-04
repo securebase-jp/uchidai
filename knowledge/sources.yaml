@@ -1,0 +1,145 @@
+# このツール全体が参考にした資料の一覧。画面の「出典」（#/sources）、README、NOTICE はここと食い違わないようにする
+# 出典を足すときはここに項目を足す（categories の順に画面へ並ぶ）。URL は https のみ
+# - URL・名称・確認日は、各データの元ファイル（deadlines.yaml、costs.yaml、entry-candidates.yaml、
+#   kev/products.yaml、attack/version.json、apps/web/package.json、demo/README.md）の値を転記したもの
+# - ATT&CK の版はここに書かず、knowledge/attack/version.json から画面で差し込む
+# - deadlines.yaml の sources[] は判定が使っているので変えない。その URL がここにも載っていることをテストで確かめる
+categories:
+  - id: attack
+    titleJa: 攻撃の分類
+  - id: cases-costs
+    titleJa: 事例と費用の単価
+  - id: law-stats
+    titleJa: 法令・期限・統計
+  - id: kev
+    titleJa: 悪用確認済み脆弱性
+    noteJa: 影響を受ける版の範囲は、各ベンダーの公表資料（PSIRT）を確認して転記したもので、項目ごとの URL と確認日は knowledge/kev/products.yaml にあります。
+  - id: recon
+    titleJa: 外部確認
+    noteJa: DNS の公開レコードも参照しますが、特定の資料はありません。所有確認したドメインについて、標準の DNS の問い合わせで取得します。
+  - id: fonts-voice
+    titleJa: 書体と音声
+
+sources:
+  - id: mitre-attack
+    categoryId: attack
+    nameJa: MITRE ATT&CK® Enterprise
+    url: https://attack.mitre.org/
+    publisherJa: The MITRE Corporation
+    licenseJa: MITRE の利用規約（研究・開発・商用に利用可。著作権表示と許諾文を付ける）
+    checkedAt: "2026-11-02"
+    usedForJa: 攻撃の手法・戦術・緩和策の分類として使い、判定ルールと攻撃の経路の土台にしています。
+    noticeJa: © 2026 The MITRE Corporation. This work is reproduced and distributed with the permission of The MITRE Corporation. 日本語のラベルは本プロジェクトが独自に付けたもので、MITRE による公式の訳ではありません。
+  - id: mitre-attack-stix
+    categoryId: attack
+    nameJa: ATT&CK STIX データ（attack-stix-data）
+    url: https://github.com/mitre-attack/attack-stix-data
+    publisherJa: The MITRE Corporation
+    licenseJa: MITRE の利用規約
+    checkedAt: "2026-11-02"
+    usedForJa: ATT&CK の手法・戦術・緩和策の一覧を取り込む元のデータです。
+
+  - id: ipa-sme-jirei
+    categoryId: cases-costs
+    nameJa: IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）
+    url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+    publisherJa: 独立行政法人情報処理推進機構（IPA）
+    checkedAt: "2026-11-02"
+    usedForJa: 事例の記事を読み解く評価データと、会社に当てはめる事例の根拠として使っています。
+    noticeJa: 本文は収録せず、出典つきの短い抜粋と開発者自身の言葉での要約だけを使っています。
+  - id: ipa-sme-jirei-cost
+    categoryId: cases-costs
+    nameJa: IPA 事例集 別紙「想定被害額計算明細」
+    url: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
+    publisherJa: 独立行政法人情報処理推進機構（IPA）
+    checkedAt: "2026-11-02"
+    usedForJa: 対策費用の目安として、確認できた単価だけを出典のページ（PDF の通し番号）つきで使っています。
+    noticeJa: 単価が確認できない対策は、ベンダーの見積もり待ちとして扱います。
+
+  - id: ppc-guidelines
+    categoryId: law-stats
+    nameJa: 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）
+    url: https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/
+    publisherJa: 個人情報保護委員会
+    checkedAt: "2026-11-02"
+    usedForJa: 個人データの漏えい等を報告する条件と、本人へ通知する義務の根拠にしています。
+  - id: ppc-leak
+    categoryId: law-stats
+    nameJa: 個人情報保護委員会「漏えい等の対応とお役立ち資料」
+    url: https://www.ppc.go.jp/personalinfo/legal/leakAction/
+    publisherJa: 個人情報保護委員会
+    checkedAt: "2026-11-02"
+    usedForJa: 速報と確報の期限（発覚日から数えた日数）の根拠にしています。
+  - id: npa-soudan
+    categoryId: law-stats
+    nameJa: 警察庁「サイバー事案に関する相談窓口」
+    url: https://www.npa.go.jp/bureau/cyber/soudan.html
+    publisherJa: 警察庁
+    checkedAt: "2026-11-02"
+    usedForJa: 被害にあったときの警察への相談先として案内しています。
+  - id: npa-threat-stats
+    categoryId: law-stats
+    nameJa: 警察庁サイバー警察局「令和7年におけるサイバー空間をめぐる脅威の情勢等について」（令和8年3月）
+    url: https://www.npa.go.jp/publications/statistics/cybersecurity/
+    publisherJa: 警察庁
+    checkedAt: "2026-11-02"
+    usedForJa: 入口が分からないときに、ランサムウェアの感染経路の件数が多い順に入口の候補を並べる根拠にしています。
+    noticeJa: 数値は統計編「ランサムウェア感染経路」（p.124）から転記しました。読んだ PDF は奈良県警察のサイトの掲載分で、警察庁サイト上の掲載場所は要確認です。
+  - id: mpd-bec
+    categoryId: law-stats
+    nameJa: 警視庁「ビジネスメール詐欺（BEC）対策」
+    url: https://www.keishicho.metro.tokyo.lg.jp/kurashi/cyber/notes/business_mail.html
+    publisherJa: 警視庁
+    checkedAt: "2026-11-02"
+    usedForJa: 送金してしまった後の、銀行への組み戻しの依頼と警察への相談を急ぐ根拠にしています。
+
+  - id: cisa-kev
+    categoryId: kev
+    nameJa: CISA Known Exploited Vulnerabilities (KEV) Catalog
+    url: https://www.cisa.gov/known-exploited-vulnerabilities-catalog
+    publisherJa: 米国サイバーセキュリティ・インフラセキュリティ庁（CISA）
+    licenseJa: CC0 1.0
+    checkedAt: "2026-11-03"
+    usedForJa: 使っている機器や製品に、実際に悪用が確認された脆弱性があるかを突き合わせます。
+    noticeJa: カタログの JSON は手元のサーバが取得して保存するもので、リポジトリには含めません。CISA による推奨・保証を示すものではありません。
+
+  - id: crtsh
+    categoryId: recon
+    nameJa: crt.sh（証明書の公開ログ Certificate Transparency の検索）
+    url: https://crt.sh/
+    publisherJa: Sectigo Limited
+    licenseJa: 利用条件の記載なし（2026-11-02 確認）
+    checkedAt: "2026-11-02"
+    usedForJa: 所有確認したドメインの証明書から、公開されているホスト名の手がかりを集めます。
+    noticeJa: 1 ドメインにつき 1 回だけ取得し、結果を 24 時間保存します。対象のホストにはつなぎません。
+
+  - id: biz-udpgothic
+    categoryId: fonts-voice
+    nameJa: BIZ UDPGothic（@fontsource/biz-udpgothic）
+    url: https://www.npmjs.com/package/@fontsource/biz-udpgothic
+    publisherJa: モリサワ（配布：Fontsource）
+    licenseJa: SIL OFL 1.1
+    usedForJa: 画面の本文の書体です。
+  - id: biz-udpmincho
+    categoryId: fonts-voice
+    nameJa: BIZ UDPMincho（@fontsource/biz-udpmincho）
+    url: https://www.npmjs.com/package/@fontsource/biz-udpmincho
+    publisherJa: モリサワ（配布：Fontsource）
+    licenseJa: SIL OFL 1.1
+    usedForJa: 社長向けの一枚の見出しなどに使う書体です。
+  - id: jetbrains-mono
+    categoryId: fonts-voice
+    nameJa: JetBrains Mono（@fontsource/jetbrains-mono）
+    url: https://www.npmjs.com/package/@fontsource/jetbrains-mono
+    publisherJa: JetBrains（配布：Fontsource）
+    licenseJa: SIL OFL 1.1
+    usedForJa: 手法 ID や数値など、等幅で見せたい文字の書体です。
+  - id: voicevox
+    categoryId: fonts-voice
+    nameJa: VOICEVOX（音声：四国めたん）
+    url: https://voicevox.hiroshiba.jp/term/
+    publisherJa: VOICEVOX プロジェクト（音声ライブラリは SSS LLC）
+    licenseJa: VOICEVOX の利用規約と、東北ずん子・ずんだもんプロジェクトの音源利用規約
+    checkedAt: "2026-11-02"
+    usedForJa: デモ動画のナレーション音声に使っています。
+    noticeJa: クレジット表記「VOICEVOX:四国めたん」

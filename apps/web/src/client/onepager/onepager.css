@@ -501,6 +501,9 @@
   padding-left: 1.2em;
   word-break: break-all;
 }
+.op-all-sources {
+  margin: 0 0 8px;
+}
 .op-brand {
   margin-top: 8px;
   padding-top: 8px;

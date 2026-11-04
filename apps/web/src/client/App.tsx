@@ -1,6 +1,7 @@
 import { MotionConfig } from "motion/react";
 import { useEffect } from "react";
 import { CaseChip, CompanyChip } from "./components/CompanyPicker.tsx";
+import { Footer } from "./components/Footer.tsx";
 import { TopBar } from "./components/TopBar.tsx";
 import { DemoLayer } from "./demo/DemoLayer.tsx";
 import { AiAttackerProvider } from "./hooks/useAiAttacker.tsx";
@@ -16,6 +17,7 @@ import { Home } from "./screens/Home.tsx";
 import { OnePager, SharedOnePager } from "./screens/OnePager.tsx";
 import { Profile } from "./screens/Profile.tsx";
 import { Questions } from "./screens/Questions.tsx";
+import { Sources } from "./screens/Sources.tsx";
 import { Staff } from "./screens/Staff.tsx";
 
 function Shell({ settings }: { settings: Settings }) {
@@ -47,6 +49,7 @@ function Shell({ settings }: { settings: Settings }) {
       {route === "staff" && <Staff settings={settings} />}
       {route === "exec" && <Exec settings={settings} />}
       {route === "onepager" && <OnePager />}
+      <Footer />
     </div>
   );
 }
@@ -59,6 +62,8 @@ export function App() {
     const token = answerToken() ?? "";
     return <Answer key={token} token={token} />;
   }
+  // 出典の画面も、カルテ・知識・判定を読まない軽い画面（出典の一覧だけを取る）
+  if (route === "sources") return <Sources settings={settings} />;
   // 共有リンク（内容を URL に載せた一枚）も同じく軽い画面：カルテ・知識・判定の API を呼ばない。
   // 公開 URL（Cloudflare Tunnel）から社長のスマホで開いても、API の 403 がエラーとして出ない
   const shared = route === "onepager" ? parseOnePagerHash().d : undefined;

@@ -3,7 +3,8 @@
  *
  * 判定：転送元のヘッダ（cf-connecting-ip、x-forwarded-for、x-real-ip、forwarded）が付いていれば「外から」とみなす。
  * 手元のブラウザ → Vite のプロキシ → API の経路にはこれらのヘッダは付かない。
- * 外から使えるのは：GET /api/health、GET /api/requests/:token、POST /api/requests/:token/answer。
+ * 外から使えるのは：GET /api/health、GET /api/sources、GET /api/requests/:token、POST /api/requests/:token/answer。
+ * /api/sources は出典の一覧（公開された資料の名前と URL だけ。会社カルテを扱わない読み取り専用）で、共有リンクの一枚から行ける。
  * 送信箱の一覧（トークンを含む）、判定、読解、AI攻撃者などは手元からだけ。
  * UCHIDAI_ALLOW_REMOTE_API=1 で全面的に許す（自分で認証を前に置く場合）。
  */
@@ -19,7 +20,7 @@ export function isForwarded(headers: Headers): boolean {
 /** 外から使ってよい API か */
 export function allowedRemotely(method: string, path: string): boolean {
   if (method === "OPTIONS") return true;
-  if (method === "GET" && path === "/api/health") return true;
+  if (method === "GET" && (path === "/api/health" || path === "/api/sources")) return true;
   const m = /^\/api\/requests\/([^/]+)(\/answer)?$/.exec(path);
   if (!m?.[1] || !TOKEN_PATTERN.test(m[1])) return false;
   if (m[2]) return method === "POST";
