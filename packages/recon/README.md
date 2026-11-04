@@ -104,6 +104,17 @@ if (check.ok) {
 - スレッド「Fair Usage」（2024-10）で、「並列ではなく順次、数秒に 1 回」の問い合わせについて運営側は「That sounds fine.」と答えている
 - 本パッケージはこれに合わせ、1 ドメインにつき 1 回の GET（`output=json`）だけを行い、応答をディスクにキャッシュし、並列には問い合わせない。利用規約として明文化された文書は確認できなかったので、上記の運営側の発言を根拠とする。確認中に Advanced ページが 502 を返すこともあり、参照できないときは DNS だけで続けて `notesJa` に注記する（`sources.ct = "unavailable"`）
 
+## Cert Spotter の利用条件（2026-11-04 確認）
+
+crt.sh が空か失敗のときだけ使う予備の検索先。SSLMate, Inc.（運営会社の表記は Opsmate, Inc.）の Certificate Transparency Search API（Cert Spotter）。
+
+- **認証なしで使えるか**：使える。API リファレンス（https://sslmate.com/help/reference/ct_search_api_v1 ）の Authentication の節に、認証なしの「List Issuances for a Domain」を時間あたりの回数を限って使えるとあり、用途は "for personal or evaluation purposes"（個人または評価）とされている。本番運用に入るときは、アカウントを作って API キー（Bearer または Basic）で認証してほしい、という**お願い**の形で、禁止とは書かれていない
+- **レート制限**：料金表（https://sslmate.com/ct_search_api ）の無料枠（Small、0 ドル）は「単一ホスト名の問い合わせ 1 時間 100 回」と「**ドメイン全体の問い合わせ 1 時間 10 回**」。`include_subdomains=true` はドメイン全体の問い合わせなので、本パッケージが使う形は **1 時間 10 回**の枠に当たる（開発中に聞いていた「1 時間 100 回」は、単一ホスト名の枠に当たる）。ほかに 1 分 75 回、1 秒 5 回、1 回のタイムアウトは 15 秒。同ページに「高負荷のときは制限や時間切れが短くなることがある」とある。超えると HTTP 429（エラーコード `rate_limited`）
+- **用途の制限・帰属表示**：利用規約（https://sslmate.com/policies/tos 、2026-01-03 改訂。https://sslmate.com/terms は同じページに移る）に、API の用途や商用・非商用の区別、帰属表示（出典の明記）を求める条文は**ない**。規約が定めるのは、違法または許可されない目的での利用の禁止（"illegal or unauthorized purpose"）、アカウント作成を人に限ること（ボットによる登録の禁止）、無保証（"AS IS"）、損害賠償の免責など。API リファレンスの末尾に「無料枠の機能は予告なく変更・制限されることがある」とある
+- **サービスの性質**：SSLMate が 40 以上の証明書ログから集めた発行記録を、ドメイン名で引ける。対象のホストにはつながない（本パッケージの制約と矛盾しない）
+- **本パッケージの使い方**：認証なし。API キーは使わない。crt.sh の結果が空か失敗のときだけ、1 ドメインにつき 1 回の GET（`domain=<ドメイン>&include_subdomains=true&expand=dns_names&expand=issuer`）を行い、24 時間保存して繰り返さず、並列には問い合わせない。ページングは追わない（最初の 1 ページだけ）。429 のときは DNS だけで続け、しばらくして再実行してもらう
+- **残る留意点**：認証なしは「個人または評価」向けと書かれているため、事業として本番で継続利用する場合は、SSLMate のアカウントと API キーに切り替えるのが筋（本パッケージは今は認証を実装していない。ハッカソンの試用とデモの範囲では評価の用途に当たると判断した）。また 1 時間 10 回の枠は、複数の利用者が同じネットワークから使うと使い切りやすい
+
 ## fixture の形
 
 `examples/recon/demo-seiko.example.json`（デモ用の架空ドメイン `demo-seiko.example`。IP は文書用の予約範囲）。
