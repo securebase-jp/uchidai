@@ -33,6 +33,13 @@ https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 
 影響を受ける版の範囲（`knowledge/kev/products.yaml`）は KEV には含まれないため、各ベンダーの公表資料（PSIRT）を本プロジェクトが確認して転記したもので、出典の URL と確認日を項目ごとに書いている。
 
+## 証明書の公開ログの検索サービス（外部確認）
+
+外部確認（所有を確認した自社ドメインだけが対象）は、証明書の公開ログ（Certificate Transparency）の検索サービスを次の順で使う。どちらも対象のホストにはつながない。データはリポジトリに含めず、利用者の手元のサーバが取得して 24 時間だけ保存する。
+
+- crt.sh（Sectigo Limited、https://crt.sh/ ）：先に使う。利用条件の明文はなく、運営側の発言を根拠に 1 ドメイン 1 回だけ取得する
+- Cert Spotter（SSLMate, Inc.。利用規約上の運営は Opsmate, Inc.、https://sslmate.com/ct_search_api ）：crt.sh が空か失敗のときだけ使う予備。認証なし（API キーは使わない）。API リファレンス（https://sslmate.com/help/reference/ct_search_api_v1 ）は認証なしの利用を個人・評価の目的としており、利用規約（https://sslmate.com/policies/tos 、2026-01-03 改訂）に帰属表示の要求はない（2026-11-04 確認）。それでも出典として SSLMate, Inc. の Cert Spotter を使ったことは、画面の「参照」の行と出典の一覧に表示する。SSLMate による推奨・保証を示すものではない
+
 ## フォント
 
 - BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）

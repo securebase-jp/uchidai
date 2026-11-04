@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { AppliedView, ReconResult } from "./reconApi.ts";
 import { parseReconHints } from "./reconHints.ts";
-import { applyChanges, groupFindings, warningsOf } from "./reconView.ts";
+import { applyChanges, ctSourceLabel, groupFindings, warningsOf } from "./reconView.ts";
 import type { CompanyProfile } from "./types.ts";
 
 const result = {
@@ -55,6 +55,18 @@ const result = {
   ],
   notesJa: ["証明書の公開ログ（crt.sh）を参照できなかった: timeout"],
 } as unknown as ReconResult;
+
+describe("ctSourceLabel", () => {
+  it("実際に使った検索先の名前を出す。予備を使ったときはそう分かる", () => {
+    expect(ctSourceLabel({ dns: "live", ct: "live", ctProvider: "crtsh" })).toBe("crt.sh");
+    expect(ctSourceLabel({ dns: "live", ct: "live" })).toBe("crt.sh");
+    expect(ctSourceLabel({ dns: "live", ct: "live", ctProvider: "certspotter" })).toBe(
+      "Cert Spotter。crt.sh で得られなかったため",
+    );
+    expect(ctSourceLabel({ dns: "fixture", ct: "fixture" })).toBe("記録");
+    expect(ctSourceLabel({ dns: "live", ct: "unavailable" })).toBe("今回は取得できず");
+  });
+});
 
 describe("groupFindings / warningsOf", () => {
   it("カテゴリの固定順に並べ、推定のカテゴリに印を付ける", () => {

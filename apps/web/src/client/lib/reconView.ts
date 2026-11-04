@@ -2,10 +2,20 @@
  * 外部確認の結果を画面の項目に組み立てる純粋な関数。判定も推定もここではしない（推定は recon の固定表）。
  * - groupFindings：確認項目をカテゴリ順に並べる（根拠と IPA 事例番号つき）
  * - warningsOf：警告だけを集める（warn の項目と注記）
+ * - ctSourceLabel：参照した証明書ログの検索先の名前（実際に使った方）
  * - applyChanges：「カルテに反映する」で何が変わるか（属性の上書き、緩和策の追加、5 問の初期値）
  */
 import type { AppliedView, Finding, InferredAnswerKey, ReconResult } from "./reconApi.ts";
 import type { CompanyProfile } from "./types.ts";
+
+/** 「参照：…」の行に出す、証明書ログの検索先。crt.sh が使えなかったときの予備は、使ったと分かるように書く */
+export function ctSourceLabel(sources: ReconResult["sources"]): string {
+  if (sources.ct === "fixture") return "記録";
+  if (sources.ct === "unavailable") return "今回は取得できず";
+  return sources.ctProvider === "certspotter"
+    ? "Cert Spotter。crt.sh で得られなかったため"
+    : "crt.sh";
+}
 
 export const CATEGORY_LABEL: Record<Finding["category"], string> = {
   remote_access: "社外からの入口（VPN・遠隔操作）と推定されるホスト名",

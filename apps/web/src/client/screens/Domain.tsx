@@ -193,7 +193,8 @@ export function Domain() {
           <InfoButton title="外部確認とは">
             <p>
               所有を確認したドメインについて、DNS
-              の公開レコードと証明書の公開ログ（crt.sh）だけを参照し、VPN
+              の公開レコードと証明書の公開ログ（crt.sh。載っていないときだけ Cert
+              Spotter）だけを参照し、VPN
               用と推定されるホスト名、SPF・DMARC、メールやホームページの提供元の手がかりを集めます。国の調査（IPA
               事例集の脆弱性事例）で中小企業に実際に見つかった弱点の確認です。
             </p>
@@ -374,8 +375,9 @@ export function Domain() {
           手順 3　外部確認を実行する
           <InfoButton title="外部確認で参照するもの">
             <p>
-              DNS（TXT・MX・A・AAAA・CNAME・PTR）と証明書の公開ログを参照します。crt.sh
-              への問い合わせは 1 ドメインにつき 1 回で、応答は 24 時間キャッシュします。
+              DNS（TXT・MX・A・AAAA・CNAME・PTR）と証明書の公開ログ（crt.sh。載っていないときだけ
+              Cert Spotter）を参照します。問い合わせは 1 ドメインにつき 1 回で、応答は 24
+              時間キャッシュします。
             </p>
           </InfoButton>
         </h2>

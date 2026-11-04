@@ -3,7 +3,13 @@
  * ここでは何も判定しない（表示だけ）。
  */
 import type { Evidence, ReconResult } from "../lib/reconApi.ts";
-import { groupFindings, SEVERITY_LABEL, SEVERITY_TONE, warningsOf } from "../lib/reconView.ts";
+import {
+  ctSourceLabel,
+  groupFindings,
+  SEVERITY_LABEL,
+  SEVERITY_TONE,
+  warningsOf,
+} from "../lib/reconView.ts";
 
 function EvidenceList({ items }: { items: Evidence[] }) {
   if (items.length === 0) return <p className="muted small">根拠のレコードなし</p>;
@@ -34,12 +40,7 @@ export function ReconResultView({ result, fixture }: { result: ReconResult; fixt
         <span className="chip">確認日時 {result.checkedAt.replace("T", " ").slice(0, 16)} UTC</span>
         <span className="chip">
           参照：DNS（{result.sources.dns === "fixture" ? "記録" : "公開レコード"}）、証明書ログ（
-          {result.sources.ct === "live"
-            ? "crt.sh"
-            : result.sources.ct === "fixture"
-              ? "記録"
-              : "今回は取得できず"}
-          ）
+          {ctSourceLabel(result.sources)}）
         </span>
         {fixture && <span className="chip fiction">架空のドメインの記録を再生</span>}
       </div>

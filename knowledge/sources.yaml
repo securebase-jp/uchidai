@@ -113,6 +113,16 @@ sources:
     usedForJa: 所有確認したドメインの証明書から、公開されているホスト名の手がかりを集めます。
     noticeJa: 1 ドメインにつき 1 回だけ取得し、結果を 24 時間保存します。対象のホストにはつなぎません。
 
+  - id: certspotter
+    categoryId: recon
+    nameJa: Cert Spotter（SSLMate の証明書の公開ログの検索 API）
+    url: https://sslmate.com/ct_search_api
+    publisherJa: SSLMate, Inc.
+    licenseJa: 認証なしは個人・評価向けの枠（ドメイン全体の検索は 1 時間 10 回まで）。帰属表示の要求なし（2026-11-04 確認）
+    checkedAt: "2026-11-04"
+    usedForJa: crt.sh に載っていないときの予備として、所有確認したドメインの証明書から、公開されているホスト名の手がかりを集めます。
+    noticeJa: crt.sh が空か失敗のときだけ、1 ドメインにつき 1 回取得し、結果を 24 時間保存します。対象のホストにはつなぎません。
+
   - id: biz-udpgothic
     categoryId: fonts-voice
     nameJa: BIZ UDPGothic（@fontsource/biz-udpgothic）

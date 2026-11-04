@@ -39,6 +39,10 @@ export const OwnershipProof = z.object({
 export type OwnershipProof = z.infer<typeof OwnershipProof>;
 
 /** 証明書の公開ログの 1 件（crt.sh の応答を正規化した形。fixture もこの形で持つ） */
+/** 証明書の公開ログを引いた検索サービス。crt.sh を先に使い、空か失敗のときだけ Cert Spotter */
+export const CtProvider = z.enum(["crtsh", "certspotter"]);
+export type CtProvider = z.infer<typeof CtProvider>;
+
 export const CtCertificate = z.object({
   id: z.union([z.string(), z.number()]).optional(),
   issuer: z.string(),
@@ -169,6 +173,8 @@ export const ReconResult = z.object({
   sources: z.object({
     dns: SourceKind,
     ct: z.enum(["live", "fixture", "unavailable"]),
+    /** ct が "live" のとき、実際に使った検索先 */
+    ctProvider: CtProvider.optional(),
   }),
   ownership: OwnershipProof,
   hostnames: z.array(HostnameEntry),
