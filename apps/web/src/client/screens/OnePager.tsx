@@ -303,6 +303,7 @@ export function SharedOnePager({ d }: { d: string }) {
     () => (state.status === "shared" ? viewDataFromShare(state.payload) : undefined),
     [state],
   );
+  const pdfName = view ? pdfFileName(view.onePager.companyName, view.generatedAt) : undefined;
   useEffect(() => {
     const prev = document.title;
     if (view) document.title = `社長向けの一枚_${view.onePager.companyName}`;
@@ -327,9 +328,7 @@ export function SharedOnePager({ d }: { d: string }) {
   return (
     <div className="onepager">
       <div className="op-toolbar no-print">
-        <button type="button" className="btn primary" onClick={() => window.print()}>
-          PDF で保存（印刷）
-        </button>
+        <PdfActions filename={pdfName} />
         <PrintPreviewToggle preview={print.preview} onToggle={print.toggle} />
         <button type="button" className="btn" onClick={() => void copyCurrentLink()}>
           {copied ? "コピーしました" : "このリンクをコピー"}
