@@ -5,12 +5,14 @@
  *   &autostart=1       クリックなしで開始（音声が無いときや、録画の自動化向け）
  *   &captions=1        画面に字幕を出す（既定は出さない。動画には assemble.ts で焼き込む）
  *   &hud=1             右上に場面と時刻を出す（既定は出さない）
+ *   &controls=0        画面下の操作バーと「一時停止中」の札を出さない（録画用。既定は出す）
  * キー：Space 一時停止／再開、→ 次の場面、← 前の場面、H 表示切替、C 字幕切替
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { demoClock, withDemoClock } from "./bridge.ts";
+import { DemoControls } from "./DemoControls.tsx";
 import { buildScenes, cueAt, type DemoScene, narration, storyboard } from "./data.ts";
 import { EndCard } from "./EndCard.tsx";
 import { ChatOverlay } from "./overlays/Chat.tsx";
@@ -34,6 +36,7 @@ function DemoRunner({
   autostart,
   captions: captionsDefault,
   hud: hudDefault,
+  controls,
 }: DemoParams) {
   const app = useApp();
   const appRef = useRef(app);
@@ -158,6 +161,9 @@ function DemoRunner({
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      // 操作バーのボタンにフォーカスがあるとき、Space はそのボタンの押下として働く
+      if (e.code === "Space" && e.target instanceof Element && e.target.closest(".demo-controls"))
+        return;
       if (e.code === "Space") {
         e.preventDefault();
         if (player.started) togglePause();
@@ -228,6 +234,8 @@ function DemoRunner({
             )}
             <p className="muted small">
               Space 一時停止／再開　→ 次の場面　← 前の場面　H 右上の表示　C 字幕
+              <br />
+              再生中は、画面の下のバーでも操作できます（マウスを動かすと出ます）。
             </p>
           </div>
         </div>
@@ -237,6 +245,17 @@ function DemoRunner({
         <Overlay id={overlay} scene={scene} elapsed={player.elapsed} seconds={player.seconds} />
       )}
       {player.finished && <EndCard credits={narration.credits} elapsed={999} />}
+
+      {controls && scene && !player.finished && (
+        <DemoControls
+          paused={player.paused}
+          n={scene.n}
+          total={scenes?.length ?? 0}
+          onPrev={player.prev}
+          onNext={player.next}
+          onTogglePause={togglePause}
+        />
+      )}
 
       {captions && scene && (
         <div className="demo-caption" aria-live="off">

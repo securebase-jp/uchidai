@@ -8,6 +8,8 @@ export type DemoParams = {
   autostart: boolean;
   captions: boolean;
   hud: boolean;
+  /** 画面下の操作バー。?controls=0 で出さない（録画用） */
+  controls: boolean;
 };
 
 export function parseDemoParams(search: string = location.search): DemoParams {
@@ -19,6 +21,7 @@ export function parseDemoParams(search: string = location.search): DemoParams {
     autostart: p.get("autostart") === "1",
     captions: p.get("captions") === "1",
     hud: p.get("hud") === "1",
+    controls: p.get("controls") !== "0",
   };
 }
 
