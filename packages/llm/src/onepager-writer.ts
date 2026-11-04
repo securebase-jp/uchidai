@@ -98,6 +98,7 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 
 ## 絶対に守ること
 - 数値（日数、金額、人数）は入力にあるものだけを、そのままの値で使う。新しい数値、期限、確率、割合を作らない
+- 金額は「300万円」「1,500万円」のように万円の単位で書く（「3000000円」とは書かない）。1 万円に満たない端数があるときだけ円で書く
 - 専門用語、英字の略語、ID（例：T1190、M1032）は使わない。入力にある役割名と業務名はそのまま使ってよい
 - 攻撃の段階は入力の順番どおりに「どこから入り、どこへ進み、何が止まるか」として書く。state が blocked の段階があれば、そこで止まることを書く。unknown は「確認が取れていない」、human は「人の判断にかかっている」と書く
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
@@ -186,8 +187,25 @@ export async function writeOnePagerText(
   return rejectedReason ? { ...r, rejectedReason } : r;
 }
 
+/**
+ * 文の中の「3000000円」「3,000,000円」を「300万円」の読みやすい形にする（1 万円ちょうどの倍数だけ。端数があれば桁区切りの円）。
+ * 数値は変えず、書き方だけを整える（検証のあとに使う）
+ */
+export function formatYenInText(text: string): string {
+  return text.replace(/(?<![\d.,])(\d[\d,]*)\s*円/g, (all, digits: string) => {
+    const v = Number(digits.replace(/,/g, ""));
+    if (!Number.isFinite(v) || v < 10_000) return all;
+    if (v % 10_000 !== 0) return `${v.toLocaleString("ja-JP")}円`;
+    const man = v / 10_000;
+    if (man < 10_000) return `${man.toLocaleString("ja-JP")}万円`;
+    const oku = Math.floor(man / 10_000);
+    const rest = man % 10_000;
+    return `${oku.toLocaleString("ja-JP")}億${rest > 0 ? `${rest.toLocaleString("ja-JP")}万` : ""}円`;
+  });
+}
+
 /** 一枚の whatHappensJa を Claude の文に差し替える（検証に落ちたら元のまま） */
 export function applyWriterOutput(onePager: OnePager, result: WriteResult): OnePager {
   if (result.rejectedReason) return onePager;
-  return { ...onePager, whatHappensJa: result.value.whatHappensJa };
+  return { ...onePager, whatHappensJa: result.value.whatHappensJa.map(formatYenInText) };
 }

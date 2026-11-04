@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   allowedNumbers,
   checkWriterOutput,
+  formatYenInText,
   type OnePagerWriterInput,
   OnePagerWriterOutput,
 } from "./onepager-writer.ts";
@@ -69,5 +70,23 @@ describe("checkWriterOutput", () => {
     const allowed = allowedNumbers({ ...input, revenueImpactJpy: 46_000_000 });
     expect(allowed.has("4600")).toBe(true);
     expect(allowed.has("46,000,000")).toBe(true);
+  });
+});
+
+describe("formatYenInText（金額の書き方を読みやすくする）", () => {
+  it("1 万円ちょうどの倍数は万円・億円で書く", () => {
+    expect(formatYenInText("金額は3000000円です。")).toBe("金額は300万円です。");
+    expect(formatYenInText("金額は3,000,000円です。")).toBe("金額は300万円です。");
+    expect(formatYenInText("約15000000円")).toBe("約1,500万円");
+    expect(formatYenInText("100000000円")).toBe("1億円");
+    expect(formatYenInText("120000000円")).toBe("1億2,000万円");
+  });
+  it("端数があれば桁区切りの円、1 万円に満たなければそのまま", () => {
+    expect(formatYenInText("1234567円")).toBe("1,234,567円");
+    expect(formatYenInText("5000円")).toBe("5000円");
+  });
+  it("すでに万円・日数などは変えない", () => {
+    const s = "売上への影響は140万円で、復旧まで7日かかります。1日の売上は20万円です。";
+    expect(formatYenInText(s)).toBe(s);
   });
 });

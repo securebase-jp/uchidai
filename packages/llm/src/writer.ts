@@ -73,13 +73,23 @@ export const PLACEHOLDERS = {
 const DEFAULT_VENDOR = "保守ご担当者";
 const DEFAULT_STAFF = "情報システム担当";
 
-/** プレースホルダを実名に置き換える */
+/**
+ * プレースホルダを実名に置き換える。
+ * 「{{asset}}（社員PC）」のように、置き換えた名前を括弧で言い直した形（社員PC（社員PC））は、名前 1 つにまとめる
+ */
 export function fillNames(text: string, names: Names): string {
-  return text
-    .replaceAll(PLACEHOLDERS.company, names.companyLabel)
-    .replaceAll(PLACEHOLDERS.vendor, names.vendorLabel ?? DEFAULT_VENDOR)
-    .replaceAll(PLACEHOLDERS.asset, names.assetLabel)
-    .replaceAll(PLACEHOLDERS.staff, names.staffLabel ?? DEFAULT_STAFF);
+  const filled = [
+    [PLACEHOLDERS.company, names.companyLabel],
+    [PLACEHOLDERS.vendor, names.vendorLabel ?? DEFAULT_VENDOR],
+    [PLACEHOLDERS.asset, names.assetLabel],
+    [PLACEHOLDERS.staff, names.staffLabel ?? DEFAULT_STAFF],
+  ] as const;
+  let out = text;
+  for (const [placeholder, name] of filled) out = out.replaceAll(placeholder, name);
+  for (const [, name] of filled) {
+    if (name) out = out.replaceAll(`${name}（${name}）`, name);
+  }
+  return out;
 }
 
 /**

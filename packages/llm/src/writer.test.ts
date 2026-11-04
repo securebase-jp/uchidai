@@ -220,4 +220,16 @@ describe("fillNames", () => {
       fillNames("{{vendor}}/{{staff}}/{{asset}}", { companyLabel: "A", assetLabel: "B" }),
     ).toBe("保守ご担当者/情報システム担当/B");
   });
+  it("置き換えた名前を括弧で言い直した形は、名前 1 つにまとめる", () => {
+    expect(
+      fillNames("{{asset}}（社員PC）の保護状況。社員PC（{{asset}}）も。", {
+        companyLabel: "A",
+        assetLabel: "社員PC",
+      }),
+    ).toBe("社員PCの保護状況。社員PCも。");
+    // 違う名前の括弧書きは残す
+    expect(fillNames("{{asset}}（本社）", { companyLabel: "A", assetLabel: "社員PC" })).toBe(
+      "社員PC（本社）",
+    );
+  });
 });
