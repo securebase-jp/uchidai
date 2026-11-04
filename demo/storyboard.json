@@ -175,7 +175,7 @@
         {
           "at": 0.8,
           "do": "scroll",
-          "to": ".stage-wrap",
+          "to": ".meters",
           "block": "start"
         },
         {
@@ -305,7 +305,7 @@
         {
           "at": 8.1,
           "do": "scroll",
-          "to": ".stage-wrap",
+          "to": ".meters",
           "block": "start"
         },
         {

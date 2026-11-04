@@ -212,9 +212,10 @@
 }
 .demo-slot.full {
   /* 下は字幕・注記・壁の帯のために空ける */
-  inset: 40px 40px 150px;
+  inset: 40px 40px 170px;
   width: auto;
   border: 1px solid var(--edge);
+  background: var(--bg);
   overflow: hidden;
 }
 .demo-slot .hd {
@@ -1159,14 +1160,14 @@
 /* エンドカード（場面 10・11）：2 段に動く図と締め */
 .endcard {
   justify-content: center;
-  padding: 48px 72px 160px;
+  padding: 32px 72px 130px;
   overflow: hidden;
 }
 .end-wrap {
   width: min(1780px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 28px;
 }
 .end-title h1 {
   font-family: var(--serif);
@@ -1278,7 +1279,7 @@
 .trace-card {
   border: 2px solid var(--edge-strong);
   border-radius: 18px;
-  padding: 20px 26px;
+  padding: 16px 26px;
   background: var(--panel-2);
   opacity: 0;
   transform: translateY(12px);
@@ -1305,7 +1306,7 @@
 }
 .trace-num b {
   font-family: var(--mono);
-  font-size: 88px;
+  font-size: 76px;
   color: var(--cyan);
   font-variant-numeric: tabular-nums;
 }
@@ -1447,6 +1448,9 @@
   opacity: 0;
   transition: opacity 0.8s ease-out;
 }
+.close-logo .logo-on-light {
+  display: none; /* 締めの画面は常に黒地。白文字のロゴだけを使う */
+}
 .close-logo .logo {
   height: 72px;
   width: auto;
@@ -1459,7 +1463,15 @@
   opacity: 1;
   transform: none;
 }
-/* 最後の 2 秒：ロゴと一行だけ */
+/* 最後の 2 秒：ロゴと一行だけ（ロゴを中央へ寄せて大きくする） */
+.end-wrap.close.last .close-logo {
+  transform: translateY(-190px) scale(1.7);
+}
+.close-logo {
+  transition:
+    opacity 0.8s ease-out,
+    transform 0.9s ease-out;
+}
 .end-wrap.close.last .close-line,
 .end-wrap.close.last .close-small,
 .end-wrap.close.last .end-url,

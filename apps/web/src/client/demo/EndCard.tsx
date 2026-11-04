@@ -122,11 +122,18 @@ function Trace({ elapsed }: { elapsed: number }) {
           </dl>
           <p className="trace-sub">計画と実装を分け、領域ごとに並行して回す</p>
         </section>
-        <section className={`trace-card wide${on(elapsed, 4.2)}`}>
+        <section className={`trace-card${on(elapsed, 3.8)}`}>
+          <h2>コミット</h2>
+          <p className="trace-num">
+            <b>{countUp(f.commits, elapsed, 4.0, 1.6)}</b>
+          </p>
+          <p className="trace-sub">2026-11-02 〜 11-08</p>
+        </section>
+        <section className={`trace-card wide${on(elapsed, 5.6)}`}>
           <h2>採点の推移（知見あり）</h2>
           <ul className="trace-bars">
             {bars.map((b, i) => {
-              const at = 4.6 + i * 0.9;
+              const at = 6.0 + i * 0.9;
               return (
                 <li key={b.labelJa} className={on(elapsed, at).trim()}>
                   <span className="lab">{b.labelJa}</span>
@@ -139,32 +146,25 @@ function Trace({ elapsed }: { elapsed: number }) {
             })}
           </ul>
           <p className="trace-sub">
-            採点の記録 {countUp(f.scoring.records, elapsed, 4.6, 1.6)} 回（正解データ{" "}
+            採点の記録 {countUp(f.scoring.records, elapsed, 6.0, 1.6)} 回（正解データ{" "}
             {f.scoring.cases} 件）
           </p>
         </section>
-        <section className={`trace-card${on(elapsed, 7.4)}`}>
+        <section className={`trace-card${on(elapsed, 8.2)}`}>
           <h2>監査セッションが見つけた穴</h2>
           <p className="trace-num">
             {approx(f.audits.approx)}
-            <b>{countUp(f.audits.found, elapsed, 7.6, 1.4)}</b>
+            <b>{countUp(f.audits.found, elapsed, 8.4, 1.4)}</b>
             <span>件</span>
           </p>
           <ul className="trace-chips">
             {f.audits.examplesJa.map((e, i) => (
-              <li key={e} className={on(elapsed, 8.4 + i * 0.3).trim()}>
+              <li key={e} className={on(elapsed, 9.2 + i * 0.3).trim()}>
                 {e}
               </li>
             ))}
           </ul>
           <p className="trace-sub">見つけて、直して、テストで固定</p>
-        </section>
-        <section className={`trace-card${on(elapsed, 9.6)}`}>
-          <h2>コミット</h2>
-          <p className="trace-num">
-            <b>{countUp(f.commits, elapsed, 9.8, 1.6)}</b>
-          </p>
-          <p className="trace-sub">2026-11-02 〜 11-08</p>
         </section>
       </div>
     </div>
