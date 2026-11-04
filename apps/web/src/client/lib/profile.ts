@@ -198,6 +198,33 @@ export function updateCompany(profile: CompanyProfile, f: Partial<CompanyFields>
   return next;
 }
 
+/** サイバー保険の 3 択（加入している／していない／分からない） */
+export type InsuranceChoice = "yes" | "no" | "unknown";
+
+/**
+ * カルテの cyberInsurance → 3 択。「分からない」は cyberInsurance を持たない状態（未回答と同じ）。
+ * 判定は enrolled が真のときだけ保険を前提にするので、「していない」と「分からない」で結論は変わらない
+ */
+export function insuranceChoice(ins: CompanyProfile["cyberInsurance"]): InsuranceChoice {
+  if (!ins) return "unknown";
+  return ins.enrolled ? "yes" : "no";
+}
+
+/** 3 択 → カルテの cyberInsurance。加入しているときだけ、すでにある通知期限を残す */
+export function insuranceFromChoice(
+  choice: InsuranceChoice,
+  current: CompanyProfile["cyberInsurance"],
+): CompanyProfile["cyberInsurance"] {
+  if (choice === "unknown") return undefined;
+  if (choice === "no") return { enrolled: false };
+  return {
+    enrolled: true,
+    ...(current?.enrolled && current.notifyWithinDays
+      ? { notifyWithinDays: current.notifyWithinDays }
+      : {}),
+  };
+}
+
 /** 製品名と版（自由入力。空なら消す。Claude には渡らない） */
 export function setAssetProduct(
   profile: CompanyProfile,

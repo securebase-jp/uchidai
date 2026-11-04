@@ -12,6 +12,8 @@ type Props = {
   presets: Preset[];
   /** 確定した値（欄を空にして離れたときは undefined。allowEmpty が false なら元に戻す） */
   onCommit(v: number | undefined): void;
+  /** ボタン列の頭に出す短い語（例：年商）。ボタンの数字が何を指すかを示す */
+  presetsCaption?: string;
   /** 欄の右に出す単位（人、円、日） */
   unit?: string;
   /** 欄の id（<label htmlFor> から結ぶ） */
@@ -34,6 +36,7 @@ export function ChoiceNumber({
   value,
   presets,
   onCommit,
+  presetsCaption,
   unit,
   id,
   ariaLabel,
@@ -61,6 +64,7 @@ export function ChoiceNumber({
     <div className={`cn${compact ? " compact" : ""}`}>
       <fieldset className="cn-presets">
         <legend className="visually-hidden">{ariaLabel}：よくある値</legend>
+        {presetsCaption && <span className="cn-caption">{presetsCaption}</span>}
         {presets.map((p) => {
           const pressed = value === p.value;
           return (

@@ -473,3 +473,44 @@ table.profile-table input.in.txt {
   font-size: 12px;
   font-family: var(--mono);
 }
+.cn-caption {
+  align-self: center;
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 項目名の下にボタンや欄を縦に並べる項目（label ではなく div で包む） */
+.profile .choice-fields {
+  display: grid;
+  gap: 16px 24px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  margin-top: 12px;
+}
+.profile div.f {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.profile div.f > span.k {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  color: var(--ink);
+}
+.profile div.f .sub-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 10px;
+  border-left: 3px solid var(--edge-strong);
+}
+.profile div.f .sub-field .h {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+}

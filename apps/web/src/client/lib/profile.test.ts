@@ -4,6 +4,8 @@ import {
   answerFromChoice,
   applyStaffAnswer,
   effectiveControl,
+  insuranceChoice,
+  insuranceFromChoice,
   isStale,
   overwritePolicy,
   pendingCount,
@@ -264,5 +266,34 @@ describe("会社・資産・業務・個人情報の更新", () => {
   });
   it("pendingCount は未確認の緩和策を数える", () => {
     expect(pendingCount(base())).toBe(2);
+  });
+});
+
+describe("サイバー保険の 3 択", () => {
+  it("カルテ → 3 択：無ければ分からない、enrolled で加入している／していない", () => {
+    expect(insuranceChoice(undefined)).toBe("unknown");
+    expect(insuranceChoice({ enrolled: true })).toBe("yes");
+    expect(insuranceChoice({ enrolled: false })).toBe("no");
+  });
+  it("3 択 → カルテ：分からないは持たない（undefined）、していないは enrolled:false、加入は通知期限を残す", () => {
+    expect(insuranceFromChoice("unknown", { enrolled: true, notifyWithinDays: 7 })).toBeUndefined();
+    expect(insuranceFromChoice("no", { enrolled: true, notifyWithinDays: 7 })).toEqual({
+      enrolled: false,
+    });
+    expect(insuranceFromChoice("yes", undefined)).toEqual({ enrolled: true });
+    expect(insuranceFromChoice("yes", { enrolled: true, notifyWithinDays: 7 })).toEqual({
+      enrolled: true,
+      notifyWithinDays: 7,
+    });
+    // していない → 加入に戻したとき、前の期限は引き継がない
+    expect(insuranceFromChoice("yes", { enrolled: false })).toEqual({ enrolled: true });
+  });
+  it("分からないにするとカルテから cyberInsurance が消える", () => {
+    const p = updateCompany(base(), { cyberInsurance: { enrolled: true, notifyWithinDays: 3 } });
+    expect(p.cyberInsurance).toEqual({ enrolled: true, notifyWithinDays: 3 });
+    const q = updateCompany(p, {
+      cyberInsurance: insuranceFromChoice("unknown", p.cyberInsurance),
+    });
+    expect("cyberInsurance" in q).toBe(false);
   });
 });

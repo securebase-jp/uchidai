@@ -2,9 +2,24 @@
  * カルテの数値と名前の入力：会社（従業員数、売上、保険、送金額、保守ベンダー）、業務の日数、個人情報。
  * 文字入力は名前と短い文だけ。入力が確定（欄を離れる）したときにカルテを保存する
  */
-import { useEffect, useState } from "react";
-import type { CompanyFields } from "../lib/profile.ts";
+import { type ReactNode, useEffect, useState } from "react";
+import {
+  EMPLOYEE_PRESETS,
+  formatJpy,
+  INSURANCE_DAYS_PRESETS,
+  REVENUE_PRESETS,
+  TRANSFER_PRESETS,
+  WORKING_DAYS_PER_YEAR,
+} from "../lib/choices.ts";
+import {
+  type CompanyFields,
+  type InsuranceChoice,
+  insuranceChoice,
+  insuranceFromChoice,
+} from "../lib/profile.ts";
 import type { CompanyProfile } from "../lib/types.ts";
+import { ChoiceNumber } from "./ChoiceNumber.tsx";
+import { type ChoiceOption, ChoiceSet } from "./ChoiceSet.tsx";
 import { InfoButton } from "./InfoButton.tsx";
 
 type Business = CompanyProfile["businesses"][number];
@@ -52,6 +67,35 @@ function BlurInput(props: {
   );
 }
 
+/** 項目名（任意で情報ボタン）と入力部品を縦に並べる。ボタン列の項目は label ではなく div で包む */
+function Field({
+  label,
+  htmlFor,
+  info,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  info?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="f">
+      <span className="k">
+        {htmlFor ? <label htmlFor={htmlFor}>{label}</label> : label}
+        {info}
+      </span>
+      {children}
+    </div>
+  );
+}
+
+const INSURANCE_OPTIONS: ChoiceOption<InsuranceChoice>[] = [
+  { value: "yes", labelJa: "加入している" },
+  { value: "no", labelJa: "していない" },
+  { value: "unknown", labelJa: "分からない" },
+];
+
 export function CompanyForm({
   profile,
   onChange,
@@ -60,141 +104,192 @@ export function CompanyForm({
   onChange(f: Partial<CompanyFields>): void;
 }) {
   const ins = profile.cyberInsurance;
+  const insurance = insuranceChoice(ins);
   return (
-    <div className="fields">
-      <label className="f" htmlFor="pf-company">
-        <span className="k">会社名</span>
-        <BlurInput
-          id="pf-company"
-          value={profile.companyName}
-          onCommit={(v) => onChange({ companyName: v })}
-        />
-      </label>
-      <label className="f" htmlFor="pf-employees">
-        <span className="k">従業員数（人）</span>
-        <BlurInput
-          id="pf-employees"
-          className="in num"
-          type="number"
-          min={1}
-          step={1}
-          value={str(profile.employees)}
-          onCommit={(v) => onChange({ employees: num(v) })}
-        />
-        <span className="h">対策の費用の目安に使います</span>
-      </label>
-      <label className="f" htmlFor="pf-revenue">
-        <span className="k">1 日あたりの売上（円、任意）</span>
-        <BlurInput
-          id="pf-revenue"
-          className="in num"
-          type="number"
-          min={0}
-          step={10000}
-          value={str(profile.dailyRevenue)}
-          onCommit={(v) => onChange({ dailyRevenue: num(v) })}
-        />
-        <span className="h">業務が止まった日数 × 売上で影響額を出します</span>
-      </label>
-      <label className="f" htmlFor="pf-transfer">
-        <span className="k">送金額の目安（円、任意）</span>
-        <BlurInput
-          id="pf-transfer"
-          className="in num"
-          type="number"
-          min={0}
-          step={100000}
-          value={str(profile.typicalTransferJpy)}
-          onCommit={(v) => onChange({ typicalTransferJpy: num(v) })}
-        />
-        <span className="h">なりすまし送金で想定する 1 回の送金額</span>
-      </label>
-      <div className="f">
-        <span className="k">サイバー保険</span>
-        <label className="chk">
-          <input
-            type="checkbox"
-            checked={ins?.enrolled === true}
-            onChange={(e) =>
+    <>
+      <div className="fields">
+        <label className="f" htmlFor="pf-company">
+          <span className="k">会社名</span>
+          <BlurInput
+            id="pf-company"
+            value={profile.companyName}
+            onCommit={(v) => onChange({ companyName: v })}
+          />
+        </label>
+        <label className="f" htmlFor="pf-vendor">
+          <span className="k">
+            保守ベンダー（任意）
+            <InfoButton title="保守ベンダーについて">
+              <p>
+                カルテで「分からない」とした項目の確認依頼の宛先になります。名前だけでも登録できます。
+              </p>
+            </InfoButton>
+          </span>
+          <BlurInput
+            id="pf-vendor"
+            value={profile.vendor?.name ?? ""}
+            placeholder="会社名"
+            onCommit={(v) =>
               onChange({
-                cyberInsurance: e.target.checked
-                  ? {
-                      enrolled: true,
-                      ...(ins?.notifyWithinDays ? { notifyWithinDays: ins.notifyWithinDays } : {}),
-                    }
-                  : undefined,
+                vendor: {
+                  name: v,
+                  ...(profile.vendor?.email ? { email: profile.vendor.email } : {}),
+                },
               })
             }
           />
-          加入している
         </label>
-        {ins?.enrolled && (
-          <label className="f" htmlFor="pf-insurance-days">
-            <span className="h">事故を保険会社に通知する期限（日）</span>
-            <BlurInput
-              id="pf-insurance-days"
-              className="in num"
-              type="number"
-              min={1}
-              step={1}
-              value={str(ins.notifyWithinDays)}
-              ariaLabel="事故の通知期限（日）"
-              onCommit={(v) => {
-                const d = num(v);
-                onChange({
-                  cyberInsurance: {
-                    enrolled: true,
-                    ...(d && d > 0 ? { notifyWithinDays: d } : {}),
-                  },
-                });
-              }}
-            />
-          </label>
-        )}
+        <label className="f" htmlFor="pf-vendor-email">
+          <span className="k">
+            保守ベンダーのメール（任意）
+            <InfoButton title="なぜメールアドレスを入れるのか">
+              <p>
+                カルテで「分からない」とした項目は、「ベンダーに確認する」で保守ベンダーへの確認依頼になります。ここに入れたメールアドレスは、その依頼の宛先として使います。
+              </p>
+              <p>
+                既定では自動で送られません。「ベンダーに確認する」を押すと担当者画面の送信箱に文面ができ、内容を確かめてから「メールソフトで開く」で送ります。サーバに
+                SMTP
+                を設定しているときだけ、「ベンダーに確認する」を押した時点でこのアドレスへ送られます。ベンダーの回答は、メールのリンクから開く回答ページで受け取り、判定にその場で反映されます。
+              </p>
+              <p>
+                アドレスはこのブラウザのカルテに保存され、依頼を作ったときだけ宛先として送信箱に記録されます。Claude
+                には送りません。入れなくても、回答リンクを自分で別の方法で渡せば使えます。
+              </p>
+            </InfoButton>
+          </span>
+          <BlurInput
+            id="pf-vendor-email"
+            value={profile.vendor?.email ?? ""}
+            placeholder="name@example.com"
+            onCommit={(v) => onChange({ vendor: { name: profile.vendor?.name ?? "", email: v } })}
+          />
+        </label>
       </div>
-      <label className="f" htmlFor="pf-vendor">
-        <span className="k">保守ベンダー（任意）</span>
-        <BlurInput
-          id="pf-vendor"
-          value={profile.vendor?.name ?? ""}
-          placeholder="会社名"
-          onCommit={(v) =>
-            onChange({
-              vendor: {
-                name: v,
-                ...(profile.vendor?.email ? { email: profile.vendor.email } : {}),
-              },
-            })
+
+      <div className="choice-fields">
+        <Field
+          label="従業員数"
+          htmlFor="pf-employees"
+          info={
+            <InfoButton title="従業員数の使いみち">
+              <p>
+                対策の費用の目安に使います。ボタンは近い人数の近道で、欄には正確な人数を直接入れられます。
+              </p>
+            </InfoButton>
           }
-        />
-        <span className="h">確認依頼の宛先になります</span>
-      </label>
-      <label className="f" htmlFor="pf-vendor-email">
-        <span className="k">
-          保守ベンダーのメール（任意）
-          <InfoButton title="なぜメールアドレスを入れるのか">
-            <p>
-              カルテで「分からない」とした項目は、「ベンダーに確認する」で保守ベンダーへの確認依頼になります。ここに入れたメールアドレスは、その依頼の宛先として使います。
-            </p>
-            <p>
-              既定では自動で送られません。「ベンダーに確認する」を押すと担当者画面の送信箱に文面ができ、内容を確かめてから「メールソフトで開く」で送ります。サーバに
-              SMTP
-              を設定しているときだけ、「ベンダーに確認する」を押した時点でこのアドレスへ送られます。ベンダーの回答は、メールのリンクから開く回答ページで受け取り、判定にその場で反映されます。
-            </p>
-            <p>
-              アドレスはこのブラウザのカルテに保存され、依頼を作ったときだけ宛先として送信箱に記録されます。Claude
-              には送りません。入れなくても、回答リンクを自分で別の方法で渡せば使えます。
-            </p>
-          </InfoButton>
-        </span>
-        <BlurInput
-          id="pf-vendor-email"
-          value={profile.vendor?.email ?? ""}
-          placeholder="name@example.com"
-          onCommit={(v) => onChange({ vendor: { name: profile.vendor?.name ?? "", email: v } })}
-        />
-      </label>
-    </div>
+        >
+          <ChoiceNumber
+            id="pf-employees"
+            ariaLabel="従業員数（人）"
+            unit="人"
+            min={1}
+            presets={EMPLOYEE_PRESETS}
+            value={profile.employees}
+            onCommit={(v) => onChange({ employees: v })}
+          />
+        </Field>
+
+        <Field
+          label="1 日あたりの売上（任意）"
+          htmlFor="pf-revenue"
+          info={
+            <InfoButton title="1 日あたりの売上について">
+              <p>
+                業務が止まった日数 × この額で、売上への影響の目安を出します。実際の 1
+                日あたりの売上が分かるときは、欄に直接入れてください。
+              </p>
+              <p>
+                ボタンは年商です。押すと、年商を年 {WORKING_DAYS_PER_YEAR} 営業日で割った 1
+                日分を万円単位に四捨五入して欄に入れます（例：25 億円 → 1,000
+                万円）。実際の営業日数や、
+                土日も動く業態とはずれることがあるので、あくまで目安です。
+              </p>
+            </InfoButton>
+          }
+        >
+          <ChoiceNumber
+            id="pf-revenue"
+            ariaLabel="1 日あたりの売上（円）"
+            presetsCaption="年商"
+            unit="円"
+            step={10000}
+            presets={REVENUE_PRESETS}
+            value={profile.dailyRevenue}
+            readout={formatJpy}
+            onCommit={(v) => onChange({ dailyRevenue: v })}
+          />
+        </Field>
+
+        <Field
+          label="送金額の目安（任意）"
+          htmlFor="pf-transfer"
+          info={
+            <InfoButton title="送金額の目安について">
+              <p>
+                なりすまし送金（偽の請求書メールなど）で想定する 1
+                回の送金額です。資金が流出する経路の影響額の計算に使います。
+              </p>
+            </InfoButton>
+          }
+        >
+          <ChoiceNumber
+            id="pf-transfer"
+            ariaLabel="送金額の目安（円）"
+            unit="円"
+            step={100000}
+            presets={TRANSFER_PRESETS}
+            value={profile.typicalTransferJpy}
+            readout={formatJpy}
+            onCommit={(v) => onChange({ typicalTransferJpy: v })}
+          />
+        </Field>
+
+        <Field
+          label="サイバー保険"
+          info={
+            <InfoButton title="サイバー保険について">
+              <p>
+                加入しているときは、事故を保険会社に通知する期限を経過表に載せます。「していない」と「分からない」は、どちらも保険を前提にしません。
+              </p>
+              <p>
+                「分からない」は未回答と同じ扱いで、カルテには何も残りません。保険証券や総務の担当者に確かめたら選び直してください。
+              </p>
+            </InfoButton>
+          }
+        >
+          <ChoiceSet
+            ariaLabel="サイバー保険"
+            options={INSURANCE_OPTIONS}
+            value={insurance}
+            onChange={(c) => onChange({ cyberInsurance: insuranceFromChoice(c, ins) })}
+          />
+          {insurance === "yes" && (
+            <div className="sub-field">
+              <span className="h">
+                事故を保険会社に通知する期限
+                <InfoButton title="通知期限について">
+                  <p>
+                    保険証券に書かれている、事故を知ってから保険会社へ連絡するまでの日数です。分からないときは空のままにしてください（経過表には「期限は保険証券で確認」と出ます）。
+                  </p>
+                </InfoButton>
+              </span>
+              <ChoiceNumber
+                ariaLabel="事故の通知期限（日）"
+                unit="日"
+                min={1}
+                presets={INSURANCE_DAYS_PRESETS}
+                value={ins?.notifyWithinDays}
+                onCommit={(d) =>
+                  onChange({
+                    cyberInsurance: { enrolled: true, ...(d ? { notifyWithinDays: d } : {}) },
+                  })
+                }
+              />
+            </div>
+          )}
+        </Field>
+      </div>
+    </>
   );
 }
 
