@@ -23,7 +23,9 @@ import {
   viewDataFromResponse,
   viewDataFromShare,
 } from "../onepager/OnePagerView.tsx";
+import { PdfActions } from "../onepager/PdfActions.tsx";
 import { useOnePagerParams } from "../onepager/params.ts";
+import { pdfFileName } from "../onepager/pdf-layout.ts";
 import { useOnePager } from "../onepager/useOnePager.ts";
 import { usePrintPreview } from "../onepager/usePrintPreview.ts";
 
@@ -106,6 +108,8 @@ export function OnePager() {
     return undefined;
   }, [state]);
 
+  const pdfName = view ? pdfFileName(view.onePager.companyName, view.generatedAt) : undefined;
+
   // 一枚が変わったら、題名を付け替え、前の一枚のリンクの知らせは消す
   useEffect(() => {
     const prev = document.title;
@@ -163,9 +167,7 @@ export function OnePager() {
   return (
     <div className="onepager">
       <div className="op-toolbar no-print">
-        <button type="button" className="btn primary" onClick={() => window.print()}>
-          PDF で保存（印刷）
-        </button>
+        <PdfActions filename={pdfName} />
         <PrintPreviewToggle preview={print.preview} onToggle={print.toggle} />
         {state.status === "ready" && (
           <>

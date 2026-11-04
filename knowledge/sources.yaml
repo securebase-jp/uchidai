@@ -18,7 +18,7 @@ categories:
     titleJa: 外部確認
     noteJa: DNS の公開レコードも参照しますが、特定の資料はありません。所有確認したドメインについて、標準の DNS の問い合わせで取得します。
   - id: fonts-voice
-    titleJa: 書体と音声
+    titleJa: 書体・音声・ソフトウェア部品
 
 sources:
   - id: mitre-attack
@@ -134,6 +134,22 @@ sources:
     publisherJa: JetBrains（配布：Fontsource）
     licenseJa: SIL OFL 1.1
     usedForJa: 手法 ID や数値など、等幅で見せたい文字の書体です。
+  - id: html-to-image
+    categoryId: fonts-voice
+    nameJa: html-to-image
+    url: https://github.com/bubkoo/html-to-image
+    publisherJa: bubkoo
+    licenseJa: MIT License
+    checkedAt: "2026-11-04"
+    usedForJa: 社長向けの一枚を PDF にするとき、紙面を画像にするために使います。ブラウザの中だけで動き、一枚の内容をサーバに送ることはありません。
+  - id: jspdf
+    categoryId: fonts-voice
+    nameJa: jsPDF
+    url: https://github.com/parallax/jsPDF
+    publisherJa: James Hall と jsPDF の貢献者
+    licenseJa: MIT License
+    checkedAt: "2026-11-04"
+    usedForJa: 社長向けの一枚の画像を、A4 の PDF ファイルにまとめるために使います。ブラウザの中だけで動きます。
   - id: voicevox
     categoryId: fonts-voice
     nameJa: VOICEVOX（音声：四国めたん）

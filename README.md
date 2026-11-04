@@ -119,6 +119,7 @@ pnpm attack:import                          # ATT&CK の再取り込み
 - 警察庁サイバー警察局「令和7年におけるサイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）。警察庁「サイバー事案に関する相談窓口」：被害にあったときの相談先。警視庁「ビジネスメール詐欺（BEC）対策」：送金後の実務上の期限（相談窓口と BEC 対策は `knowledge/deadlines.yaml`）
 - crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（[packages/recon/README.md](packages/recon/README.md)）
 - CISA Known Exploited Vulnerabilities (KEV) Catalog: https://www.cisa.gov/known-exploited-vulnerabilities-catalog — 悪用確認済み脆弱性の突き合わせ（CC0 1.0。JSON は手元のサーバが取得し `apps/web/.data/` に保存。リポジトリには含めない）。影響を受ける版の範囲はベンダーの公表資料（PSIRT）から `knowledge/kev/products.yaml` に URL と確認日つきで転記
+- 部品：html-to-image、jsPDF（いずれも MIT License。社長向けの一枚の PDF 書き出しに、ブラウザの中だけで使う。[NOTICE](NOTICE)）
 - 書体：BIZ UDPGothic、BIZ UDPMincho、JetBrains Mono（いずれも SIL Open Font License 1.1。Fontsource 経由）。デモ動画の音声：VOICEVOX（四国めたん。クレジット「VOICEVOX:四国めたん」、規約は [demo/README.md](demo/README.md)）
 
 ## ライセンス

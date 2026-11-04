@@ -38,6 +38,13 @@ https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 - BIZ UDPGothic、BIZ UDPMincho（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）
 - JetBrains Mono（SIL Open Font License 1.1。Fontsource の npm パッケージ経由）
 
+## ソフトウェア部品（PDF の書き出し）
+
+社長向けの一枚を PDF として保存する機能（画面の「PDF をダウンロード」）は、次の 2 つの部品をブラウザの中で使う。どちらも MIT License で、ボタンを押したときだけ読み込む。一枚の内容をサーバに送ることはない。
+
+- html-to-image（https://github.com/bubkoo/html-to-image 、MIT License）：紙面を画像にする
+- jsPDF（https://github.com/parallax/jsPDF 、MIT License）：画像を A4 の PDF にまとめる
+
 ## 音声（デモ動画）
 
 デモ動画のナレーションは VOICEVOX で合成した音声（既定の話者は四国めたん）を使う。クレジット表記：VOICEVOX:四国めたん。VOICEVOX の利用規約（https://voicevox.hiroshiba.jp/term/ ）と、音声ライブラリ（東北ずん子・ずんだもんプロジェクト 音源利用規約）に従う。確認した内容は `demo/README.md` に書いている。
