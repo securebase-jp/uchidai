@@ -98,7 +98,7 @@
  */
 :root {
   --demo-caption-bottom: 26px;
-  --demo-band-bottom: 100px;
+  --demo-band-bottom: 112px;
   --demo-safe-bottom: 190px;
 }
 .demo-caption {
@@ -114,11 +114,12 @@
 .demo-caption span {
   background: rgba(0, 0, 0, 0.82);
   color: #fff;
-  font-size: 30px;
-  line-height: 1.5;
-  padding: 6px 22px;
-  border-radius: 8px;
-  max-width: 1500px;
+  /* 録画の 1080p で、電話やノート PC でも読める大きさ。最長の行（44 字）が 1 行に収まる幅 */
+  font-size: 40px;
+  line-height: 1.45;
+  padding: 6px 24px;
+  border-radius: 10px;
+  max-width: 1860px;
   text-shadow: 0 1px 2px #000;
 }
 .demo-hud {
