@@ -1,0 +1,57 @@
+name: イメージの公開
+
+# v1.2.3 のようなタグを push すると、GitHub Container Registry（GHCR）へ Docker イメージを公開する。
+# 手動実行（Actions タブの Run workflow）でも動かせる。手動のときは、選んだ枝の先頭を「edge」のタグで公開する（latest は動かさない）
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# 追加の秘密情報は要らない。GITHUB_TOKEN だけで GHCR へ書く
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/securebase-jp/uchidai
+
+jobs:
+  publish:
+    name: イメージをビルドして GHCR へ公開
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # linux/arm64 を amd64 のランナーで作るためのエミュレータ（Apple Silicon の Mac や ARM の機械向け）
+      - uses: docker/setup-qemu-action@v4
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: タグとラベルを決める
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          # v1.2.3 → 1.2.3、1.2、latest（v1.2.3-rc1 のような試験版は latest にしない）。手動実行（タグ無し）は edge だけ
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-') }}
+            type=edge,enable=${{ !startsWith(github.ref, 'refs/tags/v') }}
+          labels: |
+            org.opencontainers.image.title=ウチダイ（uchidai）
+            org.opencontainers.image.description=「うちの会社は大丈夫か？」に根拠つきで答える。専門家のいない会社の担当者のための、サイバー攻撃への備えの確認ツール
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.source=https://github.com/securebase-jp/uchidai
+      - name: ビルドして公開
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
