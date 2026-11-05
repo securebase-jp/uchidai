@@ -15,6 +15,81 @@ import { parseHTML } from "linkedom";
 import { extractText, getDocumentProxy } from "unpdf";
 import { type FetchLike, resolveFetch } from "./proxy.ts";
 
+/** 取得に失敗したときの案内（どの失敗にも付ける。本文を貼れば、取得を介さずに読める） */
+export const PASTE_HINT_JA = "記事の本文を貼って読むこともできます。";
+
+/** 記事の取得・取り込みの失敗の種類 */
+export type ArticleFetchErrorKind =
+  | "not_found" // 404・410
+  | "forbidden" // 401・402・403・451（ログインや有料の壁、取得の拒否）
+  | "rate_limited" // 429
+  | "server_error" // 5xx
+  | "http_error" // その他の HTTP エラー
+  | "timeout"
+  | "network" // 接続できない
+  | "dns" // ホスト名が引けない
+  | "rejected" // URL の検査で取得しないと決めた（内部ネットワークなど）
+  | "too_large"
+  | "redirect"
+  | "empty" // 本文を取り出せなかった
+  | "bad_pdf"
+  | "bad_input"; // ページ指定など、入力の誤り
+
+/**
+ * 記事を取得できなかった・取り込めなかった。message は利用者にそのまま見せてよい日本語
+ * （技術的な詳細は detail と cause に残し、画面には出さない）。サーバはこれを 400 系で返す
+ */
+export class ArticleFetchError extends Error {
+  readonly kind: ArticleFetchErrorKind;
+  readonly status: number | undefined;
+  readonly detail: string | undefined;
+  constructor(
+    kind: ArticleFetchErrorKind,
+    message: string,
+    opts: { status?: number; detail?: string; cause?: unknown } = {},
+  ) {
+    super(message, opts.cause !== undefined ? { cause: opts.cause } : undefined);
+    this.name = "ArticleFetchError";
+    this.kind = kind;
+    this.status = opts.status;
+    this.detail = opts.detail;
+  }
+}
+
+/** HTTP のエラー応答を、利用者向けの案内にする */
+export function httpErrorToFetchError(status: number): ArticleFetchError {
+  const opts = { status, detail: `HTTP ${status}` };
+  if (status === 404 || status === 410)
+    return new ArticleFetchError(
+      "not_found",
+      `記事が見つかりませんでした（${status}）。URL を確かめるか、${PASTE_HINT_JA}`,
+      opts,
+    );
+  if (status === 401 || status === 402 || status === 403 || status === 451)
+    return new ArticleFetchError(
+      "forbidden",
+      `この記事は、ログインや会員登録が必要、または取得を断られました（${status}）。${PASTE_HINT_JA}`,
+      opts,
+    );
+  if (status === 429)
+    return new ArticleFetchError(
+      "rate_limited",
+      `記事のサイトが、短い間に続けた取得を断りました（${status}）。しばらくしてからやり直すか、${PASTE_HINT_JA}`,
+      opts,
+    );
+  if (status >= 500)
+    return new ArticleFetchError(
+      "server_error",
+      `記事のサイトが応答しませんでした（${status}）。しばらくしてからやり直すか、${PASTE_HINT_JA}`,
+      opts,
+    );
+  return new ArticleFetchError(
+    "http_error",
+    `記事を取得できませんでした（${status}）。${PASTE_HINT_JA}`,
+    opts,
+  );
+}
+
 export type ArticleInput =
   | { kind: "url"; url: string; pages?: string; caseNumber?: number; mustInclude?: string }
   | {
@@ -41,7 +116,12 @@ export type Article = {
   truncated?: boolean;
   /** HTML のとき、取り込んだページ数（記事サイトの「次のページ」を辿った数。1 なら分割なし） */
   htmlPages?: number;
+  /** HTML のとき、本文が途中で切れていそうな理由（無ければ付かない。画面で「続きが取得できていない可能性」と案内する） */
+  incomplete?: IncompleteReason[];
 };
+
+/** 本文が途中で切れていそうな理由：members_only 会員向けの案内がある／ends_with_heading 末尾が見出しだけ／read_more 末尾が「続きを読む」 */
+export type IncompleteReason = "members_only" | "ends_with_heading" | "read_more";
 
 export type FetchOptions = {
   fetch?: FetchLike;
@@ -192,40 +272,64 @@ export async function assertAllowedUrl(urlStr: string, opts: FetchOptions = {}):
   try {
     url = new URL(urlStr);
   } catch {
-    throw new Error(`URL の形式が正しくありません: ${urlStr}`);
+    throw new ArticleFetchError("rejected", `URL の形式が正しくありません: ${urlStr}`);
   }
   if (url.protocol !== "http:" && url.protocol !== "https:")
-    throw new Error(`取得できるのは http / https の URL だけです: ${url.protocol}`);
-  if (url.username || url.password) throw new Error("認証情報を含む URL は取得しません");
+    throw new ArticleFetchError(
+      "rejected",
+      `取得できるのは http / https の URL だけです: ${url.protocol}`,
+    );
+  if (url.username || url.password)
+    throw new ArticleFetchError("rejected", "認証情報を含む URL は取得しません");
   const host = url.hostname
     .replace(/^\[|\]$/g, "")
     .toLowerCase()
     .replace(/\.$/, "");
-  if (!host) throw new Error("URL にホスト名がありません");
+  if (!host) throw new ArticleFetchError("rejected", "URL にホスト名がありません");
   if (
     host === "localhost" ||
     INTERNAL_SUFFIXES.some((s) => host.endsWith(s)) ||
     !host.includes(".")
   )
-    if (!isIP(host)) throw new Error(`内部用のホスト名には接続しません: ${host}`);
+    if (!isIP(host))
+      throw new ArticleFetchError("rejected", `内部用のホスト名には接続しません: ${host}`);
   for (const blocked of opts.blockedHosts ?? []) {
     const b = blocked.toLowerCase().replace(/\.$/, "");
     if (b && (host === b || host.endsWith(`.${b}`)))
-      throw new Error(`このホストは取得の対象外です（自社のホストには接続しません）: ${host}`);
+      throw new ArticleFetchError(
+        "rejected",
+        `このホストは取得の対象外です（自社のホストには接続しません）: ${host}`,
+      );
   }
   if (isIP(host)) {
-    if (isPrivateIp(host)) throw new Error(`内部ネットワークのアドレスには接続しません: ${host}`);
+    if (isPrivateIp(host))
+      throw new ArticleFetchError(
+        "rejected",
+        `内部ネットワークのアドレスには接続しません: ${host}`,
+      );
     return url;
   }
   let addresses: string[];
   try {
     addresses = await (opts.lookup ?? defaultLookup)(host);
   } catch (e) {
-    throw new Error(`ホスト名を解決できません: ${host}（${e instanceof Error ? e.message : e}）`);
+    throw new ArticleFetchError(
+      "dns",
+      `ホスト名を解決できません（${host}）。URL に誤りがないか確かめるか、${PASTE_HINT_JA}`,
+      { detail: e instanceof Error ? e.message : String(e), cause: e },
+    );
   }
-  if (addresses.length === 0) throw new Error(`ホスト名を解決できません: ${host}`);
+  if (addresses.length === 0)
+    throw new ArticleFetchError(
+      "dns",
+      `ホスト名を解決できません（${host}）。URL に誤りがないか確かめるか、${PASTE_HINT_JA}`,
+    );
   const bad = addresses.find((a) => isPrivateIp(a));
-  if (bad) throw new Error(`内部ネットワークのアドレスに解決されるホストには接続しません: ${host}`);
+  if (bad)
+    throw new ArticleFetchError(
+      "rejected",
+      `内部ネットワークのアドレスに解決されるホストには接続しません: ${host}`,
+    );
   return url;
 }
 
@@ -237,24 +341,37 @@ export async function assertAllowedUrl(urlStr: string, opts: FetchOptions = {}):
 async function readBody(res: Response, max: number, signal: AbortSignal): Promise<Uint8Array> {
   const declared = Number(res.headers.get("content-length") ?? "");
   if (Number.isFinite(declared) && declared > max)
-    throw new Error(`取得したデータが大きすぎます: ${declared} bytes（上限 ${max}）`);
+    throw new ArticleFetchError(
+      "too_large",
+      `取得したデータが大きすぎます: ${declared} bytes（上限 ${max}）`,
+    );
   if (!res.body) {
     const buf = new Uint8Array(await res.arrayBuffer());
     if (buf.byteLength > max)
-      throw new Error(`取得したデータが大きすぎます: ${buf.byteLength} bytes（上限 ${max}）`);
+      throw new ArticleFetchError(
+        "too_large",
+        `取得したデータが大きすぎます: ${buf.byteLength} bytes（上限 ${max}）`,
+      );
     return buf;
   }
   const reader = res.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
   for (;;) {
-    if (signal.aborted) throw new Error("取得がタイムアウトしました");
+    if (signal.aborted)
+      throw new ArticleFetchError(
+        "timeout",
+        `記事の取得に時間がかかりすぎたため、やめました。${PASTE_HINT_JA}`,
+      );
     const { done, value } = await reader.read();
     if (done) break;
     total += value.byteLength;
     if (total > max) {
       await reader.cancel().catch(() => undefined);
-      throw new Error(`取得したデータが大きすぎます: ${total} bytes 以上（上限 ${max}）`);
+      throw new ArticleFetchError(
+        "too_large",
+        `取得したデータが大きすぎます: ${total} bytes 以上（上限 ${max}）`,
+      );
     }
     chunks.push(value);
   }
@@ -288,26 +405,43 @@ export async function downloadBytes(
         redirect: "manual",
       });
     } catch (e) {
-      const why = signal.aborted ? "タイムアウト" : e instanceof Error ? e.message : String(e);
-      throw new Error(`取得に失敗しました（${current.hostname}）: ${why}`);
+      // サーバ側の検査（リダイレクト先が内部のアドレスなど）で止めた理由は、cause に残して呼び出し側が使えるようにする
+      const detail = e instanceof Error ? e.message : String(e);
+      if (signal.aborted)
+        throw new ArticleFetchError(
+          "timeout",
+          `記事の取得に時間がかかりすぎたため、やめました（${current.hostname}）。${PASTE_HINT_JA}`,
+          { detail, cause: e },
+        );
+      throw new ArticleFetchError(
+        "network",
+        `記事の取得に失敗しました（${current.hostname}）。サイトに接続できませんでした。${PASTE_HINT_JA}`,
+        { detail, cause: e },
+      );
     }
     if (REDIRECT_STATUSES.has(res.status) || res.type === "opaqueredirect") {
       const location = res.headers.get("location");
-      if (!location) throw new Error(`リダイレクト先が分かりません: ${res.status} (${current})`);
+      if (!location)
+        throw new ArticleFetchError("redirect", `リダイレクト先が分かりません: ${res.status}`);
       if (hop >= maxRedirects)
-        throw new Error(`リダイレクトが多すぎます（${maxRedirects} 回を超過）`);
+        throw new ArticleFetchError(
+          "redirect",
+          `リダイレクトが多すぎます（${maxRedirects} 回を超過）。${PASTE_HINT_JA}`,
+        );
       await res.body?.cancel().catch(() => undefined);
       let next: URL;
       try {
         next = new URL(location, current);
       } catch {
-        throw new Error(`リダイレクト先の URL が不正です: ${location}`);
+        throw new ArticleFetchError("redirect", `リダイレクト先の URL が不正です: ${location}`);
       }
       current = await assertAllowedUrl(next.toString(), opts);
       continue;
     }
-    if (!res.ok)
-      throw new Error(`取得に失敗しました: ${res.status} ${res.statusText} (${current})`);
+    if (!res.ok) {
+      await res.body?.cancel().catch(() => undefined);
+      throw httpErrorToFetchError(res.status);
+    }
     const data = await readBody(res, max, signal);
     return {
       data,
@@ -374,7 +508,11 @@ export function tidyText(text: string): string {
 /** 本文を整え、空なら例外、長すぎれば切る */
 function finishText(article: Article): Article {
   const text = tidyText(article.text);
-  if (!text) throw new Error("記事の本文が空です。本文のある URL か、テキストを貼り付けてください");
+  if (!text)
+    throw new ArticleFetchError(
+      "empty",
+      "記事の本文を取り出せませんでした（本文が空です）。本文のある URL か、本文を貼り付けてください",
+    );
   if (text.length > MAX_TEXT_CHARS)
     return { ...article, text: text.slice(0, MAX_TEXT_CHARS), truncated: true };
   return { ...article, text };
@@ -509,6 +647,94 @@ export function dropMenuRuns(text: string): string {
   return keep.join("\n");
 }
 
+// ---------------------------------------------------------------------------
+// 媒体の定型文・会員向けの案内・題の整理（TRIAL-013、R-008）、途中で切れた本文の検知（B-012）
+// 取得の段階で、本文とタイトルから除く。読解も根拠文の照合も、除いたあとの本文で行うので、
+// 根拠文（記事の文と一字一句一致）の約束は変わらない。除くのは「行ぜんたいが定型文」のときだけ
+// ---------------------------------------------------------------------------
+
+/** 媒体の定型文の行：サイトの紹介文、ページの境目に入る「（媒体名 - 日付）」の署名 */
+const BOILERPLATE_LINE: RegExp[] = [
+  /^([A-Za-z0-9 ]{2,30}では[、,])?最新の情報セキュリティに関するニュースを(日刊で)?お届けして(い|お)ます[。.]?$/,
+  /^[（(][^（）()\n]{2,30}\s[-－―]\s\d{4}[/／.]\d{1,2}[/／.]\d{1,2}\s*[）)]$/,
+];
+
+/** 会員向けの案内の行（続きは会員登録・ログインが要る、など）。短い行だけを見る（本文の「会員サイト」などと区別するため） */
+const MEMBER_WALL_LINE: RegExp[] = [
+  /この記事は(有料)?(会員|購読者)(限定|のみ)/,
+  /(有料)?会員(限定)?(の)?(記事|コンテンツ)です/,
+  /(続き|全文)を(読む|ご覧いただく|閲覧する)(には|ためには)/,
+  /(会員登録|ログイン|無料登録|ご登録)(を|して|すると|いただくと|することで)[^。]{0,24}(続き|全文|すべて|全て)/,
+  /(すべて|全て)の記事が(読み放題|読めます)/,
+  /(続き|残り)は(有料)?(会員|登録)/,
+  /有料会員(になる|に登録|限定)/,
+];
+const MEMBER_WALL_MAX_LINE = 80;
+
+/** 末尾が「続きを読む」のような、記事が途中で終わっていることを示す行 */
+const READ_MORE_LINE =
+  /^(…|\.\.\.|[.。]{3})?\s*(続きを読む|もっと読む|もっと見る|続きはこちら|Read more)\s*[»>＞]?$/i;
+
+/**
+ * 本文から媒体の定型文と会員向けの案内の行を除き、会員向けの案内があったかを返す。
+ * 行ぜんたいが定型文のときだけ除く（本文の文の途中は触らない）
+ */
+export function stripBoilerplate(text: string): { text: string; memberWall: boolean } {
+  let memberWall = false;
+  const kept: string[] = [];
+  for (const line of text.split("\n")) {
+    const t = line.trim();
+    if (t && BOILERPLATE_LINE.some((re) => re.test(t))) continue;
+    if (t && t.length <= MEMBER_WALL_MAX_LINE && MEMBER_WALL_LINE.some((re) => re.test(t))) {
+      memberWall = true;
+      continue;
+    }
+    kept.push(line);
+  }
+  return { text: tidyText(kept.join("\n")), memberWall };
+}
+
+/**
+ * 記事の題の末尾の、媒体が付けたページ番号と媒体名を除く：
+ * 「…（1ページ目 / 全1ページ）：Security NEXT」「…（2ページ目」→ 「…」
+ */
+export function cleanTitle(title: string): string {
+  return title
+    .replace(/\s*[（(]\s*\d+\s*ページ目[^）)]*[）)]?\s*(?:[：:｜|]\s*[^：:｜|]{1,30})?\s*$/, "")
+    .replace(/\s*[（(]\s*全\s*\d+\s*ページ\s*[）)]\s*$/, "")
+    .trim();
+}
+
+/** 文の終わりの記号（これで終わっていれば、見出しではなく文とみなす） */
+const SENTENCE_END = /[。．.！？!?」』）)”"]$/;
+
+/**
+ * 本文が途中で切れていそうな理由を返す（無ければ空）。
+ * 末尾が文でなく短い行（見出し）で終わっている、末尾が「続きを読む」、会員向けの案内があった、のいずれか。
+ * 「可能性」の検知なので、誤って出ても読解の結果は変わらない（画面に案内を出すだけ）
+ */
+export function detectIncomplete(text: string, memberWall: boolean): IncompleteReason[] {
+  const reasons: IncompleteReason[] = [];
+  if (memberWall) reasons.push("members_only");
+  const lines = text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const last = lines[lines.length - 1] ?? "";
+  const before = lines[lines.length - 2] ?? "";
+  if (READ_MORE_LINE.test(last)) reasons.push("read_more");
+  else if (
+    lines.length >= 2 &&
+    last.length <= 30 &&
+    !SENTENCE_END.test(last) &&
+    !/^[（(].*[）)]$/.test(last) &&
+    !/^https?:\/\//i.test(last) &&
+    SENTENCE_END.test(before)
+  )
+    reasons.push("ends_with_heading");
+  return reasons;
+}
+
 function parseDocument(html: string): MinimalDocument {
   const { document } = parseHTML(html) as unknown as { document: MinimalDocument };
   for (const el of Array.from(document.querySelectorAll("script,style,noscript,template")))
@@ -535,7 +761,7 @@ function removeChrome(document: MinimalDocument): void {
 const READABILITY_CHAR_THRESHOLD = 200;
 
 /** 1 ページ分の HTML から題と本文を取り出す（本文の整形はしない） */
-function extractHtmlPage(html: string): { title: string; text: string } {
+function extractHtmlPage(html: string): { title: string; text: string; memberWall: boolean } {
   const document = parseDocument(html);
   let title = document.querySelector("title")?.textContent?.trim() ?? "";
   let text = "";
@@ -564,7 +790,12 @@ function extractHtmlPage(html: string): { title: string; text: string } {
     text = rootNode ? nodeToText(rootNode) : "";
   }
   // 関連記事などの見出し語で切ってから、メニューらしい行の連なりを落とす（先に落とすと見出し語ごと消えて切れなくなる）
-  return { title, text: tidyText(dropMenuRuns(trimTrailer(tidyText(text)))) };
+  const stripped = stripBoilerplate(tidyText(text));
+  return {
+    title: cleanTitle(title),
+    text: tidyText(dropMenuRuns(trimTrailer(stripped.text))),
+    memberWall: stripped.memberWall,
+  };
 }
 
 /** HTML から本文を取り出す（Readability。失敗したら body のテキスト）。末尾の関連記事などは落とす */
@@ -583,7 +814,12 @@ export function extractHtmlPages(htmls: string[], sourceUrl?: string): Article {
   };
   if (title) article.title = title.slice(0, 300);
   if (sourceUrl) article.sourceUrl = sourceUrl;
-  return finishText(article);
+  const finished = finishText(article);
+  const incomplete = detectIncomplete(
+    finished.text,
+    pages.some((p) => p.memberWall),
+  );
+  return incomplete.length > 0 ? { ...finished, incomplete } : finished;
 }
 
 /** 現在の URL から見て「次のページ」になり得る URL（同じ記事の続き）。/166531 → /166531/2、/166531/2 → /166531/3 */
@@ -696,10 +932,11 @@ export function parsePageRange(spec: string, totalPages: number): number[] {
   const pages = new Set<number>();
   for (const part of spec.split(/[,\s、]+/).filter(Boolean)) {
     const m = /^(\d+)(?:\s*[-–〜~]\s*(\d+))?$/.exec(part.normalize("NFKC"));
-    if (!m?.[1]) throw new Error(`ページ指定を解釈できません: "${part}"`);
+    if (!m?.[1]) throw new ArticleFetchError("bad_input", `ページ指定を解釈できません: "${part}"`);
     const from = Number(m[1]);
     const to = m[2] ? Number(m[2]) : from;
-    if (from < 1 || to < from) throw new Error(`ページ指定が不正です: "${part}"`);
+    if (from < 1 || to < from)
+      throw new ArticleFetchError("bad_input", `ページ指定が不正です: "${part}"`);
     for (let p = from; p <= Math.min(to, totalPages); p++) pages.add(p);
   }
   return [...pages].sort((a, b) => a - b);
@@ -712,13 +949,28 @@ export async function extractPdfPages(
 ): Promise<string[]> {
   const max = opts.maxBytes ?? DEFAULT_MAX_BYTES;
   if (data.byteLength > max)
-    throw new Error(`PDF が大きすぎます: ${data.byteLength} bytes（上限 ${max}）`);
+    throw new ArticleFetchError(
+      "too_large",
+      `PDF が大きすぎます: ${data.byteLength} bytes（上限 ${max}）`,
+    );
   if (data.byteLength < 5 || String.fromCharCode(...data.subarray(0, 5)) !== "%PDF-")
-    throw new Error("PDF として読めません（先頭が %PDF- ではありません）");
+    throw new ArticleFetchError("bad_pdf", "PDF として読めません（先頭が %PDF- ではありません）");
   // pdf.js は渡したバッファを worker へ移譲（detach）するので、呼び出し側が再利用できるよう複製を渡す
-  const pdf = await getDocumentProxy(data.slice());
+  let pdf: Awaited<ReturnType<typeof getDocumentProxy>>;
+  try {
+    pdf = await getDocumentProxy(data.slice());
+  } catch (e) {
+    throw new ArticleFetchError(
+      "bad_pdf",
+      "PDF を開けませんでした（壊れているか、パスワードで保護されている可能性があります）",
+      { detail: e instanceof Error ? e.message : String(e), cause: e },
+    );
+  }
   if (pdf.numPages > MAX_PDF_PAGES)
-    throw new Error(`PDF のページ数が多すぎます: ${pdf.numPages}（上限 ${MAX_PDF_PAGES}）`);
+    throw new ArticleFetchError(
+      "bad_pdf",
+      `PDF のページ数が多すぎます: ${pdf.numPages}（上限 ${MAX_PDF_PAGES}）`,
+    );
   const { text } = await extractText(pdf, { mergePages: false });
   return text;
 }
@@ -771,9 +1023,13 @@ export async function extractPdf(data: Uint8Array, opts: PdfOptions = {}): Promi
   else if (opts.caseNumber !== undefined) {
     selected = findCasePages(all, opts.caseNumber, opts.mustInclude);
     if (selected.length === 0)
-      throw new Error(`事例 ${opts.caseNumber} の見出しが PDF に見つかりません`);
+      throw new ArticleFetchError(
+        "bad_input",
+        `事例 ${opts.caseNumber} の見出しが PDF に見つかりません`,
+      );
   } else selected = all.map((_, i) => i + 1);
-  if (selected.length === 0) throw new Error("指定したページが PDF にありません");
+  if (selected.length === 0)
+    throw new ArticleFetchError("bad_input", "指定したページが PDF にありません");
   const text = selected.map((p) => all[p - 1] ?? "").join("\n\n");
   const firstLine = text
     .split("\n")

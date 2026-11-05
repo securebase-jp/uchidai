@@ -194,6 +194,22 @@ describe("POST /api/case/read", () => {
       else process.env.ANTHROPIC_API_KEY = saved;
     }
   });
+  it("取得できない URL は 500 ではなく 400 の日本語の案内（TRIAL-012）", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-key-not-used";
+    try {
+      const res = await json("/api/case/read", {
+        input: { kind: "url", url: "https://no-such-article.invalid/a" },
+      });
+      expect(res.status).toBe(400);
+      const { error } = await loose(res);
+      expect(error).toMatch(/[ぁ-ん]/); // 日本語
+      expect(error).not.toMatch(/TypeError|ENOTFOUND|fetch failed/);
+    } finally {
+      if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
   it("本文が長すぎれば 400、JSON でなければ 400", async () => {
     const res = await json("/api/case/read", {
       input: { kind: "text", text: "x".repeat(300_001) },
