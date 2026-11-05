@@ -197,6 +197,7 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
     if (v >= 100_000_000) {
       const oku = v / 100_000_000;
       add(Math.round(oku));
+      add(Math.floor(oku));
       add(Math.round(oku * 10) / 10);
       add(Math.round(oku * 100) / 100);
       const rest = Math.round((v % 100_000_000) / 10_000);
@@ -263,10 +264,10 @@ export function checkWriterOutput(
     input.revenueImpactJpy !== undefined ||
     input.moneyLossJpy !== undefined;
   const isEstimateLine = (l: string) =>
-    (l.includes(ESTIMATE_PHRASE) ||
-      l.includes("御社の想定では") ||
+    l.includes("御社の想定では") ||
+    ((l.includes(ESTIMATE_PHRASE) ||
       (input.thirdPartyJa !== undefined && l.includes("御社が同じ立場"))) &&
-    l.includes("見込まれ");
+      l.includes("見込まれ"));
   if (hasEstimate && !output.whatHappensJa.some(isEstimateLine))
     return `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`;
   // 第三者の事故：「これは〇〇で起きた事故です」と書き、確認の言い方は「記事の〇〇では」で始める（御社の設備の事実にしない）
@@ -304,7 +305,8 @@ export function checkSourceWording(
   const hasStated = input.stages.some((s) => s.source === "stated");
   for (const line of output.whatHappensJa) {
     const rest = line
-      .replaceAll(UNKNOWN_CONTROL_SHORT, "")
+      // 「止める対策が確認できていません」「止める対策も確認できていません」は、固定の言い回し（出来事の否定ではない）
+      .replace(/止める対策(が|も)確認できていません/g, "")
       .replaceAll(NO_TRACE_PHRASE, "")
       .replaceAll(EXPOSED_ONLY_PHRASE, "")
       .replace(CLAIMED_PHRASE_RE, "");
@@ -346,7 +348,10 @@ export function checkSourceWording(
     return "推定の段階を断定しています（「〜と考えられます」などの言い方がありません）";
   if (input.stages[0]?.source === "candidate" && !all.includes(CANDIDATE_ENTRY_PHRASE))
     return `入口が候補なのに「${CANDIDATE_ENTRY_PHRASE}」と書かれていません`;
-  if (input.stages.some((s) => s.state === "unknown") && !all.includes(UNKNOWN_CONTROL_SHORT))
+  if (
+    input.stages.some((s) => s.state === "unknown") &&
+    !/止める対策(が|も)確認できていません/.test(all)
+  )
     return `対策が未確認の段階があるのに「${UNKNOWN_CONTROL_PHRASE}」と書かれていません`;
   return undefined;
 }
@@ -363,7 +368,7 @@ export async function writeOnePagerText(
 ): Promise<WriteResult> {
   const system: Anthropic.TextBlockParam[] = [{ type: "text", text: WRITER_RULES_JA }];
   const r = await callStructured<OnePagerWriterOutput>(
-    { maxTokens: 1500, effort: "low", ...options },
+    { maxTokens: 3000, effort: "low", ...options },
     {
       system,
       user: `<verdict>\n${JSON.stringify(OnePagerWriterInput.parse(input), null, 1)}\n</verdict>\n\n上の判定結果を、社長向けの文にしてください。`,

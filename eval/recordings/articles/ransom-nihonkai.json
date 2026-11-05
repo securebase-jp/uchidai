@@ -6,7 +6,7 @@
     "date": "2025-01-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:36:49.943Z",
+  "recordedAt": "2026-11-05T03:29:18.829Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,13 @@
     "truncated": false
   },
   "raw": {
-    "title": "VPN経由でランサムウェア被害、取引情報がリークサイトに公開（日本海建設電気）",
+    "title": "VPN経由でランサム被害、取引情報がリークサイトに公開（日本海建設電気）",
     "damageType": "ransomware",
     "clarity": "clear",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": null,
+    "averted": false,
     "steps": [
       {
         "tactic": "TA0001",
@@ -42,31 +45,31 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "社内で管理者権限などの認証情報が奪われたと通常考えられる。"
+        "summaryJa": "侵入後、サーバを操作するための管理者権限などの認証情報が奪われたと推定される。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021",
-          "T1210"
+          "T1021.001"
         ],
         "source": "inferred",
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入後、サーバへ攻撃が広がったと通常考えられる。"
+        "summaryJa": "社内ネットワークを通じて被害サーバへ侵入範囲が広がったと推定される。"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1048",
-          "T1567"
+          "T1041"
         ],
         "source": "stated",
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "外部事業者が調査を行ったところ、攻撃者が運営するいわゆるリークサイト上で、個人情報を含む取引情報が公開されていることが明らかとなった。",
-        "summaryJa": "個人情報を含む取引情報が持ち出され、リークサイトで公開された。"
+        "summaryJa": "個人情報を含む取引情報が持ち出され、攻撃者のリークサイトで公開された。"
       },
       {
         "tactic": "TA0040",
@@ -84,9 +87,9 @@
   },
   "usage": {
     "inputTokens": 640,
-    "outputTokens": 697,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 742,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 5747
+  "elapsedMs": 7401
 }

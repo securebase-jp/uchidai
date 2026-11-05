@@ -6,7 +6,7 @@
     "date": "2026-07-30"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:41.018Z",
+  "recordedAt": "2026-11-05T03:30:07.554Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,22 +15,14 @@
     "truncated": false
   },
   "raw": {
-    "title": "警察官なりすまし詐欺で経理部長のPCが遠隔操作され約11.8億円が不正送金された事案（はてな）",
+    "title": "警察官なりすまし詐欺で経理部長のPCが遠隔操作され約11.8億円が不正送金されたはてなの事例",
     "damageType": "bec",
     "clarity": "clear",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": 1179810000,
+    "averted": false,
     "steps": [
-      {
-        "tactic": "TA0043",
-        "techniques": [
-          "T1591"
-        ],
-        "source": "inferred",
-        "certainty": "confirmed",
-        "entryKind": null,
-        "quote": null,
-        "summaryJa": "詐欺グループが経理部長の連絡先や役割など会社の情報を事前に把握していたと通常考えられる。"
-      },
       {
         "tactic": "TA0001",
         "techniques": [
@@ -40,18 +32,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "2026年4月20日午前8時2分、千葉県警察を名乗る詐欺グループが、経理部長であるH氏の私用携帯電話に電話をかけ、大規模な資金洗浄事件の捜査への協力を名目に接触した。",
-        "summaryJa": "警察官を名乗る詐欺グループが経理部長の私用携帯に電話し、捜査協力を名目に接触した。"
-      },
-      {
-        "tactic": "TA0005",
-        "techniques": [
-          "T1684.001"
-        ],
-        "source": "stated",
-        "certainty": "confirmed",
-        "entryKind": null,
-        "quote": "詐欺グループは、H氏自身にも関与の疑いがあり出頭が必要である等の虚偽の説明を行い、家族への口外を禁じてH氏を心理的に孤立させた。",
-        "summaryJa": "警察官になりすまして虚偽の説明を行い、経理部長を心理的に孤立させた。"
+        "summaryJa": "警察官を名乗る詐欺グループが経理部長の私用携帯に電話をかけ、捜査協力を名目に接触した。"
       },
       {
         "tactic": "TA0002",
@@ -61,19 +42,19 @@
         "source": "stated",
         "certainty": "confirmed",
         "entryKind": null,
-        "quote": "詐欺グループの指示を受けたH氏は、業務利用が認められていないリモートデスクトップアプリ(具体的なアプリ名は公表されていない)を業務用PCにダウンロード・実行し、はてなのセキュリティポリシーに違反する形で外部からの遠隔操作を許した。",
-        "summaryJa": "指示を受けた経理部長が無許可の遠隔操作アプリを業務用PCで実行し、外部から操作された。"
+        "quote": "同日午前10時39分、詐欺グループの指示を受けたH氏は、業務利用が認められていないリモートデスクトップアプリ(具体的なアプリ名は公表されていない)を業務用PCにダウンロード・実行し、はてなのセキュリティポリシーに違反する形で外部からの遠隔操作を許した。",
+        "summaryJa": "経理部長が指示に従い、リモートデスクトップアプリを業務用PCに入れて実行し、遠隔操作を許した。"
       },
       {
         "tactic": "TA0011",
         "techniques": [
           "T1219.002"
         ],
-        "source": "stated",
+        "source": "inferred",
         "certainty": "confirmed",
         "entryKind": null,
-        "quote": "H氏は4月20日21時24分、詐欺グループから「本日の捜査は終了する」との連絡を受けてPCを閉じ、リモートデスクトップ接続が切断された。(出典: 6) 翌21日8時31分に接続は再確立され、",
-        "summaryJa": "リモートデスクトップ接続で業務用PCを遠隔操作され、翌日も接続が再確立された。"
+        "quote": null,
+        "summaryJa": "導入されたリモートデスクトップアプリを通じて、詐欺グループが業務用PCを遠隔から操作した。"
       },
       {
         "tactic": "TA0040",
@@ -84,16 +65,38 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "詐欺グループは、凍結口座への振込であり後で資金が戻るなどと説明してH氏に二段階認証の操作を行わせ、11時41分にY銀行のメイン口座から詐欺グループ指定の口座へ9,999万円を送金させた。",
-        "summaryJa": "二段階認証の操作をさせて銀行口座から詐欺グループ指定口座へ送金させ、最終的に約11.8億円が流出した。"
+        "summaryJa": "二段階認証の操作をさせて、銀行口座から詐欺グループ指定の口座へ送金させ、資金が流出した。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "stated",
+        "certainty": "confirmed",
+        "entryKind": null,
+        "quote": "その後もY銀行の複数口座から連続して不正な送金・振替が実行され、同日12時36分までに各口座の残高は数千円まで枯渇した。",
+        "summaryJa": "複数の口座から不正な送金が繰り返され、残高が尽きるまで資金が流出した。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1657"
+        ],
+        "source": "stated",
+        "certainty": "confirmed",
+        "entryKind": null,
+        "quote": "田中氏の承認を経ないまま、経理メンバーへの指示で、16時25分以降、翌21日10時13分にかけてX銀行からY銀行への追加の資金移動(社内補填)を6回、合計6億4,000万円実行し、Y銀行側でもそのたびに補填分から詐欺グループ指定口座への不正送金(外部への流出)が行われた。",
+        "summaryJa": "社内補填のたびに補填分が詐欺グループの口座へ送金され、被害が翌日まで拡大した。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 6492,
-    "outputTokens": 1158,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 1226,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 7655
+  "elapsedMs": 7766
 }

@@ -6,7 +6,7 @@
     "date": "2025-06-23"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:21.883Z",
+  "recordedAt": "2026-11-05T03:30:26.928Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,13 @@
     "truncated": false
   },
   "raw": {
-    "title": "コスモ石油マーケティング、クラウドの設定ミスで顧客情報のファイルがURL指定で参照可能に",
+    "title": "コスモ石油マーケティング、クラウドの設定ミスで顧客情報のファイルが外部から参照可能な状態に",
     "damageType": "data_breach",
     "clarity": "partial",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": null,
+    "averted": false,
     "steps": [
       {
         "tactic": "TA0009",
@@ -29,27 +32,25 @@
         "certainty": "exposed_only",
         "entryKind": null,
         "quote": "2019年8月1日から2025年5月30日にかけてクラウド上に保存されているファイルのURLを直接指定すると外部からアクセスが可能だった。",
-        "summaryJa": "クラウド上のファイルが、URLを直接指定すれば外部から閲覧できる設定になっていた。"
+        "summaryJa": "クラウド上のファイルが、URLを直接指定すれば外部から閲覧できる状態だった（第三者が実際に取得したかは書かれていない）"
       },
       {
         "tactic": "TA0010",
-        "techniques": [
-          "T1530"
-        ],
+        "techniques": [],
         "source": "inferred",
         "certainty": "no_trace",
         "entryKind": null,
         "quote": "アクセス履歴を確認できた2023年1月27日から2025年5月30日までの期間に外部からのアクセスはなかった。",
-        "summaryJa": "ログのある期間では外部からのアクセスは確認されず、個人情報が実際に持ち出された痕跡はない。それ以前はログがなく不明。"
+        "summaryJa": "ログが残る期間には外部からのアクセスはなく、情報が持ち出された痕跡は確認されていない（それ以前の期間は不明）"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 700,
-    "outputTokens": 408,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 444,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 5620
+  "elapsedMs": 3900
 }

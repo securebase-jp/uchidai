@@ -6,7 +6,7 @@
     "date": "2025-11-19"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:25.464Z",
+  "recordedAt": "2026-11-05T03:29:51.139Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,13 @@
     "truncated": false
   },
   "raw": {
-    "title": "宮崎通信の管理するクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
+    "title": "宮崎通信のクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
     "damageType": "data_breach",
     "clarity": "unknown",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": null,
+    "averted": false,
     "steps": [
       {
         "tactic": "TA0001",
@@ -27,7 +30,7 @@
         "certainty": "not_stated",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "クラウドサービスへの侵入方法は記事に書かれていない。"
+        "summaryJa": "クラウドサービスが外部から侵害されたが、侵入の方法は記事に書かれていない"
       },
       {
         "tactic": "TA0009",
@@ -36,10 +39,10 @@
           "T1530"
         ],
         "source": "inferred",
-        "certainty": "possible",
+        "certainty": "confirmed",
         "entryKind": null,
-        "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
-        "summaryJa": "侵害されたクラウドサービス上の顧客従業員の情報が取得された可能性がある。"
+        "quote": null,
+        "summaryJa": "侵害されたクラウドサービス上の顧客従業員の情報に攻撃者がアクセスしたと考えられる"
       },
       {
         "tactic": "TA0010",
@@ -47,20 +50,20 @@
           "T1567",
           "T1048"
         ],
-        "source": "inferred",
+        "source": "stated",
         "certainty": "possible",
         "entryKind": null,
         "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
-        "summaryJa": "顧客従業員の氏名やメールアドレスなどが外部に流出した可能性がある。"
+        "summaryJa": "顧客従業員の個人情報が外部に流出した可能性がある"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 374,
-    "outputTokens": 439,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 437,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3410
+  "elapsedMs": 3220
 }

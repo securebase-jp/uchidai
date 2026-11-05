@@ -6,7 +6,7 @@
     "date": "2026-02-06"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:10.748Z",
+  "recordedAt": "2026-11-05T03:29:39.098Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,13 @@
     "truncated": false
   },
   "raw": {
-    "title": "ベルトラ子会社、社長を装うメールとSNSの偽送金指示で約5000万円の詐欺被害",
+    "title": "ベルトラ子会社、代表者を装うメールとSNSの偽指示で約5000万円を送金",
     "damageType": "bec",
     "clarity": "clear",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": 50000000,
+    "averted": false,
     "steps": [
       {
         "tactic": "TA0001",
@@ -30,7 +33,7 @@
         "certainty": "confirmed",
         "entryKind": "mail",
         "quote": "1月上旬ごろ、リンクティビティの従業員に対し、同社の代表者を装った悪意ある第三者からメールが届いた。内容は、社外の連絡先（SNSアカウント）へ誘導するもので、誘導先のSNSでは経理担当者に対して虚偽の送金指示が行われた。",
-        "summaryJa": "代表者を装ったメールで従業員をSNSへ誘導し、経理担当者に偽の送金指示が出された"
+        "summaryJa": "代表者を装うメールで従業員をSNSへ誘導し、経理担当者に偽の送金指示が出された"
       },
       {
         "tactic": "TA0002",
@@ -41,7 +44,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "従業員はこれに従い、社内の銀行届出印を持ち出して、銀行窓口にて約5000万円を指定の口座に送金した。",
-        "summaryJa": "従業員が偽の指示に従い、届出印を持ち出して銀行窓口で送金した"
+        "summaryJa": "従業員が指示に従い、届出印を持ち出して銀行窓口で送金した"
       },
       {
         "tactic": "TA0040",
@@ -51,17 +54,17 @@
         "source": "stated",
         "certainty": "confirmed",
         "entryKind": null,
-        "quote": "被害額は約5000万円。代表者を名乗る第三者からのメールを信じ、資金を送金してしまった。",
-        "summaryJa": "約5000万円が犯人の指定口座へ流出した"
+        "quote": "被害にあったのは、子会社のリンクティビティ（東京都千代田区）で、被害額は約5000万円。代表者を名乗る第三者からのメールを信じ、資金を送金してしまった。",
+        "summaryJa": "約5000万円が詐欺師の指定口座へ流出した"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 1263,
-    "outputTokens": 571,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 622,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4144
+  "elapsedMs": 4723
 }
