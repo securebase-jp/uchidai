@@ -24,6 +24,7 @@ import { type StageInput, useStage } from "../hooks/useStage.ts";
 import { type NextMove, reasonSentence } from "../lib/conclusion.ts";
 import { RESULT_SHORT } from "../lib/labels.ts";
 import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
+import { readNotices } from "../lib/read-notices.ts";
 import { timelineOf } from "../lib/timeline.ts";
 
 export function Legend() {
@@ -126,6 +127,8 @@ export function Staff({ settings }: { settings: Settings }) {
   const onPath = ranked.filter((x) => x.onPath);
   const unknownSteps = evaluation ? unknownStepLabels(evaluation.verdict, evaluation.graph) : [];
   const result = evaluation?.verdict.result;
+  // 読解の確認：攻撃の記事ではないと判断したとき、本文が途中で切れていそうなとき
+  const notices = readNotices(theCase, caseMeta?.readFlags);
   const heading = evaluation
     ? templateHeading(evaluation.verdict, knowledge.templates).replace(/^型紙/, "攻撃の型（型紙）")
     : "";
@@ -253,6 +256,17 @@ export function Staff({ settings }: { settings: Settings }) {
             {heading && <> ／ {heading}</>}
           </p>
           <h1 style={{ fontSize: 20 }}>{theCase.title}</h1>
+          {notices.map((n) => (
+            <p key={n.id} className={`read-notice ${n.tone}`}>
+              {n.textJa}
+              {n.pasteLink && (
+                <>
+                  {"　"}
+                  <a href="#/">はじめにの「本文」から貼る</a>
+                </>
+              )}
+            </p>
+          ))}
         </div>
         <Meters
           clock={clock}

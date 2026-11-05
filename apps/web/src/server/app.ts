@@ -21,20 +21,14 @@ import {
   repoRoot,
   sourcesView,
 } from "@uchidai/engine";
-import {
-  fetchArticle,
-  type ReadKnowledge,
-  readCase,
-  resolveFetch,
-  templateTechniques,
-  verifyCase,
-} from "@uchidai/llm";
+import { type ReadKnowledge, readCase, templateTechniques, verifyCase } from "@uchidai/llm";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
+import { loadArticle } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { patchProfile } from "./profile-patch.ts";
@@ -46,7 +40,6 @@ import { kevRoutes } from "./routes/kev.ts";
 import { onepagerRoutes } from "./routes/onepager.ts";
 import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
-import { assertPublicUrl, guardedFetch } from "./safe-url.ts";
 
 const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
@@ -253,26 +246,7 @@ app.post("/api/case/read", async (c) => {
       503,
     );
   }
-  if (input.kind === "url") await assertPublicUrl(input.url);
-  const article =
-    input.kind === "url"
-      ? await fetchArticle(
-          { kind: "url", url: input.url, ...(input.pages ? { pages: input.pages } : {}) },
-          { fetch: guardedFetch(resolveFetch()) },
-        )
-      : input.kind === "text"
-        ? await fetchArticle({
-            kind: "text",
-            text: input.text,
-            ...(input.title ? { title: input.title } : {}),
-            ...(input.sourceUrl ? { sourceUrl: input.sourceUrl } : {}),
-          })
-        : await fetchArticle({
-            kind: "pdf",
-            data: new Uint8Array(Buffer.from(input.dataBase64, "base64")),
-            ...(input.pages ? { pages: input.pages } : {}),
-            ...(input.sourceUrl ? { sourceUrl: input.sourceUrl } : {}),
-          });
+  const article = await loadArticle(input);
   const k = loadKnowledge();
   const knowledge: ReadKnowledge = { labels: k.labels, templates: k.templates };
   const meta: { url?: string; title?: string } = {};
@@ -293,6 +267,8 @@ app.post("/api/case/read", async (c) => {
       kind: article.kind,
       sourceUrl: article.sourceUrl,
       chars: article.text.length,
+      ...(article.incomplete ? { incomplete: article.incomplete } : {}),
+      ...(article.truncated ? { truncated: true } : {}),
     },
     model: read.model,
   });

@@ -21,7 +21,11 @@ import {
   OUT_OF_SCOPE,
   type StepCertainty,
 } from "@uchidai/engine";
+import { dedupeInstructions, detectInstructions } from "./injection.ts";
 import { RawCase } from "./schema.ts";
+
+// 指示らしき文の検知は injection.ts に分けた。呼び出し側の import はそのまま使えるよう、ここからも出す
+export { detectInstructions };
 
 /** 空白と全角半角の揺れを吸収して照合する（eval/src/score.ts の normalizeText と同じ規則） */
 export function normalizeText(s: string): string {
@@ -101,39 +105,6 @@ export type VerifyReport = {
 };
 
 export type VerifiedCase = { case: Case; report: VerifyReport };
-
-/** 記事中の、読み手（AI）への指示らしき文を検知する。文単位で返す */
-const INSTRUCTION_PATTERNS: RegExp[] = [
-  /(これまで|以前|上記|前述|直前|全て|すべて)の(指示|命令|プロンプト|ルール|設定)を?(無視|忘れ|破棄|取り消)/,
-  /(指示|命令|プロンプト)(を|に|は)(無視|従|忘れ|上書き)/,
-  /(AI|ＡＩ|アシスタント|言語モデル|LLM|ChatGPT|Claude|GPT|モデル|システムプロンプト|system prompt|読み手|読者の?AI)(へ|に|は|が|の方|の皆|様|さん)?[、:：]?\s*(あなた|必ず|絶対|次|以下|これ|この|出力|回答|判定|無視|従|と答え)/i,
-  /(と|を)(出力|回答|返答|表示|判定|分類|報告|記載)(しなさい|して下さい|してください|せよ|すること|しろ|する必要があります|しなければ)/,
-  /(あなたは|お前は|君は)(今から|これから|今後|以後)?[^。\n]{0,20}(です|である|になりました|として振る舞|として動作)/,
-  // 出力の項目名や値を名指しして書き換えさせる文（damageType を out_of_scope に、全段階を blocked に、など）
-  /(damageType|clarity|source|technique|tactic|steps?|verdict|state|result|quote|suspiciousInstructions|out_of_scope|blocked|inferred|stated|safe)\b[^。\n]{0,40}(にせよ|にしろ|にして|に設定|に変更|に書き換え|とせよ|としろ|として(ください|下さい|出力|回答|判定|記録)|とし(なさい|てください)|にすること|を返|で返)/i,
-  /(全|すべての|全ての|各)(段階|ステップ|経路|手法)[^。\n]{0,20}(blocked|止ま|安全|無害|防げ|問題な)/,
-  /(この|本|当)(記事|事例|文書|資料|文章)は(安全|無害|攻撃事例ではな|対象外|問題な|脅威ではな)/,
-  /ignore\s+(all\s+|the\s+|any\s+)?(previous|prior|above|earlier)\s+(instructions?|prompts?|rules?)/i,
-  /\b(disregard|forget|override)\b[^.\n]{0,40}\b(instructions?|prompts?|rules?)\b/i,
-  /\byou\s+are\s+now\b/i,
-  /\b(system\s*prompt|developer\s*message)\b/i,
-  /\b(output|respond|answer|reply|classify|report)\s+(only\s+)?(with|as|that)\b[^.\n]{0,60}\b(json|safe|blocked|no\s+risk|secure)\b/i,
-  /\b(set|mark|classify|treat|label)\b[^.\n]{0,40}\b(as|to)\b[^.\n]{0,20}\b(safe|blocked|out_of_scope|benign|harmless|secure)\b/i,
-  /\b(assistant|AI|model)\s*[:：]\s*(you\s+must|please|always|never)/i,
-];
-
-export function detectInstructions(text: string): string[] {
-  const sentences = text
-    .split(/(?<=[。．！？!?])|\n+/)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  const hits: string[] = [];
-  for (const s of sentences) {
-    if (INSTRUCTION_PATTERNS.some((re) => re.test(s)))
-      hits.push(s.length > 200 ? `${s.slice(0, 200)}…` : s);
-  }
-  return [...new Set(hits)];
-}
 
 function clip(s: string, max: number): string {
   const t = s.trim();
@@ -375,14 +346,21 @@ export function verifyCase(
     if (n.length >= 4 && normalizedArticle.includes(n)) reported.push(clip(line, 200));
     else report.droppedSuspicious.push(line);
   }
-  report.suspiciousInstructions = [...new Set([...reported, ...detected])];
+  report.suspiciousInstructions = dedupeInstructions(
+    [...new Set([...reported, ...detected])],
+    normalizeText,
+  );
 
   report.counts.stepsOut = steps.length;
   report.counts.techniquesOut = steps.reduce((n, s) => n + s.techniques.length, 0);
   report.counts.quotesOut = steps.filter((s) => s.quote !== undefined).length;
 
-  if (steps.length === 0) report.warnings.push("攻撃の段階を 1 つも読み取れませんでした");
-  else if (allowed && report.counts.techniquesIn > 0 && report.counts.techniquesOut === 0)
+  // 攻撃の記事でない（out_of_scope）と読んで段階が 0 なのは、読み取りの失敗ではなく想定どおり。警告にしない（TRIAL-S-009）。
+  // 画面は damageType が out_of_scope で段階が 0 のとき「攻撃の記事ではないと判断しました」と出す
+  if (steps.length === 0) {
+    if (parsed.damageType !== OUT_OF_SCOPE)
+      report.warnings.push("攻撃の段階を 1 つも読み取れませんでした");
+  } else if (allowed && report.counts.techniquesIn > 0 && report.counts.techniquesOut === 0)
     report.warnings.push(
       `読み取った手法がすべて被害の型（${parsed.damageType}）の型紙にありません。記事の型と型紙が合っていない可能性があります`,
     );
@@ -392,7 +370,7 @@ export function verifyCase(
     );
   if (report.suspiciousInstructions.length > 0)
     report.warnings.push(
-      `記事の中に読み手への指示らしき文が ${report.suspiciousInstructions.length} 件あります。読解結果が影響を受けていないか確認してください`,
+      `記事の中に指示らしき文が ${report.suspiciousInstructions.length} 件ありました。判定には使っておらず、読解の結果は変わりませんが、念のためご確認ください`,
     );
 
   const c: Case = Case.parse({
