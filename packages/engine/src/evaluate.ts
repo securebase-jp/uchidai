@@ -646,9 +646,10 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
  * 「記事の会社は被害を防げた事例です。同じ手口が御社に来たら、…」にする（第三者の事故の見出しを優先する）
  */
 function applyArticleFacts(v: Verdict, theCase: Case): Verdict {
-  if (theCase.reportedLossJpy === undefined && !theCase.averted) return v;
-  const headline =
-    theCase.averted && !v.thirdParty && v.paths.length > 0 ? avertedHeadline(v.result) : undefined;
+  // 第三者（委託先・取引先・提供元）の事故は「被害を防げた事例」にしない（見出しも一枚の先頭の文も、第三者の事故のほうだけを使う。TRIAL-I-003）
+  const averted = theCase.averted === true && !v.thirdParty;
+  if (theCase.reportedLossJpy === undefined && !averted) return v;
+  const headline = averted && v.paths.length > 0 ? avertedHeadline(v.result) : undefined;
   return {
     ...v,
     ...(headline ? { headlineJa: headline } : {}),
@@ -656,7 +657,7 @@ function applyArticleFacts(v: Verdict, theCase: Case): Verdict {
       ...(theCase.reportedLossJpy !== undefined
         ? { reportedLossJpy: theCase.reportedLossJpy }
         : {}),
-      ...(theCase.averted ? { averted: true } : {}),
+      ...(averted ? { averted: true } : {}),
     },
   };
 }

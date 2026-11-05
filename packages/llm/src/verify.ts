@@ -93,6 +93,8 @@ export type VerifyReport = {
   titleOnlyQuotes: number[];
   /** 記事に見当たらないので捨てた被害額（円。読解が写した値が、記事の円の金額のどれにも一致しなかった） */
   droppedReportedLoss?: number;
+  /** 読解が averted（被害を防げた）を true にしたが、記事に未遂・阻止・被害は発生しなかった旨の語が無いので false にした（TRIAL-I-003） */
+  droppedAverted?: true;
   /** 捨てた漏えいした情報の種類（定義にない値） */
   droppedLeakedData?: string[];
   /** 捨てた被害を受けた側（定義にない値） */
@@ -161,6 +163,9 @@ const IMPERSONATION_TECHNIQUE = /^T1684(\.|$)|^T1656(\.|$)/;
 const PARTNER_WORDS =
   /取引先|仕入先|仕入れ先|納入先|発注元|得意先|顧客|請負先|委託先|協力会社|下請け|サプライヤ|関係会社|取引相手/;
 const EXEC_WORDS = /社長|代表(取締役|者)?|役員|経営者|経営陣|CEO|CFO|幹部|上司|オーナー/;
+/** 被害を防げた（未遂・阻止・被害は発生しなかった）と書く語。averted を残してよいのは、本文にこのどれかがあるときだけ */
+const AVERTED_WORDS =
+  /未遂|未然|防(げ(?!なかっ)|い)|被害(は|が)(発生し|生じ)(なかった|てい(ない|ません)|ておりません)|被害(は|には|に)(至|出)(らなかっ|なかっ|ませんでし)|送金前|阻止/;
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -421,6 +426,14 @@ export function verifyCase(
     else report.droppedReportedLoss = claimed;
   }
 
+  // 被害を防げた（averted）：未遂・阻止・被害は発生しなかったと書かれた記事だけ。「漏えいの事実は確認されていない」
+  // 「可能性にとどまる」は、被害が確定していないだけなので未遂ではない（TRIAL-I-003）
+  let averted = parsed.averted === true;
+  if (averted && !AVERTED_WORDS.test(normalizeText(`${articleText}\n${options.title ?? ""}`))) {
+    averted = false;
+    report.droppedAverted = true;
+  }
+
   const detected = detectInstructions(articleText);
   const reported: string[] = [];
   for (const line of parsed.suspiciousInstructions) {
@@ -465,7 +478,7 @@ export function verifyCase(
     ...(victim ? { victim } : {}),
     ...(leakedData.length > 0 ? { leakedData } : {}),
     ...(reportedLossJpy !== undefined ? { reportedLossJpy } : {}),
-    ...(parsed.averted ? { averted: true } : {}),
+    ...(averted ? { averted: true } : {}),
   });
   return { case: c, report };
 }

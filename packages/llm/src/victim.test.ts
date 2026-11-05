@@ -208,9 +208,33 @@ describe("B-003・B-013：読解の被害額と未遂", () => {
     expect(verifyCase(withFacts(null), body, attack).case.reportedLossJpy).toBeUndefined();
     expect(verifyCase(withFacts(-5), body, attack).case.reportedLossJpy).toBeUndefined();
   });
-  it("averted は true のときだけ持たせる", () => {
-    expect(verifyCase(withFacts(null, true), body, attack).case.averted).toBe(true);
-    expect(verifyCase(withFacts(null, false), body, attack).case.averted).toBeUndefined();
+  it("averted は true のときだけ持たせる（本文に未遂・阻止などの語があるとき）", () => {
+    const foiled = `${body}ただし、別の送金は銀行が阻止した。`;
+    expect(verifyCase(withFacts(null, true), foiled, attack).case.averted).toBe(true);
+    expect(verifyCase(withFacts(null, false), foiled, attack).case.averted).toBeUndefined();
+  });
+  it("TRIAL-I-003：「漏えいの事実は確認されていない」だけの本文なら、averted: true を false にして report に残す", () => {
+    const text =
+      "提供元で不正アクセスがあり、メールアドレスが漏えいした可能性がある。実際に漏えいしたことを示す事実は確認されていない。";
+    const r = verifyCase(withFacts(null, true), text, attack);
+    expect(r.case.averted).toBeUndefined();
+    expect(r.report.droppedAverted).toBe(true);
+    // 語がある本文は残す
+    for (const w of [
+      "未遂に終わった",
+      "被害を防いだ",
+      "被害は発生していない",
+      "送金前に気づいた",
+      "被害には至らなかった",
+    ])
+      expect(
+        verifyCase(withFacts(null, true), `不正な送金の依頼があったが、${w}。`, attack).case
+          .averted,
+      ).toBe(true);
+    // 「防げなかった」は未遂ではない
+    expect(
+      verifyCase(withFacts(null, true), "被害を防げなかった。", attack).case.averted,
+    ).toBeUndefined();
   });
   it("スキーマと指示文に入る", () => {
     const schema = buildRawCaseJsonSchema() as { required: string[] };
