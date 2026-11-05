@@ -31,6 +31,24 @@ rules:
         reasonJa: 多要素認証の適用範囲が未確認
       - state: breached
         reasonJa: 流出したパスワードだけでログインできる
+  # 多要素認証を通り抜ける手口（TRIAL-B-009）。account_takeover.login_bypass と同じ考え方で、役員のメールアカウントに対して書く
+  - id: bec.takeover_bypass
+    role: cloud.mail_account.exec
+    techniques: [T1539, T1550.004, T1111, T1556.006]
+    materialsJa: カルテ：ログインの条件づけ（接続元・端末の制限、セッションの有効期間）
+    mitigations: [M1036]
+    ineffective:
+      - mitigation: M1032
+        reasonJa: 多要素認証を通ったあとのログイン済みの状態（セッション）や、認証そのものを奪う手口なので、多要素認証だけでは止められません
+    outcomes:
+      - state: recoverable
+        when: { control: { mitigation: M1036, status: present } }
+        reasonJa: 接続元・端末の条件づけとセッションの有効期間の短縮で、盗まれたセッションが使える範囲と時間を狭められる（完全には止められない）
+      - state: unknown
+        when: { control: { mitigation: M1036, status: unknown } }
+        reasonJa: ログインの条件づけが未確認
+      - state: breached
+        reasonJa: 多要素認証を通ったあとのセッションを盗まれると、そのまま別の場所からログインされる
   - id: bec.impersonate
     role: cloud.mail_account.exec
     techniques: [T1684.001, T1684.002]
@@ -96,3 +114,32 @@ rules:
         reasonJa: 送金の手順が未確認
       - state: breached
         reasonJa: 手順も研修もなく、届いた請求どおりに送金される
+  # --- SNS・チャットで社長や取引先を名乗って接触される手口（型紙 bec-invoice の接触の段階が T1566.003 のとき）。TRIAL-B-006 ---
+  # 新しい緩和策（UD-05 SNS・チャットの依頼に応じない運用、UD-06 二重承認、UD-07 上限）は、この手口でだけ効く対策として宣言する。
+  # 既存の bec.human / bec_invoice.mail の判定は変えない（メールの手口の結果と、デモの一枚は変わらない）
+  - id: bec_invoice.sns
+    role: person.accounting
+    techniques: [T1566.003]
+    materialsJa: カルテ：SNS・チャットの依頼への対応、送金・振込先変更の手順（折り返し確認・二人承認）、送金の上限額、研修
+    mitigations: [UD-05, UD-01, UD-06, UD-07, M1017]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: UD-05, status: present } }
+        reasonJa: SNS・チャットのグループ作成や招待の依頼に応じない運用があるので、社長を名乗る接触でも先へ進まない
+      - state: blocked
+        when: { control: { mitigation: UD-06, status: present } }
+        reasonJa: 送金に二人目の承認が要るので、SNS・チャットの指示だけでは送金されない
+      - state: blocked
+        when: { control: { mitigation: UD-01, status: present } }
+        reasonJa: 振込先変更や急な送金は、登録済みの連絡先へ折り返して確認する、または二人で承認する手順があるので、SNS・チャットの指示でも止まる
+      - state: recoverable
+        when: { control: { mitigation: UD-07, status: present } }
+        reasonJa: 一人で送れる額に上限があるので、被害は上限までに抑えられる（上限内の額は送金されうる）
+      - state: human
+        when: { control: { mitigation: M1017, status: present } }
+        reasonJa: 研修のみ。本物の社長に見える接触にだまされても、仕組みで止まる手順がない
+      - state: unknown
+        when: { control: { mitigation: UD-01, status: unknown } }
+        reasonJa: 送金の手順が未確認
+      - state: breached
+        reasonJa: SNS・チャットの依頼に応じない運用も、二人承認も、上限もなく、指示どおりに送金される

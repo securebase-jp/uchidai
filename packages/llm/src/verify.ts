@@ -136,6 +136,14 @@ const NOT_STATED =
 /** 持ち出された情報が公開された：リークサイトへの掲載、公開済み */
 const PUBLISHED =
   /公開(された|され|済み|して)|掲載(された|され|して)|リークサイト|闇サイト|ダークウェブ/;
+/**
+ * なりすましの段階（T1684 など）で装った相手（TRIAL-B-005）。取引先・仕入先・顧客などを装ったと書かれ、
+ * 社長・役員などを装ったとは書かれていないときだけ partner にする（両方あるときや、どちらも無いときは既定の社長のまま）
+ */
+const IMPERSONATION_TECHNIQUE = /^T1684(\.|$)|^T1656(\.|$)/;
+const PARTNER_WORDS =
+  /取引先|仕入先|仕入れ先|納入先|発注元|得意先|顧客|請負先|委託先|協力会社|下請け|サプライヤ|関係会社|取引相手/;
+const EXEC_WORDS = /社長|代表(取締役|者)?|役員|経営者|経営陣|CEO|CFO|幹部|上司|オーナー/;
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -340,6 +348,11 @@ export function verifyCase(
       PUBLISHED.test(`${s.quote ?? ""}\n${s.summaryJa}`)
     )
       step.published = true;
+    // なりすましの段階：装った相手が取引先で、社長ではないとき（型紙の段階の札を取引先の言い方にする）
+    if (source !== "unknown" && stepTechniques.some((id) => IMPERSONATION_TECHNIQUE.test(id))) {
+      const said = `${s.quote ?? ""}\n${s.summaryJa}`;
+      if (PARTNER_WORDS.test(said) && !EXEC_WORDS.test(said)) step.impersonates = "partner";
+    }
     if (quote !== undefined) step.quote = quote;
     if (s.summaryJa.trim()) step.summaryJa = clip(s.summaryJa, MAX_SUMMARY);
     steps.push(step);

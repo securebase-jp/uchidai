@@ -99,6 +99,17 @@ measures:
         status: present
         attrs: { mfaException: false }
     requestToJa: 情シス担当者（設定変更）
+  - id: session-conditions
+    labelJa: メールのログインに接続元・端末の条件と、セッションの有効期間の短縮
+    mitigation: M1036
+    patches:
+      - role: cloud.mail_account.staff
+        mitigation: M1036
+        status: present
+      - role: cloud.mail_account.exec
+        mitigation: M1036
+        status: present
+    requestToJa: 情シス担当者（設定変更）
   - id: mail-forward-audit
     labelJa: メールの転送ルールの点検
     mitigation: M1047
@@ -211,3 +222,53 @@ measures:
     mitigation: UD-04
     patches: []
     requestToJa: 総務・法務
+  # --- SNS・チャットで社長や取引先を名乗って接触される手口（TRIAL-B-006）。社内の運用や設定で、外部費用はかからない ---
+  - id: sns-group-refuse
+    labelJa: SNS・チャットのグループ作成の依頼に応じない運用
+    mitigation: UD-05
+    patches:
+      - role: person.accounting
+        mitigation: UD-05
+        status: present
+    requestToJa: 経理・社長（社内ルール）
+  - id: transfer-dual-approval
+    labelJa: 送金の二重承認
+    mitigation: UD-06
+    patches:
+      - role: person.accounting
+        mitigation: UD-06
+        status: present
+    requestToJa: 経理・社長（社内ルール）
+  - id: transfer-limit
+    labelJa: 一人で送金できる上限額の設定
+    mitigation: UD-07
+    patches:
+      - role: person.accounting
+        mitigation: UD-07
+        status: present
+    requestToJa: 経理・社長（社内ルール）、ネットバンキングの設定
+  # --- ランサムウェアの任意の枝（永続化・遠隔操作・ログ消去。TRIAL-R-005）。記事にその段階があるときだけ並ぶ ---
+  - id: admin-account-monitor
+    labelJa: 管理者アカウントの作成・変更の監視と棚卸し
+    mitigation: M1047
+    patches:
+      - role: admin
+        mitigation: M1047
+        status: present
+    requestToJa: 情シス担当者・保守ベンダー
+  - id: egress-restrict
+    labelJa: サーバからの外向き通信を許可した宛先に限る
+    mitigation: M1037
+    patches:
+      - role: server
+        mitigation: M1037
+        status: present
+    requestToJa: 保守ベンダー
+  - id: log-offsite
+    labelJa: ログを別の場所にも保管する
+    mitigation: M1029
+    patches:
+      - role: server
+        mitigation: M1029
+        status: present
+    requestToJa: 保守ベンダー

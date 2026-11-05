@@ -169,6 +169,21 @@ export function walkStages(
   return out;
 }
 
+function stageLabels(
+  stage: TemplateStage,
+  impersonates: string | undefined,
+): Pick<PathStep, "labelJa" | "breachedLabelJa" | "breachedDoneJa"> {
+  const v = impersonates ? stage.variants?.[impersonates] : undefined;
+  const labelJa = v?.labelJa ?? stage.labelJa;
+  const breachedJa = v ? (v.breachedJa ?? stage.breachedJa) : stage.breachedJa;
+  const doneJa = v ? (v.breachedDoneJa ?? stage.breachedDoneJa) : stage.breachedDoneJa;
+  return {
+    labelJa,
+    ...(breachedJa ? { breachedLabelJa: breachedJa } : {}),
+    ...(doneJa ? { breachedDoneJa: doneJa } : {}),
+  };
+}
+
 function evaluateStageNode(
   { stage, node }: StageNode,
   technique: string | undefined,
@@ -191,9 +206,8 @@ function evaluateStageNode(
       ? { certainty: matched.certainty }
       : {}),
     ...(matched?.published ? { published: true } : {}),
-    labelJa: stage.labelJa,
-    ...(stage.breachedJa ? { breachedLabelJa: stage.breachedJa } : {}),
-    ...(stage.breachedDoneJa ? { breachedDoneJa: stage.breachedDoneJa } : {}),
+    // 記事が装った相手が社長以外（取引先など）のとき、型紙の variants で札を差し替える。判定は変えない
+    ...stageLabels(stage, matched?.impersonates),
     ...(stage.precondition ? { precondition: true } : {}),
     ...(stage.branch ? { branch: true } : {}),
     ...(matched?.quote ? { quote: matched.quote } : {}),

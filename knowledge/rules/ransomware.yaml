@@ -119,6 +119,21 @@ rules:
         reasonJa: EDR の有無・監視体制・管理者アカウントの分離が未確認
       - state: breached
         reasonJa: 管理者権限を奪う手口を止める仕組みがない
+  # --- 任意の枝の段階（TRIAL-R-005）。記事に書かれたときだけ経路に入る。止まっても暗号化の本線は進む ---
+  - id: ransomware.persist
+    role: admin
+    techniques: [T1136, T1136.001, T1136.002, T1136.003, T1098]
+    materialsJa: カルテ：管理者アカウントの作成・変更の監視と、定期的な棚卸し
+    mitigations: [M1047]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1047, status: present } }
+        reasonJa: 管理者アカウントの作成・変更を監視し、定期的に棚卸ししているので、攻撃者用のアカウントを作られても早く見つかる
+      - state: unknown
+        when: { control: { mitigation: M1047, status: unknown } }
+        reasonJa: 管理者アカウントの監視と棚卸しが未確認
+      - state: breached
+        reasonJa: 管理者アカウントの作成を見張る仕組みがなく、攻撃者用のアカウントを作られても気づけない
   - id: ransomware.lateral
     role: server
     techniques: [T1021, T1021.001, T1021.002]
@@ -142,6 +157,42 @@ rules:
         reasonJa: 区画の分離が未確認
       - state: breached
         reasonJa: 業務サーバと PC が同じネットワークにある
+  - id: ransomware.discover
+    role: server
+    techniques: [T1018, T1082, T1087, T1087.002, T1135, T1046, T1069, T1016]
+    materialsJa: ―（予防では止められない段階。侵入と権限の奪取の段階で止める）
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 社内のサーバや共有を調べる動きは、正規の操作に紛れるので止められない。止めるのは、侵入と管理者権限を奪う段階
+  - id: ransomware.remote
+    role: server
+    techniques: [T1219, T1219.002]
+    materialsJa: カルテ：サーバからの外向き通信の制限
+    mitigations: [M1037]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1037, status: present } }
+        reasonJa: サーバからの外向きの通信を許可した宛先に限っているので、仕込まれた遠隔操作ツールが外と通信できない
+      - state: unknown
+        when: { control: { mitigation: M1037, status: unknown } }
+        reasonJa: サーバからの外向き通信の制限が未確認
+      - state: breached
+        reasonJa: サーバから外への通信を限っておらず、遠隔操作ツールが外から操作される
+  - id: ransomware.evade
+    role: server
+    techniques: [T1070, T1070.004, T1070.006, T1685, T1685.001, T1685.005]
+    materialsJa: カルテ：ログの別保管
+    mitigations: [M1029]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1029, status: present } }
+        reasonJa: ログを別の場所にも保管しているので、サーバのログを消されても記録が残り、痕跡を隠せない
+      - state: unknown
+        when: { control: { mitigation: M1029, status: unknown } }
+        reasonJa: ログの別保管が未確認
+      - state: breached
+        reasonJa: ログがサーバの中にしかなく、消されると何が起きたか追えなくなる
   - id: ransomware.recovery
     role: backup
     techniques: [T1490]

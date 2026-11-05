@@ -131,6 +131,17 @@ export type RuleOutcome = z.infer<typeof RuleOutcome>;
 // ---------------------------------------------------------------------------
 // 型紙
 // ---------------------------------------------------------------------------
+/**
+ * 記事が装った相手が既定（社長・役員）と違うときの、段階の言い方（TRIAL-B-005）。
+ * キーは Case の段階の impersonates の値。判定そのものは変えず、段階の札だけを差し替える
+ */
+export const StageVariant = z.object({
+  labelJa: z.string(),
+  breachedJa: z.string().optional(),
+  breachedDoneJa: z.string().optional(),
+});
+export type StageVariant = z.infer<typeof StageVariant>;
+
 export const TemplateStage = z.object({
   id: z.string(),
   labelJa: z.string(),
@@ -153,6 +164,8 @@ export const TemplateStage = z.object({
   byRole: z.record(Role, TechniqueId.nullable()),
   /** 記事に記載された手法として受け入れる ID */
   accepts: z.array(TechniqueId).default([]),
+  /** 記事が装った相手が社長以外のときの言い方（impersonates の値 → 札）。無ければ labelJa のまま */
+  variants: z.record(z.string(), StageVariant).optional(),
 });
 export const Template = z.object({
   id: z.string(),

@@ -28,6 +28,17 @@ stages:
     byRole:
       admin: T1003
     accepts: [T1003, T1078, T1110, T1110.004, T1555]
+  - id: persist
+    labelJa: 管理者アカウントを作って居座る
+    breachedJa: 居座られる
+    breachedDoneJa: 居座られました
+    tactics: [TA0003]
+    byRole:
+      admin: T1136
+    accepts: [T1136, T1136.001, T1136.002, T1136.003, T1098]
+    # 記事に具体的に書かれたときだけ経路に入れる枝（TRIAL-R-005）。止まっても暗号化の本線は進む
+    optional: true
+    branch: true
   - id: lateral
     labelJa: サーバへ広がる
     breachedJa: 侵入される
@@ -36,6 +47,39 @@ stages:
     byRole:
       server: T1021
     accepts: [T1021, T1021.001, T1021.002, T1570, T1210]
+  - id: discover
+    labelJa: 社内のサーバや共有を調べる
+    breachedJa: 調べられる
+    breachedDoneJa: 調べられました
+    tactics: [TA0007]
+    byRole:
+      server: T1018
+    # T1083（ファイルとディレクトリの探索）は、情報漏えいの型紙で「収集」の手法として判定ルールを持つ（同じ役割×手法のルールは 1 つ）。
+    # ここでは受け入れず、探索のうち社内の機器・共有・アカウントを調べる手法だけを受け入れる
+    accepts: [T1018, T1082, T1087, T1087.002, T1135, T1046, T1069, T1016]
+    optional: true
+    branch: true
+  - id: remote
+    labelJa: 遠隔操作ツールを仕込む
+    breachedJa: 仕込まれる
+    breachedDoneJa: 仕込まれました
+    tactics: [TA0011]
+    byRole:
+      server: T1219
+    accepts: [T1219, T1219.002]
+    optional: true
+    branch: true
+  - id: evade
+    labelJa: ログを消して痕跡を隠す
+    breachedJa: 消される
+    breachedDoneJa: 消されました
+    tactics: [TA0005, TA0112]
+    byRole:
+      server: T1070
+    # 旧 ID の T1070.001（Windows イベントログの消去）は T1685.005 に置き換わっている
+    accepts: [T1070, T1070.004, T1070.006, T1685, T1685.001, T1685.005]
+    optional: true
+    branch: true
   - id: exfil
     labelJa: データを持ち出す（二重恐喝）
     breachedJa: 持ち出される

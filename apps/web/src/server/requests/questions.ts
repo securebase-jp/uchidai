@@ -308,6 +308,16 @@ const defs: QuestionDef[] = [
           UNKNOWN,
         ],
       },
+      admin: {
+        textJa:
+          "管理者アカウントが勝手に作られたり、権限を変えられたりしていないか、監視や定期的な棚卸しをしていますか",
+        hintJa: "見覚えのない管理者アカウントがないかを確かめることです",
+        choices: [
+          { id: "present", labelJa: "監視や棚卸しをしている", status: "present" },
+          { id: "absent", labelJa: "していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
       server: {
         textJa: "業務サーバのアクセスログを、定期的に確認していますか",
         choices: [
@@ -387,6 +397,67 @@ const defs: QuestionDef[] = [
     choices: [
       { id: "present", labelJa: "手順がある", status: "present" },
       { id: "absent", labelJa: "手順はない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1037",
+    textJa: "業務サーバから外への通信は、許可した宛先だけに限っていますか",
+    hintJa: "見覚えのない外部のサーバと通信できないようにする設定です",
+    choices: [
+      { id: "present", labelJa: "許可した宛先だけに限っている", status: "present" },
+      { id: "absent", labelJa: "限っていない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1029",
+    textJa: "業務サーバのログを、サーバの外の別の場所にも保管していますか",
+    hintJa: "サーバの中のログを消されても、記録が残るようにする設定です",
+    choices: [
+      { id: "present", labelJa: "別の場所にも保管している", status: "present" },
+      { id: "absent", labelJa: "サーバの中だけ", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1036",
+    textJa:
+      "メールのログインに、接続元や端末の条件（会社の端末だけ、など）や、ログインの有効期間を短くする設定をしていますか",
+    hintJa: "ログイン済みの状態を盗まれても、別の場所から使えないようにする設定です",
+    choices: [
+      { id: "present", labelJa: "条件や有効期間の設定をしている", status: "present" },
+      { id: "absent", labelJa: "していない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-05",
+    textJa:
+      "社長や取引先を名乗る人から SNS やチャットで連絡があり、グループの作成や招待を頼まれたとき、応じない決まりはありますか",
+    hintJa: "登録済みの連絡先で本人に確かめるまで、口座や残高の話をしない決まりです",
+    choices: [
+      { id: "present", labelJa: "応じない決まりがある", status: "present" },
+      { id: "absent", labelJa: "決まりはない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-06",
+    textJa: "送金や振込先の変更は、二人目が内容を確かめて承認しないと実行できませんか",
+    choices: [
+      { id: "present", labelJa: "二人目の承認が要る", status: "present" },
+      { id: "absent", labelJa: "一人で実行できる", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-07",
+    textJa: "経理担当が一人で送金できる額に、上限を決めていますか",
+    hintJa: "上限を超える額は、社長など上位の人の承認が要る設定です",
+    choices: [
+      { id: "present", labelJa: "上限を決めている", status: "present" },
+      { id: "absent", labelJa: "上限はない", status: "absent" },
       UNKNOWN,
     ],
   },
