@@ -172,7 +172,8 @@ describe("S-005：ソフトウェアの供給網の事故（対象外）は、�
       demo,
       { knowledge: k },
     );
-    expect(v.guidanceJa).toBeUndefined();
+    // 供給網の案内は付かない（共通の案内だけ）
+    expect(v.guidanceJa?.join("")).not.toMatch(/供給網|配布元/);
     expect(v.headlineJa).toBe("この事故は攻撃経路で判定できないため、対象外です");
   });
   it("型紙のある被害の種類の事例で T1195.002 を受け入れる判定は変えない", () => {

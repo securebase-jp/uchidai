@@ -50,6 +50,9 @@
           "labelJa": {
             "type": "string"
           },
+          "labelUnknownCountJa": {
+            "type": "string"
+          },
           "when": {
             "type": "string",
             "enum": [

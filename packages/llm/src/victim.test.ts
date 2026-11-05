@@ -137,3 +137,33 @@ describe("一枚の言い換え：第三者の事故", () => {
     ).toBeUndefined();
   });
 });
+
+describe("D-007：報告は「必要ない」と書かない。止まる結論は「この経路では」と限る", () => {
+  const base: OnePagerWriterInput = {
+    result: "blocked",
+    stages: [{ labelJa: "入口から侵入", roleJa: "VPN装置", state: "blocked", source: "stated" }],
+    stopped: [],
+    downtimeDays: 0,
+    reportRequired: false,
+    personalDataJa: [],
+  };
+  it("「個人情報の報告も必要ありません」「不要」を含む文は捨てる", () => {
+    for (const line of [
+      "個人情報の報告も必要ありません。",
+      "報告は不要です。",
+      "個人情報の報告が必要ない見込みです。",
+    ]) {
+      expect(
+        checkWriterOutput({ whatHappensJa: ["この経路では入口で止まります。", line] }, base),
+      ).toMatch(/報告/);
+    }
+  });
+  it("blocked の結論に「この経路では」が無ければ捨てる", () => {
+    expect(checkWriterOutput({ whatHappensJa: ["入口で止まります。"] }, base)).toMatch(
+      /この経路では/,
+    );
+    expect(
+      checkWriterOutput({ whatHappensJa: ["この経路では、VPN装置の入口で止まります。"] }, base),
+    ).toBeUndefined();
+  });
+});

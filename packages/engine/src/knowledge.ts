@@ -322,6 +322,25 @@ export const VictimDef = z.object({
 export const VictimsFile = z.object({ victims: z.array(VictimDef).min(1) });
 export type VictimDef = z.infer<typeof VictimDef>;
 
+// ---------------------------------------------------------------------------
+// 対象外の事故の共通の初動（knowledge/first-actions.yaml）。判定は出さず、固定の文を出す
+// ---------------------------------------------------------------------------
+export const FirstActionsFile = z.object({
+  common: z.array(z.string()).default([]),
+  byTechnique: z
+    .array(
+      z.object({
+        id: z.string(),
+        labelJa: z.string(),
+        /** 記事の段階の手法（ATT&CK の ID の前方一致） */
+        techniques: z.array(z.string()).min(1),
+        actionsJa: z.array(z.string()).min(1),
+      }),
+    )
+    .default([]),
+});
+export type FirstActionsFile = z.infer<typeof FirstActionsFile>;
+
 export const EntryCandidates = z.object({
   sourceJa: z.string(),
   sourceUrl: z.string(),
@@ -348,6 +367,8 @@ export const ReportTrigger = z.object({
   id: z.string(),
   ruleJa: z.string(),
   labelJa: z.string(),
+  /** 件数が未入力（既定の over1000 のまま）のときの言い方。実際の件数が分かっているかのように書かない */
+  labelUnknownCountJa: z.string().optional(),
   when: z.enum(["sensitive", "unauthorizedAccess", "over1000"]),
   sourceId: z.string(),
 });
@@ -508,6 +529,9 @@ export function loadIndustries(): IndustryOption[] {
 export function loadDamageTypes(): DamageTypeDef[] {
   return DamageTypesFile.parse(readYaml("damage-types.yaml")).damageTypes;
 }
+export function loadFirstActions(): FirstActionsFile {
+  return FirstActionsFile.parse(readYaml("first-actions.yaml"));
+}
 export function loadVictims(): VictimDef[] {
   return VictimsFile.parse(readYaml("victims.yaml")).victims;
 }
@@ -570,6 +594,8 @@ export type Knowledge = {
   entryKinds: EntryKindDef[];
   /** 被害を受けた側（victims.yaml） */
   victims: VictimDef[];
+  /** 対象外の事故の共通の初動（first-actions.yaml） */
+  firstActions: FirstActionsFile;
   deadlines: DeadlinesFile;
   costs: CostsFile;
 };
@@ -588,6 +614,7 @@ export function loadKnowledge(): Knowledge {
     entryCandidates: loadEntryCandidates(),
     entryKinds: loadEntryKinds(),
     victims: loadVictims(),
+    firstActions: loadFirstActions(),
     deadlines: loadDeadlines(),
     costs: loadCosts(),
   };
@@ -1016,6 +1043,7 @@ export const schemaExports = {
   "entry-candidates.schema.json": EntryCandidates,
   "entry-kinds.schema.json": EntryKindsFile,
   "victims.schema.json": VictimsFile,
+  "first-actions.schema.json": FirstActionsFile,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
   "sources.schema.json": SourcesFile,

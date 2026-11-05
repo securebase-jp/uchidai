@@ -575,6 +575,23 @@ function supplyChainGuidance(theCase: Case): string[] {
   ];
 }
 
+/**
+ * 判定の対象外の事故のとき、判定は出さず、固定の文を出す（D-006、B-002）：
+ * 個人情報が外部の人に見られた可能性があれば報告が必要になることがある、と共通の初動（knowledge/first-actions.yaml）
+ */
+export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[] {
+  const techniques = theCase.steps.flatMap((s) => s.techniques);
+  const matched = knowledge.firstActions.byTechnique.filter((a) =>
+    a.techniques.some((prefix) => techniques.some((t) => t.startsWith(prefix))),
+  );
+  return [
+    "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    "攻撃経路は判定できませんが、個人情報が外部の人に見られた可能性がある場合は、個人情報保護委員会への報告が必要になることがあります。",
+    ...knowledge.firstActions.common,
+    ...matched.flatMap((a) => a.actionsJa),
+  ];
+}
+
 /** 第三者（委託先・取引先・提供元）の事故の見出し：御社の設備が入口になったとは言わず、「御社が同じ立場なら」の見立てとして書く */
 const THIRD_PARTY_TAIL: Partial<Record<VerdictResult, string>> = {
   blocked: "止められます",
@@ -655,14 +672,17 @@ function evaluateCore(
         ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
         guidanceJa: supplyChainGuidance(theCase),
       };
-    return empty("out_of_scope");
+    return { ...empty("out_of_scope"), guidanceJa: outOfScopeGuidance(theCase, knowledge) };
   }
 
   // 記事の段階のどれも型紙の手法に対応づけられないなら、どの型紙もこの記事の攻撃を表していない。
   // 手法の無い段階を戦術だけで当てはめて「止められます」と答えると、誤って安心を与えるので判定しない。
   // 入口が分からない記事（clarity: unknown）は、仕様どおり入口の候補をすべて展開する
   if (theCase.clarity !== "unknown" && theCase.steps.length > 0 && top.stageMatches === 0) {
-    return empty("out_of_scope", UNMAPPED_HEADLINE);
+    return {
+      ...empty("out_of_scope", UNMAPPED_HEADLINE),
+      guidanceJa: outOfScopeGuidance(theCase, knowledge),
+    };
   }
 
   const paths: AttackPath[] = [];

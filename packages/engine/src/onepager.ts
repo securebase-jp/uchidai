@@ -191,6 +191,27 @@ export function thirdPartyLines(verdict: Verdict): string[] {
   ];
 }
 
+/**
+ * 報告義務の安心側に倒さないための注意（B-004）：メールアカウントに入られる経路では、メールの中身を見られた可能性がある。
+ * カルテに個人情報として登録されていなくても、「報告は不要」とは書かず、内容の確認を求める
+ */
+export function reportCautionLines(verdict: Verdict): string[] {
+  const mailboxReached = verdict.paths.some(
+    (p) =>
+      p.reachedCore &&
+      p.steps.some((s) => s.role.startsWith("cloud.mail_account") && s.state !== "blocked"),
+  );
+  if (!mailboxReached || verdict.impact.reportRequired) return [];
+  return [
+    "メールの中身を見られた可能性があり、個人情報が含まれていれば、個人情報保護委員会への報告の対象です。メールの内容の確認が必要です。",
+  ];
+}
+
+/** 言い換えの文のあとに、プログラムの文として付ける行（第三者の事故の確認事項、報告義務の注意） */
+export function onePagerExtraLines(verdict: Verdict): string[] {
+  return [...thirdPartyLines(verdict), ...reportCautionLines(verdict)];
+}
+
 /** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
 function alreadyApplied(m: MeasureDef, profile: CompanyProfile): boolean {
   // 助言だけの対策（patches が空）は、カルテに書き込めないので「済み」とは見なさない
@@ -346,7 +367,7 @@ export function buildOnePager(
     whatHappens.push(
       `${impact.personalDataReached.map((p) => p.descriptionJa).join("、")}が漏えいしたおそれがあり、個人情報保護委員会への報告と本人への通知が必要になります。`,
     );
-  whatHappens.push(...thirdPartyLines(verdict));
+  whatHappens.push(...onePagerExtraLines(verdict));
 
   const deadlines: OnePagerDeadline[] = verdict.timeline
     .filter(
