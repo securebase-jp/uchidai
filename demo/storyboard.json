@@ -138,7 +138,16 @@
           "id": "build"
         }
       ],
-      "layers": []
+      "layers": [
+        {
+          "kind": "text",
+          "from": 9.2,
+          "to": 13,
+          "pos": "band",
+          "size": "md",
+          "text": "公開記録 ＋ 5つの質問の答え ＝ 会社の構成図"
+        }
+      ]
     },
     {
       "n": 5,
