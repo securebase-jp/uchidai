@@ -9,28 +9,16 @@
 
 import type { Case } from "@uchidai/engine";
 import { type Article, normalizeText } from "@uchidai/llm";
+import type { SeriesFailure, SeriesPartInfo } from "../shared/api.ts";
 import { loadArticle } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
 
 /** 連結した本文の上限（文字）。Claude に 1 回で読ませる大きさに収める */
 export const MAX_SERIES_CHARS = 150_000;
 
-export type SeriesPart = {
-  /** 並べたあとの番号（1 始まり）。「第N報」のN。公表元の呼び名（第3報など）とは別で、この画面での順番 */
-  number: number;
-  label: string;
-  /** 公表日（YYYY-MM-DD）。本文の先頭・題・URL から取れたときだけ */
-  date?: string;
-  url: string;
-  title?: string;
-  kind: Article["kind"];
-  chars: number;
-  /** 本文が途中で切れていそうな理由（HTML のとき）。画面の「続きが取得できていない可能性」の案内に使う */
-  incomplete?: string[];
-  truncated?: boolean;
-};
-export type SeriesFailure = { url: string; message: string };
+export type SeriesPart = SeriesPartInfo;
 
+export type { SeriesFailure };
 export type LoadedSeries = {
   parts: (SeriesPart & { text: string })[];
   failures: SeriesFailure[];
@@ -47,9 +35,17 @@ function isoOrUndefined(y: number, m: number, d: number): string | undefined {
     : undefined;
 }
 
+/** 本文の先頭の何文字までを、公表日が書かれる見出しの位置とみなすか。それより後ろの日付は、事故の日などが多いので採らない */
+const HEADER_CHARS = 200;
+
+/** 日付のあとに続くと、公表日ではなく出来事の日（事故が起きた日、判明した日、調査の日付）を指す言い方 */
+const EVENT_DATE_TAIL = "(?!\\s*(?:に|で|頃|ごろ|以降|以来|から|まで|時点|付|現在))";
+
 /**
- * 公表日を、本文の先頭 1,000 字 → 題 → URL の順に探す。年が書かれた日付だけを採る
- * （「10月1日」のように年が無いものは、事故の日付のことが多いので採らない）
+ * 公表日を、URL → 本文の先頭（見出しの位置）→ 題の順に探す。年が書かれた日付だけを採る。
+ * IR の URL（/20251003-0104.html、/pdf/20251003.pdf）の日付は公表日のことが多い。本文の日付は、
+ * 「2025年9月29日に発生した…」のような出来事の日を公表日と取り違えると続報の順が逆になるので、
+ * 先頭だけを見て、出来事の日を指す言い方が続く日付は採らない。取れなければ、並べ方は指定順になる
  */
 export function detectPublishedDate(article: {
   text: string;
@@ -57,25 +53,36 @@ export function detectPublishedDate(article: {
   sourceUrl?: string;
 }): string | undefined {
   const norm = (s: string) => s.normalize("NFKC");
-  for (const src of [norm(article.text.slice(0, 1000)), norm(article.title ?? "")]) {
-    const w = /令和\s*(\d{1,2}|元)\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日/.exec(src);
-    const a = /(20\d\d)\s*[年/.-]\s*(\d{1,2})\s*[月/.-]\s*(\d{1,2})/.exec(src);
+  const inText = (src: string): string | undefined => {
+    const w = new RegExp(
+      `令和\\s*(\\d{1,2}|元)\\s*年\\s*(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日${EVENT_DATE_TAIL}`,
+    ).exec(src);
+    const a = new RegExp(
+      `(20\\d\\d)\\s*年\\s*(\\d{1,2})\\s*月\\s*(\\d{1,2})\\s*日${EVENT_DATE_TAIL}|(20\\d\\d)[/.-](\\d{1,2})[/.-](\\d{1,2})(?!\\d)`,
+    ).exec(src);
     // 先に現れるほうを採る
-    const hit = [
+    const hits = [
       w && {
         at: w.index,
         iso: isoOrUndefined(2018 + (w[1] === "元" ? 1 : Number(w[1])), Number(w[2]), Number(w[3])),
       },
-      a && { at: a.index, iso: isoOrUndefined(Number(a[1]), Number(a[2]), Number(a[3])) },
-    ]
-      .filter(
-        (x): x is { at: number; iso: string | undefined } => Boolean(x) && x?.iso !== undefined,
-      )
-      .sort((x, y) => x.at - y.at)[0];
-    if (hit?.iso) return hit.iso;
-  }
+      a && {
+        at: a.index,
+        iso: isoOrUndefined(Number(a[1] ?? a[4]), Number(a[2] ?? a[5]), Number(a[3] ?? a[6])),
+      },
+    ].filter(
+      (x): x is { at: number; iso: string | undefined } => Boolean(x) && x?.iso !== undefined,
+    );
+    return hits.sort((x, y) => x.at - y.at)[0]?.iso;
+  };
   const u = /\/(20\d\d)[-/]?(\d\d)[-/]?(\d\d)(?:\/|$|[^\d])/.exec(article.sourceUrl ?? "");
-  return u ? isoOrUndefined(Number(u[1]), Number(u[2]), Number(u[3])) : undefined;
+  if (u) {
+    const iso = isoOrUndefined(Number(u[1]), Number(u[2]), Number(u[3]));
+    if (iso) return iso;
+  }
+  const fromHeader = inText(norm(article.text.slice(0, HEADER_CHARS)));
+  if (fromHeader) return fromHeader;
+  return inText(norm(article.title ?? ""));
 }
 
 /** 取得に失敗した公表があるとき（onError: "fail"）。どの URL がなぜ失敗したかを、画面が一覧にできるよう failures に持つ */

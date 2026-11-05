@@ -57,6 +57,8 @@ export type OnePagerViewData = {
   fromShare?: boolean;
   /** 記事に入口が書かれておらず、型紙の入口候補で判定した一枚 */
   entryUnknown?: boolean;
+  /** 同じ事故の複数の報を読んだとき：前の報から変わったこと（1〜2 文。プログラムが決定的に比べた固定の文） */
+  changesJa?: string[];
 };
 
 export function viewDataFromResponse(
@@ -72,6 +74,7 @@ export function viewDataFromResponse(
     generatedAt: now,
     diagram: { graph: r.graph, verdict: r.verdict, profile: r.profile, measures: r.measures },
     ...(opts.entryUnknown ? { entryUnknown: true } : {}),
+    ...(r.changes && r.changes.summaryJa.length > 0 ? { changesJa: r.changes.summaryJa } : {}),
   };
 }
 
@@ -183,6 +186,14 @@ export function OnePagerView({ data, measureLabel }: Props) {
                     <li key={line}>{line}</li>
                   ))}
                 </ol>
+                {data.changesJa && data.changesJa.length > 0 && (
+                  <p className="op-changed">
+                    <b>前の報から変わったこと</b>
+                    {data.changesJa.map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </p>
+                )}
               </section>
 
               <section className="op-sec op-stopped">

@@ -4,12 +4,14 @@
  * 読み込みに成功したら事例にして（setCase、担当者が選んだ事例）、担当者画面へ移る
  */
 import { useState } from "react";
+import { MAX_SERIES_URLS, type SeriesFailure } from "../../shared/api.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import { useReadAvailable } from "../hooks/useReadAvailable.ts";
 import { ApiError, api } from "../lib/api.ts";
 import { DAMAGE_LABEL } from "../lib/company-choices.ts";
 import { readUnavailable } from "../lib/read-available.ts";
 import { readFlagsOf } from "../lib/read-notices.ts";
+import { InfoButton } from "./InfoButton.tsx";
 
 /** PDF の上限（API の base64 上限 28,000,000 文字に収まる大きさ） */
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -42,7 +44,9 @@ type Props = {
 export function ArticleInput({ recorded, onDone }: Props) {
   const app = useApp();
   const readAvailable = useReadAvailable();
-  const [url, setUrl] = useState("");
+  // URL の欄。2 件目以降は「同じ事故の続報を追加」で足す（最大 MAX_SERIES_URLS 件）
+  const [urls, setUrls] = useState<string[]>([""]);
+  const filledUrls = urls.map((u) => u.trim()).filter((u) => u !== "");
   const [text, setText] = useState("");
   const [pdfName, setPdfName] = useState<string>();
   const [reading, setReading] = useState<"url" | "text" | "pdf">();
@@ -51,6 +55,8 @@ export function ArticleInput({ recorded, onDone }: Props) {
     keyMissing: boolean;
     /** 記事を取得できなかった（URL・PDF）。本文を貼って読む入口を添える */
     canPaste: boolean;
+    /** 複数の公表を読んで取得に失敗したもの（どの URL がなぜか） */
+    failures?: SeriesFailure[];
   }>();
   // 既定のタブ：キーが無いと分かっているサーバでは「記録済みの事例」（あれば）、それ以外は「URL」。
   // 後から分かったときは、まだ URL のままのときだけ切り替える
@@ -60,13 +66,15 @@ export function ArticleInput({ recorded, onDone }: Props) {
   const busy = reading !== undefined;
   const panelId = "article-tab-panel";
 
-  async function read(kind: "url" | "text" | "pdf", pdf?: File) {
+  async function read(kind: "url" | "text" | "pdf", pdf?: File, onError: "fail" | "skip" = "fail") {
     setReading(kind);
     setReadError(undefined);
     try {
       const input =
         kind === "url"
-          ? ({ kind: "url", url } as const)
+          ? filledUrls.length > 1
+            ? ({ kind: "urls", urls: filledUrls, onError } as const)
+            : ({ kind: "url", url: filledUrls[0] ?? "" } as const)
           : kind === "text"
             ? ({ kind: "text", text } as const)
             : ({ kind: "pdf", dataBase64: toBase64(await (pdf as File).arrayBuffer()) } as const);
@@ -74,9 +82,12 @@ export function ArticleInput({ recorded, onDone }: Props) {
       const readFlags = readFlagsOf(r.article);
       app.setCase(r.case, {
         label: r.case.title,
-        sourceJa: `Claude が記事を読解（${r.model}）`,
+        sourceJa: r.series
+          ? `Claude が ${r.series.parts.length} 件の公表を${r.series.order === "date" ? "日付順に" : "指定した順に"}読解（${r.model}）`
+          : `Claude が記事を読解（${r.model}）`,
         ...(r.article.sourceUrl ? { sourceUrl: r.article.sourceUrl } : {}),
         ...(readFlags.length > 0 ? { readFlags } : {}),
+        ...(r.series ? { series: r.series } : {}),
       });
       location.hash = "/staff";
       onDone?.();
@@ -88,6 +99,7 @@ export function ArticleInput({ recorded, onDone }: Props) {
         keyMissing,
         // 取得できなかった記事（404、ログインや有料の壁、タイムアウトなど）は 400 で返る。本文を貼れば取得を介さずに読める
         canPaste: kind !== "text" && e instanceof ApiError && e.status === 400,
+        ...(e instanceof ApiError && e.failures ? { failures: e.failures } : {}),
       });
       if (keyMissing) readUnavailable.save();
     } finally {
@@ -131,24 +143,70 @@ export function ArticleInput({ recorded, onDone }: Props) {
       </div>
       <div className="tabpanel" role="tabpanel" id={panelId}>
         {tab === "url" && (
-          <div className="row">
-            <input
-              className="in"
-              style={{ flex: 1, minWidth: 0 }}
-              placeholder="https://…（報道記事や公的機関の事例の URL）"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              disabled={busy}
-              aria-label="記事の URL"
-            />
-            <button
-              type="button"
-              className="btn sm primary"
-              disabled={!url || busy}
-              onClick={() => void read("url")}
-            >
-              {reading === "url" ? "読んでいます…" : "URL を読む"}
-            </button>
+          <div className="stack">
+            {urls.map((u, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: 欄は位置で区別する（並べ替えない）
+              <div className="row" key={i}>
+                <input
+                  className="in"
+                  style={{ flex: 1, minWidth: 0 }}
+                  placeholder={
+                    i === 0
+                      ? "https://…（報道記事や公的機関の事例の URL）"
+                      : "https://…（同じ事故の続報の URL）"
+                  }
+                  value={u}
+                  onChange={(e) => setUrls(urls.map((x, j) => (j === i ? e.target.value : x)))}
+                  disabled={busy}
+                  aria-label={i === 0 ? "記事の URL" : `続報の URL（${i + 1} 件目）`}
+                />
+                {i > 0 && (
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={busy}
+                    onClick={() => setUrls(urls.filter((_, j) => j !== i))}
+                    aria-label={`${i + 1} 件目の URL を外す`}
+                  >
+                    外す
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="row">
+              <button
+                type="button"
+                className="btn sm primary"
+                disabled={filledUrls.length === 0 || busy}
+                onClick={() => void read("url")}
+              >
+                {reading === "url"
+                  ? "読んでいます…"
+                  : filledUrls.length > 1
+                    ? `${filledUrls.length} 件をまとめて読む`
+                    : "URL を読む"}
+              </button>
+              {urls.length < MAX_SERIES_URLS && (
+                <button
+                  type="button"
+                  className="btn sm"
+                  disabled={busy}
+                  onClick={() => setUrls([...urls, ""])}
+                >
+                  ＋ 同じ事故の続報を追加
+                </button>
+              )}
+              <InfoButton title="続報を追加すると">
+                <p>
+                  同じ事故の第一報と続報など、最大 {MAX_SERIES_URLS} 件の URL
+                  を、公表日の順にひとつの事故として読みます。日付が読み取れないものがあるときは、入力した順に並べます。
+                </p>
+                <p>
+                  報の間で変わったこと（入口が分かった、可能性が確認になった、など）は、担当者画面の表と、社長向けの一枚に出ます。変わったかどうかの判定は、Claude
+                  ではなくプログラムが行います。
+                </p>
+              </InfoButton>
+            </div>
           </div>
         )}
         {tab === "text" && (
@@ -219,6 +277,29 @@ export function ArticleInput({ recorded, onDone }: Props) {
         {readError && (
           <div role="alert" style={{ marginTop: 8 }}>
             <p className="err small">{readError.message}</p>
+            {readError.failures && readError.failures.length > 0 && (
+              <>
+                <ul className="small series-failures">
+                  {readError.failures.map((f) => (
+                    <li key={f.url}>
+                      <code>{f.url}</code>　{f.message}
+                    </li>
+                  ))}
+                </ul>
+                {readError.failures.length < filledUrls.length && (
+                  <p className="small row" style={{ marginTop: 6 }}>
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={busy}
+                      onClick={() => void read("url", undefined, "skip")}
+                    >
+                      取得できた分だけで読む
+                    </button>
+                  </p>
+                )}
+              </>
+            )}
             {readError.canPaste && (
               <p className="small row" style={{ marginTop: 6 }}>
                 <button

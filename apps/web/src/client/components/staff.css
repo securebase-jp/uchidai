@@ -739,3 +739,26 @@
   content: "⚠ ";
   color: var(--amber);
 }
+
+/* 報の間で変わったこと（同じ事故の複数の公表） */
+.series-scroll {
+  overflow-x: auto;
+}
+table.series-table th[scope="row"] {
+  white-space: nowrap;
+}
+table.series-table td.changed {
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}
+.series-mark {
+  color: var(--amber);
+}
+.series-changes {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+.series-failures {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}

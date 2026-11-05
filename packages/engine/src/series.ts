@@ -115,6 +115,16 @@ function cellOf(step: CaseStep, k: Pick<Knowledge, "entryKinds">): SeriesCell {
   };
 }
 
+/**
+ * 言い方が変わったセルのうち、「変わった」と示すもの。入口と、記事が書いている（stated）段階の変化だけ。
+ * 型紙で補った推定の段階どうし（「可能性（推定）」→「確認（推定）」）は、読み方の揺れで、事実が変わったのではないので、
+ * 表には出すが、印と文にはしない
+ */
+function isSignificantChange(tactic: string, before: SeriesCell | null, after: SeriesCell | null) {
+  if (before?.textJa === after?.textJa) return false;
+  return tactic === "TA0001" || before?.source === "stated" || after?.source === "stated";
+}
+
 const quote = (s: string) => `「${s}」`;
 
 /**
@@ -142,7 +152,8 @@ export function compareSeries(
     let prev: number | undefined;
     cells.forEach((cell, i) => {
       if (!readable[i]) return;
-      if (prev !== undefined && cell?.textJa !== cells[prev]?.textJa) changedAt.push(i);
+      if (prev !== undefined && isSignificantChange(tactic, cells[prev] ?? null, cell))
+        changedAt.push(i);
       prev = i;
     });
     return { tactic, labelJa: k.labels.tactics[tactic] ?? tactic, cells, changedAt };

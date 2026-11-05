@@ -15,9 +15,19 @@ type Props = {
   graph: { nodes: { id: string; label: string; assetId?: string | undefined }[] };
   /** 型紙の名前（複数の型紙を展開したときに経路ごとの見出しに出す） */
   templates?: TemplateRef[];
+  /** 複数の報を合わせて読んだとき：段階ごとに、根拠文がどの報の本文にあったか（報の番号。無ければ null） */
+  quoteSources?: (number[] | null)[];
 };
 
-export function EvidencePanel({ verdict, theCase, profile, labels, graph, templates }: Props) {
+export function EvidencePanel({
+  verdict,
+  theCase,
+  profile,
+  labels,
+  graph,
+  templates,
+  quoteSources,
+}: Props) {
   const nodeLabel = (id: string) => graph.nodes.find((n) => n.id === id)?.label ?? id;
   // 型紙を 1 本に絞れなかった（verdict.templateId が無い）ときだけ、経路ごとに型紙の名前を出す
   const multiTemplate =
@@ -282,7 +292,7 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
             </tr>
           </thead>
           <tbody>
-            {theCase.steps.map((s) => (
+            {theCase.steps.map((s, si) => (
               <tr key={`${s.tactic}-${s.techniques.join(",")}-${s.quote ?? s.summaryJa ?? ""}`}>
                 <td data-label="戦術">
                   {labels.tactics[s.tactic] ?? ""}（<code>{s.tactic}</code>）
@@ -303,7 +313,16 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
                 </td>
                 <td data-label="要約と根拠文">
                   {s.summaryJa}
-                  {s.quote && <p className="quote">「{s.quote.replace(/\s+/g, "")}」</p>}
+                  {s.quote && (
+                    <p className="quote">
+                      「{s.quote.replace(/\s+/g, "")}」
+                      {quoteSources?.[si] && (
+                        <span className="muted">
+                          {"　"}（{quoteSources[si]?.map((n) => `第${n}報`).join("・")}）
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </td>
               </tr>
             ))}

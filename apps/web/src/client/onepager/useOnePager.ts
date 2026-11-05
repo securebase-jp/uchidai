@@ -153,12 +153,15 @@ export function useOnePager(params: OnePagerParams): {
             ? { ...prev, writing: true }
             : { status: "loading" },
         );
+        // 複数の報を読んだ事例のときだけ、各報の読解も渡す（前の報から変わったことを、サーバがプログラムで比べる）
+        const reports = params.case ? undefined : app.caseMeta?.series?.reports;
         const data = await api.onepager({
           case: theCase,
           profile,
           measureIds,
           answers: app.answers,
           rewrite,
+          ...(reports ? { reports } : {}),
         });
         if (!alive) return;
         setState({

@@ -13,6 +13,7 @@ import { MeasurePanel } from "../components/MeasurePanel.tsx";
 import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
+import { SeriesPanel } from "../components/SeriesPanel.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { summary, VerdictBanner } from "../components/VerdictBanner.tsx";
 import "../components/staff.css";
@@ -352,6 +353,11 @@ export function Staff({ settings }: { settings: Settings }) {
           <div style={{ marginTop: 12 }}>
             <ComparisonPanel />
           </div>
+          {caseMeta?.series && (
+            <div style={{ marginTop: 12 }}>
+              <SeriesPanel series={caseMeta.series} />
+            </div>
+          )}
           <div style={{ marginTop: 12 }} id={STAFF_SECTION.evidence}>
             <EvidencePanel
               verdict={stage.input.verdict}
@@ -360,6 +366,7 @@ export function Staff({ settings }: { settings: Settings }) {
               labels={knowledge.labels}
               graph={stage.input.graph}
               templates={knowledge.templates}
+              {...(caseMeta?.series ? { quoteSources: caseMeta.series.quoteSources } : {})}
             />
           </div>
           <div style={{ marginTop: 12 }} id={STAFF_SECTION.requests}>

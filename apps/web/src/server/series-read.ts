@@ -21,6 +21,7 @@ import {
   templateTechniques,
   verifyCase,
 } from "@uchidai/llm";
+import type { SeriesInfo } from "../shared/api.ts";
 import { isThinReading, thinBodyError } from "./article-source.ts";
 import {
   loadSeries,
@@ -62,21 +63,7 @@ const unreadCase = (title: string): Case => ({
   suspiciousInstructions: [],
 });
 
-export type SeriesResponse = {
-  /** 報の情報（番号、日付、URL、題、取得した種類と字数）。本文は返さない */
-  parts: SeriesPart[];
-  order: "date" | "given";
-  /** onError: "skip" で除いた、取得に失敗した公表 */
-  failures: SeriesFailure[];
-  /** 各報を別々に読んだ結果（一枚の「前の報から変わったこと」を作る入力） */
-  reports: SeriesReportInput[];
-  /** 別々に読めなかった報（取得はできたが、読解が失敗した） */
-  readErrors: { number: number; message: string }[];
-  /** 段階の表と、前の報から変わったこと */
-  view: SeriesView;
-  /** 連結して読んだ事例の段階ごとに、根拠文がどの報の本文にあったか（報の番号。根拠文が無い段階は null） */
-  quoteSources: (number[] | null)[];
-};
+export type SeriesResponse = SeriesInfo;
 
 export async function readSeries(
   urls: string[],

@@ -59,6 +59,19 @@ describe("parseSavedCase（担当者が選んだ事例の保存）", () => {
     };
     expect(parseSavedCase(JSON.stringify(rec))?.meta.recorded?.caseId).toBe("ipa-case-1");
   });
+  it("複数の報を読んだ事例（series）も、保存して読み戻せる。形が違えば捨てる", () => {
+    const series = {
+      parts: [{ number: 1, label: "第1報" }],
+      reports: [{ label: "第1報", case: { title: "t" } }],
+      view: { rows: [], reports: [] },
+      quoteSources: [],
+    };
+    const ok = parseSavedCase(JSON.stringify({ ...saved, meta: { ...saved.meta, series } }));
+    expect(ok?.meta.series?.parts[0]?.label).toBe("第1報");
+    expect(
+      parseSavedCase(JSON.stringify({ ...saved, meta: { ...saved.meta, series: { parts: 1 } } })),
+    ).toBeUndefined();
+  });
   it("無い・壊れている・形が違うときは undefined", () => {
     expect(parseSavedCase(null)).toBeUndefined();
     expect(parseSavedCase("{")).toBeUndefined();

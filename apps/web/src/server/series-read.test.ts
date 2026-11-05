@@ -39,6 +39,24 @@ describe("detectPublishedDate", () => {
     expect(detectPublishedDate({ text: "令和7年10月1日\nお知らせ" })).toBe("2025-10-01");
     expect(detectPublishedDate({ text: "2025/7/3 お知らせ" })).toBe("2025-07-03");
   });
+  it("本文の奥の日付（事故の日）は公表日にしない：URL の日付を先に採る", () => {
+    const body = `アサヒグループホールディングス株式会社\n${"あ".repeat(250)}2025年9月29日に障害が発生しました`;
+    expect(
+      detectPublishedDate({
+        text: body,
+        sourceUrl: "https://a.test/newsroom/detail/20260717-0101.html",
+      }),
+    ).toBe("2026-07-17");
+    expect(detectPublishedDate({ text: body })).toBeUndefined();
+    // 先頭にあっても、出来事の日を指す言い方（に発生、以降、時点、付）が続く日付は公表日にしない
+    for (const t of [
+      "当社は、2025年9月29日に発生したサイバー攻撃について",
+      "2025年9月29日以降、システム障害が",
+      "2026年2月18日時点で調査が完了",
+    ])
+      expect(detectPublishedDate({ text: t })).toBeUndefined();
+    expect(detectPublishedDate({ text: "2025年11月27日\n各位\n当社は" })).toBe("2025-11-27");
+  });
   it("年の無い日付は採らない。題・URL にあればそちらから", () => {
     expect(detectPublishedDate({ text: "10月1日に障害が発生しました" })).toBeUndefined();
     expect(detectPublishedDate({ text: "本文", title: "2025年9月2日のお知らせ" })).toBe(

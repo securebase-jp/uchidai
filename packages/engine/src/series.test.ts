@@ -101,6 +101,30 @@ describe("compareSeries", () => {
     expect(v.rows.find((r) => r.tactic === "TA0001")?.cells[1]).toBeNull();
   });
 
+  it("推定の段階どうしの言い方の揺れは、表には出すが「変わった」とは言わない", () => {
+    const inf = (certainty: CaseStep["certainty"]): CaseStep => ({
+      tactic: "TA0008",
+      techniques: ["T1021"],
+      source: "inferred",
+      certainty,
+    });
+    const a = rep("第1報", caseOf([entry({ entryKind: "vpn" }), inf("possible")]));
+    const b = rep("第2報", caseOf([entry({ entryKind: "vpn" }), inf("confirmed")]));
+    const v = compareSeries([a, b], k);
+    const row = v.rows.find((r) => r.tactic === "TA0008");
+    expect(row?.cells.map((c) => c?.textJa)).toEqual(["可能性（推定）", "確認（推定）"]);
+    expect(row?.changedAt).toEqual([]);
+    expect(v.transitions[0]?.changesJa).toEqual([]);
+    // 記載（stated）に変わったときは変化として示す
+    const c = rep(
+      "第3報",
+      caseOf([entry({ entryKind: "vpn" }), { ...inf("confirmed"), source: "stated" }]),
+    );
+    expect(compareSeries([b, c], k).transitions[0]?.changesJa[0]).toContain(
+      "が「確認（推定）」から「確認」に変わりました",
+    );
+  });
+
   it("報が 1 件なら比較は空（文も出さない）", () => {
     const v = compareSeries([first], k);
     expect(v.transitions).toEqual([]);

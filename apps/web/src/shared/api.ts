@@ -3,6 +3,7 @@
  * このファイルは値として engine を import しない（ブラウザ側でも読むため）。
  * 文字列と配列には上限を置く（巨大な入力でサーバを止めない）。
  */
+import type { SeriesReportInput, SeriesView } from "@uchidai/engine";
 import { z } from "zod";
 
 /** 記事本文の上限（文字）。IPA 事例集 1 事例や長文の報道記事が十分に入る大きさ */
@@ -110,3 +111,37 @@ export type ControlQuestion = {
 };
 
 export type ApiError = { error: string; details?: unknown };
+
+/** 同じ事故の複数の公表を 1 件として読んだときの、報の情報（本文は含まない） */
+export type SeriesPartInfo = {
+  /** 並べたあとの番号（1 始まり）。「第N報」のN。公表元の呼び名とは別で、この画面での順番 */
+  number: number;
+  label: string;
+  /** 公表日（YYYY-MM-DD）。本文の先頭・題・URL から取れたときだけ */
+  date?: string;
+  url: string;
+  title?: string;
+  kind: "html" | "pdf" | "text";
+  chars: number;
+  /** 本文が途中で切れていそうな理由（HTML のとき） */
+  incomplete?: string[];
+  truncated?: boolean;
+};
+export type SeriesFailure = { url: string; message: string };
+
+/** POST /api/case/read（kind: "urls"）の応答の series。2 件以上を読めたときだけ付く */
+export type SeriesInfo = {
+  parts: SeriesPartInfo[];
+  /** 並べ方：date = 公表日の順、given = 指定された順 */
+  order: "date" | "given";
+  /** onError: "skip" で除いた、取得に失敗した公表 */
+  failures: SeriesFailure[];
+  /** 各報を別々に読んだ結果（一枚の「前の報から変わったこと」を作る入力） */
+  reports: SeriesReportInput[];
+  /** 別々に読めなかった報（取得はできたが、読解が失敗した） */
+  readErrors: { number: number; message: string }[];
+  /** 段階の表と、前の報から変わったこと（プログラムが決定的に比べたもの） */
+  view: SeriesView;
+  /** 連結して読んだ事例の段階ごとに、根拠文がどの報の本文にあったか（報の番号。根拠文が無い段階は null） */
+  quoteSources: (number[] | null)[];
+};
