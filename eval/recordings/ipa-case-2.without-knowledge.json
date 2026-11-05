@@ -2,7 +2,7 @@
   "caseId": "ipa-case-2",
   "mode": "without-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-03T06:03:56.634Z",
+  "recordedAt": "2026-11-04T23:35:31.759Z",
   "note": "知見ファイル（ラベル・型紙・手法一覧）を一切渡さずに読解。verifyCase 通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
@@ -13,11 +13,12 @@
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1190"
+          "T1190",
+          "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージのアクセス権限誤設定",
-        "summaryJa": "クラウドストレージのアクセス権限の設定ミスで、インターネットから誰でも閲覧できる状態になっていた"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "クラウドストレージのアクセス権限の設定ミスで誰でも閲覧できる状態になっていた"
       },
       {
         "tactic": "TA0009",
@@ -25,8 +26,26 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "外部の第三者が公開状態のストレージから顧客リストや取引条件をダウンロードした"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "外部の者が公開状態のストレージから顧客リストや取引条件を取得した"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567",
+          "T1537"
+        ],
+        "source": "inferred",
+        "summaryJa": "取得されたデータが社外に持ち出された"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1530"
+        ],
+        "source": "stated",
+        "quote": "取引先からの信頼が低下\nし、一部顧客との取引停\n止が発生した",
+        "summaryJa": "情報漏えいにより信頼が低下し、一部顧客との取引が停止した"
       }
     ],
     "suspiciousInstructions": []
@@ -39,11 +58,12 @@
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1190"
+          "T1190",
+          "T1530"
         ],
         "source": "stated",
-        "quote": "クラウドストレージのアクセス権限誤設定",
-        "summaryJa": "クラウドストレージのアクセス権限の設定ミスで、インターネットから誰でも閲覧できる状態になっていた"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "クラウドストレージのアクセス権限の設定ミスで誰でも閲覧できる状態になっていた"
       },
       {
         "tactic": "TA0009",
@@ -51,19 +71,38 @@
           "T1530"
         ],
         "source": "stated",
-        "quote": "外部から顧客リスト等をダウンロードされた",
-        "summaryJa": "外部の第三者が公開状態のストレージから顧客リストや取引条件をダウンロードした"
+        "quote": "クラウドストレージがインターネットから誰でも閲覧可能な状\n態になっており、外部から顧客リスト等をダウンロードされた",
+        "summaryJa": "外部の者が公開状態のストレージから顧客リストや取引条件を取得した"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1567",
+          "T1537"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "取得されたデータが社外に持ち出された"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1530"
+        ],
+        "source": "stated",
+        "quote": "取引先からの信頼が低下\nし、一部顧客との取引停\n止が発生した",
+        "summaryJa": "情報漏えいにより信頼が低下し、一部顧客との取引が停止した"
       }
     ],
     "suspiciousInstructions": []
   },
   "verification": {
-    "stepsIn": 2,
-    "stepsOut": 2,
-    "techniquesIn": 2,
-    "techniquesOut": 2,
-    "quotesIn": 2,
-    "quotesOut": 2,
+    "stepsIn": 4,
+    "stepsOut": 4,
+    "techniquesIn": 6,
+    "techniquesOut": 6,
+    "quotesIn": 3,
+    "quotesOut": 3,
     "replaced": [],
     "droppedTechniques": [],
     "droppedQuotes": 0,

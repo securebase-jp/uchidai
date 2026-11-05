@@ -6,7 +6,7 @@
     "date": "2025-04-07"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:22:34.890Z",
+  "recordedAt": "2026-11-04T23:23:30.450Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "美容関連商社の基幹システムがリモートデスクトップ経由でランサム被害",
+    "title": "美容商材商社の基幹システムがランサムウェア被害、リモートデスクトップ経由の侵入か",
     "damageType": "ransomware",
     "clarity": "clear",
     "steps": [
@@ -27,29 +27,29 @@
         ],
         "source": "stated",
         "quote": "リモートデスクトップが悪用され、侵害されたのが原因と見られている。",
-        "summaryJa": "外部から使えるリモートデスクトップが悪用され、社内に侵入された。"
+        "summaryJa": "リモートデスクトップが悪用され、社内ネットワークに侵入されたと見られる。"
       },
       {
         "tactic": "TA0006",
         "techniques": [
           "T1003",
-          "T1078",
-          "T1110"
+          "T1110",
+          "T1555"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "基幹システムのサーバを操作できる管理者権限の認証情報が奪われたと考えられる。"
+        "summaryJa": "侵入後に管理者権限などの認証情報を奪ったと考えられる。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021.001",
           "T1021.002",
-          "T1210"
+          "T1021"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "侵入した端末から基幹システムのサーバへ接続を広げたと考えられる。"
+        "summaryJa": "社内ネットワークを通じて基幹システムのサーバへ攻撃が広がったと考えられる。"
       },
       {
         "tactic": "TA0040",
@@ -58,17 +58,17 @@
           "T1489"
         ],
         "source": "stated",
-        "quote": "1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
-        "summaryJa": "基幹システムのサーバがランサムウェアにより暗号化され、業務に影響が出た。"
+        "quote": "同社によれば、1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
+        "summaryJa": "基幹システムのサーバがランサムウェアの攻撃を受け、業務に影響が出た。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 588,
-    "outputTokens": 483,
-    "cacheReadInputTokens": 18894,
+    "outputTokens": 500,
+    "cacheReadInputTokens": 20743,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3676
+  "elapsedMs": 3784
 }

@@ -6,7 +6,7 @@
     "date": "2025-09-02"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:23:04.572Z",
+  "recordedAt": "2026-11-04T23:24:03.033Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "就労移行支援事業所が利用者の個人情報入りファイルをメールで誤送信",
+    "title": "就労移行支援事業所が利用者の個人情報を含むファイルをメールで誤送信",
     "damageType": "out_of_scope",
     "clarity": "unknown",
     "steps": [],
@@ -23,9 +23,9 @@
   },
   "usage": {
     "inputTokens": 513,
-    "outputTokens": 79,
-    "cacheReadInputTokens": 18894,
+    "outputTokens": 80,
+    "cacheReadInputTokens": 20743,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 1526
+  "elapsedMs": 1395
 }

@@ -6,7 +6,7 @@
     "date": "2026-01-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:26:32.311Z",
+  "recordedAt": "2026-11-04T23:24:01.436Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "カーテン通販サイトの決済アプリ改ざんによるカード情報・個人情報の流出",
+    "title": "カーテン通販サイトの決済アプリが改ざんされ、カード情報などが流出した可能性",
     "damageType": "data_breach",
     "clarity": "clear",
     "steps": [
@@ -26,47 +26,46 @@
         ],
         "source": "stated",
         "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
-        "summaryJa": "サイトのシステムの弱点を突かれて不正に侵入された"
+        "summaryJa": "通販サイトのシステムの弱点を突かれて不正に侵入された"
       },
       {
         "tactic": "TA0003",
         "techniques": [
           "T1505.003",
-          "T1554"
+          "T1078"
         ],
-        "source": "stated",
-        "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
-        "summaryJa": "決済アプリケーションが改ざんされ、攻撃者が仕込んだ細工が残る状態になった"
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "侵入後、サイト内に不正な仕掛けを置くなどして居座った可能性がある"
       },
       {
         "tactic": "TA0009",
         "techniques": [
-          "T1056.003",
-          "T1005",
-          "T1213.006"
+          "T1056.003"
         ],
-        "source": "inferred",
-        "quote": null,
-        "summaryJa": "改ざんされた決済アプリなどを通じて、顧客の個人情報やカード情報が攻撃者に集められた"
+        "source": "stated",
+        "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
+        "summaryJa": "決済アプリが改ざんされ、利用者が入力したカード情報などが盗み取られた"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1041",
+          "T1567",
           "T1048"
         ],
         "source": "stated",
         "quote": "2024年4月30日から2025年5月24日にかけて、同サイトでクレジットカード決済を利用した顧客1万423人については、クレジットカードの名義、番号、有効期限、セキュリティコードが流出した可能性がある。",
-        "summaryJa": "クレジットカード情報や個人情報が外部に流出した可能性がある"
+        "summaryJa": "顧客の個人情報とクレジットカード情報が外部に流出した可能性がある"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 824,
-    "outputTokens": 624,
-    "cacheReadInputTokens": 18894,
+    "outputTokens": 611,
+    "cacheReadInputTokens": 20743,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4334
+  "elapsedMs": 4487
 }

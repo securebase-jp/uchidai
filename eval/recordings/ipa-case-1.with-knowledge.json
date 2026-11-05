@@ -2,11 +2,11 @@
   "caseId": "ipa-case-1",
   "mode": "with-knowledge",
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-03T06:03:33.841Z",
+  "recordedAt": "2026-11-04T23:32:18.344Z",
   "note": "ATT&CK の手法一覧・日本語ラベル・型紙を渡して読解。verifyCase（型紙にない手法の破棄を含む）通過後の出力。根拠文は IPA 事例集からの短い抜粋（出典は eval/cases の source）",
   "attackVersion": "20.0",
   "output": {
-    "title": "VPN装置の脆弱性悪用によるランサムウェア感染とバックアップの暗号化",
+    "title": "VPN装置の脆弱性を悪用されたランサムウェア感染（製造業）",
     "damageType": "ransomware",
     "clarity": "clear",
     "steps": [
@@ -18,7 +18,7 @@
         ],
         "source": "stated",
         "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
-        "summaryJa": "リモートワーク用VPN装置の未更新の脆弱性を突かれて社内ネットワークに侵入された"
+        "summaryJa": "リモートワーク用VPN装置の脆弱性（更新漏れ）を突かれて社内に侵入された"
       },
       {
         "tactic": "TA0006",
@@ -28,26 +28,17 @@
           "T1555"
         ],
         "source": "inferred",
-        "summaryJa": "侵入後、サーバや共有環境を操作するための管理者権限・認証情報が奪われたと考えられる"
+        "summaryJa": "侵入後に管理者権限などの認証情報を奪ったと考えられる"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021.002",
           "T1021.001",
-          "T1570"
+          "T1210"
         ],
         "source": "inferred",
-        "summaryJa": "社内の設計データや経理データを置くサーバへ感染が広がったと考えられる"
-      },
-      {
-        "tactic": "TA0040",
-        "techniques": [
-          "T1486"
-        ],
-        "source": "stated",
-        "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
-        "summaryJa": "設計データと経理データが暗号化され、一部業務が停止して納期遅延が発生した"
+        "summaryJa": "社内のサーバへ感染・侵入範囲を広げたと考えられる"
       },
       {
         "tactic": "TA0040",
@@ -58,13 +49,23 @@
         ],
         "source": "stated",
         "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が難しくなった"
+        "summaryJa": "クラウド上のバックアップデータまで暗号化され、復旧が困難になった"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486",
+          "T1489"
+        ],
+        "source": "stated",
+        "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
+        "summaryJa": "設計データ・経理データが暗号化され、業務が停止して納期遅延が起きた"
       }
     ],
     "suspiciousInstructions": []
   },
   "raw": {
-    "title": "VPN装置の脆弱性悪用によるランサムウェア感染とバックアップの暗号化",
+    "title": "VPN装置の脆弱性を悪用されたランサムウェア感染（製造業）",
     "damageType": "ransomware",
     "clarity": "clear",
     "steps": [
@@ -76,7 +77,7 @@
         ],
         "source": "stated",
         "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
-        "summaryJa": "リモートワーク用VPN装置の未更新の脆弱性を突かれて社内ネットワークに侵入された"
+        "summaryJa": "リモートワーク用VPN装置の脆弱性（更新漏れ）を突かれて社内に侵入された"
       },
       {
         "tactic": "TA0006",
@@ -87,27 +88,18 @@
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "侵入後、サーバや共有環境を操作するための管理者権限・認証情報が奪われたと考えられる"
+        "summaryJa": "侵入後に管理者権限などの認証情報を奪ったと考えられる"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021.002",
           "T1021.001",
-          "T1570"
+          "T1210"
         ],
         "source": "inferred",
         "quote": null,
-        "summaryJa": "社内の設計データや経理データを置くサーバへ感染が広がったと考えられる"
-      },
-      {
-        "tactic": "TA0040",
-        "techniques": [
-          "T1486"
-        ],
-        "source": "stated",
-        "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
-        "summaryJa": "設計データと経理データが暗号化され、一部業務が停止して納期遅延が発生した"
+        "summaryJa": "社内のサーバへ感染・侵入範囲を広げたと考えられる"
       },
       {
         "tactic": "TA0040",
@@ -118,7 +110,17 @@
         ],
         "source": "stated",
         "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-        "summaryJa": "クラウド上のバックアップも暗号化され、データの復旧が難しくなった"
+        "summaryJa": "クラウド上のバックアップデータまで暗号化され、復旧が困難になった"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486",
+          "T1489"
+        ],
+        "source": "stated",
+        "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
+        "summaryJa": "設計データ・経理データが暗号化され、業務が停止して納期遅延が起きた"
       }
     ],
     "suspiciousInstructions": []
@@ -126,8 +128,8 @@
   "verification": {
     "stepsIn": 5,
     "stepsOut": 5,
-    "techniquesIn": 12,
-    "techniquesOut": 12,
+    "techniquesIn": 13,
+    "techniquesOut": 13,
     "quotesIn": 3,
     "quotesOut": 3,
     "replaced": [],

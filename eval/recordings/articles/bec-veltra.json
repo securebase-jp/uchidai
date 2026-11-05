@@ -6,28 +6,39 @@
     "date": "2026-02-06"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:22:38.638Z",
+  "recordedAt": "2026-11-04T23:31:39.413Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
     "title": "ニセ代表取締役「5000万円送金して」──上場企業の子会社が詐欺被害　虚偽のメールに社員がだまされる",
-    "chars": 1166,
+    "chars": 1164,
     "truncated": false
   },
   "raw": {
-    "title": "子会社の代表者になりすましたメールとSNSで誘導され、約5000万円を送金してしまった詐欺被害",
+    "title": "代表者を装うメールとSNSで経理担当が約5000万円を送金（ベルトラ子会社）",
     "damageType": "bec",
     "clarity": "clear",
     "steps": [
       {
-        "tactic": "TA0005",
+        "tactic": "TA0043",
         "techniques": [
+          "T1591",
+          "T1589"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "攻撃者が代表者や社内の経理担当など、なりすましに必要な組織の情報を事前に集めたと考えられる"
+      },
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1566",
           "T1684.001",
           "T1684.002"
         ],
         "source": "stated",
         "quote": "1月上旬ごろ、リンクティビティの従業員に対し、同社の代表者を装った悪意ある第三者からメールが届いた。内容は、社外の連絡先（SNSアカウント）へ誘導するもので、誘導先のSNSでは経理担当者に対して虚偽の送金指示が行われた。",
-        "summaryJa": "代表者を装ったメールで従業員をSNSへ誘導し、そこで経理担当者に偽の送金指示を出した"
+        "summaryJa": "代表者を装うメールで従業員をSNSへ誘導し、そのSNS上で経理担当者に偽の送金指示を出した"
       },
       {
         "tactic": "TA0002",
@@ -36,7 +47,7 @@
         ],
         "source": "stated",
         "quote": "従業員はこれに従い、社内の銀行届出印を持ち出して、銀行窓口にて約5000万円を指定の口座に送金した。",
-        "summaryJa": "従業員が偽の指示を信じ、届出印を持ち出して銀行窓口から送金した"
+        "summaryJa": "経理担当者が偽の指示を信じ、銀行窓口で指定口座に送金した"
       },
       {
         "tactic": "TA0040",
@@ -44,17 +55,17 @@
           "T1657"
         ],
         "source": "stated",
-        "quote": "被害にあったのは、子会社のリンクティビティ（東京都千代田区）で、被害額は約5000万円。代表者を名乗る第三者からのメールを信じ、資金を送金してしまった。",
-        "summaryJa": "約5000万円が詐欺師の指定口座に送金され、資金を失った"
+        "quote": "被害にあったのは、子会社のリンクティビティ（東京都千代田区）で、被害額は約5000万円。",
+        "summaryJa": "約5000万円の資金が詐欺師の口座へ流出した"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 1263,
-    "outputTokens": 554,
-    "cacheReadInputTokens": 18894,
+    "outputTokens": 613,
+    "cacheReadInputTokens": 20785,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3745
+  "elapsedMs": 4418
 }

@@ -6,7 +6,7 @@
     "date": "2026-04-24"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-02T14:22:44.584Z",
+  "recordedAt": "2026-11-04T23:31:43.590Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,38 +15,29 @@
     "truncated": false
   },
   "raw": {
-    "title": "はてな、不正な送金指示により約11億円が流出",
+    "title": "はてな、虚偽の送金指示で約11億円が流出",
     "damageType": "bec",
     "clarity": "partial",
     "steps": [
       {
-        "tactic": "TA0043",
+        "tactic": "TA0001",
         "techniques": [
-          "T1589.001",
-          "T1589"
-        ],
-        "source": "inferred",
-        "quote": null,
-        "summaryJa": "攻撃者が送金に必要な情報や認証情報を事前に入手していたと推定される（記事には記載なし）"
-      },
-      {
-        "tactic": "TA0005",
-        "techniques": [
-          "T1684.001",
-          "T1684.002"
+          "T1566.002",
+          "T1566.004",
+          "T1684.001"
         ],
         "source": "stated",
         "quote": "その従業員に確認したところ、悪意ある第三者から虚偽の送金指示があったことが分かった。",
-        "summaryJa": "悪意ある第三者が従業員に対して虚偽の送金指示を出した"
+        "summaryJa": "悪意ある第三者が従業員に虚偽の送金指示を出した（具体的な連絡手段は記事に書かれていない）"
       },
       {
         "tactic": "TA0002",
         "techniques": [
           "T1204"
         ],
-        "source": "inferred",
-        "quote": null,
-        "summaryJa": "従業員が虚偽の指示を信じて送金操作をしたと推定される"
+        "source": "stated",
+        "quote": "確認すると4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
+        "summaryJa": "従業員が虚偽の指示を受け、自分のアカウントから外部の口座へ送金した"
       },
       {
         "tactic": "TA0040",
@@ -54,17 +45,17 @@
           "T1657"
         ],
         "source": "stated",
-        "quote": "4月21日に取引先銀行から不審な送金が行われていると連絡があり、確認すると4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
-        "summaryJa": "従業員のアカウントから銀行預金が外部口座へ送金され、約11億円が流出した"
+        "quote": "不正な送金指示によって約11億円の資金が銀行口座から流出したと公表した。",
+        "summaryJa": "約11億円の資金が銀行口座から外部へ流出した"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 621,
-    "outputTokens": 483,
-    "cacheReadInputTokens": 18894,
+    "outputTokens": 414,
+    "cacheReadInputTokens": 20785,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 5941
+  "elapsedMs": 3994
 }

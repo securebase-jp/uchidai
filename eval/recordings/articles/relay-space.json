@@ -1,0 +1,70 @@
+{
+  "id": "relay-space",
+  "source": {
+    "url": "https://www.security-next.com/186979",
+    "media": "Security NEXT",
+    "date": "2026-07-27"
+  },
+  "model": "claude-sonnet-5-5",
+  "recordedAt": "2026-11-04T23:31:34.771Z",
+  "attackVersion": "20.0",
+  "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
+  "article": {
+    "title": "【セキュリティ ニュース】フィッシング被害後、攻撃の踏み台に - スペース（1ページ目",
+    "chars": 424,
+    "truncated": false
+  },
+  "raw": {
+    "title": "取引先を装うフィッシングでメールアカウントを乗っ取られ、取引先2329件への踏み台に（スペース）",
+    "damageType": "account_takeover",
+    "clarity": "clear",
+    "steps": [
+      {
+        "tactic": "TA0001",
+        "techniques": [
+          "T1566.002",
+          "T1566",
+          "T1598"
+        ],
+        "source": "stated",
+        "quote": "2026年6月9日に従業員1人が取引先を装ったフィッシングメールを受信。メールに記載されたリンク先のフィッシングサイトにアクセスし、メールアカウントの認証情報を入力したことで詐取され、不正アクセスを受けた。",
+        "summaryJa": "取引先を装ったフィッシングメールのリンク先で、従業員がメールアカウントの認証情報を入力してしまった"
+      },
+      {
+        "tactic": "TA0003",
+        "techniques": [
+          "T1078.004",
+          "T1078"
+        ],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "盗んだ認証情報で攻撃者が従業員のメールアカウントにログインした"
+      },
+      {
+        "tactic": "TA0008",
+        "techniques": [
+          "T1534",
+          "T1684.002"
+        ],
+        "source": "stated",
+        "quote": "同社によれば、従業員のアカウントから取引先など2329件の宛先に対し、フィッシングメールが送信されたもの。",
+        "summaryJa": "乗っ取られた従業員のアカウントから取引先など2329件へフィッシングメールが送られた"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [],
+        "source": "inferred",
+        "quote": null,
+        "summaryJa": "送信先の取引先などがフィッシングメールを受け取り、二次被害の危険にさらされた"
+      }
+    ],
+    "suspiciousInstructions": []
+  },
+  "usage": {
+    "inputTokens": 479,
+    "outputTokens": 563,
+    "cacheReadInputTokens": 0,
+    "cacheCreationInputTokens": 20785
+  },
+  "elapsedMs": 4990
+}

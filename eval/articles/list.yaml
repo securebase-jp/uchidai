@@ -45,6 +45,17 @@ articles:
     expectedTemplate: ransomware
     summaryJa: 美容商材の商社（ミツイコーポレーション）。リモートデスクトップが悪用されて基幹システムのサーバがランサムウェア被害。顧客氏名などが流出した可能性
     pages: 1
+  # --- メールアカウントの乗っ取り・取引先への踏み台（1 本。2026-11-05 追加、実記事の試験 TRIAL-006） ---
+  - id: relay-space
+    url: https://www.security-next.com/186979
+    media: Security NEXT
+    date: "2026-07-27"
+    title: 取引先装うフィッシングでメール乗っ取り、取引先2329件に不審メール - スペース
+    expectedDamageType: account_takeover
+    expectedEntry: [T1566.002]
+    expectedTemplate: account-takeover
+    summaryJa: スペース。取引先を装ったフィッシングメールで社員のメールアカウントが乗っ取られ、そのアカウントから取引先 2,329 件へ不審なメールが送られた（送金被害ではなく、取引先への踏み台・二次被害）
+    pages: 1
   # --- なりすまし送金（ビジネスメール詐欺）（2 本） ---
   - id: bec-veltra
     url: https://www.itmedia.co.jp/news/articles/2602/06/news116.html
