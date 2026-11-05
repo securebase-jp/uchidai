@@ -762,3 +762,127 @@ table.series-table td.changed {
   padding-left: 18px;
   overflow-wrap: anywhere;
 }
+
+/* 状況の固定帯（デモモードでは出さない）。高さは一定（狭い幅では横にスクロール）にして、再生の操作の追従位置に使う */
+.staff.has-bar {
+  --bar-h: 44px;
+}
+.staff-bar {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--bar-h, 44px);
+  padding: 0 10px;
+  margin: 0 0 4px;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg) 82%, var(--panel));
+  backdrop-filter: blur(8px);
+}
+.staff-bar:has(.info-pop) {
+  z-index: 32;
+}
+.staff-bar-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.staff-bar-scroll::-webkit-scrollbar {
+  display: none;
+}
+.staff-bar .bar-toc {
+  display: flex;
+  gap: 6px;
+}
+.staff-bar button {
+  flex: none;
+  white-space: nowrap;
+}
+.bar-stat {
+  background: transparent;
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+.bar-stat.zero {
+  border-color: var(--edge);
+  color: var(--ink-2);
+  opacity: 0.6;
+}
+.bar-sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  background: var(--edge);
+  margin: 0 4px;
+}
+.toc-link.on {
+  border-color: var(--cyan);
+  color: var(--ink);
+  font-weight: 700;
+}
+.staff.has-bar .controls.sticky {
+  top: calc(var(--bar-h) + 4px);
+}
+.staff.has-bar [id^="staff-"] {
+  scroll-margin-top: calc(var(--bar-h) + 8px);
+}
+
+/* 折りたたみの見出し行（下の区画） */
+.coll-h {
+  margin: 0;
+  font-size: 15px;
+}
+.coll-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.coll-btn:hover {
+  border-color: var(--cyan);
+  color: var(--ink);
+}
+.coll.open > .coll-h .coll-btn {
+  color: var(--ink);
+}
+.coll-chev {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.12s;
+}
+.coll.open .coll-chev {
+  transform: rotate(45deg);
+}
+.coll-badge {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--amber);
+}
+.coll-body {
+  margin-top: 8px;
+}
