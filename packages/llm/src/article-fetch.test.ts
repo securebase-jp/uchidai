@@ -247,6 +247,17 @@ describe("fetchArticle の入力の上限", () => {
       extractPdfPages(new TextEncoder().encode("%PDF-1.4 ....."), { maxBytes: 4 }),
     ).rejects.toThrow(/大きすぎます/);
   });
+  it("PDF の代わりに HTML が返ったときは、そう案内する（TRIAL-I-013）", async () => {
+    const html = new TextEncoder().encode(
+      "<!DOCTYPE html><html><body>同意してください</body></html>",
+    );
+    await expect(extractPdfPages(html)).rejects.toThrow(
+      /PDF ではなく HTML が返りました（同意の画面かもしれません）/,
+    );
+    await expect(extractPdfPages(new TextEncoder().encode("hello"))).rejects.toThrow(
+      /先頭が %PDF- ではありません/,
+    );
+  });
   it("URL 入力はホストの検査を通ってから取得する", async () => {
     const fetch = fakeFetch({});
     await expect(

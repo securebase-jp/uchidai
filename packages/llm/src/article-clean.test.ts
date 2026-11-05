@@ -46,7 +46,7 @@ describe("取得の失敗（TRIAL-012）", () => {
     [410, "not_found", /見つかりませんでした（410）/],
     [401, "forbidden", /ログインや会員登録/],
     [402, "forbidden", /ログインや会員登録/],
-    [403, "forbidden", /ログインや会員登録/],
+    [403, "forbidden", /サイトが自動での取得を断りました（403）/],
     [429, "rate_limited", /断りました（429）/],
     [500, "server_error", /応答しませんでした（500）/],
     [503, "server_error", /応答しませんでした（503）/],
@@ -63,10 +63,39 @@ describe("取得の失敗（TRIAL-012）", () => {
       );
       expect(got.kind).toBe(kind);
       expect(got.message).toMatch(re);
-      expect(got.message).toContain(PASTE_HINT_JA);
+      // 403 は PASTE_HINT_JA ではなく「PDF の版や、本文の貼り付け」の案内
+      expect(got.message).toContain(
+        status === 403 ? "本文の貼り付けをお試しください" : PASTE_HINT_JA,
+      );
       expect(got.message).not.toMatch(/Not Found|Forbidden|news\.example/);
     },
   );
+
+  it("403 は企業のサイトの拒否として案内し、ログインの壁と決めつけない（TRIAL-I-013）", async () => {
+    const got = await kindOf(
+      downloadBytes("https://ir.example/a", {
+        fetch: async () => new Response("Access Denied", { status: 403 }),
+        lookup: publicLookup,
+      }),
+    );
+    expect(got.message).toBe(
+      "サイトが自動での取得を断りました（403）。PDF の版や、本文の貼り付けをお試しください。",
+    );
+    expect(got.message).not.toMatch(/ログイン|会員登録/);
+  });
+
+  it("403 の本文にログインの語があるときだけ、ログインや会員登録の案内にする", async () => {
+    const got = await kindOf(
+      downloadBytes("https://news.example/a", {
+        fetch: async () =>
+          new Response("<html>この記事を読むにはログインしてください</html>", { status: 403 }),
+        lookup: publicLookup,
+      }),
+    );
+    expect(got.kind).toBe("forbidden");
+    expect(got.message).toMatch(/ログインや会員登録が必要/);
+    expect(got.message).toContain(PASTE_HINT_JA);
+  });
 
   it("接続できないとき・時間切れのときも案内する", async () => {
     const refused: FetchLike = async () => {
