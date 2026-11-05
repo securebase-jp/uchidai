@@ -1,9 +1,9 @@
 {
-  "$comment": "エンドカード後半（場面 10）に出す開発の跡の数字。画面はここから読んで数え上げる。数字は動画に出す直前に数え直す（verifyBeforeRecording を false にするのは数え直したあと）。実測の取り方：commits は `git rev-list --count main`、scoring.records は eval/RESULTS.md の日付つきの行数、scoring.series は同じ表の知見あり・知見なしの列、articles は eval/RESULTS.md の「実記事」の行（型の一致 12/12）と、正解データ 10 件を開発者が確認した記録（docs/hackathon/claude-code-log.md の gold-review）、sessions は docs/hackathon/claude-code-log.md と worktree の数。モデルの役割分担に Mythos の名は出さない",
+  "$comment": "エンドカード後半（場面 10）に出す開発の跡の数字。画面はここから読んで数え上げる。数字は動画に出す直前に数え直す（verifyBeforeRecording を false にするのは数え直したあと）。実測の取り方：commits は `git rev-list --count main`、scoring.records は eval/RESULTS.md の日付つきの行数、scoring.series は同じ表の知見あり・知見なしの列、articles は eval/RESULTS.md の「実記事」の行（型の一致 12/12）と、正解データ 10 件を開発者が確認した記録（docs/hackathon/claude-code-log.md の gold-review）、sessions は docs/hackathon/claude-code-log.md と worktree の数。モデルの役割分担に Mythos の名は出さない 2026-11-06 の数え直し：commits 507、records 141、現在 98/92、sessions は 11/4 の約 40 に、その後に出した 18 本を足して約 60。articles は記録済みの表の合計（ニュース 19＋ランサム 17＋BEC・乗っ取り 7＋情報漏えい 14＋取引先・対象外 12＋IR 47＋PHP2Shell 6 ＝ 122 件、被害の種類の一致は許容込みで 116）。11/7 午後の全件の再実行（保留 25 件を含む）で置き換える。",
   "verifyBeforeRecording": true,
-  "measuredAt": "2026-11-04",
+  "measuredAt": "2026-11-06",
   "sessions": {
-    "total": 40,
+    "total": 60,
     "approx": true,
     "areasJa": [
       "読解",
@@ -28,7 +28,7 @@
     }
   ],
   "scoring": {
-    "records": 81,
+    "records": 141,
     "cases": 10,
     "series": [
       {
@@ -42,15 +42,15 @@
       },
       {
         "labelJa": "現在",
-        "withKnowledge": 95,
+        "withKnowledge": 98,
         "withoutKnowledge": 92
       }
     ]
   },
-  "commits": 323,
+  "commits": 507,
   "articles": {
-    "count": 12,
-    "typeMatch": 12,
+    "count": 122,
+    "typeMatch": 116,
     "goldChecked": 10
   }
 }
