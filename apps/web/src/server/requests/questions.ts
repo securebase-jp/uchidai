@@ -391,6 +391,36 @@ const defs: QuestionDef[] = [
     ],
   },
   {
+    mitigation: "UD-05",
+    textJa:
+      "社長や取引先を名乗る人から SNS やチャットで連絡があり、グループの作成や招待を頼まれたとき、応じない決まりはありますか",
+    hintJa: "登録済みの連絡先で本人に確かめるまで、口座や残高の話をしない決まりです",
+    choices: [
+      { id: "present", labelJa: "応じない決まりがある", status: "present" },
+      { id: "absent", labelJa: "決まりはない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-06",
+    textJa: "送金や振込先の変更は、二人目が内容を確かめて承認しないと実行できませんか",
+    choices: [
+      { id: "present", labelJa: "二人目の承認が要る", status: "present" },
+      { id: "absent", labelJa: "一人で実行できる", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-07",
+    textJa: "経理担当が一人で送金できる額に、上限を決めていますか",
+    hintJa: "上限を超える額は、社長など上位の人の承認が要る設定です",
+    choices: [
+      { id: "present", labelJa: "上限を決めている", status: "present" },
+      { id: "absent", labelJa: "上限はない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
     mitigation: "UD-03",
     textJa:
       "不審なメールが自社から送られていることに気づいたとき、取引先へ速やかに知らせる手順と連絡先はありますか",

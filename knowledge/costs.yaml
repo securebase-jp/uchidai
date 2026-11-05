@@ -110,3 +110,12 @@ measures:
   - measureId: vendor-audit
     basis: internal
     noteJa: 定期的な確認（社内作業。監査を外部に頼む場合は見積もりが別に要る）。根拠：個人情報保護委員会 通則編 3-4-4 委託先の監督（取扱状況の把握）
+  - measureId: sns-group-refuse
+    basis: internal
+    noteJa: SNS・チャットの依頼への対応を決める社内ルール。外部費用は見込まない（周知に研修を行う場合は eラーニング 5,280 円 ／ 人 が参考）
+  - measureId: transfer-dual-approval
+    basis: internal
+    noteJa: 送金の二人承認は社内ルール。外部費用は見込まない
+  - measureId: transfer-limit
+    basis: quote
+    noteJa: ネットバンキングの権限・限度額の設定は金融機関によって異なる。IPA 事例集の明細に単価はない

@@ -211,3 +211,28 @@ measures:
     mitigation: UD-04
     patches: []
     requestToJa: 総務・法務
+  # --- SNS・チャットで社長や取引先を名乗って接触される手口（TRIAL-B-006）。社内の運用や設定で、外部費用はかからない ---
+  - id: sns-group-refuse
+    labelJa: SNS・チャットのグループ作成の依頼に応じない運用
+    mitigation: UD-05
+    patches:
+      - role: person.accounting
+        mitigation: UD-05
+        status: present
+    requestToJa: 経理・社長（社内ルール）
+  - id: transfer-dual-approval
+    labelJa: 送金の二重承認
+    mitigation: UD-06
+    patches:
+      - role: person.accounting
+        mitigation: UD-06
+        status: present
+    requestToJa: 経理・社長（社内ルール）
+  - id: transfer-limit
+    labelJa: 一人で送金できる上限額の設定
+    mitigation: UD-07
+    patches:
+      - role: person.accounting
+        mitigation: UD-07
+        status: present
+    requestToJa: 経理・社長（社内ルール）、ネットバンキングの設定
