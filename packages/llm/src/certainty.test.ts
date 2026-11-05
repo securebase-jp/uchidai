@@ -90,10 +90,17 @@ describe("certaintyFromText（記事の書き方から確度を決める）", ()
         "TA0001",
       ),
     ).toBe("possible");
-    // 「調査中ですが」「と判断いたしました」は、説明の側にあっても可能性
+    // 「調査中ですが」は、説明の側にあっても可能性。「〜を受けたと判断いたしました」は会社が確定した結論なので下げない
     expect(certaintyFromText(null, "調査中ですが、VPN装置から侵入された", "TA0001")).toBe(
       "possible",
     );
+    expect(
+      certaintyFromText(
+        "第三者による不正アクセスを受けたと判断いたしました。",
+        "第三者による不正アクセスを受けた",
+        "TA0001",
+      ),
+    ).toBe("confirmed");
     // 入口以外の段階では、複文の「可能性」は今までどおり無視する
     expect(
       certaintyFromText(
