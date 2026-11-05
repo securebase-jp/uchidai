@@ -135,6 +135,8 @@ async function main(): Promise<number> {
       health?.body,
     );
     if (health?.status !== 200) throw new Error("起動しませんでした");
+    // 起動処理は、応答が 2 回続いてから案内を出すので、少し待つ
+    for (let i = 0; i < 50 && !output.includes("ウィンドウを閉じ"); i++) await sleep(200);
     record(
       "起動の表示に URL と終了の案内がある",
       output.includes(`http://127.0.0.1:${port}/`) && output.includes("ウィンドウを閉じ"),

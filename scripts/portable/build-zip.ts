@@ -174,10 +174,21 @@ export function shaFromSums(sums: string, file: string): string | undefined {
   return undefined;
 }
 
+/** 取得（一時的な失敗に備えて 3 回まで、1 回ごとに 10 分で打ち切る）。検証は呼び出し側が行う */
 async function download(url: string, to: string): Promise<void> {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`取得に失敗しました（${res.status}）: ${url}`);
-  writeFileSync(to, Buffer.from(await res.arrayBuffer()));
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10 * 60 * 1000) });
+      if (!res.ok) throw new Error(`取得に失敗しました（${res.status}）: ${url}`);
+      writeFileSync(to, Buffer.from(await res.arrayBuffer()));
+      return;
+    } catch (error) {
+      lastError = error;
+      log(`取得をやり直します（${attempt}/3）: ${url}`);
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 /** Node の配布物を取得し、公式の SHASUMS256.txt と固定した値の両方で検証して、ファイルの場所を返す */
