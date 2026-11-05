@@ -27,6 +27,7 @@ import {
 import type { CompanyProfile, Contradiction, LabelsFile, RoleDef } from "../lib/types.ts";
 import { InfoButton } from "./InfoButton.tsx";
 import { KevPanel } from "./KevPanel.tsx";
+import { OutboxLink } from "./OutboxLink.tsx";
 import { Field } from "./ProfileForms.tsx";
 
 type Asset = CompanyProfile["assets"][number];
@@ -489,7 +490,7 @@ function ControlRow(p: RowProps) {
         )}
         {policy !== "locked_external" &&
           (open ? (
-            <span className="st amber">依頼済み・回答待ち</span>
+            <OutboxLink assetId={p.asset.id} mitigation={p.mitigation} />
           ) : (
             <button
               type="button"

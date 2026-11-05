@@ -28,7 +28,7 @@ function parse(hash: string): Route {
 
 export function useRoute(): [Route, (r: Route) => void] {
   // ハッシュ全体を状態に持つ（共有リンクの一枚は #/onepager?d=… のように route が同じでも中身が変わる）
-  const [hash, setHash] = useState(() => location.hash);
+  const [hash, setHash] = useState(() => (typeof location === "undefined" ? "" : location.hash));
   useEffect(() => {
     const on = () => setHash(location.hash);
     addEventListener("hashchange", on);
