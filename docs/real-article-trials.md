@@ -4,7 +4,7 @@
 
 - 実施日：2026-11-05
 - 実施者：Claude Code のセッション（Sonnet 5.5）。開発者の依頼
-- 対象：`main` の a054b79（2026-11-05 時点）
+- 対象：`main` の 191c86e（2026-11-05 時点）
 - 環境：読解・言い換えのモデル `claude-sonnet-5-5`、ATT&CK Enterprise v20.0、型紙 6 本（ransomware、bec、bec-invoice、data-breach、data-breach-web、data-breach-intrusion）。API は listen せず、Hono の `app.request()` で直接呼んだ（画面は通していない）
 - 点数の基準：`pnpm eval` は 95%（知見あり）／92%（知見なし）、実記事 12 本の評価は型の一致 12/12（いずれも `eval/RESULTS.md` の 2026-11-04 の記録）。この試験ではコードを変えていないので、`pnpm eval` は回していない
 
