@@ -1,18 +1,38 @@
-# 秘密情報とローカルの状態をイメージに入れない
+# 秘密情報とローカルの状態をイメージに入れない（最優先）
 .env
 .env.*
-!.env.example
+**/.env
+**/.env.*
+*.pem
+*.key
+
+# 履歴とツールの設定
 .git
+.github
 .claude
+.gitignore
+.dockerignore
+lefthook.yml
+
+# 依存と生成物（イメージの中で入れ直す）
 node_modules
 **/node_modules
 **/dist
-eval/.cache
-eval/results
-apps/web/.data
-packages/recon/.cache
-demo/audio
-*.log
-.DS_Store
+**/*.tsbuildinfo
 .pnpm-store
 **/.pnpm-store
+coverage
+
+# 実行時に書かれる状態（手元の確認依頼や所有確認のトークンを入れない）
+apps/web/.data
+packages/recon/.cache
+
+# 評価のキャッシュ（記事本文）と結果、デモの素材は本番に要らない
+eval/.cache
+eval/results
+demo/audio
+demo/out
+demo/capture
+
+*.log
+.DS_Store
