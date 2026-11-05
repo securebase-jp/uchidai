@@ -82,6 +82,8 @@ export const Case = z.object({
     .string()
     .regex(/^[a-z][a-z0-9-]*$/)
     .optional(),
+  /** 記事が書く、漏えいした（可能性がある）情報の種類（knowledge/leak-kinds.yaml の id）。省略は書かれていない */
+  leakedData: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/)).optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -388,6 +390,10 @@ export const Verdict = z.object({
       /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */
       measureIds: z.array(z.string()).default([]),
     })
+    .optional(),
+  /** 記事が書く、漏えいした情報の種類と、その案内（leak-kinds.yaml から解いたもの） */
+  leakedData: z
+    .array(z.object({ id: z.string(), labelJa: z.string(), noteJa: z.string() }))
     .optional(),
   /** 判定の対象外だが、利用者が確認できることがあるとき（ソフトウェアの供給網の事故など）の案内 */
   guidanceJa: z.array(z.string()).optional(),

@@ -626,14 +626,26 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
   };
 }
 
+/** 記事が書く漏えいした情報の種類（定義済みのもの）を、案内つきで結論に載せる（D-011） */
+function applyLeakedData(v: Verdict, theCase: Case, knowledge: Knowledge): Verdict {
+  const kinds = (theCase.leakedData ?? [])
+    .map((id) => knowledge.leakKinds.find((k) => k.id === id))
+    .filter((k): k is NonNullable<typeof k> => k !== undefined);
+  if (kinds.length === 0) return v;
+  return {
+    ...v,
+    leakedData: kinds.map((k) => ({ id: k.id, labelJa: k.labelJa, noteJa: k.noteJa })),
+  };
+}
+
 export function evaluate(
   theCase: Case,
   profile: CompanyProfile,
   options: EvaluateOptions = {},
 ): Verdict {
   const knowledge = options.knowledge ?? loadKnowledge();
-  return applyThirdParty(
-    evaluateCore(theCase, profile, { ...options, knowledge }),
+  return applyLeakedData(
+    applyThirdParty(evaluateCore(theCase, profile, { ...options, knowledge }), theCase, knowledge),
     theCase,
     knowledge,
   );
@@ -718,6 +730,7 @@ function evaluateCore(
     {
       knowledge,
       damageType: theCase.damageType,
+      ...(theCase.leakedData ? { leakedKinds: theCase.leakedData } : {}),
     },
   );
   return {

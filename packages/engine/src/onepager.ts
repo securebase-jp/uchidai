@@ -207,9 +207,21 @@ export function reportCautionLines(verdict: Verdict): string[] {
   ];
 }
 
+/**
+ * 記事が書く漏えいした情報の種類ごとの案内（D-011）。件数・種類は会社カルテの計算とは別で、
+ * 「御社が同じ種類の情報を預かっているなら」（第三者の事故のときは「預けている情報に含まれるなら」）と、御社の話として書く
+ */
+export function leakedDataLines(verdict: Verdict): string[] {
+  const third = verdict.thirdParty;
+  return (verdict.leakedData ?? []).map(
+    (k) =>
+      `記事で漏えいしたとされる情報に「${k.labelJa}」が含まれます。${third ? `${third.labelJa}に預けている情報に、同じ種類が含まれる場合：` : "御社が同じ種類の情報を預かっている場合："}${k.noteJa}`,
+  );
+}
+
 /** 言い換えの文のあとに、プログラムの文として付ける行（第三者の事故の確認事項、報告義務の注意） */
 export function onePagerExtraLines(verdict: Verdict): string[] {
-  return [...thirdPartyLines(verdict), ...reportCautionLines(verdict)];
+  return [...thirdPartyLines(verdict), ...leakedDataLines(verdict), ...reportCautionLines(verdict)];
 }
 
 /** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
@@ -398,6 +410,10 @@ export function buildOnePager(
       .map((d) => knowledge.deadlines.deadlines.find((x) => x.id === d.deadlineId)?.sourceId)
       .filter((id): id is string => id !== undefined),
   );
+  // 記事が書く漏えいした情報の種類の案内を出したときは、その根拠（leak-kinds.yaml の sourceIds）も載せる
+  for (const l of verdict.leakedData ?? [])
+    for (const id of knowledge.leakKinds.find((x) => x.id === l.id)?.sourceIds ?? [])
+      usedSourceIds.add(id);
   const sources = [
     `${knowledge.costs.sourceJa}（${knowledge.costs.sourceUrl}）`,
     `MITRE ATT&CK Enterprise v${verdict.attackVersion}（攻撃の段階の対応づけ。対象は Enterprise のみで、工場の制御システム（ICS）への攻撃は対象外）`,

@@ -341,6 +341,19 @@ export const FirstActionsFile = z.object({
 });
 export type FirstActionsFile = z.infer<typeof FirstActionsFile>;
 
+// ---------------------------------------------------------------------------
+// 漏えいした情報の種類（knowledge/leak-kinds.yaml）。記事が書く情報の種類ごとの案内
+// ---------------------------------------------------------------------------
+export const LeakKindDef = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/, "漏えいした情報の種類は英小文字・数字・- で書く"),
+  labelJa: z.string(),
+  readingHintJa: z.string(),
+  noteJa: z.string(),
+  sourceIds: z.array(z.string()).default([]),
+});
+export const LeakKindsFile = z.object({ kinds: z.array(LeakKindDef).min(1) });
+export type LeakKindDef = z.infer<typeof LeakKindDef>;
+
 export const EntryCandidates = z.object({
   sourceJa: z.string(),
   sourceUrl: z.string(),
@@ -387,8 +400,18 @@ export const Deadline = z.object({
   /** 日数ではなく出来事に相対して置く */
   placement: z.enum(["before_partner_impact"]).optional(),
   /** damage_type は、damageTypes に挙げた被害の種類のときだけ置く */
-  appliesTo: z.enum(["report", "insurance", "partner", "police", "damage_type", "all"]),
+  appliesTo: z.enum([
+    "report",
+    "insurance",
+    "partner",
+    "police",
+    "damage_type",
+    "leak_kind",
+    "all",
+  ]),
   damageTypes: z.array(DamageType).optional(),
+  /** leak_kind は、記事が書く漏えいした情報の種類（leak-kinds.yaml の id）に当たるときだけ置く */
+  leakKinds: z.array(z.string()).optional(),
   basisJa: z.string(),
   sourceId: z.string(),
   status: z.enum(["confirmed", "unverified"]),
@@ -529,6 +552,9 @@ export function loadIndustries(): IndustryOption[] {
 export function loadDamageTypes(): DamageTypeDef[] {
   return DamageTypesFile.parse(readYaml("damage-types.yaml")).damageTypes;
 }
+export function loadLeakKinds(): LeakKindDef[] {
+  return LeakKindsFile.parse(readYaml("leak-kinds.yaml")).kinds;
+}
 export function loadFirstActions(): FirstActionsFile {
   return FirstActionsFile.parse(readYaml("first-actions.yaml"));
 }
@@ -596,6 +622,8 @@ export type Knowledge = {
   victims: VictimDef[];
   /** 対象外の事故の共通の初動（first-actions.yaml） */
   firstActions: FirstActionsFile;
+  /** 漏えいした情報の種類（leak-kinds.yaml） */
+  leakKinds: LeakKindDef[];
   deadlines: DeadlinesFile;
   costs: CostsFile;
 };
@@ -615,6 +643,7 @@ export function loadKnowledge(): Knowledge {
     entryKinds: loadEntryKinds(),
     victims: loadVictims(),
     firstActions: loadFirstActions(),
+    leakKinds: loadLeakKinds(),
     deadlines: loadDeadlines(),
     costs: loadCosts(),
   };
@@ -708,6 +737,9 @@ export function checkKnowledge(profilePaths: string[]): string[] {
       if (!isKnownRole(role, roles))
         problems.push(`entry-kinds/${kind.id}: 役割 ${role} が roles.yaml にない`);
 
+  const leakKinds = collect("leak-kinds", loadLeakKinds) ?? [];
+  for (const id of leakKinds.map((v) => v.id).filter((id, i, a) => a.indexOf(id) !== i))
+    problems.push(`leak-kinds: ${id} が重複`);
   const victims = collect("victims", loadVictims) ?? [];
   for (const id of victims.map((v) => v.id).filter((id, i, a) => a.indexOf(id) !== i))
     problems.push(`victims: ${id} が重複`);
@@ -1044,6 +1076,7 @@ export const schemaExports = {
   "entry-kinds.schema.json": EntryKindsFile,
   "victims.schema.json": VictimsFile,
   "first-actions.schema.json": FirstActionsFile,
+  "leak-kinds.schema.json": LeakKindsFile,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
   "sources.schema.json": SourcesFile,

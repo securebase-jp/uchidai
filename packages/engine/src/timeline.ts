@@ -13,6 +13,8 @@ export type TimelineOptions = {
   knowledge?: Knowledge;
   deadlines?: DeadlinesFile;
   damageType?: DamageType;
+  /** 記事が書く漏えいした情報の種類（leak-kinds.yaml の id）。leak_kind の期限に使う */
+  leakedKinds?: string[];
 };
 
 const PROFILE_SOURCE = "会社カルテ（手作業で回せる日数、復旧にかかる日数）";
@@ -161,6 +163,17 @@ export function buildTimeline(
           labelJa: d.labelJa,
           detailJa: `${d.basisJa}${d.status === "unverified" ? "（要確認）" : ""}`,
           ...(partnerBusiness ? { businessId: partnerBusiness.businessId } : {}),
+        });
+        break;
+      }
+      case "leak_kind": {
+        if (d.days === undefined || !d.leakKinds?.some((l) => options.leakedKinds?.includes(l)))
+          break;
+        push({
+          ...base,
+          day: d.days,
+          labelJa: d.labelJa,
+          detailJa: `${d.basisJa}${d.status === "unverified" ? "（要確認）" : ""}`,
         });
         break;
       }

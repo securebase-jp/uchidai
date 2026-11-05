@@ -1,5 +1,5 @@
 /** 被害を受けた側（victim。victims.yaml）：読解のスキーマ・指示文・検証、一枚の言い換えの規則 */
-import { loadAttack, loadVictims, VictimDef } from "@uchidai/engine";
+import { loadAttack, loadLeakKinds, loadVictims, VictimDef } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { checkWriterOutput, type OnePagerWriterInput } from "./onepager-writer.ts";
 import { buildRulesJa } from "./prompts.ts";
@@ -165,5 +165,30 @@ describe("D-007：報告は「必要ない」と書かない。止まる結論�
     expect(
       checkWriterOutput({ whatHappensJa: ["この経路では、VPN装置の入口で止まります。"] }, base),
     ).toBeUndefined();
+  });
+});
+
+describe("D-011：読解の leakedData は leak-kinds.yaml から組み立て、定義済みの値だけ残す", () => {
+  it("スキーマの選択肢と指示文は YAML から。必須の欄", () => {
+    const kinds = loadLeakKinds();
+    const schema = buildRawCaseJsonSchema() as {
+      required: string[];
+      properties: { leakedData: { items: { enum: string[] } } };
+    };
+    expect(schema.required).toContain("leakedData");
+    expect(schema.properties.leakedData.items.enum).toEqual(kinds.map((l) => l.id));
+    const text = buildRulesJa();
+    for (const l of kinds) expect(text).toContain(`${l.id}：`);
+  });
+  it("定義済みの値は残り（重複は 1 つ）、定義にない値は捨てて報告する。無ければ持たせない", () => {
+    const withData = (leakedData?: string[]) => ({
+      ...raw(null),
+      ...(leakedData ? { leakedData } : {}),
+    });
+    const r = verifyCase(withData(["payment", "payment", "sensitive", "alien"]), article, attack);
+    expect(r.case.leakedData).toEqual(["payment", "sensitive"]);
+    expect(r.report.droppedLeakedData).toEqual(["alien"]);
+    expect(verifyCase(withData([]), article, attack).case.leakedData).toBeUndefined();
+    expect(verifyCase(withData(), article, attack).case.leakedData).toBeUndefined();
   });
 });
