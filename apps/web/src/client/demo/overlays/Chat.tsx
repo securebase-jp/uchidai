@@ -44,6 +44,10 @@ const T_SHEET = 0.3;
 const T_BOSS_TYPING = 2.6;
 const T_BOSS_REPLY = 4.8;
 
+/** chat-staff の時刻：入力欄で打ち始める（チャットにも「入力中」を出す）、打ち終えて送る */
+const T_STAFF_TYPING = 1.2;
+const T_STAFF_SENT = 13.2;
+
 /** 情シス担当の返答が出てから、社長が読んだことにするまでの秒数 */
 const READ_AFTER = 1;
 
@@ -202,8 +206,14 @@ export function ChatOverlay({ variant, elapsed }: Props) {
           {variant === "chat-staff" && (
             <>
               {history}
-              {elapsed >= 13.2 && (
-                <Bubble who="staff" time="8:53" read={isRead(13.2)}>
+              {/* 入力欄で打っているあいだ、チャットの側にも「入力中」を出す（打ち終えて送るまで） */}
+              {elapsed >= T_STAFF_TYPING && elapsed < T_STAFF_SENT && (
+                <Bubble who="staff">
+                  <Typing />
+                </Bubble>
+              )}
+              {elapsed >= T_STAFF_SENT && (
+                <Bubble who="staff" time="8:53" read={isRead(T_STAFF_SENT)}>
                   少し時間をください。調べます。
                 </Bubble>
               )}
@@ -273,10 +283,10 @@ export function ChatOverlay({ variant, elapsed }: Props) {
         <div className="chat-compose">
           {variant === "chat-staff" ? (
             <div className="chat-input">
-              {elapsed < 13.2 ? (
+              {elapsed < T_STAFF_SENT ? (
                 <>
                   {elapsed < 8.5
-                    ? typedThenDeleted("たぶん大丈夫だと思いますが…", elapsed, 1.2, 6, 6)
+                    ? typedThenDeleted("たぶん大丈夫だと思いますが…", elapsed, T_STAFF_TYPING, 6, 6)
                     : typed("少し時間をください。調べます。", elapsed, 9, 7)}
                   <span className="chat-caret" aria-hidden="true" />
                 </>
