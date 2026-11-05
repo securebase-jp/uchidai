@@ -90,3 +90,28 @@ measures:
         status: present
         attrs: { reviewCadence: quarterly }
     requestToJa: 情シス担当者（設定変更と棚卸し）
+  - id: staff-mfa
+    labelJa: 社員のメールにも多要素認証
+    mitigation: M1032
+    patches:
+      - role: cloud.mail_account.staff
+        mitigation: M1032
+        status: present
+        attrs: { mfaException: false }
+    requestToJa: 情シス担当者（設定変更）
+  - id: mail-forward-audit
+    labelJa: メールの転送ルールの点検
+    mitigation: M1047
+    patches:
+      - role: cloud.mail_account.staff
+        mitigation: M1047
+        status: present
+    requestToJa: 情シス担当者（設定の点検）
+  - id: partner-warning-procedure
+    labelJa: 異変に気づいたら取引先へ速やかに知らせる手順
+    mitigation: UD-03
+    patches:
+      - role: cloud.mail_account.staff
+        mitigation: UD-03
+        status: present
+    requestToJa: 総務・営業（社内ルール）

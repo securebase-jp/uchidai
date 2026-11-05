@@ -106,6 +106,11 @@ const defs: QuestionDef[] = [
         textJa:
           "VPN の接続に、パスワードに加えてもう一つの確認（アプリの承認、SMS のコードなど）が必要ですか",
       },
+      "cloud.mail_account.staff": {
+        textJa:
+          "一般の社員のメールのログインに、パスワードに加えてもう一つの確認（アプリの承認、SMS のコードなど）が必要ですか",
+        hintJa: "社長や役員だけでなく、全社員のアカウントについて",
+      },
       "entry.web": {
         textJa:
           "ホームページの管理画面（CMS の管理画面、FTP、事業者の管理コンソール）のログインに、パスワードに加えてもう一つの確認が必要ですか",
@@ -240,6 +245,25 @@ const defs: QuestionDef[] = [
       UNKNOWN,
     ],
     byRole: {
+      "cloud.saas": {
+        textJa:
+          "利用しているクラウドサービス（端末管理、グループウェアなど）の閲覧権限や共有は、必要な人・範囲だけに絞っていますか",
+        choices: [
+          {
+            id: "present",
+            labelJa: "必要な範囲に絞っている",
+            status: "present",
+            attrs: { sharingRestricted: true },
+          },
+          {
+            id: "absent",
+            labelJa: "絞っていない（広く見られる設定がある）",
+            status: "absent",
+            attrs: { sharingRestricted: false },
+          },
+          UNKNOWN,
+        ],
+      },
       server: {
         textJa: "業務サーバの共有フォルダのアクセス権は、業務に必要な人だけに絞っていますか",
         choices: [
@@ -267,6 +291,23 @@ const defs: QuestionDef[] = [
       UNKNOWN,
     ],
     byRole: {
+      "cloud.saas": {
+        textJa: "クラウドサービスの共有・権限設定を、定期的に見直していますか",
+        choices: [
+          { id: "present", labelJa: "定期的に見直している", status: "present" },
+          { id: "absent", labelJa: "見直していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+      "cloud.mail_account.staff": {
+        textJa: "社員のメールに仕込まれた外部への自動転送の設定を、定期的に点検していますか",
+        hintJa: "メールの設定画面で、見覚えのない転送ルールがないかを確かめることです",
+        choices: [
+          { id: "present", labelJa: "定期的に点検している", status: "present" },
+          { id: "absent", labelJa: "点検していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
       server: {
         textJa: "業務サーバのアクセスログを、定期的に確認していますか",
         choices: [
@@ -345,6 +386,16 @@ const defs: QuestionDef[] = [
       "振込先の変更や急な送金の指示があったとき、登録済みの電話番号へ折り返して確認する、または二人で承認する手順はありますか",
     choices: [
       { id: "present", labelJa: "手順がある", status: "present" },
+      { id: "absent", labelJa: "手順はない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-03",
+    textJa:
+      "不審なメールが自社から送られていることに気づいたとき、取引先へ速やかに知らせる手順と連絡先はありますか",
+    choices: [
+      { id: "present", labelJa: "手順と連絡先がある", status: "present" },
       { id: "absent", labelJa: "手順はない", status: "absent" },
       UNKNOWN,
     ],

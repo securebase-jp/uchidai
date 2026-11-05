@@ -1,0 +1,53 @@
+# 型紙：メールアカウントの乗っ取り（取引先への踏み台）
+# 取引先を装ったフィッシングで社員のメールのパスワードを入力させられ、そのアカウントで正規にログインされ、
+# 受信メールの自動転送などで内容を覗かれ、乗っ取られたアカウントから取引先へ不審なメールが送られて二次被害になる。
+# 送金が目的のなりすまし送金（bec）とは別。被害の中心は取引先への影響。ATT&CK の手法の水準まで書く
+id: account-takeover
+damageType: account_takeover
+labelJa: メールアカウントの乗っ取り（取引先への踏み台）
+descriptionJa: 取引先を装ったメールでパスワードを入力させ、社員のアカウントに入り、そのアカウントから取引先へ不審なメールを送る
+stages:
+  - id: phish
+    labelJa: 取引先を装ったメールでパスワードを入力させる
+    breachedJa: だまされる
+    breachedDoneJa: だまされました
+    tactics: [TA0001]
+    entry: true
+    byRole:
+      cloud.mail_account.staff: T1566.002
+    accepts: [T1566.002, T1566, T1598]
+  - id: login
+    labelJa: 正規のアカウントでログインされる
+    breachedJa: 乗っ取られる
+    breachedDoneJa: 乗っ取られました
+    tactics: [TA0001, TA0003]
+    byRole:
+      cloud.mail_account.staff: T1078.004
+    # 流出したパスワードの使い回し（T1110.004）、多要素認証の要求の大量送信（T1621）も乗っ取りとして受け入れる
+    accepts: [T1078.004, T1078, T1110.004, T1621]
+  - id: forward
+    labelJa: 受信メールの転送ルールを仕込まれる
+    breachedJa: 覗かれる
+    breachedDoneJa: 覗かれました
+    tactics: [TA0009]
+    # 転送ルールが止まっても、乗っ取ったアカウントで取引先へ送ることはできる。本線ではなく枝にする
+    branch: true
+    byRole:
+      cloud.mail_account.staff: T1114.003
+    accepts: [T1114.003, T1114]
+  - id: send
+    labelJa: 乗っ取ったアカウントから取引先へ送信する
+    breachedJa: 悪用される
+    breachedDoneJa: 悪用されました
+    tactics: [TA0008]
+    byRole:
+      cloud.mail_account.staff: T1534
+    accepts: [T1534, T1684.002]
+  - id: partner
+    labelJa: 取引先に影響が及ぶ
+    breachedJa: 被害を受ける
+    breachedDoneJa: 被害を受けました
+    tactics: [TA0040]
+    byRole:
+      impact.partner: null
+    terminal: true

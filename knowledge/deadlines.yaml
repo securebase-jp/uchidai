@@ -110,3 +110,13 @@ deadlines:
     sourceId: mpd-bec
     status: confirmed
     noteJa: 海外口座では回収が非常に難しいとされるため、発覚当日を目安に置く
+  - id: partner-warning
+    kind: partner
+    labelJa: 取引先へ注意喚起（不審なメールに注意するよう連絡）
+    days: 1
+    appliesTo: damage_type
+    damageTypes: [account_takeover]
+    basisJa: 乗っ取られたアカウントから取引先へ不審なメールが送られているため、取引先が被害を受ける前に速やかに連絡する（目安）。契約に通知条項があればそれも確認する
+    sourceId: profile
+    status: unverified
+    noteJa: 要確認：日数の定めは法令にない。発覚後すみやかに（目安）。取引先との契約の通知条項を確認すること

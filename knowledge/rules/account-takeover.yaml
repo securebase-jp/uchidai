@@ -1,0 +1,82 @@
+# 判定ルール表：メールアカウントの乗っ取り（取引先への踏み台）
+# 型紙 account-takeover の全段階。社員のメールアカウント（cloud.mail_account.staff）と取引先への影響（impact.partner）
+rules:
+  - id: account_takeover.phish
+    role: cloud.mail_account.staff
+    techniques: [T1566.002, T1566, T1598]
+    materialsJa: カルテ：社員向けのセキュリティ研修（取引先を装うメールへの注意）
+    mitigations: [M1017]
+    ineffective:
+      - mitigation: M1054
+        reasonJa: 取引先を装った別のドメイン（よく似た綴りなど）や、乗っ取られた取引先の本物のアカウントから届くメールには、送信ドメイン認証（SPF・DKIM・DMARC）では見分けられません
+    outcomes:
+      - state: human
+        when: { control: { mitigation: M1017, status: present } }
+        reasonJa: 研修のみ。本物に見えるメールにだまされても、仕組みで止まる手順がない
+      - state: unknown
+        when: { control: { mitigation: M1017, status: unknown } }
+        reasonJa: 研修の実施が未確認
+      - state: breached
+        reasonJa: 取引先を装ったメールのリンクに、パスワードを入力してしまうことを防ぐ手立てがない
+  - id: account_takeover.login
+    role: cloud.mail_account.staff
+    techniques: [T1078.004, T1078, T1110.004, T1621]
+    materialsJa: カルテ：クラウドメールの多要素認証の適用範囲（一般の社員を含むか）と方式
+    mitigations: [M1032]
+    outcomes:
+      - state: breached
+        when: { attr: { key: mfaException, equals: true } }
+        reasonJa: 一部の社員のアカウントが多要素認証の例外になっている
+      - state: human
+        when:
+          all:
+            - control: { mitigation: M1032, status: present }
+            - attr: { key: mfaMethod, equals: push }
+        reasonJa: 承認ボタンを押すだけの方式は、承認要求を大量に送りつける手口に弱い
+      - state: blocked
+        when: { control: { mitigation: M1032, status: present } }
+        reasonJa: 社員を含む全員に多要素認証が強制されている。入力させられたパスワードだけでは入れない
+      - state: unknown
+        when: { control: { mitigation: M1032, status: unknown } }
+        reasonJa: 社員のメールの多要素認証の適用範囲が未確認
+      - state: breached
+        reasonJa: 入力させられたパスワードだけでログインできる
+  - id: account_takeover.forward
+    role: cloud.mail_account.staff
+    techniques: [T1114.003, T1114]
+    materialsJa: カルテ：メールの外部転送ルールの定期的な点検
+    mitigations: [M1047]
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: M1047, status: present } }
+        reasonJa: 転送ルールを定期的に点検しており、仕込まれても早く見つかる
+      - state: unknown
+        when: { control: { mitigation: M1047, status: unknown } }
+        reasonJa: 転送ルールの点検が未確認
+      - state: breached
+        reasonJa: 転送ルールを点検しておらず、受信メールが外へ流れても気づけない
+  - id: account_takeover.send
+    role: cloud.mail_account.staff
+    techniques: [T1534, T1684.002]
+    materialsJa: カルテ：異変に気づいたときに取引先へ速やかに知らせる手順
+    mitigations: [UD-03]
+    ineffective:
+      - mitigation: M1054
+        reasonJa: 乗っ取られた本物のアカウントから送られるため、SPF・DKIM・DMARC では見分けられません
+    outcomes:
+      - state: recoverable
+        when: { control: { mitigation: UD-03, status: present } }
+        reasonJa: 乗っ取りは止められないが、異変に気づいたら取引先へ速やかに知らせる手順があり、二次被害を抑えられる
+      - state: unknown
+        when: { control: { mitigation: UD-03, status: unknown } }
+        reasonJa: 取引先へ知らせる手順が未確認
+      - state: breached
+        reasonJa: 乗っ取られたアカウントから、取引先へ本物に見えるメールが送られる
+  - id: account_takeover.partner
+    role: impact.partner
+    techniques: []
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 取引先に不審なメールが届き、取引先が被害を受けるおそれがある。取引先への連絡の期限を表示する

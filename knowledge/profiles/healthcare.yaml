@@ -41,3 +41,7 @@ personalData:
     descriptionJa: 患者の病歴・診療情報
     sensitive: true
     over1000: true
+  - role: cloud.mail_account.staff
+    descriptionJa: メールに含まれる取引先・関係者の連絡先
+    sensitive: false
+    over1000: false

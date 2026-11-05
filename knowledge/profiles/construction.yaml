@@ -43,3 +43,7 @@ personalData:
     descriptionJa: 発注者・協力会社の担当者の連絡先
     sensitive: false
     over1000: false
+  - role: cloud.mail_account.staff
+    descriptionJa: メールに含まれる取引先・関係者の連絡先
+    sensitive: false
+    over1000: false

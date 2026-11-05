@@ -19,6 +19,7 @@ roles:
         cloud.mail,
         pc,
         cloud.mail_account.exec,
+        cloud.mail_account.staff,
         cloud.storage,
         cloud.saas,
         person.accounting,
@@ -107,7 +108,7 @@ roles:
     labelJa: クラウドメール
     layer: system
     side: external
-    links: [pc, cloud.mail_account.exec]
+    links: [pc, cloud.mail_account.exec, cloud.mail_account.staff]
     attrs:
       spf: { type: boolean, descriptionJa: SPF を設定しているか }
       dmarc: { type: boolean, descriptionJa: DMARC を設定しているか }
@@ -122,6 +123,16 @@ roles:
         { type: boolean, descriptionJa: 社長のアカウントだけ多要素認証の例外になっているか }
       mfaMethod: { type: string, descriptionJa: 多要素認証の方式（app / push など） }
     descriptionJa: T1078.004 の対象
+  - id: cloud.mail_account.staff
+    labelJa: 社員のメールアカウント
+    layer: system
+    side: external
+    links: [person.staff]
+    attrs:
+      mfaException:
+        { type: boolean, descriptionJa: 一部の社員のアカウントが多要素認証の例外になっているか }
+      mfaMethod: { type: string, descriptionJa: 多要素認証の方式（app / push など） }
+    descriptionJa: T1078.004 の対象。乗っ取られると取引先への踏み台になる（取引先への影響は構成グラフの経営の層につなぐ）
   - id: cloud.storage
     labelJa: クラウドストレージ
     layer: system

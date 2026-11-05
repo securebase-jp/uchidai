@@ -98,7 +98,9 @@ export function buildGraph(profile: CompanyProfile, roles: RoleDef[]): Graph {
   }
 
   const affected = businesses.filter((b) => b.affectsJa);
-  if (affected.length > 0) {
+  // 社員のメールアカウントは、乗っ取られると取引先への踏み台になる（業務が止まらなくても取引先に影響が出る）
+  const staffAccounts = byRole("cloud.mail_account.staff");
+  if (affected.length > 0 || staffAccounts.length > 0) {
     nodes.push({
       id: "impact.partner",
       role: "impact.partner",
@@ -107,6 +109,8 @@ export function buildGraph(profile: CompanyProfile, roles: RoleDef[]): Graph {
       side: "external",
     });
     for (const b of affected) addEdge(edge(b.id, "impact.partner", "impacts", b.affectsJa));
+    for (const n of staffAccounts)
+      addEdge(edge(n.id, "impact.partner", "impacts", "取引先へ不審なメールが届く"));
   }
   if (profile.personalData.length > 0) {
     nodes.push({
@@ -308,6 +312,17 @@ export function profileFromAnswers(
         "社長のメールアカウント",
         "account",
         ["M1032", "M1027"],
+        { side: "external" },
+      ),
+    );
+    // 一般の社員のメールアカウント（取引先を装ったフィッシングで乗っ取られ、取引先への踏み台になる）
+    assets.push(
+      asset(
+        "staff-mail-account",
+        "cloud.mail_account.staff",
+        "社員のメールアカウント",
+        "account",
+        ["M1032", "M1017", "M1047", "UD-03"],
         { side: "external" },
       ),
     );

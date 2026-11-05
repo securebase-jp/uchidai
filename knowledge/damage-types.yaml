@@ -22,12 +22,20 @@ damageTypes:
   - id: bec
     labelJa: なりすまし送金（ビジネスメール詐欺）
     shortJa: なりすまし・送金詐欺
-    readingHintJa: 社長・役員・取引先などになりすました送金指示（メール、チャット、SNS、電話を問わない）で資金を送金させる詐欺。アカウントの乗っ取りの有無は問わない
+    readingHintJa: 社長・役員・取引先などになりすました送金指示（メール、チャット、SNS、電話を問わない）で資金を送金させる詐欺。送金（金額）が主な被害のもの。メールアカウントの乗っ取りを伴っていても、被害が送金なら bec。送金が目的でなく、乗っ取ったアカウントから取引先へ不審なメールが送られる（取引先への踏み台・二次被害）ものは account_takeover
     day0:
       kind: money
       labelJa: なりすましの指示で送金してしまう
       showMoneyLoss: true
     reachesMoney: true
+  - id: account_takeover
+    labelJa: メールアカウントの乗っ取り（取引先への踏み台）
+    shortJa: メールアカウントの乗っ取り・取引先への二次被害
+    readingHintJa: 取引先などを装ったフィッシングでメールアカウントを乗っ取られ、そのアカウントから取引先へ不審なメールが送られる（取引先への踏み台・二次被害になる）もの。送金（金額）が主な被害なら bec、情報の流出が主な被害なら data_breach
+    day0:
+      kind: partner
+      labelJa: 乗っ取られたアカウントから取引先へ不審なメールが送られる
+      sourceJa: 判定した攻撃経路
   - id: data_breach
     labelJa: 情報漏えい
     shortJa: 情報漏えい

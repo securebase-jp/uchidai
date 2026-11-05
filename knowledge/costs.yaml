@@ -62,3 +62,12 @@ measures:
   - measureId: saas-sharing-review
     basis: quote
     noteJa: 設定の見直しと定期的な棚卸し。IPA 事例集の明細に単価はない
+  - measureId: staff-mfa
+    basis: quote
+    noteJa: クラウドメールの設定変更。IPA 事例集の明細に単価はない
+  - measureId: mail-forward-audit
+    basis: internal
+    noteJa: メールの設定画面で転送ルールを点検する社内作業。外部費用は見込まない
+  - measureId: partner-warning-procedure
+    basis: internal
+    noteJa: 取引先への連絡手順と連絡先を決める社内ルール。外部費用は見込まない
