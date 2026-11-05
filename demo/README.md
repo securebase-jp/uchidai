@@ -163,7 +163,7 @@ node --disable-warning=ExperimentalWarning demo/scripts/record-onepager.ts --che
 
 - **ソフトウェア本体**（[利用規約](https://voicevox.hiroshiba.jp/term/)）：「商用・非商用問わず利用することができます」「ご利用の際は VOICEVOX を利用したことがわかるクレジット表記が必要です」「作成された音声を利用する際は、各音声ライブラリの規約に従ってください」。作った音声の利用を他者に許諾するときは、相手にも同じ条件を守らせる
 - **音声ライブラリ**（キャラクターごとに規約が違う）：既定の **四国めたん** と **ずんだもん** は SSS LLC の[東北ずん子・ずんだもんプロジェクト 音源利用規約](https://zunko.jp/con_ongen_kiyaku.html)に従う。商用・非商用とも利用可で、法人と個人の区別はなく、クレジットは「VOICEVOX:四国めたん」「VOICEVOX:ずんだもん」の形。動画サイトでは概要欄か画面内のクレジットに書く。禁止：公序良俗に反する利用、政治・宗教活動や特定の個人・団体・国家の批判や支持、情報商材、虚偽・誤解を招く情報の作成、風俗営業、反社会的勢力による利用
-- **青山龍星**など一部のキャラクターは、企業が携わる利用に事前確認が要る（Docker Hub の `voicevox/voicevox_engine` の説明）。Securebase Inc. の作品として公開するため、既定では使わない。話者を変えるときは `--name` で指定し、そのキャラクターの規約と `narration.json` の `credits.voice` を合わせる
+- **青山龍星**など一部のキャラクターは、企業が携わる利用に事前確認が要る（Docker Hub の `voicevox/voicevox_engine` の説明）。ab3xy の作品として公開するため、既定では使わない。話者を変えるときは `--name` で指定し、そのキャラクターの規約と `narration.json` の `credits.voice` を合わせる
 - 本リポジトリの表記：エンドカード（場面 11）と README に「音声合成：VOICEVOX:四国めたん」。動画の概要欄にも同じ一行を書く
 
 ### HyperFrames
