@@ -56,8 +56,14 @@ export class ArticleFetchError extends Error {
   }
 }
 
-/** HTTP のエラー応答を、利用者向けの案内にする */
-export function httpErrorToFetchError(status: number): ArticleFetchError {
+/** 取得を断られた応答の本文に、ログインや会員登録を求める語があるか（企業の IR ページの単なる拒否と区別する） */
+const LOGIN_WORDS = /ログイン|会員登録|サインイン|無料登録|sign[\s-]?in|log[\s-]?in/i;
+
+/** 自動での取得を断られた（403）ときの、次の手の案内。「ログインの壁」とは決めつけず、本文にログインの語があるときだけそう案内する */
+const FORBIDDEN_PDF_HINT_JA = "PDF の版や、本文の貼り付けをお試しください。";
+
+/** HTTP のエラー応答を、利用者向けの案内にする。errorBody は断られた応答の本文の先頭（任意。403 の案内を分けるのに使う） */
+export function httpErrorToFetchError(status: number, errorBody?: string): ArticleFetchError {
   const opts = { status, detail: `HTTP ${status}` };
   if (status === 404 || status === 410)
     return new ArticleFetchError(
@@ -65,7 +71,17 @@ export function httpErrorToFetchError(status: number): ArticleFetchError {
       `記事が見つかりませんでした（${status}）。URL を確かめるか、${PASTE_HINT_JA}`,
       opts,
     );
-  if (status === 401 || status === 402 || status === 403 || status === 451)
+  if (status === 403) {
+    const wall = errorBody !== undefined && LOGIN_WORDS.test(errorBody);
+    return new ArticleFetchError(
+      "forbidden",
+      wall
+        ? `この記事は、ログインや会員登録が必要なため、取得を断られました（${status}）。${PASTE_HINT_JA}`
+        : `サイトが自動での取得を断りました（${status}）。${FORBIDDEN_PDF_HINT_JA}`,
+      opts,
+    );
+  }
+  if (status === 401 || status === 402 || status === 451)
     return new ArticleFetchError(
       "forbidden",
       `この記事は、ログインや会員登録が必要、または取得を断られました（${status}）。${PASTE_HINT_JA}`,
@@ -354,6 +370,37 @@ export async function assertAllowedUrl(urlStr: string, opts: FetchOptions = {}):
 // ---------------------------------------------------------------------------
 
 /** 本文を上限まで読む。上限を超えたら打ち切って例外 */
+/** 応答の本文の先頭 maxBytes だけを文字にする（読めなければ空文字）。断られた応答の中身を見るために使う */
+async function peekBodyText(
+  res: Response,
+  signal: AbortSignal,
+  maxBytes = 32_768,
+): Promise<string> {
+  if (!res.body) return "";
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (total < maxBytes && !signal.aborted) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      total += value.byteLength;
+    }
+  } catch {
+    // 読めなかった分は無視する
+  } finally {
+    await reader.cancel().catch(() => undefined);
+  }
+  const buf = new Uint8Array(total);
+  let at = 0;
+  for (const c of chunks) {
+    buf.set(c, at);
+    at += c.byteLength;
+  }
+  return new TextDecoder("utf-8", { fatal: false }).decode(buf.subarray(0, maxBytes));
+}
+
 async function readBody(res: Response, max: number, signal: AbortSignal): Promise<Uint8Array> {
   const declared = Number(res.headers.get("content-length") ?? "");
   if (Number.isFinite(declared) && declared > max)
@@ -455,8 +502,10 @@ export async function downloadBytes(
       continue;
     }
     if (!res.ok) {
+      // 403 は、本文にログインの語があるかで案内を分ける（先頭だけ読む）
+      const errorBody = res.status === 403 ? await peekBodyText(res, signal) : undefined;
       await res.body?.cancel().catch(() => undefined);
-      throw httpErrorToFetchError(res.status);
+      throw httpErrorToFetchError(res.status, errorBody);
     }
     const data = await readBody(res, max, signal);
     return {
@@ -982,6 +1031,18 @@ export function parsePageRange(spec: string, totalPages: number): number[] {
   return [...pages].sort((a, b) => a - b);
 }
 
+/** PDF でなかったバイト列の案内。HTML が返っているときは、そう伝える（同意の画面などのことが多い） */
+function notPdfMessage(data: Uint8Array): string {
+  const head = new TextDecoder("utf-8", { fatal: false })
+    .decode(data.subarray(0, 512))
+    .replace(/^\uFEFF/, "")
+    .trimStart()
+    .toLowerCase();
+  if (/^(<!doctype html|<html|<head|<body|<meta|<\?xml)/.test(head))
+    return `PDF ではなく HTML が返りました（同意の画面かもしれません）。${PASTE_HINT_JA}`;
+  return "PDF として読めません（先頭が %PDF- ではありません）";
+}
+
 /** PDF の全ページのテキスト（ページごと）。大きすぎる PDF は読まない */
 export async function extractPdfPages(
   data: Uint8Array,
@@ -994,7 +1055,7 @@ export async function extractPdfPages(
       `PDF が大きすぎます: ${data.byteLength} bytes（上限 ${max}）`,
     );
   if (data.byteLength < 5 || String.fromCharCode(...data.subarray(0, 5)) !== "%PDF-")
-    throw new ArticleFetchError("bad_pdf", "PDF として読めません（先頭が %PDF- ではありません）");
+    throw new ArticleFetchError("bad_pdf", notPdfMessage(data));
   // pdf.js は渡したバッファを worker へ移譲（detach）するので、呼び出し側が再利用できるよう複製を渡す
   let pdf: Awaited<ReturnType<typeof getDocumentProxy>>;
   try {
