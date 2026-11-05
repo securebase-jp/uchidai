@@ -225,3 +225,36 @@ describe("S-005：ソフトウェアの供給網の事故（対象外）は、�
     expect(v.result).not.toBe("out_of_scope");
   });
 });
+
+describe("続報で種類が分からない公表（needsPrevious。TRIAL-I-005）", () => {
+  const followUp: Case = {
+    title: "システム障害（続報）",
+    damageType: "out_of_scope",
+    clarity: "unknown",
+    suspiciousInstructions: [],
+    steps: [],
+    needsPrevious: true,
+  };
+  it("見出しと一枚の先頭が「これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください」", () => {
+    const line =
+      "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
+    const v = evaluate(followUp, demo, { knowledge: k });
+    expect(v.result).toBe("out_of_scope");
+    expect(v.needsPrevious).toBe(true);
+    expect(v.headlineJa).toBe(line);
+    expect(v.guidanceJa?.[0]).toBe(line);
+    expect(v.guidanceJa?.join("")).not.toContain("攻撃経路で判定できない");
+    expect(buildOnePager(v, demo, k).whatHappensJa[0]).toBe(line);
+    // 共通の初動（個人情報の報告の案内）は残す
+    expect(v.guidanceJa?.join("")).toContain("個人情報保護委員会への報告");
+  });
+  it("needsPrevious が無い対象外は従来どおり", () => {
+    const { needsPrevious: _n, ...plain } = followUp;
+    const v = evaluate(plain, demo, { knowledge: k });
+    expect(v.needsPrevious).toBeUndefined();
+    expect(v.headlineJa).toBe("この事故は攻撃経路で判定できないため、対象外です");
+    expect(v.guidanceJa?.[0]).toBe(
+      "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    );
+  });
+});

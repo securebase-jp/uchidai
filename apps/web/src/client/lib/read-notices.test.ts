@@ -10,6 +10,16 @@ describe("readNotices（読解の確認の文）", () => {
       { id: "out_of_scope", tone: "info", textJa: "攻撃の記事ではないと判断しました" },
     ]);
   });
+  it("続報で種類が分からないとき（needsPrevious）は、「攻撃の記事ではない」と言わず、第一報と合わせて読むよう伝える", () => {
+    const n = readNotices({ damageType: "out_of_scope", steps: [], needsPrevious: true });
+    expect(n).toEqual([
+      {
+        id: "needs_previous",
+        tone: "warn",
+        textJa: "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください",
+      },
+    ]);
+  });
   it("攻撃の記事で段階があれば何も出さない。段階が 0 でも out_of_scope でなければ出さない（読めなかった警告は API 側）", () => {
     expect(readNotices({ damageType: "ransomware", steps: [step] })).toEqual([]);
     expect(readNotices({ damageType: "ransomware", steps: [] })).toEqual([]);

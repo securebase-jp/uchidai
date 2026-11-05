@@ -97,6 +97,11 @@ export const Case = z.object({
   reportedLossJpy: z.number().int().positive().optional(),
   /** 記事の会社は被害を防げた（未遂・送金前に気づいた・被害が出なかった）。省略は被害が出た */
   averted: z.boolean().optional(),
+  /**
+   * 続報で、この文書だけでは種類が分からない（読解が out_of_scope で、サイバー攻撃などの語と続報の印がある）。
+   * 検証（verify.ts）が本文から決める。Claude の出力は使わない。第一報と合わせて読むよう案内する（TRIAL-I-005）
+   */
+  needsPrevious: z.boolean().optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -389,6 +394,8 @@ export const VerdictResult = z.enum([
 export const Verdict = z.object({
   result: VerdictResult,
   headlineJa: z.string(),
+  /** 続報で種類が分からず、第一報と合わせて読む必要がある対象外（Case.needsPrevious。TRIAL-I-005） */
+  needsPrevious: z.boolean().optional(),
   /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
   templateId: z.string().optional(),
   templateLabelJa: z.string().optional(),

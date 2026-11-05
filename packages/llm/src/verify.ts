@@ -166,6 +166,28 @@ const EXEC_WORDS = /社長|代表(取締役|者)?|役員|経営者|経営陣|CEO
 /** 被害を防げた（未遂・阻止・被害は発生しなかった）と書く語。averted を残してよいのは、本文にこのどれかがあるときだけ */
 const AVERTED_WORDS =
   /未遂|未然|防(げ(?!なかっ)|い)|被害(は|が)(発生し|生じ)(なかった|てい(ない|ません)|ておりません)|被害(は|には|に)(至|出)(らなかっ|なかっ|ませんでし)|送金前|阻止/;
+/**
+ * 続報で、この文書だけでは種類が分からない公表か（TRIAL-I-005）。Claude の出力は信じず、本文と題から決定的に決める。
+ * 読解が out_of_scope で、本文にサイバー攻撃・不正アクセス・ランサムウェアの語があり、題か本文に続報の印があるとき。
+ * 続報の印は、「続報」「最終報」「第 2 報」以降。「第 1 報」はこの文書自身か前の報の呼び名で、続報の印にしない。
+ * 「続報を公表いたします」のように、これから出す予告の言い方は、この文書が続報だという意味ではないので除く
+ */
+const ATTACK_WORDS = /サイバー攻撃|不正アクセス|ランサムウェア/;
+const FOLLOW_UP_MARK = /(続報|最終報|第([0-9]+|[一二三四五六七八九十]+)報)/g;
+const FOLLOW_UP_FUTURE =
+  /^.{0,12}?(お知らせ|ご報告|報告|公表|開示|発表|ご案内)(いたします|致します|します|してまいります|させていただきます|する予定|予定)/;
+export function isFollowUpWithoutKind(text: string, title = ""): boolean {
+  const n = normalizeText(`${title}\n${text}`);
+  if (!ATTACK_WORDS.test(n)) return false;
+  for (const m of n.matchAll(FOLLOW_UP_MARK)) {
+    if (m[2] === "一" || (/^[0-9]+$/.test(m[2] ?? "") && Number(m[2]) <= 1)) continue;
+    const after = n.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 24);
+    if (FOLLOW_UP_FUTURE.test(after)) continue;
+    return true;
+  }
+  return false;
+}
+
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -479,6 +501,9 @@ export function verifyCase(
     ...(leakedData.length > 0 ? { leakedData } : {}),
     ...(reportedLossJpy !== undefined ? { reportedLossJpy } : {}),
     ...(averted ? { averted: true } : {}),
+    ...(parsed.damageType === OUT_OF_SCOPE && isFollowUpWithoutKind(articleText, options.title)
+      ? { needsPrevious: true }
+      : {}),
   });
   return { case: c, report };
 }

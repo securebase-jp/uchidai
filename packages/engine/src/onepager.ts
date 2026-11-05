@@ -5,6 +5,7 @@
  * 画面（S3）はこのデータをそのまま描画する。
  */
 import { z } from "zod";
+import { NEEDS_PREVIOUS_LINE } from "./evaluate.ts";
 import { formatJpy } from "./impact.ts";
 import type { Knowledge, MeasureDef } from "./knowledge.ts";
 import { resolveControl } from "./rules.ts";
@@ -184,7 +185,11 @@ function emptyPathLines(verdict: Verdict): string[] {
   if (verdict.result === "no_entry")
     return ["この攻撃が入る入口は、登録されたカルテにありません。"];
   if (verdict.result === "out_of_scope")
-    return ["この事故は攻撃経路で判定できないため、被害の見込みは出していません。"];
+    return [
+      verdict.needsPrevious
+        ? NEEDS_PREVIOUS_LINE
+        : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    ];
   return [];
 }
 

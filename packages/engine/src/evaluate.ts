@@ -54,6 +54,10 @@ export const entryKindGapHeadline = (kind: Pick<EntryKindDef, "labelJa">): strin
 export const entryKindGapNote = (kind: Pick<EntryKindDef, "labelJa">): string =>
   `記事の入口は「${kind.labelJa}」です。御社のカルテには、この入口になる資産が登録されていません。登録が足りない可能性があります。この入口を使っていないか、使っているなら登録して、判定をやり直してください。`;
 
+/** 続報で、この文書だけでは被害の種類が分からないとき（Case.needsPrevious。TRIAL-I-005）の固定文 */
+export const NEEDS_PREVIOUS_LINE =
+  "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
+
 /** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
 export const UNMAPPED_HEADLINE =
   "この記事の攻撃は、ウチダイの型紙の手法に対応づけられないため、判定できません（対象外）";
@@ -600,7 +604,9 @@ export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[
     a.techniques.some((prefix) => techniques.some((t) => t.startsWith(prefix))),
   );
   return [
-    "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    theCase.needsPrevious
+      ? NEEDS_PREVIOUS_LINE
+      : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
     "攻撃経路は判定できませんが、個人情報が外部の人に見られた可能性がある場合は、個人情報保護委員会への報告が必要になることがあります。",
     ...knowledge.firstActions.common,
     ...matched.flatMap((a) => a.actionsJa),
@@ -731,6 +737,12 @@ function evaluateCore(
       return {
         ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
         guidanceJa: supplyChainGuidance(theCase),
+      };
+    if (theCase.damageType === "out_of_scope" && theCase.needsPrevious)
+      return {
+        ...empty("out_of_scope", NEEDS_PREVIOUS_LINE),
+        needsPrevious: true,
+        guidanceJa: outOfScopeGuidance(theCase, knowledge),
       };
     return { ...empty("out_of_scope"), guidanceJa: outOfScopeGuidance(theCase, knowledge) };
   }

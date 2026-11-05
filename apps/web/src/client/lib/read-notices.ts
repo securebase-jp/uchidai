@@ -2,6 +2,7 @@
  * 記事を読んだ結果についての、担当者画面の「読解の確認」の文（純粋な関数）。
  * 判定には関わらない。読解の結果をどう受け取ればよいかだけを伝える。
  *  - 攻撃の記事ではないと判断したとき（out_of_scope で段階が 0）：警告ではなく、そのとおりに伝える（TRIAL-S-009）
+ *  - 続報で、この文書だけでは種類が分からないとき（needsPrevious）：第一報と合わせて読むよう伝える（TRIAL-I-005）
  *  - 本文が途中で切れていそうなとき：本文を貼れば読めると案内する（TRIAL-B-012）
  */
 import type { Case } from "./types.ts";
@@ -10,7 +11,7 @@ import type { Case } from "./types.ts";
 export type ReadFlag = "incomplete" | "truncated";
 
 export type ReadNotice = {
-  id: "out_of_scope" | ReadFlag;
+  id: "out_of_scope" | "needs_previous" | ReadFlag;
   /** info：そのとおりの報告、warn：確かめてほしいこと */
   tone: "info" | "warn";
   textJa: string;
@@ -27,11 +28,17 @@ export function readFlagsOf(article: { incomplete?: string[]; truncated?: boolea
 }
 
 export function readNotices(
-  theCase: Pick<Case, "damageType" | "steps">,
+  theCase: Pick<Case, "damageType" | "steps" | "needsPrevious">,
   flags: readonly ReadFlag[] = [],
 ): ReadNotice[] {
   const out: ReadNotice[] = [];
-  if (theCase.damageType === "out_of_scope" && theCase.steps.length === 0)
+  if (theCase.damageType === "out_of_scope" && theCase.needsPrevious)
+    out.push({
+      id: "needs_previous",
+      tone: "warn",
+      textJa: "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください",
+    });
+  else if (theCase.damageType === "out_of_scope" && theCase.steps.length === 0)
     out.push({
       id: "out_of_scope",
       tone: "info",

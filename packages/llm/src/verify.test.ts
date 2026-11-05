@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { loadAttack, loadTemplates } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { templateTechniques } from "./prompts.ts";
-import { detectInstructions, normalizeText, verifyCase } from "./verify.ts";
+import { detectInstructions, isFollowUpWithoutKind, normalizeText, verifyCase } from "./verify.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const attack = loadAttack();
@@ -258,5 +258,58 @@ describe("verifyCase（検証の抜け）", () => {
     expect(() =>
       verifyCase({ ...base, damageType: "phishing", steps: [] }, article, attack),
     ).toThrow();
+  });
+});
+
+describe("続報で種類が分からない公表（needsPrevious。TRIAL-I-005）", () => {
+  const short =
+    "当社グループは、サイバー攻撃を受けたことを確認しました。詳細は開示を控えさせていただきます。";
+  const oos = {
+    title: "t",
+    damageType: "out_of_scope",
+    clarity: "unknown",
+    steps: [],
+    suspiciousInstructions: [],
+  };
+  it("題に「続報」があり、本文にサイバー攻撃の語があれば、続報の印", () => {
+    expect(isFollowUpWithoutKind(short, "システム障害（続報）")).toBe(true);
+    expect(isFollowUpWithoutKind(short, "システム障害（最終報）")).toBe(true);
+    expect(isFollowUpWithoutKind(short, "システム障害（第2報）")).toBe(true);
+    expect(isFollowUpWithoutKind(short, "システム障害（第３報）")).toBe(true);
+    expect(isFollowUpWithoutKind(short, "システム障害（第二報）")).toBe(true);
+  });
+  it("本文に続報の印があってもよい（「第 2 報」「続報として」）", () => {
+    expect(isFollowUpWithoutKind(`${short}先に公表した第2報の続きです。`, "お知らせ")).toBe(true);
+    expect(isFollowUpWithoutKind(`続報として、${short}`, "お知らせ")).toBe(true);
+  });
+  it("サイバー攻撃・不正アクセス・ランサムウェアの語が本文に無ければ、続報でも付けない", () => {
+    expect(
+      isFollowUpWithoutKind("システム障害の復旧状況をお知らせします。", "お知らせ（続報）"),
+    ).toBe(false);
+  });
+  it("続報の印が無ければ付けない。第 1 報は続報の印にしない", () => {
+    expect(isFollowUpWithoutKind(short, "海外子会社に対するサイバー攻撃に関するお知らせ")).toBe(
+      false,
+    );
+    expect(isFollowUpWithoutKind(short, "システム障害（第1報）")).toBe(false);
+    expect(isFollowUpWithoutKind(`${short}第一報でお知らせしました。`, "お知らせ")).toBe(false);
+  });
+  it("これから出す予告（「続報を公表いたします」）は、この文書が続報だという意味ではない", () => {
+    expect(isFollowUpWithoutKind(`${short}判明次第、続報をお知らせいたします。`, "お知らせ")).toBe(
+      false,
+    );
+    expect(isFollowUpWithoutKind(`${short}続報は、決まり次第公表する予定です。`, "お知らせ")).toBe(
+      false,
+    );
+  });
+  it("verifyCase：out_of_scope のときだけ決定的に付ける。Claude の出力（raw）に needsPrevious があっても使わない", () => {
+    const a = verifyCase(oos, short, attack, { title: "システム障害（続報）" });
+    expect(a.case.needsPrevious).toBe(true);
+    const b = verifyCase({ ...oos, needsPrevious: true }, short, attack, { title: "お知らせ" });
+    expect(b.case.needsPrevious).toBeUndefined();
+    const c = verifyCase({ ...oos, damageType: "ransomware" }, short, attack, {
+      title: "システム障害（続報）",
+    });
+    expect(c.case.needsPrevious).toBeUndefined();
   });
 });
