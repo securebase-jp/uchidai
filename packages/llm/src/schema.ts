@@ -6,7 +6,9 @@ import {
   Clarity,
   DamageType,
   type DamageTypeDef,
+  type EntryKindDef,
   loadDamageTypes,
+  loadEntryKinds,
   OUT_OF_SCOPE,
   StepCertainty,
 } from "@uchidai/engine";
@@ -18,6 +20,8 @@ export const RawStep = z.object({
   source: z.enum(["stated", "inferred", "unknown"]),
   /** 出来事の確度。古い記録には無い（省略は confirmed 扱いで、verifyCase が語から決める） */
   certainty: StepCertainty.optional(),
+  /** 入口（TA0001）の段階の入口の種類（knowledge/entry-kinds.yaml の id）。入口の段階以外・種類が分からないときは null */
+  entryKind: z.string().nullable().optional(),
   quote: z.string().nullable(),
   summaryJa: z.string(),
 });
@@ -37,6 +41,7 @@ export type RawCase = z.infer<typeof RawCase>;
  */
 export function buildRawCaseJsonSchema(
   damageTypes: DamageTypeDef[] = loadDamageTypes(),
+  entryKinds: EntryKindDef[] = loadEntryKinds(),
 ): Record<string, unknown> {
   return {
     type: "object",
@@ -60,7 +65,15 @@ export function buildRawCaseJsonSchema(
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["tactic", "techniques", "source", "certainty", "quote", "summaryJa"],
+          required: [
+            "tactic",
+            "techniques",
+            "source",
+            "certainty",
+            "entryKind",
+            "quote",
+            "summaryJa",
+          ],
           properties: {
             tactic: { type: "string", description: "ATT&CK の戦術 ID（例 TA0001）" },
             techniques: {
@@ -80,6 +93,11 @@ export function buildRawCaseJsonSchema(
               enum: [...StepCertainty.options],
               description:
                 "出来事の確度。confirmed=記事が出来事として書いている、possible=可能性・おそれ・とみられる・考えられる、exposed_only=閲覧できる状態だったが第三者が取得したかは書いていない、no_trace=痕跡は確認されず・確認されていない（否定）、claimed=攻撃者の主張、not_stated=記事に書かれていない（入口の方法など）。confirmed 以外のときは source を stated にしない",
+            },
+            entryKind: {
+              type: ["string", "null"],
+              enum: [...entryKinds.map((k) => k.id), null],
+              description: `入口（TA0001）の段階の入口の種類（${entryKinds.map((k) => `${k.id}=${k.labelJa}`).join("、")}）。入口の方法が書かれていない・入口以外の段階は null`,
             },
             quote: {
               type: ["string", "null"],

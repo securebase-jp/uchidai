@@ -5,7 +5,9 @@ import type Anthropic from "@anthropic-ai/sdk";
 import {
   type AttackData,
   type DamageTypeDef,
+  type EntryKindDef,
   loadDamageTypes,
+  loadEntryKinds,
   OUT_OF_SCOPE,
   type TacticId,
   type Template,
@@ -63,8 +65,12 @@ export const TACTIC_ORDER: TacticId[] = [
  * 読解の指示文。被害の種類の分類基準は knowledge/damage-types.yaml の readingHintJa から組み立てる
  * （新しい攻撃を足すと、分類の選択肢と基準が自動で増える）
  */
-export function buildRulesJa(damageTypes: DamageTypeDef[] = loadDamageTypes()): string {
+export function buildRulesJa(
+  damageTypes: DamageTypeDef[] = loadDamageTypes(),
+  entryKinds: EntryKindDef[] = loadEntryKinds(),
+): string {
   const typeLines = damageTypes.map((d) => `  - ${d.id}：${d.readingHintJa}`).join("\n");
+  const kindLines = entryKinds.map((k) => `    - ${k.id}：${k.readingHintJa}`).join("\n");
   return `あなたは中小企業向けのセキュリティ事例の読解係です。与えられた記事（報道や公的機関の事例集）を読み、攻撃がどの段階をどう進んだかを MITRE ATT&CK Enterprise の戦術と手法に対応づけます。
 
 ## 絶対に守ること
@@ -88,6 +94,8 @@ ${typeLines}
   - source=inferred：記事に書かれていないが、この型の攻撃で通常起きる段階。quote は null。certainty は confirmed。例：VPN からの侵入で社内のサーバが暗号化されたなら、管理者権限の取得（認証情報アクセス）と横展開は通常起きる
   - source=unknown：起きたはずだが手法が分からない段階（例：入口が不明）。techniques は空でよい
   - certainty：出来事の確度。confirmed=記事が出来事として書いている（stated の段階は必ず confirmed。inferred で通常起きる段階も confirmed）、possible、exposed_only、no_trace、claimed、not_stated は上のとおり。confirmed 以外の段階には stated を付けない
+  - entryKind：入口（TA0001）の段階だけに付ける、入口の種類。同じ手法に読めても（VPN もリモートデスクトップも委託先の接続も「外部からの接続」の手法になる）、種類は別のものとして選ぶ。記事が入口を書いているときだけ選び、入口の方法が書かれていない・どれにも当たらないときは null。入口以外の段階も null
+${kindLines}
   - techniques：その段階に当たる手法 ID。最も具体的なサブ手法があればそれを、無ければ親手法。記事がその手口を書いていないときは、下位の手法まで限定せず親手法にとどめ、候補は最大 2 つ（確からしい順）。記事の記述から一つに絞れないときだけ候補を並べる（3 つまで）。stated の段階で記事が手法を特定していないときも空にせず、その出来事に当たり得る手法を候補として挙げる（例：「社内ネットワークに感染が広がった」なら横展開の候補、「基幹システムが停止した」なら影響の候補）。ただし入口の方法が記事に書かれていないときは、入口の段階の手法は空にする。手法は戦術に合うものを選ぶ（その手法が属する戦術の段階に置く）
   - summaryJa：その段階で何が起きたかを、専門用語を避けて一行で
 - 記事が出来事として書いた段階は漏れなく stated で出し、被害の型から通常起きるが記事にない段階は inferred で補う。推測・可能性・否定・主張を stated にしない（上の certainty の規則どおり）

@@ -17,6 +17,7 @@ import {
   type CaseStep,
   canonicalTechnique,
   loadDamageTypes,
+  loadEntryKinds,
   OUT_OF_SCOPE,
   type StepCertainty,
 } from "@uchidai/engine";
@@ -38,6 +39,8 @@ export type VerifyOptions = {
   url?: string;
   /** 記事のタイトル。根拠文の照合に使う（本文に無くタイトルにだけある根拠文は、確認された事実としては扱わない） */
   title?: string;
+  /** 定義済みの入口の種類の id（既定は knowledge/entry-kinds.yaml）。これ以外は捨てる */
+  entryKinds?: Iterable<string>;
   /** これより短い根拠文（正規化後の文字数）は照合しない（既定 8） */
   minQuoteLength?: number;
   /** これより長い根拠文（正規化後の文字数）は捨てる（既定 400。「1〜2 文」の約束を守らせる） */
@@ -77,6 +80,8 @@ export type VerifyReport = {
   downgraded: { index: number; certainty: StepCertainty }[];
   /** 根拠文がタイトルにしか無く、stated を inferred に下げた段階 */
   titleOnlyQuotes: number[];
+  /** 捨てた入口の種類：定義にない種類、入口以外の段階、入口が不明の段階に付いていたもの */
+  droppedEntryKinds: { index: number; kind: string }[];
   /** 入口の手段に触れていない根拠文のために外した手法 */
   unsupportedEntryTechniques: { index: number; id: string }[];
   /** 検知した指示らしき文（Claude の報告と、プログラムの検知の和） */
@@ -209,6 +214,7 @@ export function verifyCase(
   const normalizedTitle = options.title ? normalizeText(options.title) : "";
   const minQuote = options.minQuoteLength ?? 8;
   const maxQuote = options.maxQuoteLength ?? 400;
+  const knownKinds = new Set(options.entryKinds ?? loadEntryKinds().map((k) => k.id));
   const allowed = options.allowedTechniques ? new Set(options.allowedTechniques) : undefined;
   const tacticIds = new Set(attack.tactics.map((t) => t.id));
   const techniqueTactics = new Map(attack.techniques.map((t) => [t.id, t.tactics]));
@@ -222,6 +228,7 @@ export function verifyCase(
     statedWithoutQuote: [],
     downgraded: [],
     titleOnlyQuotes: [],
+    droppedEntryKinds: [],
     unsupportedEntryTechniques: [],
     suspiciousInstructions: [],
     droppedSuspicious: [],
@@ -341,6 +348,12 @@ export function verifyCase(
     }
 
     const step: CaseStep = { tactic, techniques: stepTechniques, source };
+    // 入口の種類は、入口（TA0001）の段階で、入口が分かっているときだけ残す
+    if (s.entryKind) {
+      if (tactic === "TA0001" && source !== "unknown" && knownKinds.has(s.entryKind))
+        step.entryKind = s.entryKind;
+      else report.droppedEntryKinds.push({ index, kind: s.entryKind });
+    }
     if (certainty !== "confirmed") step.certainty = certainty;
     // 持ち出しが確認され、その情報が公開されたと書かれている（二重恐喝）：一枚で「すでに公開されています」と書く
     if (
