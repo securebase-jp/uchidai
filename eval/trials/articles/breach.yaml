@@ -1,0 +1,266 @@
+# 実在の被害記事を 100 件参照する取り組みのうち、「情報漏えい」の 21 件（docs/article-trials/breach.md）
+# 収集日：2026-11-05。本文はリポジトリに入れない。取得した本文は eval/.cache/trials/<id>/article.txt（git 管理外）。
+#
+# kind：期待する被害の型（data_breach など）。境界の事例は expectNote に書く
+# entry：記事に書かれた入口・原因。書かれていなければ none。
+#   vuln-exploit … 製品・機器の脆弱性の悪用（T1190）
+#   web-app-flaw … 自社の Web サイト・アプリの欠陥や残置プログラムからの侵入、決済アプリの改ざん（T1190）
+#   credential-abuse … 認証情報の悪用・不正ログイン（T1078、T1110）
+#   cloud-misconfig … クラウド・SaaS・フォーム・管理画面などの共有設定・公開設定・権限の誤り（T1530 など）
+#   vendor … 委託先・取引先・SaaS 提供元経由（T1199 など）
+#   none … 記事に書かれていない
+# size：事業者の規模の目安（小：個人・小規模、中：中小〜中堅、大：大企業・全国規模）
+# heldOut：true は「最後の測定用」。期待ラベルまでで、この取り組みでは通さない（チューニングに使わない）。
+#   時系列に並べて 3 件おきに決めた（原因と年が偏らないことを確認済み）
+articles:
+  - id: breach-nagasaki-manabie
+    url: https://scan.netsecurity.ne.jp/article/2023/09/05/49903.html
+    media: ScanNetSecurity
+    title: 長崎県立大学 e ラーニングシステム manabie に不正アクセス、約 6,500 人分の個人情報漏えい可能性
+    publishedAt: "2023-09-05"
+    kind: data_breach
+    entry: none
+    industry: 教育（公立大学）
+    size: 中
+    heldOut: false
+    expectNote: 大学が使う SaaS（e ラーニング）への不正アクセスで、学生・教員の氏名などが漏えいした可能性。外部の情報提供で発覚し、侵入の手口は書かれていない。入口を推定で断定しないことが期待。ごく短い記事（約 400 字）
+
+  - id: breach-tokio-agency
+    url: https://www.security-next.com/150708
+    media: Security NEXT
+    title: 代理店向け顧客管理システムの閲覧権限に設定漏れ - 東京海上
+    publishedAt: "2023-10-31"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: 金融（損害保険）
+    size: 大
+    heldOut: false
+    expectNote: 攻撃ではなく、代理店向けの契約者管理システムで ID の権限設定が漏れ、他の代理店の契約者情報を見られる状態だった（約 2,500 件の不適切なアクセスと推定）。不正利用は確認されていない。クラウド型の業務システムの権限設定の誤り（T1530 に近い）。外部の攻撃者は登場しないので、攻撃の手順を作り込まないことが期待
+
+  - id: breach-proself
+    url: https://www.security-next.com/150715
+    media: Security NEXT
+    title: 「Proself」に対するゼロデイ攻撃で情報流出被害 - 国立環境研究所
+    publishedAt: "2023-10-31"
+    kind: data_breach
+    entry: vuln-exploit
+    industry: 研究機関（国立研究開発法人）
+    size: 中
+    heldOut: true
+    expectNote: ファイル交換製品（Proself）のゼロデイ脆弱性（XXE）が悪用され、アカウント一覧とパスワードのハッシュ値が窃取されたうえで、職員名簿・メールアドレスなどが流出した可能性。T1190 → 認証情報の窃取 → 収集・持ち出し
+
+  - id: breach-lineyahoo-vendor
+    url: https://www.lycorp.co.jp/ja/news/announcements/001166/
+    media: LINEヤフー（公式のお知らせ）
+    title: 不正アクセスによる、情報漏えいに関するお知らせとお詫び（12/27更新）
+    publishedAt: "2023-11-27"
+    kind: data_breach
+    entry: vendor
+    industry: 情報通信
+    size: 大
+    heldOut: false
+    expectNote: 関係会社の委託先の従業者の PC がマルウェアに感染したことが契機で、社内システムへ侵入された。ユーザー情報（約 30 万件）、取引先情報、従業者情報が漏えい。委託先経由（T1199）→ 認証基盤を介した横展開 → 持ち出し。公式のお知らせで本文が長い（約 3,000 字）。更新履歴（追記・修正）を含む
+
+  - id: breach-sophia
+    url: https://scan.netsecurity.ne.jp/article/2024/01/12/50441.html
+    media: ScanNetSecurity
+    title: 「上智大学 統合データベース」システムに不正ログイン、パスワードとリマインダ情報が変更
+    publishedAt: "2024-01-12"
+    kind: data_breach
+    entry: credential-abuse
+    industry: 教育（私立大学）
+    size: 中
+    heldOut: false
+    expectNote: 海外の複数 IP アドレスから ICT アカウント管理システムへ不正ログインがあり、ユーザー情報が改ざんされた可能性。閲覧・改ざんが中心で、境界の事例（アカウントの乗っ取りに近い）。ログインの手口は書かれていない。ごく短い記事（約 600 字）
+
+  - id: breach-keds
+    url: https://scan.netsecurity.ne.jp/article/2024/01/25/50501.html
+    media: ScanNetSecurity
+    title: 「ケーズデンキオンラインショップ」で不正ログインによる17件のなりすまし注文が発生
+    publishedAt: "2024-01-25"
+    kind: data_breach
+    entry: credential-abuse
+    industry: 小売・EC（家電量販）
+    size: 大
+    heldOut: true
+    expectNote: 通販サイトに第三者が不正ログインし、配送先やメールアドレスを書き換えて不正なカードで注文する「なりすまし注文」。不正ログインの手口（リスト型かどうか）は書かれていない。個人情報の閲覧・改ざんと金銭被害が混ざる境界の事例。ごく短い記事
+
+  - id: breach-shopchannel
+    url: https://scan.netsecurity.ne.jp/article/2024/11/27/51969.html
+    media: ScanNetSecurity
+    title: 「ショップチャンネル」に不正ログイン、約 15,000 件の個人情報が閲覧された可能性
+    publishedAt: "2024-11-27"
+    kind: data_breach
+    entry: credential-abuse
+    industry: 小売・EC（テレビ通販）
+    size: 大
+    heldOut: false
+    expectNote: EC サイトへの不審なアクセスで、約 15,000 件の不正ログインによる顧客の個人情報への接触を確認。手口（リスト型など）は書かれていない。閲覧の事実を確認済みか、持ち出しは未確認かの区別が期待。ごく短い記事（約 200 字）
+
+  - id: breach-nishitetsu
+    url: https://scan.netsecurity.ne.jp/article/2025/05/22/52893.html
+    media: ScanNetSecurity
+    title: 残置していた開発用プログラムから侵入 ～「西鉄バス エコ企業定期券Webサイト」に不正アクセス
+    publishedAt: "2025-05-22"
+    kind: data_breach
+    entry: web-app-flaw
+    industry: 交通（バス）
+    size: 大
+    heldOut: false
+    expectNote: 見出しに、残置していた開発用プログラムから侵入されたとある。登録された顧客情報が漏えいした可能性。入口は自社 Web サイトの残置プログラム（T1190 に近い）。本文は短く、入口は見出し側にしか書かれていない。見出しを入口の根拠に使えるかが見どころ
+
+  - id: breach-pia
+    url: https://www.security-next.com/171750
+    media: Security NEXT
+    title: ぴあチケットリセールサイトでキャッシュ設定ミス - 個人情報を誤表示
+    publishedAt: "2025-06-26"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: エンタメ（チケット販売）
+    size: 大
+    heldOut: true
+    expectNote: アクセス集中対策のキャッシュ設定を見直した際、Cookie を含めて保存する誤設定になり、別の顧客のマイページ（氏名、住所、口座情報など）が表示された。数時間。外部からの攻撃は否定されている。ストレージではなく Web のキャッシュ設定の誤り（クラウド型の設定ミス）
+
+  - id: breach-tege
+    url: https://www.security-next.com/171792
+    media: Security NEXT
+    title: テゲ宮崎の通販サイト、管理ページが認証なしで閲覧可能に
+    publishedAt: "2025-06-30"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: スポーツ（プロサッカークラブの通販）
+    size: 小
+    heldOut: false
+    expectNote: 委託運営の公式オンラインショップの販売管理ページが、約 3 か月、認証なしでアクセスできる状態で、709 人分の氏名・住所・注文情報を見られた。外部からのアクセスは関係者のものと見られている。管理画面の認証漏れ（設定ミス）＋委託先。第三者による持ち出しは確認されていない
+
+  - id: breach-agc
+    url: https://scan.netsecurity.ne.jp/article/2025/08/13/53422.html
+    media: ScanNetSecurity
+    title: AGCポリマー建材業務委託先に不正アクセス、個人情報が特定の外部サイトでダウンロード可能な状態に
+    publishedAt: "2025-08-13"
+    kind: data_breach
+    entry: vendor
+    industry: 製造（建材）
+    size: 中
+    heldOut: false
+    expectNote: 業務委託先のシステム障害の調査で、委託先への不正アクセスによる顧客情報の流出の可能性が判明。見出しによれば、情報が外部サイトでダウンロードできる状態。委託先側の事故で、委託元（自社）に入口が無い。委託先に関する記載は、委託先の事故が先に（3/6）あり、委託元が認識したのは 3/21 という時間差を含む
+
+  - id: breach-mitsubishi-mdm
+    url: https://scan.netsecurity.ne.jp/article/2025/08/22/53489.html
+    media: ScanNetSecurity
+    title: 三菱オートリースが利用するモバイルデバイス管理サーバに不正アクセス、従業者に関する 1,166 件の個人データが漏えい
+    publishedAt: "2025-08-22"
+    kind: data_breach
+    entry: vuln-exploit
+    industry: 金融（リース）
+    size: 大
+    heldOut: true
+    expectNote: モバイルデバイス管理（MDM）サーバの新たな脆弱性が悪用され、従業者などの 1,166 件の個人データが漏えい。端末管理系の製品の脆弱性（T1190）。マイナビの端末管理の設定ミスと対にして、端末管理の「攻撃」と「設定ミス」を見分けられるかを見る
+
+  - id: breach-sasadango
+    url: https://www.security-next.com/174965
+    media: Security NEXT
+    title: 笹だんごの通販サイトに不正アクセス - 個人情報流出の可能性
+    publishedAt: "2025-09-29"
+    kind: data_breach
+    entry: web-app-flaw
+    industry: 食品製造・小売（EC）
+    size: 小
+    heldOut: false
+    expectNote: 通信販売サイトが脆弱性を突かれ、不正プログラム（決済ページの改ざん）が埋め込まれて、カード情報を含む顧客情報が流出した可能性。外部からの連絡で発覚。データ漏えい（Web の改ざん）の典型。T1190 → 決済情報の窃取。小規模事業者
+
+  - id: breach-tokushima-hosp
+    url: https://scan.netsecurity.ne.jp/article/2026/01/14/54403.html
+    media: ScanNetSecurity
+    title: 徳島大学病院に不正アクセス、16,945 件の患者情報が漏えいした可能性
+    publishedAt: "2026-01-14"
+    kind: data_breach
+    entry: none
+    industry: 医療（大学病院）
+    size: 中
+    heldOut: false
+    expectNote: 病院のシステムに外部から不正アクセスがあり、患者などの個人情報（16,945 件）が漏えいした可能性。入口・手口の記載なし。要配慮個人情報（患者）で、個人情報保護委員会への報告が重い。ごく短い記事（約 360 字）。入口を推定で断定しない、報告期限が出ることが期待
+
+  - id: breach-denso-sp
+    url: https://scan.netsecurity.ne.jp/article/2026/01/19/54433.html
+    media: ScanNetSecurity
+    title: デンソーグループ内全従業員に Microsoft SharePoint Online 内のデータの閲覧・ダウンロード権限付与
+    publishedAt: "2026-01-19"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: 製造（自動車部品）
+    size: 大
+    heldOut: true
+    expectNote: SaaS（SharePoint Online）内のデータの権限が、必要な者に絞られず、グループ内の全従業員に設定されていた。社内調査で発覚。外部の攻撃者は登場しない。クラウドの権限設定の誤り（ストレージ以外の SaaS）
+
+  - id: breach-form-2026
+    url: https://www.security-next.com/181449
+    media: Security NEXT
+    title: イベント申込フォームで設定ミス、個人情報が閲覧可能に - 東京都
+    publishedAt: "2026-02-26"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: 自治体（東京都。管理は委託）
+    size: 大
+    heldOut: false
+    expectNote: 委託業者が開設したイベント申し込みフォームの閲覧権限の設定ミスで、別の申込者の氏名・生年月日・メールアドレス（68 人分）を、特定の操作で見られた。約 1.5 か月。フォームの設定ミス（ストレージ以外のクラウド）＋委託先
+
+  - id: breach-fukuoka-edu
+    url: https://scan.netsecurity.ne.jp/article/2026/04/01/54956.html
+    media: ScanNetSecurity
+    title: 福岡教育大学で Google グループのアクセス権限設定不備、計 142 名の個人情報が閲覧可能な状態に
+    publishedAt: "2026-04-01"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: 教育（国立大学）
+    size: 中
+    heldOut: false
+    expectNote: 教員が使う情報共有ツール（Google グループ）の権限設定不備で、学内アカウントの保持者が特定の操作で本来制限されるグループ内の情報（142 名分）を見られる状態だった。SaaS の共有設定の誤り。ごく短い記事
+
+  - id: breach-campfire
+    url: https://scan.netsecurity.ne.jp/article/2026/06/11/55473.html
+    media: ScanNetSecurity
+    title: CAMPFIRE への不正アクセス、従業員が発行した GitHub 認証情報が個人開発で利用していたサーバ上に意図せずアップロードされ不正利用
+    publishedAt: "2026-06-11"
+    kind: data_breach
+    entry: credential-abuse
+    industry: IT・サービス（クラウドファンディング）
+    size: 中
+    heldOut: true
+    expectNote: システム管理用の GitHub アカウントへの不正アクセスから、顧客情報を管理するシステムの一部で個人情報が漏えいした可能性。見出しによれば、従業員が発行した認証情報が、個人開発で使うサーバに誤ってアップロードされて悪用された。認証情報の流出・悪用（T1552、T1078）
+
+  - id: breach-tabiq
+    url: https://scan.netsecurity.ne.jp/article/2026/07/14/55694.html
+    media: ScanNetSecurity
+    title: Amazon S3 設定不備 ～ 電子チェックインシステム「Tabiq」で 1,060,338 人分の本人確認書類画像がアクセス可能に
+    publishedAt: "2026-07-14"
+    kind: data_breach
+    entry: cloud-misconfig
+    industry: 宿泊（IT サービス提供事業者）
+    size: 中
+    heldOut: false
+    expectNote: SaaS が本人確認書類の画像などを保存していたクラウドストレージ（Amazon S3）の設定不備で、外部の第三者がアクセス可能な状態だった。約 106 万人分。5/13 に判明。クラウドストレージの設定ミスの典型（T1530）で、既存の型紙が最も合う。SaaS の提供元の事故で、利用する宿泊施設側に入口は無い
+
+  - id: breach-montbell
+    url: https://www.security-next.com/190798
+    media: Security NEXT
+    title: モンベルのグローバルサイトに不正アクセス - 個人情報流出の可能性
+    publishedAt: "2026-09-29"
+    kind: data_breach
+    entry: vuln-exploit
+    industry: 小売・EC（アウトドア用品）
+    size: 中
+    heldOut: false
+    expectNote: 海外向けのグローバルサイトが不正アクセスを受け、最大 15 人の氏名・住所・電話番号が取得された可能性。システムの脆弱性を修正したとあり、脆弱性の悪用と読める（原因は分析中）。件数が極めて少ない。国内サイトは影響なし。件数の少なさが判定や報告の要否にどう効くか
+
+  - id: breach-timescar
+    url: https://www.security-next.com/190732
+    media: Security NEXT
+    title: カーシェアサービス「タイムズカー」、会員の個人情報が流出
+    publishedAt: "2026-09-29"
+    kind: data_breach
+    entry: none
+    industry: 移動サービス（カーシェア）
+    size: 大
+    heldOut: true
+    expectNote: システムへの侵害を検知。約 660 万件のアカウントの氏名・住所・生年月日・免許情報・本人確認書類などが流出。パスワードは復元できない形。原因は調査中で書かれていない。大規模・要配慮に近い書類の流出。入口を推定で断定しないこと
