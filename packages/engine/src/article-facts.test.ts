@@ -79,6 +79,13 @@ describe("B-013：記事の会社が被害を防げた（未遂）", () => {
     const third = evaluate(becCase({ averted: true, victim: "vendor" }), demo, { knowledge: k });
     expect(third.headlineJa).toMatch(/^これは委託先・取引先で起きた事故です/);
   });
+  it("TRIAL-I-003：未遂と第三者の事故が両方あるときは、第三者の事故の見出しと文だけ。「防げた事例です」は出さない", () => {
+    const third = evaluate(becCase({ averted: true, victim: "vendor" }), demo, { knowledge: k });
+    expect(third.article?.averted).toBeUndefined();
+    const text = buildOnePager(third, demo, k).whatHappensJa.join("\n");
+    expect(text).toContain("これは委託先・取引先で起きた事故です");
+    expect(text).not.toContain("防げた事例");
+  });
 });
 
 describe("TRIAL-011・D-010：一枚の文は、主語と動詞がつながる（型紙の sentenceJa）", () => {

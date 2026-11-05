@@ -120,8 +120,24 @@ export type Article = {
   incomplete?: IncompleteReason[];
 };
 
-/** 本文が途中で切れていそうな理由：members_only 会員向けの案内がある／ends_with_heading 末尾が見出しだけ／read_more 末尾が「続きを読む」 */
-export type IncompleteReason = "members_only" | "ends_with_heading" | "read_more";
+/**
+ * 本文が途中で切れていそうな理由：members_only 会員向けの案内がある／ends_with_heading 末尾が見出しだけ／read_more 末尾が「続きを読む」／
+ * too_short 本文が 200 字に満たない（読み込み後に表示されるページなど。TRIAL-I-002）／consent_only Cookie の同意文・著作権表示だけ
+ */
+export type IncompleteReason =
+  | "members_only"
+  | "ends_with_heading"
+  | "read_more"
+  | "too_short"
+  | "consent_only";
+
+/** 本文として「ほとんど取れていない」とみなす文字数（これ未満は too_short） */
+export const TOO_SHORT_CHARS = 200;
+/** 同意文・著作権表示だけのページと見なすときの上限の文字数（これ未満で、同意の語があり、事故の語が無いとき consent_only） */
+const CONSENT_ONLY_MAX_CHARS = 400;
+const CONSENT_WORDS = /cookie|クッキー|同意|copyright|©|著作権|all rights reserved|プライバシー/i;
+/** 事故の公表らしい語。これがあれば、短くても同意文だけとは見なさない */
+const INCIDENT_WORDS = /不正アクセス|ランサム|サイバー攻撃|漏えい|漏洩|感染|被害|インシデント|侵入/;
 
 export type FetchOptions = {
   fetch?: FetchLike;
@@ -735,6 +751,30 @@ export function detectIncomplete(text: string, memberWall: boolean): IncompleteR
   return reasons;
 }
 
+/**
+ * 本文がほとんど取れていないとき（TRIAL-I-002）の理由を返す（無ければ空）。HTML を取り込んだ結果にだけ使う。
+ * 本文が 200 字に満たなければ too_short。400 字に満たず、Cookie・同意・著作権の語があり、事故の公表らしい語が無ければ consent_only
+ */
+export function detectThinBody(text: string): IncompleteReason[] {
+  const reasons: IncompleteReason[] = [];
+  const plain = text.replace(/\s+/g, "");
+  if (plain.length < TOO_SHORT_CHARS) reasons.push("too_short");
+  if (
+    plain.length < CONSENT_ONLY_MAX_CHARS &&
+    CONSENT_WORDS.test(text) &&
+    !INCIDENT_WORDS.test(text)
+  )
+    reasons.push("consent_only");
+  return reasons;
+}
+
+/** HTML の取り込み結果に、本文が取れていない印（too_short・consent_only）を足す */
+function withThinBody(article: Article): Article {
+  const thin = detectThinBody(article.text);
+  if (thin.length === 0) return article;
+  return { ...article, incomplete: [...(article.incomplete ?? []), ...thin] };
+}
+
 function parseDocument(html: string): MinimalDocument {
   const { document } = parseHTML(html) as unknown as { document: MinimalDocument };
   for (const el of Array.from(document.querySelectorAll("script,style,noscript,template")))
@@ -1056,14 +1096,14 @@ export async function fetchArticle(input: ArticleInput, opts: FetchOptions = {})
       return finishText(a);
     }
     case "html":
-      return extractHtml(input.html, input.sourceUrl);
+      return withThinBody(extractHtml(input.html, input.sourceUrl));
     case "pdf":
       return extractPdf(input.data, pdfOptions(input, input.sourceUrl, opts.maxBytes));
     case "url": {
       const downloaded = await downloadArticle(input.url, opts);
       if (downloaded.kind === "pdf")
         return extractPdf(downloaded.data, pdfOptions(input, input.url, opts.maxBytes));
-      return extractHtmlPages(downloaded.htmls, input.url);
+      return withThinBody(extractHtmlPages(downloaded.htmls, input.url));
     }
   }
 }

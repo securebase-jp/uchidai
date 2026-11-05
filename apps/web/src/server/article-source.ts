@@ -25,6 +25,39 @@ export function toClientError(e: unknown): unknown {
   return new ClientError(400, e.message);
 }
 
+/** 読解が「対象外・段階なし」だったとき、本文がこれより短ければ、本文が取れていないとみなす文字数 */
+export const THIN_BODY_CHARS = 300;
+
+/**
+ * 本文がほとんど取れなかったときの案内（TRIAL-I-002）。取得は成功しても、同意の画面や読み込み後に表示されるページは、
+ * 数十〜百数十字しか取れない。そのまま読むと「対象外」の一枚になるので、読む前に止めて、取り直す方法を案内する
+ */
+export function thinBodyError(chars: number): ClientError {
+  return new ClientError(
+    422,
+    `本文がほとんど取れませんでした（${chars} 字）。ページが読み込み後に表示される作りか、同意の画面かもしれません。PDF の版があればその URL、または本文を貼ってください`,
+  );
+}
+
+/** 保険：読解が「段階なし・対象外」で、本文が短い（THIN_BODY_CHARS 未満）なら、本文が取れていなかったとみなす */
+export function isThinReading(
+  read: { steps: readonly unknown[]; damageType: string },
+  textChars: number,
+): boolean {
+  return (
+    read.steps.length === 0 && read.damageType === "out_of_scope" && textChars < THIN_BODY_CHARS
+  );
+}
+
+/** 本文が取れていない HTML か（本文が 200 字未満、または同意文・著作権表示だけ）。URL・HTML の入力だけが対象で、貼り付けの短い文は対象外 */
+function isThinHtml(article: Article): boolean {
+  return (
+    article.kind === "html" &&
+    (article.incomplete?.includes("too_short") === true ||
+      article.incomplete?.includes("consent_only") === true)
+  );
+}
+
 export async function loadArticle(
   input: ReadInput,
   opts: { fetch?: FetchLike; lookup?: Lookup } = {},
@@ -32,13 +65,15 @@ export async function loadArticle(
   try {
     if (input.kind === "url") {
       await assertPublicUrl(input.url, opts.lookup);
-      return await fetchArticle(
+      const article = await fetchArticle(
         { kind: "url", url: input.url, ...(input.pages ? { pages: input.pages } : {}) },
         {
           fetch: guardedFetch(opts.fetch ?? resolveFetch(), opts.lookup),
           ...(opts.lookup ? { lookup: opts.lookup } : {}),
         },
       );
+      if (isThinHtml(article)) throw thinBodyError(article.text.replace(/\s+/g, "").length);
+      return article;
     }
     if (input.kind === "text")
       return await fetchArticle({

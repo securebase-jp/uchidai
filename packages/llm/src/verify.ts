@@ -93,6 +93,8 @@ export type VerifyReport = {
   titleOnlyQuotes: number[];
   /** 記事に見当たらないので捨てた被害額（円。読解が写した値が、記事の円の金額のどれにも一致しなかった） */
   droppedReportedLoss?: number;
+  /** 読解が averted（被害を防げた）を true にしたが、記事に未遂・阻止・被害は発生しなかった旨の語が無いので false にした（TRIAL-I-003） */
+  droppedAverted?: true;
   /** 捨てた漏えいした情報の種類（定義にない値） */
   droppedLeakedData?: string[];
   /** 捨てた被害を受けた側（定義にない値） */
@@ -133,7 +135,16 @@ const NO_TRACE =
   /痕跡(は|も|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ|ませんでし)|(形跡|被害)(は|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ)|確認(され|でき)て(い|お)(ない|ません)|確認(され|でき)(ず|なかっ)|見つかって(い|お)(ない|ません)|認められ(ない|ず)/;
 /** 可能性：「可能性がある」「おそれ」「とみられる」「考えられる」 */
 const POSSIBLE =
-  /(可能性|おそれ|恐れ)(が|は|も)?(ある|あり|高|否定でき|否定され)(?![ァ-ヶ一-龥ー])|可能性(を|も|が)(排除|否定)|とみられ|と見られ|思われ|考えられ|疑われ|疑いが(ある|あり)/;
+  /(可能性|おそれ|恐れ)(が|は|も)?(ある|あり|高|否定でき|否定され)(?![ァ-ヶ一-龥ー])|可能性(を|も|が)(排除|否定)|とみられ|と見られ|思われ|考えられ|疑われ|疑いが(ある|あり)|調査中ですが/;
+/**
+ * 入口の段階で、複文の文末の述語が「可能性」を表すもの（TRIAL-I-001）。IR は「〜が起点となり、〜された可能性があることが判明」
+ * のように、可能性が文末の別の節にかかる複文で書く。「A が起点となり B された可能性」は、B が可能性なら起点の A も可能性なので、
+ * 入口の根拠文に「起点」の語があるときだけ、文末の可能性を入口全体にかける。起点の語が無い
+ * 「VPN 経由でアクセスが行われ、情報を参照された可能性がある」は、可能性が別の出来事（収集）の話なので下げない（今の安全弁）
+ */
+const ENTRY_ORIGIN = /起点|端緒|発端|きっかけ|契機/;
+const ENTRY_TAIL_POSSIBLE =
+  /(可能性|おそれ|恐れ)(が|は|も)?(ある|あり|高|否定でき|否定され)|と(推定|推測|推察|考えられ|みられ|見られ)/;
 /** 攻撃者側の主張 */
 const CLAIMED = /主張|犯行声明|声明を|名乗|自称/;
 /** 閲覧できる状態だった（取得は別） */
@@ -152,6 +163,9 @@ const IMPERSONATION_TECHNIQUE = /^T1684(\.|$)|^T1656(\.|$)/;
 const PARTNER_WORDS =
   /取引先|仕入先|仕入れ先|納入先|発注元|得意先|顧客|請負先|委託先|協力会社|下請け|サプライヤ|関係会社|取引相手/;
 const EXEC_WORDS = /社長|代表(取締役|者)?|役員|経営者|経営陣|CEO|CFO|幹部|上司|オーナー/;
+/** 被害を防げた（未遂・阻止・被害は発生しなかった）と書く語。averted を残してよいのは、本文にこのどれかがあるときだけ */
+const AVERTED_WORDS =
+  /未遂|未然|防(げ(?!なかっ)|い)|被害(は|が)(発生し|生じ)(なかった|てい(ない|ません)|ておりません)|被害(は|には|に)(至|出)(らなかっ|なかっ|ませんでし)|送金前|阻止/;
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -184,12 +198,29 @@ export function certaintyFromText(
   // 一行の説明（summaryJa）は、その段階の出来事だけを書いたものなので、いつも見る
   const oneClause = quote !== null && !/[、，,]/.test(quote.replace(/[。.]$/, ""));
   const text = `${oneClause ? (quote ?? "") : ""}\n${summaryJa}`;
+  // 入口の段階だけ：根拠文が「起点」を述べ、複文の文末の述語が可能性を表すなら、可能性にとどまる入口として扱う
+  const entryTailPossible =
+    tactic === "TA0001" &&
+    quote !== null &&
+    ENTRY_ORIGIN.test(quote) &&
+    ENTRY_TAIL_POSSIBLE.test(lastClause(quote));
   if (NOT_STATED.test(summaryJa) || (tactic === "TA0001" && ENTRY_UNKNOWN.test(summaryJa)))
     return "not_stated";
   if (NO_TRACE.test(text)) return EXPOSED.test(text) ? "exposed_only" : "no_trace";
   if (CLAIMED.test(text)) return "claimed";
-  if (POSSIBLE.test(text)) return "possible";
+  if (POSSIBLE.test(text) || entryTailPossible) return "possible";
   return "confirmed";
+}
+
+/** 文章の最後の文の、最後の節（最後の「、」のあと）。文末の述語を見るために使う */
+function lastClause(text: string): string {
+  const sentences = text
+    .split(/[。.！!？?]/)
+    .map((x) => x.trim())
+    .filter((x) => x !== "");
+  const last = sentences[sentences.length - 1] ?? "";
+  const parts = last.split(/[、，,]/);
+  return parts[parts.length - 1] ?? "";
 }
 
 export function verifyCase(
@@ -395,6 +426,14 @@ export function verifyCase(
     else report.droppedReportedLoss = claimed;
   }
 
+  // 被害を防げた（averted）：未遂・阻止・被害は発生しなかったと書かれた記事だけ。「漏えいの事実は確認されていない」
+  // 「可能性にとどまる」は、被害が確定していないだけなので未遂ではない（TRIAL-I-003）
+  let averted = parsed.averted === true;
+  if (averted && !AVERTED_WORDS.test(normalizeText(`${articleText}\n${options.title ?? ""}`))) {
+    averted = false;
+    report.droppedAverted = true;
+  }
+
   const detected = detectInstructions(articleText);
   const reported: string[] = [];
   for (const line of parsed.suspiciousInstructions) {
@@ -439,7 +478,7 @@ export function verifyCase(
     ...(victim ? { victim } : {}),
     ...(leakedData.length > 0 ? { leakedData } : {}),
     ...(reportedLossJpy !== undefined ? { reportedLossJpy } : {}),
-    ...(parsed.averted ? { averted: true } : {}),
+    ...(averted ? { averted: true } : {}),
   });
   return { case: c, report };
 }

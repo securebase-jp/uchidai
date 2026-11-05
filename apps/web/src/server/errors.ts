@@ -4,7 +4,7 @@
 
 /** 入力の問題（400 系）。message はそのまま画面に出してよい日本語 */
 export class ClientError extends Error {
-  readonly status: 400 | 403 | 404 | 413 | 429 | 503;
+  readonly status: 400 | 403 | 404 | 413 | 422 | 429 | 503;
   constructor(status: ClientError["status"], message: string) {
     super(message);
     this.name = "ClientError";
