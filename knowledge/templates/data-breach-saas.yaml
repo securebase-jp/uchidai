@@ -1,0 +1,29 @@
+# 型紙：情報漏えい（クラウドサービスの管理画面・共有設定の誤り）
+# 端末管理・グループウェア・CRM などの SaaS で、アクセス権限や共有範囲の設定を誤り、第三者が情報を閲覧できる状態になる経路。
+# 公開状態のファイル置き場（data-breach.yaml、T1530）とは別の型紙にしている。理由：
+#   - 記事の手法で見分けられる（ファイル置き場は T1530、SaaS の情報置き場は T1213）。同じ型紙に役割を並べると、
+#     SaaS の記事が「ファイル置き場の資産」に当たり、カルテにその資産があるだけで「止められます」と答えてしまう
+#   - 入口の資産（cloud.saas）がカルテに無ければ、この型紙は入口なしになる。5 問のカルテなら、登録不足の案内になる
+id: data-breach-saas
+damageType: data_breach
+labelJa: 情報漏えい（クラウドサービスの共有設定の誤り）
+descriptionJa: 端末管理やグループウェアなど、利用しているクラウドサービスのアクセス権限・共有設定の誤りで、第三者が情報を閲覧できる状態になる
+stages:
+  - id: saas
+    labelJa: クラウドサービスの設定の誤りで閲覧される
+    breachedJa: 閲覧される
+    breachedDoneJa: 閲覧されました
+    tactics: [TA0009, TA0001]
+    entry: true
+    byRole:
+      cloud.saas: T1213
+    # 情報置き場からの取得（T1213）と、その中の代表的なサービス（Confluence、SharePoint、コード置き場、チャット）
+    accepts: [T1213, T1213.001, T1213.002, T1213.003, T1213.005]
+  - id: leak
+    labelJa: 個人情報が漏えいする
+    breachedJa: 漏えい元になる
+    breachedDoneJa: 漏えい元になりました
+    tactics: [TA0010]
+    byRole:
+      cloud.saas: null
+    terminal: true

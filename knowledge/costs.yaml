@@ -59,3 +59,6 @@ measures:
   - measureId: admin-separate
     basis: quote
     noteJa: IPA 事例集の明細に管理者パスワードの個別化（LAPS など）の単価はない
+  - measureId: saas-sharing-review
+    basis: quote
+    noteJa: 設定の見直しと定期的な棚卸し。IPA 事例集の明細に単価はない

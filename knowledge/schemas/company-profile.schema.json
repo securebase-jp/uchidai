@@ -115,6 +115,10 @@
       ],
       "additionalProperties": false
     },
+    "coverage": {
+      "type": "string",
+      "const": "answers_only"
+    },
     "employees": {
       "type": "integer",
       "exclusiveMinimum": 0,

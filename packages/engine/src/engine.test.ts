@@ -893,3 +893,77 @@ describe("カルテの範囲で入口が見つからないとき（TRIAL-002）"
     expect(evaluate(case1, p, { knowledge }).result).not.toBe("pending");
   });
 });
+
+describe("クラウドサービスの共有設定の誤り（TRIAL-003）", () => {
+  // マイナビの端末管理クラウドの権限設定ミスのような事例：情報置き場（T1213）が閲覧可能になった
+  const saasCase: Case = {
+    title: "端末管理クラウドの設定ミス",
+    damageType: "data_breach",
+    clarity: "clear",
+    suspiciousInstructions: [],
+    steps: [
+      {
+        tactic: "TA0009",
+        techniques: ["T1213"],
+        source: "stated",
+        quote: "第三者が従業員の個人情報を閲覧できる状態となっていた",
+      },
+    ],
+  };
+  const saas = (controls: CompanyProfile["assets"][number]["controls"]) => ({
+    id: "saas-mdm",
+    kind: "system" as const,
+    role: "cloud.saas" as const,
+    label: "端末管理クラウド",
+    side: "external" as const,
+    controls,
+    attrs: {},
+    attrEvidence: {},
+  });
+  it("カルテに SaaS の資産が無いとき、ファイル置き場の保護で「止められます」と答えない", () => {
+    // demo-seiko にはクラウドストレージ（公開共有を禁止・棚卸しあり）がある。それは別のサービス
+    expect(demo.assets.some((a) => a.role === "cloud.storage")).toBe(true);
+    const v = evaluate(saasCase, demo, { knowledge });
+    expect(v.templateId).toBe("data-breach-saas");
+    expect(v.result).toBe("no_entry");
+    expect(v.result).not.toBe("blocked");
+  });
+  it("5 問のカルテなら、登録不足の案内（pending）にする（TRIAL-002 と同じ扱い）", () => {
+    const p = profileFromAnswers(
+      {
+        industry: "wholesale_service",
+        site: "office_only",
+        hosting: { mail: "cloud", files: "cloud", core: "onprem", web: "provider" },
+        remoteAccess: ["rdp"],
+        backup: "same_network",
+      },
+      knowledge.patterns,
+      "試験用商事",
+      knowledge.sites,
+    );
+    // ファイルをクラウドに置く回答ならクラウドストレージはあるが、SaaS は無い
+    expect(p.assets.some((a) => a.role === "cloud.storage")).toBe(true);
+    const v = evaluate(saasCase, p, { knowledge });
+    expect(v.result).toBe("pending");
+    expect(v.coverageGapJa).toBe(COVERAGE_GAP_NOTE);
+  });
+  it("SaaS の資産があり設定の制限も棚卸しも無ければ突破され、対策ボタンで止まる", () => {
+    const open = withAsset(
+      demo,
+      saas([
+        { mitigation: "M1022", status: "absent", evidence: "registered" },
+        { mitigation: "M1047", status: "absent", evidence: "registered" },
+      ]),
+    );
+    expect(evaluate(saasCase, open, { knowledge }).result).toBe("breached");
+    const unknown = withAsset(demo, saas([]));
+    expect(evaluate(saasCase, unknown, { knowledge }).result).not.toBe("blocked");
+    const fixed = applyMeasures(open, [measure("saas-sharing-review")]);
+    expect(evaluate(saasCase, fixed, { knowledge }).result).toBe("blocked");
+  });
+  it("ファイル置き場の事例（T1530）は、これまでどおりクラウドストレージで判定する", () => {
+    const v = evaluate(case2, demo, { knowledge });
+    expect(v.templateId).toBe("data_breach");
+    expect(v.result).toBe("blocked");
+  });
+});

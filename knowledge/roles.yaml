@@ -20,6 +20,7 @@ roles:
         pc,
         cloud.mail_account.exec,
         cloud.storage,
+        cloud.saas,
         person.accounting,
       ]
     descriptionJa: 経路の起点。会社カルテには現れない仮想ノード
@@ -130,6 +131,14 @@ roles:
         { type: boolean, descriptionJa: 公開リンクでの共有を設定で禁止しているか }
       reviewCadence: { type: string, descriptionJa: 共有範囲の棚卸しの頻度 }
     descriptionJa: T1530 の対象
+  - id: cloud.saas
+    labelJa: クラウドサービス（端末管理・グループウェアなど）
+    layer: system
+    side: external
+    attrs:
+      sharingRestricted: { type: boolean, descriptionJa: 外部への共有・公開を設定で制限しているか }
+      reviewCadence: { type: string, descriptionJa: 共有範囲・権限の棚卸しの頻度 }
+    descriptionJa: 端末管理やグループウェアなどの管理画面・共有設定。T1213 の対象
   - id: cloud.accounting
     labelJa: 会計クラウド
     layer: system

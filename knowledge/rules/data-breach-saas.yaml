@@ -1,0 +1,37 @@
+# 判定ルール表：情報漏えい（クラウドサービスの管理画面・共有設定の誤り）
+# 型紙 data-breach-saas。ファイル置き場（data-breach.yaml）と同じく、権限・共有範囲の制限（M1022）と定期的な棚卸し（M1047）で判定する
+rules:
+  - id: data_breach_saas.entry
+    role: cloud.saas
+    techniques: [T1213, T1213.001, T1213.002, T1213.003, T1213.005]
+    materialsJa: カルテ：クラウドサービスの共有・権限設定のルール、外部への公開の制限、定期的な棚卸し
+    mitigations: [M1022, M1047]
+    outcomes:
+      - state: blocked
+        when:
+          all:
+            - control: { mitigation: M1022, status: present }
+            - control: { mitigation: M1047, status: present }
+        reasonJa: 外部への共有・公開が設定で制限され、権限を定期的に棚卸ししている
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1022, status: unknown }
+            - control: { mitigation: M1047, status: unknown }
+        reasonJa: 共有・権限設定の制限または棚卸しが未確認
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: M1022, status: present }
+            - control: { mitigation: M1047, status: present }
+        reasonJa: 設定の制限か棚卸しの片方だけ
+      - state: breached
+        reasonJa: 共有・権限の誤りを防ぐ設定も棚卸しもない
+  - id: data_breach_saas.leak
+    role: cloud.saas
+    techniques: []
+    materialsJa: カルテ：個人情報の所在と件数
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 個人情報が漏えいする。報告と本人通知の期限を表示する

@@ -77,3 +77,16 @@ measures:
         mitigation: M1026
         status: present
     requestToJa: 保守ベンダー
+  - id: saas-sharing-review
+    labelJa: クラウドサービスの共有・権限設定を制限し、棚卸しする
+    mitigation: M1022
+    patches:
+      - role: cloud.saas
+        mitigation: M1022
+        status: present
+        attrs: { sharingRestricted: true }
+      - role: cloud.saas
+        mitigation: M1047
+        status: present
+        attrs: { reviewCadence: quarterly }
+    requestToJa: 情シス担当者（設定変更と棚卸し）
