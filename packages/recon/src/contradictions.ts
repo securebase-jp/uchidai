@@ -12,7 +12,7 @@ import type { HostnameEntry, ReconResult } from "./types.ts";
  */
 export type DomainMapping = { from: string | undefined; to: string };
 
-/** `campaign2019.demo-seiko.example` を from→to で `campaign2019.exe-com.com` に。付け替えなければそのまま */
+/** `campaign2019.demo-seiko.example` を from→to で `campaign2019.example.jp` に。付け替えなければそのまま */
 export function mapHostname(name: string, mapping?: DomainMapping): string {
   if (!mapping?.from) return name;
   const from = mapping.from.toLowerCase().replace(/\.$/, "");

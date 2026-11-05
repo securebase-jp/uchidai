@@ -303,11 +303,11 @@ describe("applyAssetHints のドメインの付け替え", () => {
       personalData: [],
     };
     const next = applyAssetHints(profile, [], {
-      domain: "exe-com.com",
+      domain: "example.jp",
       checkedAt: "2026-11-03T00:00:00Z",
       hostnames: [
         {
-          name: "campaign2019.exe-com.com",
+          name: "campaign2019.example.jp",
           resolves: true,
           addresses: ["203.0.113.82"],
           certCount: 1,
@@ -319,7 +319,7 @@ describe("applyAssetHints のドメインの付け替え", () => {
     });
     const old = next.assets[0];
     expect(old?.attrs.externallySeen).toBe(true);
-    expect(old?.attrs.hostname).toBe("campaign2019.exe-com.com");
+    expect(old?.attrs.hostname).toBe("campaign2019.example.jp");
     expect(old?.attrEvidence.hostname).toBe("registered");
   });
 });
