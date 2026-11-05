@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import type { MeasureDraftView } from "../../shared/requests.ts";
+import { isDemoMode } from "../demo/params.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import { useRequests } from "../hooks/useRequests.tsx";
 import { rankPending } from "../lib/pending.ts";
@@ -145,7 +146,7 @@ export function RequestPanel() {
           })}
         </div>
       )}
-      <div ref={outboxRef}>
+      <div ref={outboxRef} id={isDemoMode() ? undefined : "staff-outbox"}>
         <OutboxPanel
           items={req.items}
           onReply={req.reply}

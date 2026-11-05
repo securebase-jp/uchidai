@@ -1,7 +1,9 @@
 /** 担当者画面（操作型）：結論カード、経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
 import { useMemo } from "react";
+import { flushSync } from "react-dom";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
+import { Collapsible, REVEAL_EVENT } from "../components/Collapsible.tsx";
 import { MissingChoices } from "../components/CompanyPicker.tsx";
 import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
@@ -14,18 +16,22 @@ import { Meters, useDayCounter } from "../components/Meters.tsx";
 import { Particles } from "../components/Particles.tsx";
 import { RequestPanel } from "../components/RequestPanel.tsx";
 import { SeriesPanel } from "../components/SeriesPanel.tsx";
+import { StaffBar } from "../components/StaffBar.tsx";
 import { TimelineBar } from "../components/TimelineBar.tsx";
 import { summary, VerdictBanner } from "../components/VerdictBanner.tsx";
 import "../components/staff.css";
 import { useDemoBridge } from "../demo/bridge.ts";
+import { isDemoMode } from "../demo/params.ts";
 import { useAiAttacker, withAiPaths } from "../hooks/useAiAttacker.tsx";
 import { useApp } from "../hooks/useApp.tsx";
+import { useRequests } from "../hooks/useRequests.tsx";
 import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
 import { type NextMove, reasonSentence } from "../lib/conclusion.ts";
 import { RESULT_SHORT } from "../lib/labels.ts";
 import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
 import { readNotices } from "../lib/read-notices.ts";
+import { requestsAutoOpen, staffCounts } from "../lib/staff-status.ts";
 import { timelineOf } from "../lib/timeline.ts";
 
 export function Legend() {
@@ -66,6 +72,12 @@ export const STAFF_SECTION = {
   measures: "staff-measures",
   evidence: "staff-evidence",
   requests: "staff-requests",
+  /** 確認依頼の中の送信箱（確認依頼の枠を開いてから移動する） */
+  outbox: "staff-outbox",
+  industry: "staff-industry",
+  ai: "staff-ai",
+  comparison: "staff-comparison",
+  series: "staff-series",
 } as const;
 
 const TOC: [string, string][] = [
@@ -76,15 +88,27 @@ const TOC: [string, string][] = [
   [STAFF_SECTION.requests, "確認依頼"],
 ];
 
-/** ページ内の区画へ移動する（ハッシュは画面の切り替えに使っているので、アンカーの href は使わない） */
+/**
+ * ページ内の区画へ移動する（ハッシュは画面の切り替えに使っているので、アンカーの href は使わない）。
+ * 折りたたまれた区画は、先に開いてから移動する。動きを減らす設定のときは、すぐに移動する
+ */
 export function jumpTo(id: string): void {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  flushSync(() => {
+    window.dispatchEvent(new CustomEvent(REVEAL_EVENT, { detail: id }));
+  });
+  const reduced = document.documentElement.dataset.reduced === "true";
+  document
+    .getElementById(id)
+    ?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
 }
 
 export function Staff({ settings }: { settings: Settings }) {
   const app = useApp();
   const { knowledge, profile, theCase, caseMeta, measureIds, evaluation, busy, error } = app;
-  const aiPaths = useAiAttacker().paths;
+  const ai = useAiAttacker();
+  const aiPaths = ai.paths;
+  const reqs = useRequests();
+  const demo = isDemoMode(); // デモモード（?demo=1）は、帯も折りたたみもなしで従来どおりに出す（動画の場面 5〜8）
   const input = useMemo<StageInput | undefined>(
     () =>
       evaluation && knowledge
@@ -125,6 +149,8 @@ export function Staff({ settings }: { settings: Settings }) {
     ? []
     : rankPending(current, evaluation?.verdict, evaluation?.graph);
   const pending = ranked.length;
+  const counts = staffCounts(pending, reqs.items);
+  const requestsOpen = requestsAutoOpen(counts);
   const onPath = ranked.filter((x) => x.onPath);
   const unknownSteps = evaluation ? unknownStepLabels(evaluation.verdict, evaluation.graph) : [];
   const result = evaluation?.verdict.result;
@@ -145,7 +171,16 @@ export function Staff({ settings }: { settings: Settings }) {
   });
 
   return (
-    <div className="staff">
+    <div className={`staff${demo ? "" : " has-bar"}`}>
+      {!demo && (
+        <StaffBar
+          counts={counts}
+          toc={TOC}
+          requestsId={STAFF_SECTION.requests}
+          outboxId={STAFF_SECTION.outbox}
+          onJump={jumpTo}
+        />
+      )}
       <div id={STAFF_SECTION.verdict}>
         <VerdictBanner
           verdict={stage.input.verdict}
@@ -207,7 +242,7 @@ export function Staff({ settings }: { settings: Settings }) {
             </InfoButton>
           }
         >
-          {(moves.length > 0 || pending > 0) && (
+          {(moves.length > 0 || (pending > 0 && demo)) && (
             <div className="verdict-actions">
               {moves.length > 0 && <span className="lab">次の一手</span>}
               {moves.map((m) => (
@@ -222,7 +257,7 @@ export function Staff({ settings }: { settings: Settings }) {
                   {m.measure.labelJa}
                 </button>
               ))}
-              {pending > 0 && (
+              {pending > 0 && demo && (
                 <button
                   type="button"
                   className="btn sm ghost pending"
@@ -235,13 +270,15 @@ export function Staff({ settings }: { settings: Settings }) {
           )}
         </VerdictBanner>
       </div>
-      <nav className="staff-toc" aria-label="区画の目次">
-        {TOC.map(([id, label]) => (
-          <button type="button" key={id} className="toc-link" onClick={() => jumpTo(id)}>
-            {label}
-          </button>
-        ))}
-      </nav>
+      {demo && (
+        <nav className="staff-toc" aria-label="区画の目次">
+          {TOC.map(([id, label]) => (
+            <button type="button" key={id} className="toc-link" onClick={() => jumpTo(id)}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
       {error && (
         <p className="err small" style={{ marginTop: 6 }}>
           {error}
@@ -338,10 +375,16 @@ export function Staff({ settings }: { settings: Settings }) {
               disabled={busy}
             />
           </div>
-          <div style={{ marginTop: 12 }}>
+          <Collapsible id={STAFF_SECTION.industry} title="業界の切り替え" plain={demo}>
             <IndustrySwitch />
-          </div>
-          <div style={{ marginTop: 12 }}>
+          </Collapsible>
+          <Collapsible
+            id={STAFF_SECTION.ai}
+            title="AI 攻撃者"
+            plain={demo}
+            forceOpen={ai.busy}
+            badge={ai.busy ? "実行中" : ai.ran ? "実行済み" : undefined}
+          >
             <AiAttackerPanel
               graph={stage.input.graph}
               verdict={evaluation?.verdict ?? stage.input.verdict}
@@ -349,16 +392,26 @@ export function Staff({ settings }: { settings: Settings }) {
               measures={knowledge.measures}
               reduced={settings.reduced}
             />
-          </div>
-          <div style={{ marginTop: 12 }}>
+          </Collapsible>
+          <Collapsible
+            id={STAFF_SECTION.comparison}
+            title="比較"
+            plain={demo}
+            forceOpen={ai.compareBusy}
+          >
             <ComparisonPanel />
-          </div>
+          </Collapsible>
           {caseMeta?.series && (
-            <div style={{ marginTop: 12 }}>
+            <Collapsible id={STAFF_SECTION.series} title="続報" plain={demo}>
               <SeriesPanel series={caseMeta.series} />
-            </div>
+            </Collapsible>
           )}
-          <div style={{ marginTop: 12 }} id={STAFF_SECTION.evidence}>
+          <Collapsible
+            id={STAFF_SECTION.evidence}
+            title="根拠"
+            plain={demo}
+            legacyId={STAFF_SECTION.evidence}
+          >
             <EvidencePanel
               verdict={stage.input.verdict}
               theCase={theCase}
@@ -368,10 +421,24 @@ export function Staff({ settings }: { settings: Settings }) {
               templates={knowledge.templates}
               {...(caseMeta?.series ? { quoteSources: caseMeta.series.quoteSources } : {})}
             />
-          </div>
-          <div style={{ marginTop: 12 }} id={STAFF_SECTION.requests}>
+          </Collapsible>
+          <Collapsible
+            id={STAFF_SECTION.requests}
+            title="確認依頼"
+            plain={demo}
+            legacyId={STAFF_SECTION.requests}
+            forceOpen={requestsOpen}
+            contains={[STAFF_SECTION.outbox]}
+            badge={[
+              counts.pending > 0 && `未確認 ${counts.pending} 件`,
+              counts.waiting > 0 && `依頼済み ${counts.waiting} 件`,
+              counts.answered > 0 && `回答あり ${counts.answered} 件`,
+            ]
+              .filter(Boolean)
+              .join("　")}
+          >
             <RequestPanel />
-          </div>
+          </Collapsible>
         </div>
         <AttackerLog
           scene={scene}
