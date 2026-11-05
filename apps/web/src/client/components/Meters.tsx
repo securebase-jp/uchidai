@@ -30,7 +30,10 @@ export function useDayCounter(clock: Clock, scene: Scene): number {
 export function Meters({ clock, scene, verdict, profile, alert = false }: Props) {
   const day = useDayCounter(clock, scene);
   const downtime = Math.min(day, verdict.impact.downtimeDays);
-  const revenue = profile.dailyRevenue !== undefined ? profile.dailyRevenue * downtime : undefined;
+  // 止まる業務が無い結論（情報漏えいなど）は、「0日」「0円」でなく「なし」と出し、売上影響の計器は出さない
+  const stops = verdict.impact.downtimeDays > 0;
+  const revenue =
+    stops && profile.dailyRevenue !== undefined ? profile.dailyRevenue * downtime : undefined;
   const alarm = alert && scene.concluded && verdict.result === "breached";
   const hot = alarm ? "hot" : downtime > 0 ? (verdict.result === "mitigated" ? "warm" : "hot") : "";
   const money = verdict.impact.moneyLossJpy;
@@ -42,7 +45,7 @@ export function Meters({ clock, scene, verdict, profile, alert = false }: Props)
       </div>
       <div className={`meter ${hot}`}>
         <div className="k">業務停止</div>
-        <div className="v">{downtime}日</div>
+        <div className="v">{stops ? `${downtime}日` : "なし"}</div>
       </div>
       {revenue !== undefined && (
         <div className={`meter ${hot}`}>

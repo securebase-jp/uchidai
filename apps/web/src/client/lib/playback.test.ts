@@ -107,6 +107,22 @@ describe("buildScript", () => {
     expect(s.beats[s.beats.length - 1]?.kind).toBe("conclude");
     expect(s.duration).toBeGreaterThan(5000);
   });
+  it("止まる業務が無い結論（情報漏えいなど）は、業務に連鎖せず「影響あり」も出さない。報告の義務は出る", () => {
+    const noStop: Verdict = {
+      ...breached,
+      impact: {
+        stopped: [],
+        downtimeDays: 0,
+        personalDataReached: [],
+        reportRequired: true,
+      },
+    };
+    const s = buildScript(graph, noStop, profile);
+    expect(s.beats.some((b) => b.kind === "hit" && b.layer === "business")).toBe(false);
+    expect(s.beats.some((b) => b.kind === "flash" && b.layer === "business")).toBe(false);
+    expect(s.beats.filter((b) => b.kind === "fall").length).toBe(0);
+    expect(s.beats[s.beats.length - 1]?.kind).toBe("conclude");
+  });
   it("効かない対策を適用すると、その区間は回り込み、理由がログに出る", () => {
     const s = buildScript(graph, breached, profile, {
       applied: [{ id: "vpn-mfa", labelJa: "VPN に多要素認証", mitigation: "M1032", patches: [] }],

@@ -250,9 +250,16 @@ export function buildScript(
       for (const s of p.steps) if (s.state === "breached") reachedAssets.add(s.nodeId);
     const stoppedIds = new Set(verdict.impact.stopped.map((s) => s.businessId));
     const bizNodes = graph.nodes.filter((n) => n.layer === "business");
-    const affectedBiz = bizNodes.filter((b) =>
-      graph.edges.some((e) => e.kind === "depends" && e.from === b.id && reachedAssets.has(e.to)),
-    );
+    // 止まる業務が無い結論（情報漏えいなど。stopsOperations: false）は、業務に連鎖しない。
+    // 経路が届いた資産に依存するだけの業務を「影響あり」と出すと、「業務は止まらない」と食い違う
+    const affectedBiz =
+      stoppedIds.size === 0
+        ? []
+        : bizNodes.filter((b) =>
+            graph.edges.some(
+              (e) => e.kind === "depends" && e.from === b.id && reachedAssets.has(e.to),
+            ),
+          );
     if (affectedBiz.length > 0) {
       beats.push({ t, kind: "flash", layer: "business" });
       affectedBiz.forEach((b, i) => {
