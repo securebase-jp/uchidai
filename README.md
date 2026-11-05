@@ -47,6 +47,8 @@ docker run --rm -p 127.0.0.1:8787:8787 --env-file .env uchidai
 
 http://localhost:8787 を開く。`-p 127.0.0.1:8787:8787` で手元だけに公開する（会社カルテを扱う API が外から見えないように）。環境変数の一覧と細かい手順は [docs/usage.md](docs/usage.md)。
 
+Node も pnpm も入れずに使いたい（専門家のいない会社の担当者向け）ときは、公開済みのイメージを `docker compose up -d` で動かせます。手順は [docs/install.md](docs/install.md)。
+
 ## 使い方（5 段）
 
 トップ画面（`#/`）が次の順に案内し、それぞれの段の「いまの状態」も表示します。
