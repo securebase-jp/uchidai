@@ -9,8 +9,10 @@ import {
   type EntryKindDef,
   loadDamageTypes,
   loadEntryKinds,
+  loadVictims,
   OUT_OF_SCOPE,
   StepCertainty,
+  type VictimDef,
 } from "@uchidai/engine";
 import { z } from "zod";
 
@@ -29,6 +31,8 @@ export const RawCase = z.object({
   title: z.string(),
   damageType: DamageType,
   clarity: Clarity,
+  /** 被害を受けた側（knowledge/victims.yaml の id）。古い記録には無い（省略は記事の会社そのもの） */
+  victim: z.string().nullable().optional(),
   steps: z.array(RawStep),
   suspiciousInstructions: z.array(z.string()),
 });
@@ -42,11 +46,12 @@ export type RawCase = z.infer<typeof RawCase>;
 export function buildRawCaseJsonSchema(
   damageTypes: DamageTypeDef[] = loadDamageTypes(),
   entryKinds: EntryKindDef[] = loadEntryKinds(),
+  victims: VictimDef[] = loadVictims(),
 ): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["title", "damageType", "clarity", "steps", "suspiciousInstructions"],
+    required: ["title", "damageType", "clarity", "victim", "steps", "suspiciousInstructions"],
     properties: {
       title: { type: "string", description: "記事の見出し。無ければ内容を表す短い題（日本語）" },
       damageType: {
@@ -58,6 +63,10 @@ export function buildRawCaseJsonSchema(
         type: "string",
         enum: ["clear", "partial", "unknown"],
         description: "clear=入口と被害が明記、partial=一部を推定、unknown=入口が不明",
+      },
+      victim: {
+        anyOf: [{ type: "string", enum: victims.map((v) => v.id) }, { type: "null" }],
+        description: `被害を受けた組織が、記事を公表した会社・機関から見てどの立場か（${victims.map((v) => `${v.id}=${v.labelJa}`).join("、")}）。迷えば self`,
       },
       steps: {
         type: "array",
