@@ -206,7 +206,8 @@ describe("writerInputFrom は各段階の source を渡す", () => {
       ],
       suspiciousInstructions: [],
     });
-    const profile = loadProfile(join(repoRoot, "examples", "demo-seiko.json"));
+    // 会員向けのサービスを持つ会社で確かめる（デモ精工は持たず、顧客向けサービスの型紙では「入口は未登録」になる）
+    const profile = loadProfile(join(repoRoot, "examples", "demo-bussan.json"));
     const input2 = writerInputFrom(evaluate(theCase, profile, { knowledge: k }), k);
     expect(input2.stages[0]).toMatchObject({
       roleJa: "正規の認証情報（ログイン先は不明）",

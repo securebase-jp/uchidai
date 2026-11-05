@@ -22,14 +22,14 @@ async function failure(p: Promise<unknown>): Promise<ClientError> {
 describe("loadArticle（取得の失敗は 400 系の案内）", () => {
   it.each([
     [404, /見つかりませんでした（404）/],
-    [403, /ログインや会員登録/],
+    [403, /自動での取得を断りました/],
     [500, /応答しませんでした（500）/],
   ])("HTTP %i は 400 と、本文を貼る案内", async (status, re) => {
     const fetch = async () => new Response("x", { status, statusText: "Not Found" });
     const err = await failure(loadArticle(url("https://news.example/a"), { fetch, lookup }));
     expect(err.status).toBe(400);
     expect(err.message).toMatch(re);
-    expect(err.message).toContain("記事の本文を貼って読むこともできます");
+    expect(err.message).toMatch(/本文を貼って読むこともできます|本文の貼り付けをお試しください/);
     expect(err.message).not.toMatch(/Not Found|news\.example/); // 英語の statusText や URL は出さない
   });
 

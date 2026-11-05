@@ -189,13 +189,18 @@ describe("第三者の事故：記事の入口の資産がカルテに無くて�
     ],
   });
   it("提供元 × 正規の認証情報：第三者の事故の見出し、確認すること、入口は「記事の入口は〇〇（記載）。御社が同じ立場なら」の想定", () => {
-    const v = evaluate(thirdCase("provider", "credential", "T1078"), demo, { knowledge: k });
+    // 入口が正規の認証情報の事故は、顧客向けサービスの型紙（account-takeover-service）に当たる。
+    // デモ精工は会員向けのサービスを持たないので、そこは下の「Web 経由の型紙で…」の試験で固定し、ここは 5 問のカルテで確かめる
+    const frameProfile = frame(["vpn"]);
+    const v = evaluate(thirdCase("provider", "credential", "T1078"), frameProfile, {
+      knowledge: k,
+    });
     expect(v.result).not.toBe("no_entry");
     expect(v.headlineJa).toMatch(
       /^これはクラウド・ソフトウェアの提供元で起きた事故です。御社が同じ立場なら/,
     );
     expect(v.thirdParty?.checksJa.length).toBeGreaterThan(0);
-    const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+    const text = buildOnePager(v, frameProfile, k).whatHappensJa.join("\n");
     expect(text).toContain(
       "記事の入口は「正規の認証情報（ログイン先は不明）」（記載）。御社が同じ立場なら、攻撃は次の順に進むと見込まれます：入口から侵入される",
     );
@@ -274,8 +279,10 @@ describe("入口が正規の認証情報のとき、想定の候補に VPN を�
     ],
   });
   it("記載：「入口はまだ分かっていません。たとえば VPN装置から」でなく、「記事の入口は〇〇（記載）。」", () => {
-    const v = evaluate(credCase(), demo, { knowledge: k });
-    const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+    // 会員向けのサービスを持つ会社（デモ商事）で確かめる。デモ精工は持たないので、顧客向けサービスの型紙では「入口は未登録」になる
+    const withService = loadProfile(join(repoRoot, "examples", "demo-bussan.json"));
+    const v = evaluate(credCase(), withService, { knowledge: k });
+    const text = buildOnePager(v, withService, k).whatHappensJa.join("\n");
     expect(text).toContain(
       "記事の入口は「正規の認証情報（ログイン先は不明）」（記載）。攻撃は次の順に進みます：入口から侵入される",
     );
