@@ -91,7 +91,7 @@ export function ReconReplay({ elapsed, seconds, recording = DEFAULT_RECORDING }:
       </header>
 
       <div className="panel rr-panel">
-        <h2>自社の姿を、外から見る</h2>
+        <h2>自社の状況を、外から見る</h2>
         <div className="rr-input">
           <span className="rr-label">ドメイン</span>
           <span className="rr-domain mono" data-field="domain">
