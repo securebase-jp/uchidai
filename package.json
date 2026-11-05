@@ -13,7 +13,8 @@
     "eval": "pnpm --filter @uchidai/eval run eval",
     "eval:attacker": "pnpm --filter @uchidai/eval run eval:attacker",
     "eval:articles": "pnpm --filter @uchidai/eval run eval:articles",
-    "test": "pnpm -r --if-present run test",
+    "test": "pnpm -r --if-present run test && pnpm run test:portable",
+    "test:portable": "node --disable-warning=ExperimentalWarning --test \"scripts/portable/*.test.ts\"",
     "typecheck": "pnpm -r --if-present run typecheck",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
@@ -23,7 +24,9 @@
     "attack:import": "node --disable-warning=ExperimentalWarning scripts/import-attack.ts",
     "knowledge:check": "pnpm --filter @uchidai/engine run knowledge:check",
     "dev": "pnpm --filter @uchidai/web run dev",
-    "build": "pnpm --filter @uchidai/web run build"
+    "build": "pnpm --filter @uchidai/web run build",
+    "portable:build": "node --disable-warning=ExperimentalWarning scripts/portable/build-zip.ts",
+    "portable:smoke": "node --disable-warning=ExperimentalWarning scripts/portable/smoke.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.0",
