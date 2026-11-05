@@ -1,0 +1,949 @@
+# 企業自身の公表（IR・お知らせ・適時開示）の試験の一覧（東証プライム上場企業の公表。2026-11-05 収集）
+#
+# 公表の本文は入れない（出典 URL、自分の言葉の要約、期待するラベルだけ）。本文は取得して
+# eval/.cache/trials/<id>/article.txt に置く（git 管理外）。取得は eval/trials/fetch-batch.ts。
+#
+# 集め方と、網羅できていない範囲は docs/article-trials/ir-disclosures.md に書いた。
+# 全上場企業を巡回して集めたものではない。公開の検索で見つかった公表だけを、JPX の「東証上場銘柄一覧」
+# （2026-10-31 時点、内国株式のプライム 1,553 社）と突き合わせて、プライムの会社のものだけを残した。
+#
+# 項目
+#   company / code  会社名と証券コード（親会社がプライム。子会社の事故を親会社が公表したものを含む）
+#   sector          JPX の 33 業種区分
+#   format          html / pdf（公表の形式）
+#   series          続報の系列。<系列名>:<第 N 報> または <系列名>:<区分>（initial / final など）。同じ事故の公表を結ぶ
+#   kind            期待する被害の種類。damage-types.yaml の id（ransomware / data_breach / account_takeover / bec）か、
+#                   out_of_scope（型紙の対象外。Web 改ざん、なりすましの注意喚起など）
+#   alsoAcceptable  kind のほかに、読解として妥当と認める種類（境目の公表）
+#   entry           公表に書かれた入口。vpn / network-device / vendor（委託先・提供元・提携先）/ credential / web / mail / none（書かれていない）
+#   victim          被害を受けた側。self（自社）/ subsidiary（子会社・孫会社）/ vendor（委託先・提供元の事故が自社に波及）/ partner（取引先・提携先の事故の周知）
+#   fetched         true は取得して本文が読めたもの。false は取得できなかったもの（理由は fetchNote）。取得は URL ごとに 1 回だけ
+#   expectNote      期待の根拠（自分の言葉。公表の文は引用しない）
+#
+# 最後の測定用の取り分けはしていない（この試験は全件を通す）。
+articles:
+  # ===== ニデック（台湾子会社。ランサムウェア。続報の系列） =====
+  - id: ir-nidec1
+    url: https://www.nidec.com/files/user/www-nidec-com/corporate/news/2026/0624-01/260624-01jp.pdf
+    company: ニデック
+    code: "6594"
+    sector: 電気機器
+    title: 当社海外子会社におけるランサムウェア被害に関するお知らせ（第１報）
+    publishedAt: "2026-06-24"
+    format: pdf
+    series: nidec-taiwan:1
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 台湾子会社の一部サーバーがランサムウェアの被害を受けた第一報。入口は書かれていない。初期対応と調査開始の段階で、情報流出の有無はまだ判断されていない。
+
+  - id: ir-nidec2
+    url: https://www.nidec.com/files/user/www-nidec-com/corporate/news/2026/0804-01/260804-01jp.pdf
+    company: ニデック
+    code: "6594"
+    sector: 電気機器
+    title: 当社海外子会社サーバーへの不正アクセスによるランサムウェア被害と情報流出の可能性に関するお知らせ（第２報）
+    publishedAt: "2026-08-04"
+    format: pdf
+    series: nidec-taiwan:2
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 第一報の続き。外部専門機関の調査結果として、情報流出の「可能性」が示される。確認された事実と可能性の区別が、第一報から変わる点。
+
+  # ===== ヨドコウ（淀川製鋼所。台湾子会社。続報の系列） =====
+  - id: ir-yodoko1
+    url: https://www2.jpx.co.jp/disc/54510/140120250425524228.pdf
+    company: ヨドコウ（公表時は淀川製鋼所）
+    code: "5451"
+    sector: 鉄鋼
+    title: 連結子会社におけるランサムウェア被害の発生および情報漏えいの可能性に関するお知らせ
+    publishedAt: "2025-04-25"
+    format: pdf
+    series: yodoko-sysco:1
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 台湾の連結子会社のサーバーがランサムウェアの被害を受け、従業員等の個人情報の一部が外部に漏れた可能性がある、という第一報。適時開示の様式（会社名・代表者名・問合せ先の見出しつき）。
+
+  - id: ir-yodoko2
+    url: https://www2.jpx.co.jp/disc/54510/140120250618592699.pdf
+    company: ヨドコウ（公表時は淀川製鋼所）
+    code: "5451"
+    sector: 鉄鋼
+    title: 連結子会社におけるランサムウェア被害の発生および情報漏えいの可能性に関するお知らせ（第２報）
+    publishedAt: "2025-06-18"
+    format: pdf
+    series: yodoko-sysco:2
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 第二報。被害を受けたシステムは復旧し、業務運営は滞っておらず、二次被害も確認されていない。第一報の「可能性」が続報でどう扱われるかを見る。
+
+  # ===== ダイワボウ HD（子会社オーエム製作所） =====
+  - id: ir-daiwabo
+    url: https://www2.jpx.co.jp/disc/31070/140120250227583766.pdf
+    company: ダイワボウホールディングス
+    code: "3107"
+    sector: 卸売業
+    title: 連結子会社におけるランサムウェア被害の発生及び個人情報漏えいの可能性に関するお知らせ
+    publishedAt: "2025-02-27"
+    format: pdf
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 連結子会社のサーバーがランサムウェアの被害を受け、取引先等の個人情報と秘密情報が一部外部に漏れた可能性がある。対策本部の設置、外部専門家の支援、警察への相談が書かれる。入口の記載なし。
+
+  # ===== アスクル（ランサムウェア。系列） =====
+  - id: ir-askul-1020
+    url: https://www2.jpx.co.jp/disc/26780/140120251020575852.pdf
+    company: アスクル
+    code: "2678"
+    sector: 小売業
+    title: ランサムウェア感染によるシステム障害発生について
+    publishedAt: "2025-10-20"
+    format: pdf
+    series: askul:initial
+    kind: ransomware
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 前日に発生したランサムウェア感染で、受注・出荷業務が止まったことを知らせる第一報。個人情報や顧客データの流出を含む影響範囲は調査中で、業績への影響も精査中と書く。短い文書。
+
+  - id: ir-askul-news
+    url: https://www.askul.co.jp/snw/newsDispView/?newsId=18364
+    company: アスクル
+    code: "2678"
+    sector: 小売業
+    title: （お知らせ詳細）サービス復旧状況のご案内（5 月 13 日更新）
+    publishedAt: "2026-05-13"
+    format: html
+    series: askul:recovery
+    kind: ransomware
+    alsoAcceptable: [out_of_scope]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 顧客向けの復旧状況ページ。停止中・再開済みのサービスの一覧が中心で、攻撃の経緯や入口は書かれない。ランサムウェアの事案とは読めるが、読み取れる段階は少ない。
+
+  # ===== ゼビオ HD（第三者の EC プラットフォーム経由。子会社の顧客情報） =====
+  - id: ir-xebio
+    url: https://www2.jpx.co.jp/disc/82810/140120261022554661.pdf
+    company: ゼビオホールディングス
+    code: "8281"
+    sector: 小売業
+    title: 第三者が運営する EC プラットフォームで発生した不正アクセスによる当社連結子会社の個人情報漏えいの可能性に関するお知らせ
+    publishedAt: "2026-10-23"
+    format: pdf
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: true
+    expectNote: 子会社が使っていた第三者の EC プラットフォームが不正アクセスを受け、子会社の顧客の個人情報が漏れた可能性がある。事故が起きたのは提供元で、子会社の顧客が影響を受ける。
+
+  # ===== 燦 HD（孫会社の公式サイト） =====
+  - id: ir-san-hd
+    url: https://www2.jpx.co.jp/disc/96280/140120261020553567.pdf
+    company: 燦ホールディングス
+    code: "9628"
+    sector: サービス業
+    title: 連結子会社（孫会社）における不正アクセスの発生及び個人情報漏えいの可能性に関するお知らせ
+    publishedAt: "2026-10-20"
+    format: pdf
+    kind: data_breach
+    entry: web
+    victim: subsidiary
+    fetched: true
+    expectNote: 孫会社 2 社の公式ホームページ（供花・供物の注文）に不正アクセスがあり、購入者の個人情報が漏れた可能性がある。入口は公式ホームページ。
+
+  # ===== トレジャー・ファクトリー（問い合わせ窓口の開設だけの短い続報） =====
+  - id: ir-treasure
+    url: https://www2.jpx.co.jp/disc/30930/140120260902530578.pdf
+    company: トレジャー・ファクトリー
+    code: "3093"
+    sector: 小売業
+    title: 当社連結子会社における不正アクセスによる個人情報漏えいに関する専用お問い合わせ窓口開設のお知らせ
+    publishedAt: "2026-09-02"
+    format: pdf
+    series: treasure-kindor:window
+    kind: data_breach
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 子会社の EC サイトで起きた個人情報の漏えいについて、専用の問い合わせ窓口を開設するお知らせ。事故の中身は前の公表を参照する形で、この文書には窓口の電話番号と受付時間が中心。定型部分だけの文書でどう読むかを見る。
+
+  # ===== 図研（ドイツ子会社。種類が明記されないサイバー攻撃） =====
+  - id: ir-zuken
+    url: https://www2.jpx.co.jp/disc/69470/140120261027557047.pdf
+    company: 図研
+    code: "6947"
+    sector: 電気機器
+    title: 海外子会社に対するサイバー攻撃に関するお知らせ
+    publishedAt: "2026-10-28"
+    format: pdf
+    kind: ransomware
+    alsoAcceptable: [out_of_scope]
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: ドイツの子会社とその子会社のサーバーがサイバー攻撃を受け、一部システムに障害が出た。暗号化・ランサムウェアとは書かれていない。国内・英国・米国・アジアの拠点への攻撃は確認されていないと書く。種類が書かれていない公表を、読解がどう扱うかを見る。
+
+  # ===== イビデン（Web サイトの障害。外部 Web サーバーへの不正アクセス、情報漏えいなし） =====
+  - id: ir-ibiden
+    url: https://www2.jpx.co.jp/disc/40620/140120260428513762.pdf
+    company: イビデン
+    code: "4062"
+    sector: 電気機器
+    title: 当社ウェブサイトにおける障害発生に関する最終報告（復旧完了のお知らせ）
+    publishedAt: "2026-04-28"
+    format: pdf
+    series: ibiden-web:final
+    kind: out_of_scope
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 自社ウェブサイトに無関係なページが表示され、外部 Web サーバーへの不正アクセスが原因と特定された。ランサムウェアの形跡や顧客情報の漏えい、製造・出荷への影響は無いと書く最終報。ウェブページだけの事故で、型紙の対象（ランサム・漏えい・乗っ取り・なりすまし送金）に当てはまらない。
+
+  # ===== 井関農機（子会社ヰセキ北海道。続報の系列） =====
+  - id: ir-iseki1
+    url: https://iseki.co.jp/cms/upload/pdf/news/co_20241205.pdf
+    company: 井関農機
+    code: "6310"
+    sector: 機械
+    title: 当社グループ会社におけるランサムウェア被害の発生について
+    publishedAt: "2024-12-05"
+    format: pdf
+    series: iseki-hokkaido:1
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: グループ会社（ヰセキ北海道）の一部サーバーの電子データが暗号化されたランサムウェア被害の第一報。被害の全容把握には時間がかかる見込みと書く。
+
+  - id: ir-iseki2
+    url: https://iseki.co.jp/cms/upload/pdf/news/co_20250115.pdf
+    company: 井関農機
+    code: "6310"
+    sector: 機械
+    title: 当社グループ会社におけるランサムウェア被害の発生について（第二報）
+    publishedAt: "2025-01-15"
+    format: pdf
+    series: iseki-hokkaido:2
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 第二報は親会社の短い本文の後ろに、子会社名義の別紙（お詫びとご報告）が付く 2 部構成。別紙で、情報が外部に流出した痕跡は確認されていないが、一部が流出した可能性は否定できない、と書く。
+
+  # ===== サカタのタネ（国内サーバーと米国子会社） =====
+  - id: ir-sakata2
+    url: https://corporate.sakataseed.co.jp/news/2025/ej2r6g00000004tx-att/20251222_02_sakata_release.pdf
+    company: サカタのタネ
+    code: "1377"
+    sector: 水産・農林業
+    title: 当社サーバーへの不正アクセスに関するご報告（第２報）
+    publishedAt: "2025-12-22"
+    format: pdf
+    series: sakata:2
+    kind: data_breach
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 自社サーバーへの不正な侵入で、顧客・取引先の情報にアクセスされ外部に漏れた可能性が判明した。公開や二次被害は確認されていない。通信販売・オンラインショップは別のシステムで、影響なしと書く。暗号化・ランサムウェアの記載は無い。
+
+  - id: ir-sakata-final
+    url: https://corporate.sakataseed.co.jp/news/2026/lum8rp00000008t1-att/20260819_sakata_release.pdf
+    company: サカタのタネ
+    code: "1377"
+    sector: 水産・農林業
+    title: 当社および米国連結子会社への不正アクセスに関するご報告（最終報）
+    publishedAt: "2026-08-19"
+    format: pdf
+    series: sakata:final
+    kind: data_breach
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 国内（自社サーバー）と米国子会社の二つの不正アクセスをまとめた最終報。調査が完了し、最終的な被害状況と再発防止策を書く。二つの事案が一つの文書に入る点を見る。
+
+  # ===== オープンアップグループ（Web サイトの表示不具合・外部サイトへの遷移） =====
+  - id: ir-oug-final
+    url: https://openupgroup.co.jp/wp-content/uploads/2026/07/opg_information_website_forth.pdf
+    company: オープンアップグループ
+    code: "2154"
+    sector: サービス業
+    title: 当社ウェブサイトの一部ページにおける表示不具合および意図しない外部サイトへの遷移について（最終報）
+    publishedAt: "2026-07-02"
+    format: pdf
+    series: oug-web:final
+    kind: out_of_scope
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 自社 Web サイトの一部ページで、特定のページを開くと意図しない外部サイトに移る事象があった。最終報で、原因の特定には至らなかったと書く。型紙の対象外（Web サイトの事象）。
+
+  # ===== KADOKAWA（ランサムウェア。5 件の系列。1 件の事故の約 3 か月） =====
+  - id: ir-kadokawa-0627
+    url: https://www2.jpx.co.jp/disc/94680/140120240627539030.pdf
+    company: KADOKAWA
+    code: "9468"
+    sector: 情報・通信業
+    title: KADOKAWA グループにおけるシステム障害及び事業活動の現状について
+    publishedAt: "2024-06-27"
+    format: pdf
+    series: kadokawa:0627
+    kind: ransomware
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: データセンターのサーバーが大規模なサイバー攻撃を受けた事案の現状説明。サービスの停止と事業活動への影響が中心で、ランサムウェアの語と情報流出の確認前の段階。
+
+  - id: ir-kadokawa-0628
+    url: https://www2.jpx.co.jp/disc/94680/140120240628541582.pdf
+    company: KADOKAWA
+    code: "9468"
+    sector: 情報・通信業
+    title: ランサムウェア攻撃による情報漏洩に関するお知らせとお詫び
+    publishedAt: "2024-06-28"
+    format: pdf
+    series: kadokawa:0628
+    kind: ransomware
+    alsoAcceptable: [data_breach]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 攻撃した組織が情報の一部を流出させたと公表したことを受け、確認できた漏洩の範囲を知らせるお詫び。攻撃者の主張と会社が確認した事実の区別が要る。
+
+  - id: ir-kadokawa-0702
+    url: https://www2.jpx.co.jp/disc/94680/140120240702542852.pdf
+    company: KADOKAWA
+    code: "9468"
+    sector: 情報・通信業
+    title: ランサムウェア攻撃による情報漏洩に関するさらなる犯行声明および当社グループの対応状況について
+    publishedAt: "2024-07-02"
+    format: pdf
+    series: kadokawa:0702
+    kind: ransomware
+    alsoAcceptable: [data_breach]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 攻撃した組織が追加の流出を主張した（犯行声明）こと、会社が主張の真偽を確認中であることを書く。「主張」を事実として書かないかを見る。
+
+  - id: ir-kadokawa-0729
+    url: https://www2.jpx.co.jp/disc/94680/140120240729556605.pdf
+    company: KADOKAWA
+    code: "9468"
+    sector: 情報・通信業
+    title: KADOKAWA グループの事業活動の回復状況について
+    publishedAt: "2024-07-29"
+    format: pdf
+    series: kadokawa:0729
+    kind: ransomware
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 事業活動の回復状況（経理機能の立て直し、売上規模の大きい事業の再開）が中心。攻撃の手口は書かれない。回復状況の文書から、被害の段階を読み取れるかを見る。
+
+  - id: ir-kadokawa-0911
+    url: https://www2.jpx.co.jp/disc/94680/140120240911583446.pdf
+    company: KADOKAWA
+    code: "9468"
+    sector: 情報・通信業
+    title: サイバー攻撃による犯行声明にかかる当社グループの見解と対応について
+    publishedAt: "2024-09-11"
+    format: pdf
+    series: kadokawa:0911
+    kind: ransomware
+    alsoAcceptable: [data_breach]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 攻撃した組織が追加で情報を公開したと主張していることについての会社の見解。新たな攻撃の痕跡は確認されておらず、新たな漏えいではないと推定している、という内容。短い文書。
+
+  # ===== パナソニック HD 傘下（アフラックの事故を周知する文書） =====
+  - id: ir-panasonic-alrac
+    url: https://panasonic.co.jp/pisj/individual/oshirase/20260702_alrac_databreach.pdf
+    company: パナソニック ホールディングス（パナソニック保険サービス名義）
+    code: "6752"
+    sector: 電気機器
+    title: アフラック生命保険株式会社における不正アクセスおよび個人情報漏えいに関するお知らせ
+    publishedAt: "2026-07-02"
+    format: pdf
+    kind: data_breach
+    entry: web
+    victim: partner
+    fetched: true
+    expectNote: グループ会社の顧客向けに、提携先（アフラック生命）の契約者専用サイトで起きた不正アクセスと個人情報の漏えいを知らせる文書。事故は提携先で起きており、書いたのは取扱代理店側。被害を受けた側が自社ではない。
+
+  # ===== ワイエイシイ HD（子会社ガーター社のランサムウェア） =====
+  - id: ir-yac-garter
+    url: https://kabuyoho-sls-disclose.ifis.co.jp/f44/140120251126509661.pdf
+    company: ワイエイシイホールディングス
+    code: "6298"
+    sector: 機械
+    title: 連結子会社におけるランサムウェア被害発生のお知らせ
+    publishedAt: "2025-11-26"
+    format: pdf
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 連結子会社の社内サーバーが不正アクセスを受け、ランサムウェア感染でシステム障害が出た。適時開示の PDF を転載した第三者サイトのコピー（出所は TDnet）。
+
+  # ===== アサヒグループ HD（ランサムウェア。4 件の系列。9 か月） =====
+  - id: ir-asahi-2
+    url: https://www.asahigroup-holdings.com/newsroom/detail/20251003-0104.html
+    company: アサヒグループホールディングス
+    code: "2502"
+    sector: 食料品
+    title: サイバー攻撃によるシステム障害発生について（第2報）
+    publishedAt: "2025-10-03"
+    format: html
+    series: asahi:2
+    kind: ransomware
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 当社のサーバーがランサムウェアによる攻撃を受けたことを確認した第二報。被害拡大を防ぐため攻撃の詳細は開示を控える、と書く。システムを遮断した措置と、情報流出の確認状況が中心。
+
+  - id: ir-asahi-result
+    url: https://www.asahigroup-holdings.com/newsroom/detail/20251127-0104.html
+    company: アサヒグループホールディングス
+    code: "2502"
+    sector: 食料品
+    title: サイバー攻撃による情報漏えいに関する調査結果と今後の対応について
+    publishedAt: "2025-11-27"
+    format: html
+    series: asahi:result
+    kind: ransomware
+    alsoAcceptable: [data_breach]
+    entry: network-device
+    victim: self
+    fetched: true
+    expectNote: 調査が完了したとして、経緯、原因、情報漏えいの可能性をまとめた報告。グループ拠点のネットワーク機器から侵入されたこと、従業員貸与 PC からデータが出たこと、個人情報が漏えいした可能性があることを書く。ここで第 2 報の「情報流出は確認されていない」が変わる。
+
+  - id: ir-asahi-prevent
+    url: https://www.asahigroup-holdings.com/newsroom/detail/20260218-0101.html
+    company: アサヒグループホールディングス
+    code: "2502"
+    sector: 食料品
+    title: サイバー攻撃被害の再発防止策とガバナンス体制の強化について
+    publishedAt: "2026-02-18"
+    format: html
+    series: asahi:prevent
+    kind: ransomware
+    entry: network-device
+    victim: self
+    fetched: true
+    expectNote: 調査が完了した内容、範囲、再発防止策、ガバナンス体制の強化を書く長い文書（約 5,500 字）。侵入経路（拠点のネットワーク機器）、暗号化されたサーバーと PC、データ流出の確認範囲が、時系列で書かれる。経緯・お詫び・体制の定型部分が長い。
+
+  - id: ir-asahi-pii
+    url: https://www.asahigroup-holdings.com/newsroom/detail/20260717-0101.html
+    company: アサヒグループホールディングス
+    code: "2502"
+    sector: 食料品
+    title: サイバー攻撃に係る漏えいのおそれがある個人情報について
+    publishedAt: "2026-07-17"
+    format: html
+    series: asahi:pii
+    kind: data_breach
+    alsoAcceptable: [ransomware]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 2026-02-18 の調査完了後に、漏えいまたはそのおそれの範囲を整理し直した文書。個人情報の範囲の整理が中心で、攻撃の経緯は短い。種類は個人情報の漏えいに寄る。
+
+  # ===== ニチレイ（サイバー攻撃によるシステム障害。系列） =====
+  - id: ir-nichirei-1
+    url: https://www.nichirei.co.jp/ir/news/2026/t_in226.html
+    company: ニチレイ
+    code: "2871"
+    sector: 食料品
+    title: 当社グループでのシステム障害発生について
+    publishedAt: "2026-07（日付は本文から確定できない。本文に「7 月 13 日にシステム障害が発生」とある。発表は 7 月 13〜16 日の間）"
+    format: html
+    series: nichirei:1
+    kind: ransomware
+    alsoAcceptable: [data_breach, out_of_scope]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 7 月 13 日に起きたシステム障害の原因調査で、サーバーがサイバー攻撃を受けたと確認した。被害を受けたサーバーの一部に個人情報があり、個人情報保護委員会へ報告した。入出庫・出荷業務への影響。ランサムウェアとは書かれていない可能性がある。
+
+  - id: ir-nichirei-2
+    url: https://www.nichirei.co.jp/ir/news/2026/t_in227.html
+    company: ニチレイ
+    code: "2871"
+    sector: 食料品
+    title: 当社グループでのシステム障害発生について（続報）
+    publishedAt: "2026-07（日付は本文から読めない。第 1 報のあと、7 月 22 日の前）"
+    format: html
+    series: nichirei:2
+    kind: ransomware
+    alsoAcceptable: [data_breach, out_of_scope]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 続報（短い文書、約 450 字）。攻撃の詳細は開示を控える。対象者へ別途通知していること、業務復旧の進め方が書かれる。公表日は本文から読めない。
+
+  - id: ir-nichirei-0716
+    url: https://www.nichirei.co.jp/sites/default/files/inline-images/ir/pdf_file/news/20260716.pdf
+    company: ニチレイ
+    code: "2871"
+    sector: 食料品
+    title: 当社グループでのシステム障害発生について（7 月 16 日付 PDF）
+    publishedAt: "2026-07-16"
+    format: pdf
+    series: nichirei:pdf0716
+    kind: ransomware
+    alsoAcceptable: [data_breach, out_of_scope]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 同じ事故の 7 月 16 日付の適時開示 PDF。HTML の第 1 報とほぼ同じ内容の PDF 版で、HTML と PDF で読解が揺れないかを見る。
+
+  - id: ir-nichirei-7
+    url: https://www.nichirei.co.jp/news/2026/524.html
+    company: ニチレイ
+    code: "2871"
+    sector: 食料品
+    title: 当社グループでのシステム障害発生について（第7報）
+    publishedAt: "2026-09-18"
+    format: html
+    series: nichirei:7
+    kind: data_breach
+    alsoAcceptable: [ransomware]
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 第 7 報。被害を受けたサーバーに保管されていた個人情報の漏えいが確認された（配送先の顧客と取引先の役職員）。二次被害は確認されていない。第 1 報の「可能性」が「確認」に変わる続報。
+
+  # ===== JR 東海（委託先・提供元の事故が波及） =====
+  - id: ir-jrc-idcf-2
+    url: https://jr-central.co.jp/news/release/_pdf/000046064.pdf
+    company: 東海旅客鉄道
+    code: "9022"
+    sector: 陸運業
+    title: 株式会社ＩＤＣフロンティアで発生した不正アクセスに伴うメールアドレス等漏えいの可能性について（10 月 15 日更新版）
+    publishedAt: "2026-10-15"
+    format: pdf
+    series: jrc-idcf:update
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: true
+    expectNote: クラウド提供元（IDC フロンティア）で起きた不正アクセスにより、運営する EC サイトのメールアドレス等が漏れた可能性がある。10 月 13 日の公表の更新版で、「個人情報が実際に外部に漏れた事実は確認されていない」と書く。事故は提供元で起きている。
+
+  - id: ir-jrc-ymir
+    url: https://jr-central.co.jp/news/release/_pdf/000046119.pdf
+    company: 東海旅客鉄道
+    code: "9022"
+    sector: 陸運業
+    title: ユミルリンク株式会社で発生した不正アクセスに伴うメールアドレス等の漏えいについて
+    publishedAt: "2026-10-26"
+    format: pdf
+    series: jrc-ymir:1
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: true
+    expectNote: メール配信サービスの提供元（ユミルリンク）の不正アクセスで、JR 東海・西日本・九州の予約サービスの会員のメールアドレス等が漏れた。3 社連名。提供元から報告を受けたという形で、事故は提供元で起きている。
+
+  # ===== 三井不動産（グループ会社の施設サイト。なりすましログイン） =====
+  - id: ir-mitsui-park
+    url: https://mitsui-shopping-park.com/lalaport/sakai/info/3621488.html
+    company: 三井不動産（施設サイトの運営は三井不動産商業マネジメント）
+    code: "8801"
+    sector: 不動産業
+    title: 【重要なお知らせ】第三者のなりすましログインに関する注意喚起とお願い
+    publishedAt: "2026-09-01"
+    format: html
+    kind: account_takeover
+    entry: credential
+    victim: self
+    fetched: true
+    expectNote: 会員向けの注意喚起。ポイントサービスのメンバーズページで、第三者によるなりすましログインが起きており、利用者にパスワード変更とポイント履歴の確認を求める。詳細は別のコーポレートサイトを参照する形で、この文書には事故の中身がほとんど無い（約 590 字）。
+
+  # ===== 日本郵政（ゆう ID の不正ログイン。同じ文書の PDF と HTML） =====
+  - id: ir-japanpost-pdf
+    url: https://files.japanpost.jp/assets/34d9d11432734cfaa759e78fe395b688/8ca4b69b953146bda1823819d3c1f5a3/20261019_01.pdf
+    company: 日本郵政
+    code: "6178"
+    sector: サービス業
+    title: 第三者による不正利用および会員情報漏えいの可能性について（PDF 版）
+    publishedAt: "2026-10-19"
+    format: pdf
+    series: japanpost-yuid:pdf
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: credential
+    victim: self
+    fetched: true
+    expectNote: 外部で漏れた ID・パスワードのリストを使い、ゆう ID の会員になりすました不正ログインが判明した。閲覧された可能性のある個人情報があるが、自社システムからの漏えいは確認されていない、という書き方。
+
+  - id: ir-japanpost-html
+    url: https://www.japanpost.jp/news/pressrelease/20261019_01/
+    company: 日本郵政
+    code: "6178"
+    sector: サービス業
+    title: 第三者による不正利用および会員情報漏えいの可能性について（HTML 版）
+    publishedAt: "2026-10-19"
+    format: html
+    series: japanpost-yuid:html
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: credential
+    victim: self
+    fetched: true
+    fetchNote: 取得はできたが、取り出せた本文は著作権表示の 1 行だけ（64 字）。本文はスクリプトで描画されるとみられる。PDF 版と同じ文書。
+    expectNote: PDF 版と同じ内容。HTML だけが本文なしで返る場合に、読解が「本文がない」と断るかを見る。
+
+  # ===== 山一電機（フィリピン子会社。同じ文書の PDF と HTML） =====
+  - id: ir-yamaichi-pdf
+    url: https://www.yamaichi.co.jp/wordpress/wp-content/uploads/2026/04/%E5%BD%93%E7%A4%BE%E3%82%B0%E3%83%AB%E3%83%BC%E3%83%97%E3%81%AE%E3%83%95%E3%82%A3%E3%83%AA%E3%83%94%E3%83%B3%E5%AD%90%E4%BC%9A%E7%A4%BE%E3%81%AB%E3%81%8A%E3%81%91%E3%82%8B%E3%83%A9%E3%83%B3%E3%82%B5%E3%83%A0%E3%82%A6%E3%82%A7%E3%82%A2%E8%A2%AB%E5%AE%B3%E7%99%BA%E7%94%9F%E3%81%AE%E3%81%8A%E7%9F%A5%E3%82%89%E3%81%9B.pdf
+    company: 山一電機
+    code: "6941"
+    sector: 電気機器
+    title: 当社グループのフィリピン子会社におけるランサムウェア被害発生のお知らせ（PDF 版）
+    publishedAt: "2026-04-22"
+    format: pdf
+    series: yamaichi-philippines:1pdf
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: フィリピン子会社の一部サーバーでランサムウェア被害を確認した第一報（確認は 4 月 17 日）。短い（約 470 字）。この系列には、のちに最終報が出ている（今回は取得していない）。
+
+  - id: ir-yamaichi-html
+    url: https://www.yamaichi.co.jp/news/notice-of-ransomware-incident-at-consolidated-subsidiary-in-philippines/
+    company: 山一電機
+    code: "6941"
+    sector: 電気機器
+    title: 当社グループのフィリピン子会社におけるランサムウェア被害発生のお知らせ（HTML 版）
+    publishedAt: "2026-04-22"
+    format: html
+    series: yamaichi-philippines:1html
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    fetchNote: 取得はできたが、取り出せた本文は Cookie の同意の案内文だけ（138 字）。表題は取れたが、事故の本文は取れていない。PDF 版と同じ文書。
+    expectNote: PDF 版と同じ内容。Cookie 同意の文だけが返る場合に、読解が「本文がない」と断るかを見る。
+
+  # ===== 大気社（子会社。ランサムウェアと、メールアカウントの不正アクセス） =====
+  - id: ir-taikisha-us1
+    url: https://www.taikisha.co.jp/common/mtimg/20250825.pdf
+    company: 大氣社
+    code: "1979"
+    sector: 建設業
+    title: 海外グループ会社サーバへの不正アクセスについて
+    publishedAt: "2025-08-25"
+    format: pdf
+    series: taikisha-encore:1
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 米国のグループ会社の一部サーバーが暗号化されるランサムウェア被害が 7 月 29 日に判明した、という第一報。公表は発覚の約 4 週間後で、短い（約 330 字）。
+
+  - id: ir-taikisha-us2
+    url: https://www.taikisha.co.jp/common/mtimg/20251114.pdf
+    company: 大氣社
+    code: "1979"
+    sector: 建設業
+    title: 海外グループ会社サーバへの不正アクセスの調査結果について
+    publishedAt: "2025-11-14"
+    format: pdf
+    series: taikisha-encore:result
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: true
+    expectNote: 米国グループ会社の事案の調査結果。社外への情報流出は確認されなかった、という結果の報告（ニュース報道の見出しによる。本文の詳細は読解の結果で確かめる）。
+
+  - id: ir-taikisha-id
+    url: https://www.taikisha.co.jp/common/mtimg/20260610.pdf
+    company: 大氣社
+    code: "1979"
+    sector: 建設業
+    title: インドネシアグループ会社におけるメールアカウントへの不正アクセス等について
+    publishedAt: "2026-06-10"
+    format: pdf
+    series: taikisha-mail:id
+    kind: account_takeover
+    entry: mail
+    victim: subsidiary
+    fetched: true
+    expectNote: 子会社の従業員 1 名のメールアカウントへの不正アクセスが 3 月に確認され、4 月にそのアカウントから国内の一部宛先へ不審なメールが送られた。具体的な被害は確認されていない。公表が確認から約 3 か月後。
+
+  - id: ir-taikisha-my
+    url: https://www.taikisha.co.jp/common/mtimg/20260918.pdf
+    company: 大氣社
+    code: "1979"
+    sector: 建設業
+    title: マレーシアグループ会社におけるメールアカウントへの不正アクセス等について
+    publishedAt: "2026-09-18"
+    format: pdf
+    series: taikisha-mail:my
+    kind: account_takeover
+    entry: mail
+    victim: subsidiary
+    fetched: true
+    expectNote: インドネシアと同じ形の事案が、別の子会社（マレーシア）で 9 月に起きた。確認の翌日に公表。原因・影響範囲は調査中、具体的な被害は確認されていない。
+
+  # ===== 双葉電子工業（自社を装う詐欺メールの注意喚起） =====
+  - id: ir-futaba
+    url: https://www.futaba.co.jp/info/202505_mail_caution
+    company: 双葉電子工業
+    code: "6986"
+    sector: 電気機器
+    title: 双葉電子工業株式会社および当社グループ会社を装った詐欺メールにご注意ください
+    publishedAt: "2025-05-09"
+    format: html
+    kind: out_of_scope
+    alsoAcceptable: [bec]
+    entry: mail
+    victim: partner
+    fetched: true
+    expectNote: 自社を名乗って振込先口座の変更を求める詐欺メールの注意喚起。自社のシステムが侵入されたとは書かれず、被害を受けるのは取引先。なりすまし送金の手口だが、自社が被害者ではない。短い（約 560 字）。
+
+  # ===== デジタルアーツ（クラウドの運用認証情報の窃取。長い FAQ） =====
+  - id: ir-daj-faq
+    url: https://download.daj.co.jp/support/20261021-unauthorized-access-faq.html
+    company: デジタルアーツ
+    code: "2326"
+    sector: 情報・通信業
+    title: 当社への不正アクセスに関するよくあるご質問
+    publishedAt: "2026-11-04"
+    format: html
+    kind: data_breach
+    alsoAcceptable: [account_takeover]
+    entry: credential
+    victim: self
+    fetched: true
+    expectNote: 長い Q&A 形式（約 14,600 字。最終更新 11 月 4 日）。クラウドサービスの運用に使う認証情報が不正に入手され、運用環境の情報が第三者に閲覧できる状態だった。実際の閲覧・持ち出しは確認されていない。顧客向けの手順（パスワード変更など）が多い。公開日ではなく最終更新日を publishedAt にした。
+
+  # ===== KDDI（提携先ライフネット生命の不正アクセス） =====
+  - id: ir-kddi-lifenet
+    url: https://newsroom.kddi.com/news/assets/2026/kddi_nr_s-82_4796/kddi_nr_s-82_4796_pdf_01.pdf
+    company: KDDI
+    code: "9433"
+    sector: 情報・通信業
+    title: ライフネット生命の一部システムへの不正アクセスによる KDDI お客さま情報の漏えいの可能性について
+    publishedAt: "2026-10-30"
+    format: pdf
+    kind: data_breach
+    entry: vendor
+    victim: partner
+    fetched: true
+    expectNote: 連携先（ライフネット生命）のシステムが不正アクセスを受け、連携していた KDDI のお客さま情報の一部が漏れた可能性がある。KDDI の通信システムなどには及んでいない、と範囲を限定して書く。2 社連名。
+
+  # ===== 大和証券（外部委託先の不正アクセス） =====
+  - id: ir-daiwa
+    url: https://www.daiwa.jp/content/dam/daiwasecurities/lp_dc/info/20261009.pdf
+    company: 大和証券グループ本社（大和証券名義）
+    code: "8601"
+    sector: 証券、商品先物取引業
+    title: 外部委託先への不正アクセスによるお客様情報の漏洩の可能性について（10 月 9 日付）
+    publishedAt: "2026-10-09"
+    format: pdf
+    series: daiwa-vendor:update
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: true
+    expectNote: 問い合わせ管理に使う外部委託先の Web サービスが不正アクセスを受け、お客様の情報（問い合わせ等）が漏れた可能性がある。10 月 5 日の公表の続報で、持株会・譲渡制限付株式などの制度商品への影響も書く（約 3,750 字）。大和証券自身のシステムへの侵入は確認されていないと書く。
+
+  # ===== 物語コーポレーション（公式アプリの会員管理システム。系列） =====
+  - id: ir-monogatari-1
+    url: https://www.monogatari.co.jp/news/261005_news/
+    company: 物語コーポレーション
+    code: "3097"
+    sector: 小売業
+    title: 『焼肉きんぐ』公式アプリ 会員管理システムへの第三者からの不正アクセスによる個人情報漏えいに関するお詫び
+    publishedAt: "2026-10-05"
+    format: html
+    series: monogatari:1
+    kind: data_breach
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 公式アプリの会員管理システムが不正アクセスを受け、会員情報が漏れたことが判明した。公開や不正利用の事実は確認されていない。件数が非常に多い（ユーザー登録数の大半）ことが特徴。確認日と公表日の日付が本文に複数ある。
+
+  - id: ir-monogatari-2
+    url: https://www.monogatari.co.jp/news/261020_news/
+    company: 物語コーポレーション
+    code: "3097"
+    sector: 小売業
+    title: 『焼肉きんぐ』公式アプリにおける今後のセキュリティおよび個人情報保護強化策について
+    publishedAt: "2026-10-20"
+    format: html
+    series: monogatari:measures
+    kind: data_breach
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 10 月 5 日の公表の続きで、今後のセキュリティと個人情報保護の強化策を知らせる文書。事故の経緯は短く、再発防止の方針が中心。
+
+  # ===== 取得できなかったもの（本文は読んでいない。表題・日付は検索結果の表示による） =====
+  - id: ir-takeuchi
+    url: https://www.takeuchi-mfg.co.jp/ir/upload_file/tdnrelease/6432_20251001566731_P01_.pdf
+    company: 竹内製作所
+    code: "6432"
+    sector: 機械
+    title: 米国連結子会社の被害に関するお知らせ（表題は検索結果による）
+    publishedAt: "2025-10-01"
+    format: pdf
+    kind: ransomware
+    entry: none
+    victim: subsidiary
+    fetched: false
+    fetchNote: 「PDF として読めません（先頭が %PDF- ではありません）」で失敗。ファイルは PDF の名前だが、返ったのは PDF ではないとみられる。
+    expectNote: 検索結果の説明では、米国の連結子会社で被害があり、暗号化されたデータの一部が攻撃集団によって漏えいされた、という内容。本文は読めていない。
+
+  - id: ir-oug-1
+    url: https://www.openupgroup.co.jp/news/assets/opg_information_website_20260416.pdf
+    company: オープンアップグループ
+    code: "2154"
+    sector: サービス業
+    title: 当社ウェブサイトの一部ページにおける表示不具合について（第一報。表題は検索結果による）
+    publishedAt: "2026-04-16"
+    format: pdf
+    series: oug-web:1
+    kind: out_of_scope
+    entry: web
+    victim: self
+    fetched: false
+    fetchNote: 404（検索結果にあった URL。公開の場所が変わったとみられる）。
+    expectNote: 最終報の系列の第一報。取得できず、系列としては最終報だけを通した。
+
+  - id: ir-oug-2
+    url: https://www.openupgroup.co.jp/news/assets/opg_information_website_second_20260417.pdf
+    company: オープンアップグループ
+    code: "2154"
+    sector: サービス業
+    title: 当社ウェブサイトの一部ページにおける表示不具合について（第二報。表題は検索結果による）
+    publishedAt: "2026-04-17"
+    format: pdf
+    series: oug-web:2
+    kind: out_of_scope
+    entry: web
+    victim: self
+    fetched: false
+    fetchNote: 404（同上）。
+    expectNote: 同上。
+
+  - id: ir-nec-vendor
+    url: https://jpn.nec.com/news/info/20261020.html
+    company: 日本電気
+    code: "6701"
+    sector: 電気機器
+    title: 委託先がサイバー攻撃を受けたことによるお客さま環境への影響について（表題は報道による）
+    publishedAt: "2026-10-20"
+    format: html
+    kind: ransomware
+    alsoAcceptable: [data_breach]
+    entry: vendor
+    victim: vendor
+    fetched: false
+    fetchNote: 「ログインや会員登録が必要、または取得を断られました（403）」で失敗。
+    expectNote: 報道では、システム開発・保守の委託先が攻撃を受け、窃取された正規アカウントの認証情報が悪用されて、顧客のサーバーが暗号化されたとされる。本文は読めていない。
+
+  - id: ir-nomura-vendor
+    url: https://www.nomuraholdings.com/jp/news/nr/nsc20251017.html
+    company: 野村ホールディングス（野村證券名義）
+    code: "8604"
+    sector: 証券、商品先物取引業
+    title: 委託先企業が利用するクラウドサービスへの不正アクセスによる情報流出について（表題は検索結果による）
+    publishedAt: "2025-10-17"
+    format: html
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: false
+    fetchNote: 403 で失敗。
+    expectNote: 顧客満足度調査の回答業務を委託している企業のクラウドサービスで、不正アクセスによる情報流出が確認された、という内容（報道による）。本文は読めていない。
+
+  - id: ir-jrc-idcf-1
+    url: https://jr-central.co.jp/news/release/_pdf/000046058.pdf
+    company: 東海旅客鉄道
+    code: "9022"
+    sector: 陸運業
+    title: 株式会社ＩＤＣフロンティアで発生した不正アクセスに伴うメールアドレス等漏えいの可能性について（10 月 13 日付。表題は検索結果による）
+    publishedAt: "2026-10-13"
+    format: pdf
+    series: jrc-idcf:1
+    kind: data_breach
+    entry: vendor
+    victim: vendor
+    fetched: false
+    fetchNote: 404（検索結果にあった URL。10 月 15 日の更新版に差し替えられたとみられる）。
+    expectNote: 10 月 15 日の更新版（ir-jrc-idcf-2）の前の版。系列の第一報としては取得できなかった。
+
+  - id: ir-jal-cargo
+    url: https://www.jal.co.jp/cms/jalcargo/headline/ja/pdf/SMJ_20241226.pdf
+    company: 日本航空
+    code: "9201"
+    sector: 空運業
+    title: 【緊急】WEB 検索サービスの一部障害発生について（表題は検索結果による）
+    publishedAt: "2024-12-26"
+    format: pdf
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: false
+    fetchNote: 403 で失敗。
+    expectNote: 2024-12-26 の DDoS 攻撃とされる障害の日の貨物の Web サービスの障害通知（検索結果の説明では、原因の記載は無い）。DDoS・原因不明の障害の見本にしたかったが、取得できなかった。
+
+  - id: ir-jal-pay
+    url: https://www.jal.co.jp/jp/ja/jmb/jalpay/pay/notice/241226/
+    company: 日本航空
+    code: "9201"
+    sector: 空運業
+    title: JMB アプリ／JAL Pay 不具合に関するお知らせ（表題は検索結果による）
+    publishedAt: "2024-12-26"
+    format: html
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: false
+    fetchNote: 403 で失敗。
+    expectNote: 同じ日の JAL Pay の不具合通知（検索結果の説明では原因の記載は無い）。同上。
+
+  - id: ir-sagawa-2
+    url: https://www2.sagawa-exp.co.jp/information/detail/420/
+    company: SG ホールディングス（佐川急便名義）
+    code: "9143"
+    sector: 陸運業
+    title: 「お荷物問い合わせサービス」への不正アクセスによる個人情報流出の可能性について（第 2 報）
+    publishedAt: "2026-10-01"
+    format: html
+    series: sagawa-tracking:2
+    kind: data_breach
+    entry: web
+    victim: subsidiary
+    fetched: false
+    fetchNote: 「記事の本文を取り出せませんでした（本文が空です）」で失敗。ページがスクリプトで描画されるとみられる。
+    expectNote: 子会社の荷物問い合わせサービスへの不正アクセスで、個人情報が流出した可能性がある（検索結果による）。
+
+  - id: ir-sagawa-5
+    url: https://www2.sagawa-exp.co.jp/information/detail/430/
+    company: SG ホールディングス（佐川急便名義）
+    code: "9143"
+    sector: 陸運業
+    title: 「お荷物問い合わせサービス」の再開および個人情報の流出に関する調査状況について（第 5 報）
+    publishedAt: "2026-10-23"
+    format: html
+    series: sagawa-tracking:5
+    kind: data_breach
+    entry: web
+    victim: subsidiary
+    fetched: false
+    fetchNote: 同上（本文が空）。
+    expectNote: 第 5 報。サービス再開と調査状況（検索結果による）。同上。
