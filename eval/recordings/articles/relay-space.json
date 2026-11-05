@@ -6,7 +6,7 @@
     "date": "2026-07-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-04T23:31:34.771Z",
+  "recordedAt": "2026-11-05T00:44:03.215Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,20 +15,19 @@
     "truncated": false
   },
   "raw": {
-    "title": "取引先を装うフィッシングでメールアカウントを乗っ取られ、取引先2329件への踏み台に（スペース）",
+    "title": "従業員がフィッシング被害に遭い、メールアカウントが取引先への攻撃の踏み台に（スペース）",
     "damageType": "account_takeover",
     "clarity": "clear",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1566.002",
-          "T1566",
-          "T1598"
+          "T1566.002"
         ],
         "source": "stated",
+        "certainty": "confirmed",
         "quote": "2026年6月9日に従業員1人が取引先を装ったフィッシングメールを受信。メールに記載されたリンク先のフィッシングサイトにアクセスし、メールアカウントの認証情報を入力したことで詐取され、不正アクセスを受けた。",
-        "summaryJa": "取引先を装ったフィッシングメールのリンク先で、従業員がメールアカウントの認証情報を入力してしまった"
+        "summaryJa": "取引先を装ったフィッシングメールのリンク先で、従業員がメールアカウントの認証情報を入力して詐取された。"
       },
       {
         "tactic": "TA0003",
@@ -36,35 +35,37 @@
           "T1078.004",
           "T1078"
         ],
-        "source": "inferred",
-        "quote": null,
-        "summaryJa": "盗んだ認証情報で攻撃者が従業員のメールアカウントにログインした"
+        "source": "stated",
+        "certainty": "confirmed",
+        "quote": "メールに記載されたリンク先のフィッシングサイトにアクセスし、メールアカウントの認証情報を入力したことで詐取され、不正アクセスを受けた。",
+        "summaryJa": "詐取された認証情報で従業員のメールアカウントに不正にログインされた。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
-          "T1534",
-          "T1684.002"
+          "T1534"
         ],
         "source": "stated",
+        "certainty": "confirmed",
         "quote": "同社によれば、従業員のアカウントから取引先など2329件の宛先に対し、フィッシングメールが送信されたもの。",
-        "summaryJa": "乗っ取られた従業員のアカウントから取引先など2329件へフィッシングメールが送られた"
+        "summaryJa": "乗っ取られた従業員のアカウントから、取引先など2329件にフィッシングメールが送られた。"
       },
       {
         "tactic": "TA0040",
         "techniques": [],
         "source": "inferred",
+        "certainty": "confirmed",
         "quote": null,
-        "summaryJa": "送信先の取引先などがフィッシングメールを受け取り、二次被害の危険にさらされた"
+        "summaryJa": "取引先など送信先に、フィッシング攻撃を受けるおそれという二次被害が及んだ。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 479,
-    "outputTokens": 563,
-    "cacheReadInputTokens": 0,
-    "cacheCreationInputTokens": 20785
+    "outputTokens": 649,
+    "cacheReadInputTokens": 22193,
+    "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4990
+  "elapsedMs": 7628
 }

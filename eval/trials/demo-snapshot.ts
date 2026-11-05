@@ -5,7 +5,14 @@
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { buildOnePager, Case, evaluate, loadKnowledge, loadProfile, repoRoot } from "@uchidai/engine";
+import {
+  buildOnePager,
+  Case,
+  evaluate,
+  loadKnowledge,
+  loadProfile,
+  repoRoot,
+} from "@uchidai/engine";
 
 const k = loadKnowledge();
 const out: Record<string, unknown> = {};
@@ -13,7 +20,10 @@ for (const company of ["demo-seiko", "demo-bussan", "demo-clinic"]) {
   const profile = loadProfile(join(repoRoot, "examples", `${company}.json`));
   for (const n of [1, 2, 3, 4, 5]) {
     const rec = JSON.parse(
-      readFileSync(join(repoRoot, "eval", "recordings", `ipa-case-${n}.with-knowledge.json`), "utf8"),
+      readFileSync(
+        join(repoRoot, "eval", "recordings", `ipa-case-${n}.with-knowledge.json`),
+        "utf8",
+      ),
     ) as { output: unknown };
     const theCase = Case.parse({ ...(rec.output as object), suspiciousInstructions: [] });
     const v = evaluate(theCase, profile, { knowledge: k });

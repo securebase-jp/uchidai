@@ -6,7 +6,7 @@
     "date": "2025-11-19"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-04T23:31:56.802Z",
+  "recordedAt": "2026-11-05T00:44:24.584Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "ITサービス事業者のクラウドサービスが外部から侵害され、顧客従業員の情報が流出した可能性",
+    "title": "宮崎通信のクラウドサービスが侵害され顧客従業員の情報が流出した可能性",
     "damageType": "data_breach",
     "clarity": "unknown",
     "steps": [
@@ -23,39 +23,40 @@
         "tactic": "TA0001",
         "techniques": [],
         "source": "unknown",
+        "certainty": "not_stated",
         "quote": null,
-        "summaryJa": "クラウドサービスへどのように侵入されたかは記事に書かれておらず、入口は不明。"
+        "summaryJa": "クラウドサービスが外部から侵害されたが、侵入の方法は記事に書かれていない。"
       },
       {
         "tactic": "TA0009",
         "techniques": [
           "T1213",
-          "T1530",
-          "T1005"
+          "T1530"
         ],
         "source": "inferred",
-        "quote": null,
-        "summaryJa": "侵入した攻撃者が、クラウドサービス上の顧客従業員の情報にアクセスしたとみられる。"
+        "certainty": "possible",
+        "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
+        "summaryJa": "侵害されたクラウドサービス上の顧客従業員の情報が収集された可能性がある。"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1567",
-          "T1048",
           "T1041"
         ],
-        "source": "stated",
+        "source": "inferred",
+        "certainty": "possible",
         "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
-        "summaryJa": "顧客従業員の氏名や会社メールアドレスなどの個人情報が外部に流出した可能性がある。"
+        "summaryJa": "顧客従業員の氏名や会社メールアドレスなどが外部に流出した可能性がある。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 399,
-    "outputTokens": 381,
-    "cacheReadInputTokens": 20785,
+    "outputTokens": 415,
+    "cacheReadInputTokens": 22193,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3548
+  "elapsedMs": 3347
 }
