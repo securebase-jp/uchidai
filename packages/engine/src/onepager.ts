@@ -160,7 +160,7 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
       lines.push(`記事では、${what}の可能性があるとされています（確認された事実ではありません）。`);
     else if (s.certainty === "exposed_only")
       lines.push(`${what}は閲覧できる状態でしたが、実際に取得されたかは確認されていません。`);
-    else if (s.certainty === "no_trace") lines.push(`${what}について、痕跡は確認されていません。`);
+    else if (s.certainty === "no_trace") lines.push(`${what}について、${NO_TRACE_SENTENCE}。`);
     else if (s.certainty === "claimed")
       lines.push(`${what}は攻撃者の主張で、事実かどうかは確認されていません。`);
   }
@@ -177,6 +177,12 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   }
   return lines;
 }
+
+/**
+ * 記事が「痕跡は確認されていない」と書く段階の言い方（固定）。IR は「確認されていないが、否定できない」と対にして書くことが多く、
+ * 前半だけでは社長に「なかった」と読めるので、「なかったとは言い切れません」を必ず添える（TRIAL-I-006）
+ */
+export const NO_TRACE_SENTENCE = "痕跡は確認されていませんが、なかったとは言い切れません";
 
 /** 経路が無いときの「何が起きるか」の代わりの文 */
 function emptyPathLines(verdict: Verdict): string[] {

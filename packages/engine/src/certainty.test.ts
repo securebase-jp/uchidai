@@ -48,10 +48,10 @@ describe("一枚のテンプレート文は、記事の書き方（確度）を�
     const certs = v.paths.flatMap((p) => p.steps.map((s) => s.certainty).filter(Boolean));
     expect(certs).toContain("no_trace");
   });
-  it("痕跡なし：持ち出しを「起きた出来事」として並べず、別の文で「痕跡は確認されていません」", () => {
+  it("痕跡なし：持ち出しを「起きた出来事」として並べず、別の文で「痕跡は確認されていませんが、なかったとは言い切れません」", () => {
     const l = lines(caseOf(steps({ source: "inferred", certainty: "no_trace" })));
     const joined = l.join("\n");
-    expect(joined).toMatch(/痕跡は確認されていません/);
+    expect(joined).toMatch(/痕跡は確認されていませんが、なかったとは言い切れません。/);
     expect(l[0]).not.toMatch(/持ち出/);
   });
   it("攻撃者の主張：事実かどうか確認されていないと書く", () => {

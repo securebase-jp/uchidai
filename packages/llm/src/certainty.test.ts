@@ -276,7 +276,41 @@ describe("一枚の言い換えの検証：確度に合わない言い方を捨�
       /痕跡は確認されていません/,
     );
     expect(
+      checkWriterOutput(
+        lines(
+          "侵入が確認されています。データ送信について、痕跡は確認されていませんが、なかったとは言い切れません。",
+        ),
+        i,
+      ),
+    ).toBeUndefined();
+  });
+  it("痕跡なしの段階：前半だけ（「痕跡は確認されていません」で止める）は捨てる。「なかった」「問題ない」と読める言い方も捨てる（TRIAL-I-006）", () => {
+    const i = { ...base, stages: [stage("stated"), stage("inferred", "no_trace")] };
+    expect(
       checkWriterOutput(lines("侵入が確認されています。データ送信の痕跡は確認されていません。"), i),
+    ).toMatch(/なかったとは言い切れません/);
+    const full = "データ送信について、痕跡は確認されていませんが、なかったとは言い切れません。";
+    for (const bad of [
+      "情報の流出はなかったと考えられます。",
+      "持ち出しは問題ありません。",
+      "持ち出しの心配はありません。",
+      "この点は安全です。",
+    ])
+      expect(checkWriterOutput(lines("侵入が確認されています。", full, bad), i), bad).toMatch(
+        /なかった」「問題ない」/,
+      );
+  });
+  it("stated を「記事に書かれた出来事」と文に書くと捨てる。「確認されています」だけなら通る（TRIAL-I-010）", () => {
+    const i = { ...base, stages: [stage("stated")] };
+    expect(
+      checkWriterOutput(lines("外部への持ち出しは記事に書かれた出来事で、確認されています。"), i),
+    ).toMatch(/確認されています」だけ/);
+    expect(checkWriterOutput(lines("外部への持ち出しが確認されています。"), i)).toBeUndefined();
+  });
+  it("痕跡なしの段階が無いときは、「なかった」を含む文も弾かない（検証の対象は痕跡なしの段階がある入力だけ）", () => {
+    const i = { ...base, stages: [stage("stated")] };
+    expect(
+      checkWriterOutput(lines("侵入が確認されています。防げなかった点があります。"), i),
     ).toBeUndefined();
   });
   it("閲覧できる状態だけ：固定の言い回し「取得されたかは確認されていません」", () => {

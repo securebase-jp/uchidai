@@ -8,6 +8,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import {
   type Knowledge,
+  NO_TRACE_SENTENCE,
   type OnePager,
   StepCertainty,
   StepState,
@@ -138,11 +139,11 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 - 専門用語、英字の略語、ID（例：T1190、M1032）は使わない。入力にある役割名と業務名はそのまま使ってよい
 - 攻撃の段階は入力の順番どおりに「どこから入り、どこへ進み、何が止まるか」として書く。state が blocked の段階があれば、そこで止まることを書く。human は「人の判断にかかっている」と書く
 - 各段階には二つの別の情報がある。混ぜないこと
-  - source（出来事の確認状況）：stated は記事に書かれた出来事なので「確認されています」「起きています」と書き、「確認が取れていません」「不明」とは決して書かない。inferred は記事に無い推定なので「〜と考えられます」「〜おそれがあります」と書き、断定しない。candidate は入口が記事から分からないため仮に置いた候補で、最初の段階が candidate なら「入口はまだ分かっていません。たとえば〇〇から入られた場合は」と書き、その入口から入られたと断定しない
+  - source（出来事の確認状況）：stated は記事に書かれた出来事なので「確認されています」「起きています」と書き、「確認が取れていません」「不明」とは決して書かない。stated を「記事に書かれた出来事」と文に書かない（これは入力の説明で、社長に見せる語ではない）。「確認されています」だけにする。inferred は記事に無い推定なので「〜と考えられます」「〜おそれがあります」と書き、断定しない。candidate は入口が記事から分からないため仮に置いた候補で、最初の段階が candidate なら「入口はまだ分かっていません。たとえば〇〇から入られた場合は」と書き、その入口から入られたと断定しない
   - certainty（記事がその出来事をどう書いているか。無いときは confirmed）：記事の書き方に合わせた言い方にする。「確認されています」を使えるのは source が stated で certainty が無い段階だけ
     - possible：「記事では〜の可能性があるとされています」。起きたと断定しない
     - exposed_only：「〜は閲覧できる状態でした。実際に取得されたかは確認されていません」と書く（この言い回しに固定）
-    - no_trace：「〜の痕跡は確認されていません」と書く（この言い回しに固定）。起きたと書かない
+    - no_trace：「〜について、痕跡は確認されていませんが、なかったとは言い切れません」と書く（この言い回しに固定。記事は「確認されていないが、否定できない」と対にして書くことが多い）。起きたと書かない。「なかった」「問題ない」「心配ない」「安全」と読める言い方もしない
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
 - 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
@@ -163,7 +164,14 @@ export const UNKNOWN_CONTROL_PHRASE = "この段階を止める対策が確認�
 export const CANDIDATE_ENTRY_PHRASE = "入口はまだ分かっていません";
 const UNKNOWN_CONTROL_SHORT = "止める対策が確認できていません";
 /** 確度ごとの固定の言い回し。これらの中の「確認されていません」は否定の誤用に数えない */
-export const NO_TRACE_PHRASE = "痕跡は確認されていません";
+export const NO_TRACE_PHRASE = NO_TRACE_SENTENCE;
+/** 「痕跡は確認されていません」だけで止めた言い方（前半のみ）。固定の言い回しの一部として扱い、否定の誤用に数えない */
+const NO_TRACE_HEAD = "痕跡は確認されていません";
+/** 入力の説明の語（stated の定義）を、社長に見せる文に書かせない（TRIAL-I-010） */
+const INTERNAL_WORDING = /記事に書かれた出来事|記事が出来事として書い/;
+/** 痕跡なしの段階を「なかった」「問題ない」と読ませる言い方。固定の言い回しの「なかったとは言い切れません」は除いて調べる（TRIAL-I-006） */
+const NO_TRACE_ASSURANCE =
+  /なかった|ありませんでした|問題(は)?(ない|ありません|なし)|心配(は)?(ない|ありません|いりません|不要)|安全(です|でした|と)|安心(です|でき|して)|大丈夫(です|でした)/;
 export const EXPOSED_ONLY_PHRASE = "取得されたかは確認されていません";
 const CLAIMED_PHRASE_RE = /事実かどうかは確認されていません/;
 /** 試算の文に入ってはいけない「確認」の言い方、試算の語 */
@@ -226,6 +234,8 @@ export function checkWriterOutput(
   if (sourceProblem) return sourceProblem;
   for (const line of output.whatHappensJa) {
     if (ID_PATTERN.test(line)) return `ID が含まれています：${line}`;
+    if (INTERNAL_WORDING.test(line))
+      return `入力の説明の語が文に出ています（「確認されています」だけにしてください）：${line}`;
     const normalized = line.replace(/[０-９]/g, (c) =>
       String.fromCharCode(c.charCodeAt(0) - 0xfee0),
     );
@@ -307,6 +317,7 @@ export function checkSourceWording(
       // 「止める対策が確認できていません」「止める対策も確認できていません」は、固定の言い回し（出来事の否定ではない）
       .replace(/止める対策(が|も)確認できていません/g, "")
       .replaceAll(NO_TRACE_PHRASE, "")
+      .replaceAll(NO_TRACE_HEAD, "")
       .replaceAll(EXPOSED_ONLY_PHRASE, "")
       .replace(CLAIMED_PHRASE_RE, "");
     if (DENIAL.test(rest))
@@ -320,8 +331,15 @@ export function checkSourceWording(
   if ((input.result === "blocked" || input.result === "mitigated") && !all.includes("この経路では"))
     return "止まる結論は「この経路では」と範囲を限って書いてください";
   const uncertain = (c: StepCertainty) => input.stages.some((s) => s.certainty === c);
-  if (uncertain("no_trace") && !all.includes(NO_TRACE_PHRASE))
-    return `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`;
+  if (uncertain("no_trace")) {
+    if (!all.includes(NO_TRACE_PHRASE))
+      return `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`;
+    const assured = output.whatHappensJa.find((l) =>
+      NO_TRACE_ASSURANCE.test(l.replaceAll(NO_TRACE_PHRASE, "")),
+    );
+    if (assured)
+      return `痕跡がない段階を「なかった」「問題ない」と読める言い方で書けません（「${NO_TRACE_PHRASE}」と書いてください）：${assured}`;
+  }
   if (uncertain("exposed_only") && !all.includes(EXPOSED_ONLY_PHRASE))
     return `閲覧できる状態だけの段階があるのに「${EXPOSED_ONLY_PHRASE}」と書かれていません`;
   if (uncertain("claimed") && !all.includes("主張"))
