@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { AnswerInput } from "../../shared/api.ts";
+import type { AnswerInput, SeriesInfo } from "../../shared/api.ts";
 import {
   ApiError,
   api,
@@ -37,6 +37,8 @@ export type CaseMeta = {
   sourceUrl?: string;
   /** 記事の取得時の印（本文が切れていそう、など）。担当者画面の「読解の確認」に出す */
   readFlags?: ReadFlag[];
+  /** 同じ事故の複数の公表を 1 件として読んだとき：報の情報、各報の読解、差分の表（担当者画面と一枚に使う） */
+  series?: SeriesInfo;
 };
 
 export type AppState = {

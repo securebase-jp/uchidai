@@ -8,6 +8,7 @@ export * from "./knowledge.ts";
 export * from "./measures.ts";
 export * from "./onepager.ts";
 export * from "./rules.ts";
+export * from "./series.ts";
 export * from "./timeline.ts";
 export * from "./types.ts";
 export * from "./yen.ts";

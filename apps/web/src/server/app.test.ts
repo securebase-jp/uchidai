@@ -210,6 +210,51 @@ describe("POST /api/case/read", () => {
       else process.env.ANTHROPIC_API_KEY = saved;
     }
   });
+  it("urls（同じ事故の複数の公表）：件数の上限と空は 400、キーが無ければ 503", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const urls = (n: number) => Array.from({ length: n }, (_, i) => `https://example.test/r${i}`);
+      expect((await json("/api/case/read", { input: { kind: "urls", urls: [] } })).status).toBe(
+        400,
+      );
+      expect(
+        (await json("/api/case/read", { input: { kind: "urls", urls: urls(6) } })).status,
+      ).toBe(400);
+      expect(
+        (await json("/api/case/read", { input: { kind: "urls", urls: ["not a url"] } })).status,
+      ).toBe(400);
+      const res = await json("/api/case/read", { input: { kind: "urls", urls: urls(5) } });
+      expect(res.status).toBe(503);
+    } finally {
+      if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
+  it("urls に手元の URL が混じれば、どの URL がなぜ止まったかを failures に返す（Claude は呼ばない）", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-key-not-used";
+    try {
+      const res = await json("/api/case/read", {
+        input: { kind: "urls", urls: ["http://127.0.0.1/a", "http://169.254.169.254/b"] },
+      });
+      expect(res.status).toBe(400);
+      const body = await loose(res);
+      expect(body.error).toContain("http://127.0.0.1/a");
+      expect(body.failures.map((f: { url: string }) => f.url)).toEqual([
+        "http://127.0.0.1/a",
+        "http://169.254.169.254/b",
+      ]);
+      for (const f of body.failures) expect(f.message).toContain("受け付けません");
+      // skip でも、すべて失敗なら同じ
+      const skip = await json("/api/case/read", {
+        input: { kind: "urls", urls: ["http://127.0.0.1/a"], onError: "skip" },
+      });
+      expect(skip.status).toBe(400);
+    } finally {
+      if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
   it("本文が長すぎれば 400、JSON でなければ 400", async () => {
     const res = await json("/api/case/read", {
       input: { kind: "text", text: "x".repeat(300_001) },

@@ -15,7 +15,7 @@ import type { ReadRequest } from "../shared/api.ts";
 import { ClientError } from "./errors.ts";
 import { assertPublicUrl, guardedFetch, type Lookup } from "./safe-url.ts";
 
-type ReadInput = z.infer<typeof ReadRequest>["input"];
+type ReadInput = Exclude<z.infer<typeof ReadRequest>["input"], { kind: "urls" }>;
 
 /** 取得の失敗を、利用者に見せてよい 400 系のエラーにする。それ以外の例外はそのまま返す */
 export function toClientError(e: unknown): unknown {

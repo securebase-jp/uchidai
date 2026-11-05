@@ -40,6 +40,8 @@ import { kevRoutes } from "./routes/kev.ts";
 import { onepagerRoutes } from "./routes/onepager.ts";
 import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
+import { readSeries } from "./series-read.ts";
+import { SeriesFetchError } from "./series-source.ts";
 
 const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
@@ -70,6 +72,8 @@ app.use("/api/*", async (c, next) => {
 
 app.onError((err, c) => {
   if (err instanceof HTTPException) return err.getResponse();
+  if (err instanceof SeriesFetchError)
+    return c.json({ error: err.message, failures: err.failures }, err.status);
   if (err instanceof ClientError) return c.json({ error: err.message }, err.status);
   if (err instanceof z.ZodError) {
     const details = err.issues.slice(0, 20).map((i) => ({ path: i.path, message: i.message }));
@@ -234,6 +238,27 @@ app.get("/api/case/recorded/:caseId", (c) => {
   });
 });
 
+/** 同じ事故の複数の公表を 1 件として読んだ応答（単一の記事の応答と同じ形に、series を足す） */
+async function readSeriesResponse(urls: string[], onError: "fail" | "skip") {
+  const { merged, loaded, series } = await readSeries(urls, onError);
+  const first = loaded.parts[0];
+  const incomplete = [...new Set(loaded.parts.flatMap((p) => p.incomplete ?? []))];
+  return {
+    case: merged.verified.case,
+    report: merged.verified.report,
+    article: {
+      title: first?.title,
+      kind: first?.kind,
+      sourceUrl: first?.url,
+      chars: loaded.text.length,
+      ...(incomplete.length > 0 ? { incomplete } : {}),
+      ...(loaded.parts.some((p) => p.truncated) ? { truncated: true } : {}),
+    },
+    model: merged.read.model,
+    ...(series ? { series } : loaded.failures.length > 0 ? { failures: loaded.failures } : {}),
+  };
+}
+
 // 記事を読む（Claude API。キーが無ければ 503）
 app.post("/api/case/read", async (c) => {
   const { input } = ReadRequest.parse(await c.req.json());
@@ -246,6 +271,7 @@ app.post("/api/case/read", async (c) => {
       503,
     );
   }
+  if (input.kind === "urls") return c.json(await readSeriesResponse(input.urls, input.onError));
   const article = await loadArticle(input);
   const k = loadKnowledge();
   const knowledge: ReadKnowledge = { labels: k.labels, templates: k.templates };
