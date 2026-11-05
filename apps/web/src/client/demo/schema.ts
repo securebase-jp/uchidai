@@ -4,6 +4,7 @@ import { z } from "zod";
 /** 画面の全面に重ねる演出。差し込み口（slot:*）は他セッションの部品がつながる */
 export const OverlayId = z.enum([
   "none",
+  "cold-open",
   "chat-boss",
   "chat-staff",
   "chat-reply",
@@ -56,6 +57,14 @@ export const DemoAction = z.discriminatedUnion("do", [
   z.object({
     at: At,
     do: z.literal("click"),
+    target: z.string(),
+    nth: z.number().int().nonnegative().optional(),
+    text: z.string().optional(),
+  }),
+  /** 押す動きだけを見せる（カーソルと波紋。要素は押さない）。演出の画面（記事の読解など）で使う */
+  z.object({
+    at: At,
+    do: z.literal("tap"),
     target: z.string(),
     nth: z.number().int().nonnegative().optional(),
     text: z.string().optional(),
@@ -131,6 +140,22 @@ export const Layer = z.discriminatedUnion("kind", [
     crumble: z.array(z.object({ wall: WallId, at: At })).default([]),
     when: LayerFlag.optional(),
   }),
+  /**
+   * 画面の要素への寄り：container（寄せる枠）を拡大して、target（枠の中の要素）を画面の中央付近に持ってくる。
+   * 構成図以外（読解の表、比較の表、社長向けの一枚など）に使う。y は target の中心を置く高さ（画面の高さに対する割合）、
+   * x は target の中で画面の横の中央に置く位置（target の幅に対する割合）
+   */
+  z.object({
+    kind: z.literal("spot"),
+    ...Span,
+    container: z.string(),
+    target: z.string(),
+    scale: z.number().min(1).max(4).default(1.6),
+    y: z.number().min(0.2).max(0.8).default(0.45),
+    /** target のどこを画面の横の中央に置くか（target の幅に対する割合。横に長い行の、左寄りの要点を見せるとき） */
+    x: z.number().min(0).max(1).default(0.5),
+    when: LayerFlag.optional(),
+  }),
   /** 図への寄り：担当者画面の構成図を、ノードに寄せる（拡大してそのノードを中央に） */
   z.object({
     kind: z.literal("zoom"),
@@ -152,6 +177,8 @@ export const StoryboardScene = z.object({
   layers: z.array(Layer).default([]),
   /** この場面のあいだ隠す部品の CSS セレクタ（visibility: hidden。配置は変えない）。結論を先に見せないため */
   hide: z.array(z.string()).default([]),
+  /** 見えるカーソルを出す（click / fill / tap の少し前に、押す場所へ動く）。人が操作している感じを出す場面だけ */
+  cursor: z.boolean().default(false),
 });
 export const Storyboard = z.object({
   version: z.number(),

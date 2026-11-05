@@ -13,12 +13,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "../hooks/useApp.tsx";
 import { api } from "../lib/api.ts";
 import { demoClock, withDemoClock } from "./bridge.ts";
+import { DemoCursor } from "./cursor.tsx";
 import { DemoControls } from "./DemoControls.tsx";
 import { buildScenes, cueAt, type DemoScene, narration, storyboard } from "./data.ts";
 import { EndCard } from "./EndCard.tsx";
-import { LayerStack, showTap, useZoomLayer } from "./layers.tsx";
+import { LayerStack, pick, showTap, useSpotLayer, useZoomLayer } from "./layers.tsx";
 import { BuildOverlay } from "./overlays/Build.tsx";
 import { ChatOverlay } from "./overlays/Chat.tsx";
+import { ColdOpenOverlay } from "./overlays/ColdOpen.tsx";
 import { ConclusionOverlay } from "./overlays/Conclusion.tsx";
 import { DeclarationOverlay } from "./overlays/Declaration.tsx";
 import { ReadingOverlay } from "./overlays/Reading.tsx";
@@ -38,12 +40,15 @@ function overlayEnd(scene: DemoScene, since: number, sceneSeconds: number): numb
   return next.length > 0 ? Math.min(...next) : sceneSeconds;
 }
 
-/** セレクタに合う要素から、text を含むものの nth 番目（絵コンテの click / fill の対象） */
-function pick(selector: string, nth = 0, text?: string): Element | undefined {
-  const all = [...document.querySelectorAll(selector)].filter(
-    (e) => text === undefined || (e.textContent ?? "").includes(text),
-  );
-  return all[nth];
+/** 要素が現れるのを待ってから fn を呼ぶ（画面の切り替え直後や、描画が終わる前に操作しないため。最長 3 秒） */
+function whenPresent(selector: string, fn: (el: Element) => void, timeoutMs = 3000): void {
+  const start = performance.now();
+  const tick = () => {
+    const el = document.querySelector(selector);
+    if (el) fn(el);
+    else if (performance.now() - start < timeoutMs) setTimeout(tick, 50);
+  };
+  tick();
 }
 
 export function DemoLayer() {
@@ -154,10 +159,15 @@ function DemoRunner({
         case "scroll":
           if (action.to === "top") window.scrollTo({ top: 0, behavior: "smooth" });
           else
-            document
-              .querySelector(action.to)
-              ?.scrollIntoView({ behavior: "smooth", block: action.block ?? "center" });
+            whenPresent(action.to, (el) =>
+              el.scrollIntoView({ behavior: "smooth", block: action.block ?? "center" }),
+            );
           break;
+        case "tap": {
+          const el = pick(action.target, action.nth, action.text);
+          if (el) showTap(el);
+          break;
+        }
         case "click": {
           const el = pick(action.target, action.nth, action.text);
           if (el instanceof HTMLElement) {
@@ -193,8 +203,9 @@ function DemoRunner({
     onFinish: () => setOverlay("endcard-close"),
   });
 
-  // 図への寄り（担当者画面の構成図をノードに寄せる）
+  // 図への寄り（担当者画面の構成図をノードに寄せる）と、画面の要素への寄り（読解の表、比較の表、一枚など）
   useZoomLayer(player.scene?.board.layers ?? [], player.elapsed, flags);
+  useSpotLayer(player.scene?.board.layers ?? [], player.elapsed, flags);
 
   // 一時停止は画面の再生時計（経路の再生）も止め、再開で元の状態に戻す
   const clockWasPlaying = useRef(false);
@@ -319,6 +330,7 @@ function DemoRunner({
         />
       )}
       {scene && <LayerStack layers={scene.board.layers} elapsed={player.elapsed} flags={flags} />}
+      {scene && <DemoCursor key={scene.n} scene={scene.board} elapsed={player.elapsed} />}
       {player.finished && <EndCard phase="close" credits={narration.credits} elapsed={999} />}
 
       {controls && scene && !player.finished && (
@@ -374,6 +386,7 @@ function Overlay({
 }) {
   if (id === "chat-boss" || id === "chat-staff" || id === "chat-reply")
     return <ChatOverlay variant={id} elapsed={elapsed} seconds={seconds} />;
+  if (id === "cold-open") return <ColdOpenOverlay elapsed={elapsed} />;
   if (id === "declaration") return <DeclarationOverlay elapsed={elapsed} />;
   if (id === "reading") return <ReadingOverlay elapsed={elapsed} seconds={seconds} />;
   if (id === "build") return <BuildOverlay elapsed={elapsed} />;

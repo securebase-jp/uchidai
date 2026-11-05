@@ -77,7 +77,7 @@ export function LayerStack({
     <>
       {layers.map((l, i) => {
         if (l.when && !flags[l.when]) return null;
-        if (l.kind === "zoom") return null;
+        if (l.kind === "zoom" || l.kind === "spot") return null;
         if (elapsed < l.from || elapsed >= l.to + tailOf(l)) return null;
         const out = elapsed >= l.to;
         const key = `${l.kind}-${i}`;
@@ -188,6 +188,102 @@ export function useZoomLayer(layers: Layer[], elapsed: number, flags: LayerFlags
   );
 }
 
+/** いま有効な、画面の要素への寄り（なければ undefined） */
+export function activeSpot(
+  layers: Layer[],
+  elapsed: number,
+  flags: LayerFlags,
+): Extract<Layer, { kind: "spot" }> | undefined {
+  for (const l of layers)
+    if (l.kind === "spot" && elapsed >= l.from && elapsed < l.to && (!l.when || flags[l.when]))
+      return l;
+  return undefined;
+}
+
+const SPOT_TRANSITION = "transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1)";
+
+/**
+ * container を拡大し、target の (x, 中心) を画面の (50%, y) に持ってくる。target が無ければ寄りを戻す。
+ * 寄せている途中でも正しく測れるよう、いま効いている変形（行列）から変形前の位置を逆算する（transform-origin は 0 0）
+ */
+export function applySpot(
+  container: string,
+  target: string | undefined,
+  scale = 1,
+  y = 0.45,
+  animate = true,
+  x = 0.5,
+): boolean {
+  const c = document.querySelector<HTMLElement>(container);
+  if (!c) return false;
+  c.style.transition = animate ? SPOT_TRANSITION : "none";
+  if (!target) {
+    c.style.transform = "";
+    return true;
+  }
+  const t = c.querySelector<HTMLElement>(target);
+  if (!t) return false;
+  const rc = c.getBoundingClientRect();
+  const rt = t.getBoundingClientRect();
+  if (rt.width === 0 || rc.width === 0) return false;
+  const m = new DOMMatrixReadOnly(
+    getComputedStyle(c).transform === "none" ? undefined : getComputedStyle(c).transform,
+  );
+  const s0 = m.a || 1;
+  const ox = rc.left - m.e;
+  const oy = rc.top - m.f;
+  const lx = (rt.left + rt.width * x - rc.left) / s0;
+  const ly = (rt.top + rt.height / 2 - rc.top) / s0;
+  const tx = innerWidth / 2 - ox - scale * lx;
+  const ty = innerHeight * y - oy - scale * ly;
+  c.style.transformOrigin = "0 0";
+  c.style.transform = `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${scale})`;
+  return true;
+}
+
+/** 層の spot を画面に反映する。要素が現れるのを待つ（数回試す）。寄りが終わったら戻す */
+export function useSpotLayer(layers: Layer[], elapsed: number, flags: LayerFlags): void {
+  const z = activeSpot(layers, elapsed, flags);
+  const key = z ? `${z.container}|${z.target}@${z.scale}/${z.y}/${z.x}` : "";
+  const last = useRef<{ key: string; container?: string }>({ key: "" });
+  useEffect(() => {
+    if (key === last.current.key) return;
+    const prev = last.current.container;
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const run = () => {
+      if (!z) {
+        if (prev) applySpot(prev, undefined);
+        last.current = { key };
+        return;
+      }
+      if (prev && prev !== z.container) applySpot(prev, undefined);
+      const ok = applySpot(z.container, z.target, z.scale, z.y, true, z.x);
+      if (ok) last.current = { key, container: z.container };
+      else if (tries++ < 30) timer = setTimeout(run, 100);
+    };
+    run();
+    return () => clearTimeout(timer);
+  }, [key, z]);
+  // 場面が変わって層が無くなったら、寄せたままにしない
+  useEffect(
+    () => () => {
+      const c = last.current.container;
+      if (c) applySpot(c, undefined, 1, 0.45, false);
+      last.current = { key: "" };
+    },
+    [],
+  );
+}
+
+/** セレクタに合う要素から、text を含むものの nth 番目（絵コンテの click / fill / tap の対象） */
+export function pick(selector: string, nth = 0, text?: string): Element | undefined {
+  const all = [...document.querySelectorAll(selector)].filter(
+    (e) => text === undefined || (e.textContent ?? "").includes(text),
+  );
+  return all[nth];
+}
+
 /** 0 から value まで数え上げた値（from 秒から dur 秒かけて。後半を遅くする） */
 export function countUp(value: number, elapsed: number, from: number, dur: number): number {
   if (elapsed <= from) return 0;
@@ -201,10 +297,13 @@ export function showTap(el: Element): void {
   const set = document.documentElement.dataset.reduced;
   if (set === "true") return;
   const r = el.getBoundingClientRect();
-  const ring = document.createElement("div");
-  ring.className = "dl-tap";
-  ring.style.left = `${r.left + r.width / 2}px`;
-  ring.style.top = `${r.top + r.height / 2}px`;
-  document.body.appendChild(ring);
-  setTimeout(() => ring.remove(), 900);
+  // 波紋は 2 重（内側の濃い輪と、遅れて広がる外側の輪）。1080p の動画でも目に入る大きさにする
+  for (const cls of ["dl-tap", "dl-tap outer"]) {
+    const ring = document.createElement("div");
+    ring.className = cls;
+    ring.style.left = `${r.left + r.width / 2}px`;
+    ring.style.top = `${r.top + r.height / 2}px`;
+    document.body.appendChild(ring);
+    setTimeout(() => ring.remove(), 1100);
+  }
 }
