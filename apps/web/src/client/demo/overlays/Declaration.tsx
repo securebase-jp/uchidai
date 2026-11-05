@@ -4,7 +4,7 @@
  */
 const T_TITLE = 0.7;
 const LINES: { at: number; labelJa: string; textJa: string }[] = [
-  { at: 1.6, labelJa: "誰の", textJa: "ひとり情シスの" },
+  { at: 1.6, labelJa: "誰の", textJa: "専門家のいない会社の" },
   { at: 4.0, labelJa: "どんな課題を", textJa: "社長の「大丈夫？」に答えられない" },
   {
     at: 6.4,

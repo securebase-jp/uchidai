@@ -176,7 +176,7 @@ function Close({ credits, elapsed }: { credits: Narration["credits"]; elapsed: n
   const last = elapsed >= 5.2;
   return (
     <div className={`end-wrap close${last ? " last" : ""}`}>
-      <h1 className={`close-line${on(elapsed, 0.3)}`}>ひとり情シスにも、専門家と同じ答えを。</h1>
+      <h1 className={`close-line${on(elapsed, 0.3)}`}>専門家がいなくても、専門家と同じ答えを。</h1>
       <div className={`close-small${on(elapsed, 1.4)}`}>
         <p>ニュースが出るたびに、リンクを貼る。カルテは、半年ごとに見直す。</p>
         <p>ローカルで動き、会社のデータは外に預けない。OSS。</p>
