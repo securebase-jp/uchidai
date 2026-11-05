@@ -57,6 +57,24 @@ describe("certaintyFromText（記事の書き方から確度を決める）", ()
   ] as const)("%s → %s", (quote, summary, tactic, expected) => {
     expect(certaintyFromText(quote, summary, tactic)).toBe(expected);
   });
+  it("名詞にかかる「可能性がある〇〇」や、別の出来事にかかる節の「可能性」は、その段階の確度を下げない", () => {
+    // 侵害された可能性があるシステムを隔離した（隔離は確認された出来事）
+    expect(
+      certaintyFromText(
+        "同社では、ランサムウェアを用いたサイバー攻撃を受け、侵害された可能性があるシステムをネットワークから隔離。",
+        "ランサムウェアによる攻撃を受け、システムを隔離した",
+        "TA0040",
+      ),
+    ).toBe("confirmed");
+    // 入口（VPN 経由のアクセス）は確認され、「参照された可能性」は別の出来事（収集）の話
+    expect(
+      certaintyFromText(
+        "VPN機器を経由して社内サーバにアクセスが行われ、個人情報を参照された可能性があること",
+        "VPN機器を経由して社内サーバにアクセスされた",
+        "TA0001",
+      ),
+    ).toBe("confirmed");
+  });
   it("入口の段階以外の「不明」は、記載なしにしない", () => {
     expect(certaintyFromText("被害額は不明。", "被害額は不明", "TA0040")).toBe("confirmed");
   });
@@ -327,5 +345,77 @@ describe("writerInputFrom は段階名の「業務停止」を外す（試算の
     const labels = writerInputFrom(v, k).stages.map((s) => s.labelJa);
     expect(labels.some((l) => l.includes("暗号化"))).toBe(true);
     expect(labels.some((l) => l.includes("業務停止"))).toBe(false);
+  });
+});
+
+describe("R-007：持ち出された情報がすでに公開された（二重恐喝）", () => {
+  it("確認された持ち出しで、公開されたと書かれていれば published", () => {
+    const { case: c } = verify([
+      step({
+        tactic: "TA0010",
+        techniques: ["T1041"],
+        quote: "外部へのデータ送信の痕跡は確認されていない。",
+        summaryJa: "データがリークサイトに公開された",
+      }),
+    ]);
+    // 痕跡なしの記述は確度が下がり、公開の印は付けない
+    expect(c.steps[0]?.published).toBeUndefined();
+    const ok = verifyCase(
+      rawCase([
+        step({
+          tactic: "TA0010",
+          techniques: ["T1041"],
+          quote: "個人情報が流出した可能性がある。",
+          summaryJa: "データが持ち出され、リークサイトに公開された",
+        }),
+      ]),
+      "データが持ち出され、リークサイトに公開された。",
+      k.attack,
+    );
+    expect(ok.case.steps[0]?.published).toBeUndefined(); // 可能性の語があれば確度が下がる
+    const pub = verifyCase(
+      rawCase([
+        step({
+          tactic: "TA0010",
+          techniques: ["T1041"],
+          quote: "データがリークサイトに公開された。",
+          summaryJa: "持ち出されたデータがリークサイトに公開された",
+        }),
+      ]),
+      "データがリークサイトに公開された。",
+      k.attack,
+    );
+    expect(pub.case.steps[0]).toMatchObject({ source: "stated", published: true });
+  });
+  it("言い換えは「公開」と書かないと捨てる", () => {
+    const i: OnePagerWriterInput = {
+      result: "breached",
+      stages: [
+        {
+          labelJa: "持ち出す",
+          roleJa: "サーバ",
+          state: "breached",
+          source: "stated",
+          published: true,
+        },
+      ],
+      stopped: [],
+      downtimeDays: 0,
+      reportRequired: false,
+      personalDataJa: [],
+    };
+    expect(
+      checkWriterOutput({ whatHappensJa: ["データの持ち出しが確認されています。"] }, i),
+    ).toMatch(/公開/);
+    expect(
+      checkWriterOutput(
+        {
+          whatHappensJa: [
+            "データの持ち出しが確認されています。持ち出された情報は、すでに公開されています。",
+          ],
+        },
+        i,
+      ),
+    ).toBeUndefined();
   });
 });

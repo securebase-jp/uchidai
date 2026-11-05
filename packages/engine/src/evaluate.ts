@@ -182,6 +182,7 @@ function evaluateStageNode(
     ...(matched?.certainty && matched.certainty !== "confirmed"
       ? { certainty: matched.certainty }
       : {}),
+    ...(matched?.published ? { published: true } : {}),
     labelJa: stage.labelJa,
     ...(stage.breachedJa ? { breachedLabelJa: stage.breachedJa } : {}),
     ...(stage.breachedDoneJa ? { breachedDoneJa: stage.breachedDoneJa } : {}),

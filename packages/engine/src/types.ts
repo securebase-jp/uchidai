@@ -53,6 +53,8 @@ export const CaseStep = z.object({
   source: CaseStepSource,
   /** 出来事の確度。省略は confirmed と同じ */
   certainty: StepCertainty.optional(),
+  /** 持ち出された情報が、すでに公開された（リークサイトへの掲載など）と記事が書いている */
+  published: z.boolean().optional(),
   /** 根拠となる記事中の文（原文に実在することを照合済み） */
   quote: z.string().optional(),
   /** 読解が付けた一行の説明（日本語） */
@@ -262,6 +264,8 @@ export const PathStep = z.object({
   source: PathSource,
   /** 記事から読んだ出来事の確度（記事に対応づいた段階だけ。省略は confirmed と同じ） */
   certainty: StepCertainty.optional(),
+  /** 持ち出された情報がすでに公開されたと記事が書いている段階 */
+  published: z.boolean().optional(),
   state: StepState,
   evidence: EvidenceKind,
   /** 判定に使ったルール ID と一行の理由 */

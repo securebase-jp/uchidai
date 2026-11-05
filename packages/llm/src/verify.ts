@@ -143,7 +143,8 @@ function clip(s: string, max: number): string {
 const NO_TRACE =
   /痕跡(は|も|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ|ませんでし)|(形跡|被害)(は|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ)|確認(され|でき)て(い|お)(ない|ません)|確認(され|でき)(ず|なかっ)|見つかって(い|お)(ない|ません)|認められ(ない|ず)/;
 /** 可能性：「可能性がある」「おそれ」「とみられる」「考えられる」 */
-const POSSIBLE = /可能性|おそれ|恐れ|とみられ|と見られ|思われ|考えられ|疑われ|疑いが/;
+const POSSIBLE =
+  /(可能性|おそれ|恐れ)(が|は|も)?(ある|あり|高|否定でき|否定され)(?![ァ-ヶ一-龥ー])|可能性(を|も|が)(排除|否定)|とみられ|と見られ|思われ|考えられ|疑われ|疑いが(ある|あり)/;
 /** 攻撃者側の主張 */
 const CLAIMED = /主張|犯行声明|声明を|名乗|自称/;
 /** 閲覧できる状態だった（取得は別） */
@@ -151,6 +152,9 @@ const EXPOSED = /閲覧(でき|可能)|アクセス(でき|可能)|公開(状態
 /** 記事に書かれていない：どの段階でも使う強い言い方 */
 const NOT_STATED =
   /(記載|言及|記述)(が|は|も)?(な(い|し)|無(い|し))|書かれていない|記載されていない|触れられていない/;
+/** 持ち出された情報が公開された：リークサイトへの掲載、公開済み */
+const PUBLISHED =
+  /公開(された|され|済み|して)|掲載(された|され|して)|リークサイト|闇サイト|ダークウェブ/;
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -179,7 +183,10 @@ export function certaintyFromText(
   summaryJa: string,
   tactic: string,
 ): StepCertainty {
-  const text = `${quote ?? ""}\n${summaryJa}`;
+  // 根拠文は、一つの節だけの短い文のときだけ見る（複数の節がある文の「可能性」は、別の出来事にかかっていることがある）。
+  // 一行の説明（summaryJa）は、その段階の出来事だけを書いたものなので、いつも見る
+  const oneClause = quote !== null && !/[、，,]/.test(quote.replace(/[。.]$/, ""));
+  const text = `${oneClause ? (quote ?? "") : ""}\n${summaryJa}`;
   if (NOT_STATED.test(summaryJa) || (tactic === "TA0001" && ENTRY_UNKNOWN.test(summaryJa)))
     return "not_stated";
   if (NO_TRACE.test(text)) return EXPOSED.test(text) ? "exposed_only" : "no_trace";
@@ -335,6 +342,14 @@ export function verifyCase(
 
     const step: CaseStep = { tactic, techniques: stepTechniques, source };
     if (certainty !== "confirmed") step.certainty = certainty;
+    // 持ち出しが確認され、その情報が公開されたと書かれている（二重恐喝）：一枚で「すでに公開されています」と書く
+    if (
+      certainty === "confirmed" &&
+      tactic === "TA0010" &&
+      source !== "unknown" &&
+      PUBLISHED.test(`${s.quote ?? ""}\n${s.summaryJa}`)
+    )
+      step.published = true;
     if (quote !== undefined) step.quote = quote;
     if (s.summaryJa.trim()) step.summaryJa = clip(s.summaryJa, MAX_SUMMARY);
     steps.push(step);

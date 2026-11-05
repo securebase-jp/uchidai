@@ -146,6 +146,10 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     else if (s.certainty === "claimed")
       lines.push(`${what}は攻撃者の主張で、事実かどうかは確認されていません。`);
   }
+  for (const s of path.steps.filter((x) => !x.precondition && x.published)) {
+    const what = `「${s.labelJa ?? "次の段階"}」（${nodeLabel(s.nodeId, s.role, profile, knowledge)}）`;
+    lines.push(`${what}で持ち出された情報は、すでに公開されたと記事に書かれています。`);
+  }
   if (verdict.result === "pending") {
     const unknown = path.steps.filter((s) => s.state === "unknown");
     if (unknown.length > 0)

@@ -68,3 +68,11 @@ describe("一枚のテンプレート文は、記事の書き方（確度）を�
     ).toMatch(/閲覧できる状態でしたが、実際に取得されたかは確認されていません/);
   });
 });
+
+describe("持ち出された情報がすでに公開された段階（published）", () => {
+  it("テンプレート文に「すでに公開された」と書く。印が無ければ書かない", () => {
+    const c = caseOf(steps({ source: "stated", published: true }));
+    expect(lines(c).join("\n")).toMatch(/すでに公開されたと記事に書かれています/);
+    expect(lines(caseOf(steps({ source: "stated" }))).join("\n")).not.toMatch(/公開/);
+  });
+});

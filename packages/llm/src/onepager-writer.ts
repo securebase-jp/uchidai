@@ -35,6 +35,8 @@ export const WriterStage = z.object({
   source: WriterStageSource,
   /** 記事が出来事をどう書いているか（可能性・痕跡なし・主張など）。省略は confirmed と同じ */
   certainty: StepCertainty.optional(),
+  /** 持ち出された情報がすでに公開されたと記事が書いている */
+  published: z.boolean().optional(),
 });
 export const OnePagerWriterInput = z.object({
   result: VerdictResult,
@@ -95,6 +97,7 @@ export function writerInputFrom(
       // AI が見つけた経路の段階は、記事の確認を伴わないので推定として扱う
       source: s.source === "ai" ? "inferred" : s.source,
       ...(s.certainty && s.certainty !== "confirmed" ? { certainty: s.certainty } : {}),
+      ...(s.published ? { published: true } : {}),
     }));
   const { impact } = verdict;
   return OnePagerWriterInput.parse({
@@ -129,6 +132,7 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - exposed_only：「〜は閲覧できる状態でした。実際に取得されたかは確認されていません」と書く（この言い回しに固定）
     - no_trace：「〜の痕跡は確認されていません」と書く（この言い回しに固定）。起きたと書かない
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
+  - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
 - 文の分け方：前半は記事に書かれた出来事だけを書く（確度に合う言い方で）。止まる業務・日数・売上・取引先への影響は、御社に当てはめた試算なので、別の文にして「御社の場合は〜と見込まれます」と書く。試算の文に「確認されています」「起きています」を使わない（試算は記事の事実ではない）。記事の事実の文に、業務が止まったことを書かない（業務が止まることは、御社の試算の文にだけ書く。記事の会社の業務が止まったかどうかは入力にない）。一つの文に、確認の言い方と日数・金額を混ぜない。例：「中核システムが暗号化されたことが確認されています。」（記事の事実）と「御社の場合は、受注・生産管理が10日止まると見込まれます。」（試算）は別の文にする。段階が多いときは、近い段階を 1 文にまとめ、全体で 6 文以内にする
   - state（その段階を止める対策の確認状況）：unknown のときだけ「この段階を止める対策が確認できていません」と書く（この言い回しに固定）。どの段階の話か分かるよう、その段階の説明と同じ文に続けて書き（例：「管理者権限を奪われるおそれがあり、この段階を止める対策が確認できていません」）、この言い回しだけの短い文にしない。攻撃が起きたかどうかの話には使わない
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
@@ -256,6 +260,8 @@ export function checkSourceWording(
     return `閲覧できる状態だけの段階があるのに「${EXPOSED_ONLY_PHRASE}」と書かれていません`;
   if (uncertain("claimed") && !all.includes("主張"))
     return "攻撃者の主張の段階があるのに「主張」と書かれていません";
+  if (input.stages.some((s) => s.published) && !all.includes("公開"))
+    return "情報がすでに公開された段階があるのに「公開されています」と書かれていません";
   // 「確認されています」を使えるのは、記事が出来事として書いた段階（stated で確度の印が無い）があるときだけ
   const hasConfirmed = input.stages.some((s) => s.source === "stated" && !s.certainty);
   if (!hasConfirmed && CONFIRM_RE.test(all))
