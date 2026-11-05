@@ -4,7 +4,13 @@ import { fileURLToPath } from "node:url";
 import { loadAttack, loadTemplates } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { templateTechniques } from "./prompts.ts";
-import { detectInstructions, isFollowUpWithoutKind, normalizeText, verifyCase } from "./verify.ts";
+import {
+  detectInstructions,
+  isFollowUpWithoutKind,
+  isVulnerabilityNotice,
+  normalizeText,
+  verifyCase,
+} from "./verify.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const attack = loadAttack();
@@ -315,5 +321,76 @@ describe("続報で種類が分からない公表（needsPrevious。TRIAL-I-005�
       title: "システム障害（続報）",
     });
     expect(c.case.needsPrevious).toBeUndefined();
+  });
+});
+
+describe("事故の報告ではなく、脆弱性への対応のお知らせ（notAnIncident。TRIAL-P-002）", () => {
+  // 試験の文は、公表の言い回しを写さず、この試験のために書いた短い文
+  const precaution =
+    "PHP の重大な脆弱性（CVE-2026-109618）を受け、予防のため公式サイトを一時停止しました。修正版を適用し、本件による不正アクセスは確認されていません。";
+  const done =
+    "当社のサイトの PHP を修正版へ更新しました。更新までに、この脆弱性を悪用した不正アクセスの影響は確認されておりません。";
+  const oos = {
+    title: "t",
+    damageType: "out_of_scope",
+    clarity: "unknown",
+    steps: [],
+    suspiciousInstructions: [],
+  };
+  it("予防的な停止と、更新完了・影響なしの知らせは、事故の報告ではないと決める", () => {
+    expect(isVulnerabilityNotice(precaution, "PHP の脆弱性への対応について")).toBe(true);
+    expect(isVulnerabilityNotice(done, "PHP の脆弱性への対応完了のお知らせ")).toBe(true);
+  });
+  it("被害を受けた・流出した・ランサムウェアと書かれた公表は、事故の報告のまま（付けない）", () => {
+    expect(
+      isVulnerabilityNotice(
+        "当社サービスの脆弱性を突かれ、不正アクセスを受けました。サービスを停止し、緊急メンテナンスを行っています。",
+        "不正アクセスのお知らせ",
+      ),
+    ).toBe(false);
+    expect(
+      isVulnerabilityNotice(
+        "脆弱性の修正版を適用しましたが、顧客情報が流出した事実を確認しました。",
+        "お知らせ",
+      ),
+    ).toBe(false);
+    expect(
+      isVulnerabilityNotice(
+        "VPN の脆弱性が悪用され、ランサムウェアの被害を受けました。サービスを停止しています。",
+        "お知らせ",
+      ),
+    ).toBe(false);
+  });
+  it("脆弱性・修正版・CVE の語が無いお知らせには付けない（システム障害の停止など）", () => {
+    expect(isVulnerabilityNotice("設備の点検のため、サービスを一時停止します。", "お知らせ")).toBe(
+      false,
+    );
+    expect(
+      isVulnerabilityNotice(
+        "システム障害の復旧状況です。不正アクセスは確認されていません。",
+        "お知らせ",
+      ),
+    ).toBe(false);
+  });
+  it("verifyCase：out_of_scope で段階が 0 のときだけ付ける。Claude の出力（raw）に notAnIncident があっても使わない", () => {
+    expect(verifyCase(oos, precaution, attack, { title: "お知らせ" }).case.notAnIncident).toBe(
+      true,
+    );
+    expect(
+      verifyCase({ ...oos, notAnIncident: true }, "設備の点検のため停止します。", attack, {
+        title: "お知らせ",
+      }).case.notAnIncident,
+    ).toBeUndefined();
+    expect(
+      verifyCase({ ...oos, damageType: "ransomware" }, precaution, attack, { title: "お知らせ" })
+        .case.notAnIncident,
+    ).toBeUndefined();
+  });
+  it("続報の印があるときは、続報の扱い（needsPrevious）を優先し、notAnIncident は付けない", () => {
+    const c = verifyCase(oos, `${precaution}サイバー攻撃の続報です。`, attack, {
+      title: "お知らせ（第2報）",
+    }).case;
+    expect(c.needsPrevious).toBe(true);
+    expect(c.notAnIncident).toBeUndefined();
   });
 });

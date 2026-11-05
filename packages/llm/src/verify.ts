@@ -189,6 +189,28 @@ export function isFollowUpWithoutKind(text: string, title = ""): boolean {
   return false;
 }
 
+/**
+ * 事故の報告ではなく、脆弱性への対応（予防的な停止、修正の適用、影響なしの知らせ）のお知らせか（TRIAL-P-002）。
+ * Claude の出力は信じず、本文から決定的に決める。読解が out_of_scope で段階が 0 のときだけ見る。次の 3 つがすべて当てはまるとき：
+ *  - 脆弱性・修正版・CVE の語がある
+ *  - 予防・停止・メンテナンス・更新完了の語がある、または「不正アクセスや被害は確認されていない」と書かれている
+ *  - 被害を受けた・流出した・不正アクセスを受けたと確定して書かれた文がない（迷ったら、従来どおりの対象外の答えにする）
+ */
+const VULN_WORDS =
+  /脆弱性|セキュリティ(リリース|パッチ|アップデート)|修正(版|プログラム|パッチ)|CVE-\d{4}-\d{4,}/;
+const PRECAUTION_WORDS =
+  /予防的|予防措置|予防のため|未然に|念のため|安全対策|緊急メンテナンス|臨時メンテナンス|(利用|公開|受付|提供)(を)?(一時)?停止|一時停止|更新(を)?完了|対応(が)?完了|対応状況|再開/;
+const NO_DAMAGE =
+  /(不正アクセス|情報漏えい|情報漏洩|被害|影響)[^。\n]{0,40}(確認されて(おりません|いません|いない)|報告されて(おりません|いません|いない)|認められません|ございません|ありません)/;
+const INCIDENT_CONFIRMED =
+  /(流出|漏えい|漏洩|窃取|改ざん|暗号化)(した|され(た|ました|ており)|が確認され|を確認し|の事実)|不正アクセス(を|が)(受け|確認され(た|ました))|ランサムウェア|被害(を|が)(受け|確認され(た|ました))|攻撃(を|が)(受け|確認され(た|ました))/;
+export function isVulnerabilityNotice(text: string, title = ""): boolean {
+  const n = normalizeText(`${title}\n${text}`);
+  if (!VULN_WORDS.test(n)) return false;
+  if (!PRECAUTION_WORDS.test(n) && !NO_DAMAGE.test(n)) return false;
+  return !INCIDENT_CONFIRMED.test(n);
+}
+
 /** 入口の段階だけで使う弱い言い方 */
 const ENTRY_UNKNOWN =
   /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
@@ -504,6 +526,12 @@ export function verifyCase(
     ...(averted ? { averted: true } : {}),
     ...(parsed.damageType === OUT_OF_SCOPE && isFollowUpWithoutKind(articleText, options.title)
       ? { needsPrevious: true }
+      : {}),
+    ...(parsed.damageType === OUT_OF_SCOPE &&
+    steps.length === 0 &&
+    !isFollowUpWithoutKind(articleText, options.title) &&
+    isVulnerabilityNotice(articleText, options.title)
+      ? { notAnIncident: true }
       : {}),
   });
   return { case: c, report };

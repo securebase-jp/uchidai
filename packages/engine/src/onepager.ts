@@ -5,7 +5,7 @@
  * 画面（S3）はこのデータをそのまま描画する。
  */
 import { z } from "zod";
-import { NEEDS_PREVIOUS_LINE } from "./evaluate.ts";
+import { NEEDS_PREVIOUS_LINE, NOT_AN_INCIDENT_LEAD } from "./evaluate.ts";
 import { formatJpy } from "./impact.ts";
 import type { Knowledge, MeasureDef } from "./knowledge.ts";
 import { resolveControl } from "./rules.ts";
@@ -207,7 +207,9 @@ function emptyPathLines(verdict: Verdict): string[] {
     return [
       verdict.needsPrevious
         ? NEEDS_PREVIOUS_LINE
-        : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+        : verdict.notAnIncident
+          ? NOT_AN_INCIDENT_LEAD
+          : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
     ];
   return [];
 }

@@ -59,6 +59,20 @@ export const NEEDS_PREVIOUS_LINE =
   "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
 
 /**
+ * 事故の報告ではなく、脆弱性への対応（予防的な停止、修正の適用、影響なしの知らせ）のお知らせのとき（Case.notAnIncident。TRIAL-P-002）の固定文。
+ * 「事故」「被害」「警察に相談」とは書かない。御社が同じ製品を使っていないかの確認と、カルテの製品・版の登録（KEV との突き合わせ）を案内する
+ */
+export const NOT_AN_INCIDENT_HEADLINE =
+  "これは事故の報告ではなく、脆弱性への対応のお知らせです（判定の対象外）";
+export const NOT_AN_INCIDENT_LEAD =
+  "これは被害の報告ではなく、脆弱性への対応（予防的な停止や、修正の適用）のお知らせです。被害の見込みは出していません。";
+export const NOT_AN_INCIDENT_LINES = [
+  NOT_AN_INCIDENT_LEAD,
+  "お知らせに書かれた製品を、御社が使っていないかを確かめてください。使っているときは、提供元が出した修正版へ更新してください。",
+  "公開しているサーバーや装置は、カルテに製品名と版を登録すると、悪用が確認されている脆弱性（CISA KEV）に当たるかを突き合わせられます。",
+];
+
+/**
  * 第三者の事故（委託先・提供元・グループ会社）で、記事の入口の種類に当たる設備が、御社のカルテのどの経路にも見つからないとき。
  * 記事の入口は第三者の設備で、御社の登録漏れとは限らない。「登録が足りない可能性があります」とは書かず、
  * 第三者の事故の見出しにして、同じ種類の入口が御社に無いかの確認を促す（TRIAL-I-007）
@@ -634,6 +648,7 @@ function supplyChainGuidance(theCase: Case): string[] {
  * 個人情報が外部の人に見られた可能性があれば報告が必要になることがある、と共通の初動（knowledge/first-actions.yaml）
  */
 export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[] {
+  if (theCase.notAnIncident) return NOT_AN_INCIDENT_LINES;
   const techniques = theCase.steps.flatMap((s) => s.techniques);
   const matched = knowledge.firstActions.byTechnique.filter((a) =>
     a.techniques.some((prefix) => techniques.some((t) => t.startsWith(prefix))),
@@ -772,6 +787,12 @@ function evaluateCore(
       return {
         ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
         guidanceJa: supplyChainGuidance(theCase),
+      };
+    if (theCase.damageType === "out_of_scope" && theCase.notAnIncident)
+      return {
+        ...empty("out_of_scope", NOT_AN_INCIDENT_HEADLINE),
+        notAnIncident: true,
+        guidanceJa: NOT_AN_INCIDENT_LINES,
       };
     if (theCase.damageType === "out_of_scope" && theCase.needsPrevious)
       return {
