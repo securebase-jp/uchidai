@@ -8,7 +8,7 @@ import { z } from "zod";
 import { formatJpy } from "./impact.ts";
 import type { Knowledge, MeasureDef } from "./knowledge.ts";
 import { resolveControl } from "./rules.ts";
-import { type CompanyProfile, type Verdict, VerdictResult } from "./types.ts";
+import { type CompanyProfile, type PathStep, type Verdict, VerdictResult } from "./types.ts";
 
 const ID_PATTERN = String.raw`(?:TA\d{4}|T\d{4}(?:\.\d{3})?|M\d{4}|UD-\d{2})`;
 const PAREN_IDS = new RegExp(
@@ -102,8 +102,10 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   if (!path) return [];
   // 型紙に「突破されたときの言葉」があれば「バックアップが暗号化される」のように資産名＋その言葉で、
   // 無ければ段階の見出し＋資産名で書く（画面の構成図の札と同じ言葉になる）
+  // 記事が「痕跡なし」「攻撃者の主張」とする段階は、起きた出来事として進む順に並べない（下で別に書く）
+  const happened = (s: PathStep) => s.certainty !== "no_trace" && s.certainty !== "claimed";
   const chain = path.steps
-    .filter((s) => !s.precondition)
+    .filter((s) => !s.precondition && happened(s))
     .map((s) => {
       const node = nodeLabel(s.nodeId, s.role, profile, knowledge);
       return s.breachedLabelJa && s.state !== "blocked"
@@ -132,6 +134,17 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
       lines.push(
         "ただし、確認が取れていない項目が残っています。回答が届き次第、判定を更新します。",
       );
+  }
+  // 記事の書き方が「確認された出来事」でない段階は、その書き方のまま別の文にする
+  for (const s of path.steps.filter((x) => !x.precondition && x.certainty)) {
+    const what = `「${s.labelJa ?? "次の段階"}」（${nodeLabel(s.nodeId, s.role, profile, knowledge)}）`;
+    if (s.certainty === "possible")
+      lines.push(`記事では、${what}の可能性があるとされています（確認された事実ではありません）。`);
+    else if (s.certainty === "exposed_only")
+      lines.push(`${what}は閲覧できる状態でしたが、実際に取得されたかは確認されていません。`);
+    else if (s.certainty === "no_trace") lines.push(`${what}について、痕跡は確認されていません。`);
+    else if (s.certainty === "claimed")
+      lines.push(`${what}は攻撃者の主張で、事実かどうかは確認されていません。`);
   }
   if (verdict.result === "pending") {
     const unknown = path.steps.filter((s) => s.state === "unknown");

@@ -179,6 +179,9 @@ function evaluateStageNode(
     tactic: stage.tactics[0] ?? "TA0001",
     ...(technique ? { technique } : {}),
     source,
+    ...(matched?.certainty && matched.certainty !== "confirmed"
+      ? { certainty: matched.certainty }
+      : {}),
     labelJa: stage.labelJa,
     ...(stage.breachedJa ? { breachedLabelJa: stage.breachedJa } : {}),
     ...(stage.breachedDoneJa ? { breachedDoneJa: stage.breachedDoneJa } : {}),

@@ -30,11 +30,29 @@ export const DamageType = z
   .regex(/^[a-z][a-z0-9_]*$/, "被害の種類は英小文字・数字・_ で書く");
 export const Clarity = z.enum(["clear", "partial", "unknown"]);
 export const CaseStepSource = z.enum(["stated", "inferred", "unknown"]);
+/**
+ * 出来事の確度（記事がその出来事をどう書いているか）。source（記載／推定／不明）とは別の軸。
+ * confirmed = 出来事として書いている／possible = 「可能性」「おそれ」「とみられる」「考えられる」／
+ * exposed_only = 閲覧できる状態だったが、第三者が取得したかは書いていない／no_trace = 「痕跡は確認されず」など否定／
+ * claimed = 攻撃者の主張／not_stated = 記事に書かれていない（入口の方法など）。
+ * 省略（undefined）は confirmed と同じ。confirmed 以外は source を stated にしない（verifyCase が下げる）
+ */
+export const StepCertainty = z.enum([
+  "confirmed",
+  "possible",
+  "exposed_only",
+  "no_trace",
+  "claimed",
+  "not_stated",
+]);
+export type StepCertainty = z.infer<typeof StepCertainty>;
 
 export const CaseStep = z.object({
   tactic: TacticId,
   techniques: z.array(TechniqueId),
   source: CaseStepSource,
+  /** 出来事の確度。省略は confirmed と同じ */
+  certainty: StepCertainty.optional(),
   /** 根拠となる記事中の文（原文に実在することを照合済み） */
   quote: z.string().optional(),
   /** 読解が付けた一行の説明（日本語） */
@@ -242,6 +260,8 @@ export const PathStep = z.object({
   /** この経路では効かない緩和策とその理由 */
   ineffective: z.array(z.object({ mitigation: MitigationId, reasonJa: z.string() })).default([]),
   source: PathSource,
+  /** 記事から読んだ出来事の確度（記事に対応づいた段階だけ。省略は confirmed と同じ） */
+  certainty: StepCertainty.optional(),
   state: StepState,
   evidence: EvidenceKind,
   /** 判定に使ったルール ID と一行の理由 */
