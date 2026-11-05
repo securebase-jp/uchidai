@@ -62,11 +62,19 @@ const SavedCase = z.object({
     sourceJa: z.string(),
     sourceUrl: z.string().optional(),
     recorded: z.looseObject({ caseId: z.string() }).optional(),
+    readFlags: z.array(z.enum(["incomplete", "truncated"])).optional(),
   }),
 });
 export type SavedCase = {
   case: Case;
-  meta: { label: string; sourceJa: string; sourceUrl?: string; recorded?: { caseId: string } };
+  meta: {
+    label: string;
+    sourceJa: string;
+    sourceUrl?: string;
+    recorded?: { caseId: string };
+    /** 記事の取得時の印（本文が切れていそう、など）。担当者画面の「読解の確認」に出す */
+    readFlags?: ("incomplete" | "truncated")[];
+  };
 };
 
 export function parseSavedCase(raw: string | null): SavedCase | undefined {

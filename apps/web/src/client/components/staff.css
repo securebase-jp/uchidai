@@ -721,3 +721,21 @@
   transform-origin: 0 0;
   transition: transform 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* 読解の確認（担当者画面の題の下）：攻撃の記事ではないと判断した、本文が途中で切れていそう、など */
+.read-notice {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.read-notice::before {
+  content: "ⓘ ";
+  color: var(--cyan);
+}
+.read-notice.warn {
+  color: var(--ink);
+}
+.read-notice.warn::before {
+  content: "⚠ ";
+  color: var(--amber);
+}

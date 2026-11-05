@@ -81,7 +81,10 @@ export function EvidencePanel({ verdict, theCase, profile, labels, graph, templa
       </h2>
       {theCase.suspiciousInstructions.length > 0 && (
         <div className="panel warn">
-          <h2>注意：記事の中に指示らしき文がありました（判定には使っていません）</h2>
+          <h2>参考：記事の中に、読み手への指示のようにも読める文がありました</h2>
+          <p className="muted small">
+            念のための表示です。これらの文は判定に使っていないので、結果は変わりません。
+          </p>
           {theCase.suspiciousInstructions.map((s) => (
             <p key={s} className="quote">
               {s}

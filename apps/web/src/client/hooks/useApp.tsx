@@ -25,6 +25,7 @@ import {
   type RecordedCaseMeta,
 } from "../lib/api.ts";
 import { shouldLoadDefaultCase } from "../lib/default-case.ts";
+import type { ReadFlag } from "../lib/read-notices.ts";
 import { storage } from "../lib/storage.ts";
 import type { Case, CompanyProfile } from "../lib/types.ts";
 
@@ -34,6 +35,8 @@ export type CaseMeta = {
   sourceJa: string;
   recorded?: RecordedCaseMeta;
   sourceUrl?: string;
+  /** 記事の取得時の印（本文が切れていそう、など）。担当者画面の「読解の確認」に出す */
+  readFlags?: ReadFlag[];
 };
 
 export type AppState = {

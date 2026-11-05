@@ -9,6 +9,7 @@ import { useReadAvailable } from "../hooks/useReadAvailable.ts";
 import { ApiError, api } from "../lib/api.ts";
 import { DAMAGE_LABEL } from "../lib/company-choices.ts";
 import { readUnavailable } from "../lib/read-available.ts";
+import { readFlagsOf } from "../lib/read-notices.ts";
 
 /** PDF の上限（API の base64 上限 28,000,000 文字に収まる大きさ） */
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -45,7 +46,12 @@ export function ArticleInput({ recorded, onDone }: Props) {
   const [text, setText] = useState("");
   const [pdfName, setPdfName] = useState<string>();
   const [reading, setReading] = useState<"url" | "text" | "pdf">();
-  const [readError, setReadError] = useState<{ message: string; keyMissing: boolean }>();
+  const [readError, setReadError] = useState<{
+    message: string;
+    keyMissing: boolean;
+    /** 記事を取得できなかった（URL・PDF）。本文を貼って読む入口を添える */
+    canPaste: boolean;
+  }>();
   // 既定のタブ：キーが無いと分かっているサーバでは「記録済みの事例」（あれば）、それ以外は「URL」。
   // 後から分かったときは、まだ URL のままのときだけ切り替える
   const [picked, setPicked] = useState<ArticleTab>();
@@ -65,10 +71,12 @@ export function ArticleInput({ recorded, onDone }: Props) {
             ? ({ kind: "text", text } as const)
             : ({ kind: "pdf", dataBase64: toBase64(await (pdf as File).arrayBuffer()) } as const);
       const r = await api.read(input);
+      const readFlags = readFlagsOf(r.article);
       app.setCase(r.case, {
         label: r.case.title,
         sourceJa: `Claude が記事を読解（${r.model}）`,
         ...(r.article.sourceUrl ? { sourceUrl: r.article.sourceUrl } : {}),
+        ...(readFlags.length > 0 ? { readFlags } : {}),
       });
       location.hash = "/staff";
       onDone?.();
@@ -78,6 +86,8 @@ export function ArticleInput({ recorded, onDone }: Props) {
       setReadError({
         message: e instanceof ApiError || e instanceof Error ? e.message : "読解に失敗しました",
         keyMissing,
+        // 取得できなかった記事（404、ログインや有料の壁、タイムアウトなど）は 400 で返る。本文を貼れば取得を介さずに読める
+        canPaste: kind !== "text" && e instanceof ApiError && e.status === 400,
       });
       if (keyMissing) readUnavailable.save();
     } finally {
@@ -91,6 +101,7 @@ export function ArticleInput({ recorded, onDone }: Props) {
       setReadError({
         message: "PDF が大きすぎます（20 MB まで）。該当ページだけを書き出してください。",
         keyMissing: false,
+        canPaste: true,
       });
       return;
     }
@@ -208,6 +219,20 @@ export function ArticleInput({ recorded, onDone }: Props) {
         {readError && (
           <div role="alert" style={{ marginTop: 8 }}>
             <p className="err small">{readError.message}</p>
+            {readError.canPaste && (
+              <p className="small row" style={{ marginTop: 6 }}>
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    setPicked("text");
+                    setReadError(undefined);
+                  }}
+                >
+                  本文を貼って読む
+                </button>
+              </p>
+            )}
             {readError.keyMissing && (
               <p className="small row" style={{ marginTop: 6 }}>
                 このサーバでは記事を読めませんが、記録済みの事例（IPA 事例集）で判定まで進めます。

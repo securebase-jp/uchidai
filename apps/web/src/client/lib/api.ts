@@ -120,7 +120,13 @@ export const api = {
     post<{
       case: Case;
       report: unknown;
-      article: { title?: string; sourceUrl?: string };
+      article: {
+        title?: string;
+        sourceUrl?: string;
+        /** 本文が途中で切れていそうな理由（会員向けの案内、末尾が見出し、など） */
+        incomplete?: string[];
+        truncated?: boolean;
+      };
       model: string;
     }>("/api/case/read", { input }),
   /** profileId を渡すと同じ会社のカルテとして作り直す（無ければ新しい会社として新しい ID が付く） */
