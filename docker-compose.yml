@@ -1,0 +1,45 @@
+# ウチダイを 1 コマンドで動かす（導入の手順は docs/install.md）
+#
+#   docker compose up -d      # 起動。http://localhost:8787 を開く
+#   docker compose pull       # 更新。続けて docker compose up -d で作り直す（データは残る）
+#   docker compose down       # 止める（データは残る。消すときは down -v）
+#
+# .env は作らなくても動く。ANTHROPIC_API_KEY を渡すと、記事の読解と言い換えも使える（docs/install.md の「API キーを渡す」）
+services:
+  uchidai:
+    image: ghcr.io/securebase-jp/uchidai:latest
+    container_name: uchidai
+    ports:
+      # 127.0.0.1 を付けて手元のパソコンだけに公開する。
+      # ウチダイには認証が無く、会社カルテを扱う API が動くので、"8787:8787" のように外へ開けてはいけない
+      - "127.0.0.1:8787:8787"
+    env_file:
+      # 任意。ファイルが無くても起動する（API キーが無ければ、記事の読解と言い換えだけが使えない）
+      - path: .env
+        required: false
+    volumes:
+      # 確認依頼と所有確認のトークン、KEV のキャッシュ。作り直しても残る
+      - uchidai-data:/app/apps/web/.data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8787/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    # 書き込めるのは上のボリュームと /tmp だけ。権限も最小にする
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+
+volumes:
+  uchidai-data:
