@@ -105,9 +105,17 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   // 無ければ段階の見出し＋資産名で書く（画面の構成図の札と同じ言葉になる）
   // 記事が「痕跡なし」「攻撃者の主張」とする段階は、起きた出来事として進む順に並べない（下で別に書く）
   const happened = (s: PathStep) => s.certainty !== "no_trace" && s.certainty !== "claimed";
+  // 記事は入口の種類を書いているが資産は絞れない（正規の認証情報だけ、第三者の事故でカルテに同じ種類が無い）：
+  // 仮に置いた入口の資産（VPN装置など）の名前は出さず、「入口から侵入される」と書く（TRIAL-I-007、I-008）
+  const stated = path.statedEntry;
+  const firstStep = path.steps.find((s) => !s.precondition);
   const chain = path.steps
     .filter((s) => !s.precondition && happened(s))
     .map((s) => {
+      if (stated && s === firstStep && s.source === "candidate")
+        return s.state === "blocked"
+          ? `${s.labelJa ?? "入口から侵入"}（入口）`
+          : "入口から侵入される";
       const node = nodeLabel(s.nodeId, s.role, profile, knowledge);
       // 型紙に完全な文があれば、それを使う（「会社の口座が起きる」「業務サーバ区画が持ち出される」を避ける）
       if (s.sentenceJa && s.state !== "blocked") return s.sentenceJa.replaceAll("{node}", node);
@@ -131,10 +139,15 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   // 入口が記事から分からず仮に置いた候補のときは、その入口から入られたと断定しない
   const first = path.steps.find((s) => !s.precondition);
   const entryNode = first ? nodeLabel(first.nodeId, first.role, profile, knowledge) : "";
+  const statedLead = stated
+    ? `記事の入口は「${stated.labelJa}」（${stated.source === "stated" ? "記載" : "推定"}）。`
+    : "";
   const lead =
-    first?.source === "candidate"
-      ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた${third ? "として、" : "場合、"}`
-      : "";
+    statedLead && first?.source === "candidate"
+      ? statedLead
+      : first?.source === "candidate"
+        ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた${third ? "として、" : "場合、"}`
+        : "";
   if (path.reachedCore) {
     lines.push(
       `${lead}${third ? "御社が同じ立場なら、攻撃は次の順に進むと見込まれます：" : "攻撃は次の順に進みます："}${chain}。`,
@@ -142,11 +155,11 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   } else {
     const stop = path.steps.find((s) => s.state === "blocked");
     const where = stop
-      ? `「${stop.labelJa ?? "途中"}」の段階（${nodeLabel(stop.nodeId, stop.role, profile, knowledge)}）`
+      ? `「${stop.labelJa ?? "途中"}」の段階${stated && stop === firstStep && stop.source === "candidate" ? "" : `（${nodeLabel(stop.nodeId, stop.role, profile, knowledge)}）`}`
       : "途中";
     const reason = stop?.reasonJa ? stripIds(stop.reasonJa) : "";
     lines.push(
-      `${third ? "御社が同じ立場なら、" : ""}この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`,
+      `${first?.source === "candidate" ? statedLead : ""}${third ? "御社が同じ立場なら、" : ""}この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`,
     );
     if (verdict.result === "pending")
       lines.push(

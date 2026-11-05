@@ -334,6 +334,18 @@ export const AttackPath = z.object({
   reachedCore: z.boolean(),
   /** 到達した資産（個人情報の判定に使う） */
   reachedAssetIds: z.array(z.string()),
+  /**
+   * 記事が入口の種類を書いているが、その種類では入口の資産を絞れないとき（正規の認証情報だけ、または第三者の事故で
+   * 御社のカルテに同じ種類の資産が無い）。経路の先頭は仮に置いた資産（candidate）だが、一枚は「記事の入口は〇〇（記載）」と書き、
+   * その資産の名前（VPN装置など）を入口として出さない（TRIAL-I-007、I-008）
+   */
+  statedEntry: z
+    .object({
+      kindId: z.string(),
+      labelJa: z.string(),
+      source: z.enum(["stated", "inferred"]),
+    })
+    .optional(),
 });
 
 export const Contradiction = z.object({

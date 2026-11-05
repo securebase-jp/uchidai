@@ -97,13 +97,20 @@ export function writerInputFrom(
   const roleJa = (role: string) => knowledge.roles.find((r) => r.id === role)?.labelJa ?? role;
   const stages: WriterStage[] = (path?.steps ?? [])
     .filter((s) => !s.precondition)
-    .map((s) => ({
+    .map((s, i) => ({
       // 段階名の「・業務停止」は御社の試算（stopped）の話で、記事の事実ではない。言い換えが事実の文に混ぜないように外す
       labelJa: (s.labelJa ?? s.role).replace(/[・、]?業務停止/g, ""),
-      roleJa: roleJa(s.role),
+      // 記事は入口の種類を書いているが資産は絞れない（正規の認証情報だけ、第三者の事故でカルテに同じ種類が無い）ときは、
+      // 仮に置いた入口の資産（VPN装置など）の名前を渡さず、記事の入口の種類を渡す（TRIAL-I-007、I-008）
+      roleJa: i === 0 && path?.statedEntry ? path.statedEntry.labelJa : roleJa(s.role),
       state: s.state,
       // AI が見つけた経路の段階は、記事の確認を伴わないので推定として扱う
-      source: s.source === "ai" ? "inferred" : s.source,
+      source:
+        i === 0 && path?.statedEntry && s.source === "candidate"
+          ? path.statedEntry.source
+          : s.source === "ai"
+            ? "inferred"
+            : s.source,
       ...(s.certainty && s.certainty !== "confirmed" ? { certainty: s.certainty } : {}),
       ...(s.published ? { published: true } : {}),
     }));
@@ -146,6 +153,7 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - no_trace：「〜について、痕跡は確認されていませんが、なかったとは言い切れません」と書く（この言い回しに固定。記事は「確認されていないが、否定できない」と対にして書くことが多い）。起きたと書かない。「なかった」「問題ない」「心配ない」「安全」と読める言い方もしない
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
+- 最初の段階の役割名が入口の種類（例：正規の認証情報（ログイン先は不明）、公開 Web サイト・Web アプリ）のときは、その種類のとおりに書き、特定の機器名（VPN装置など）から入られたとは書かない
 - 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
 - 金額：moneyLossJpy は御社の想定額（会社カルテの値）で、「御社の想定では約〇〇円」と書く。なりすましの送金は直接の損失で、売上への影響とは書かない。reportedLossJpy は記事が書く被害額で、「記事の事例では約〇〇円」と書き、御社の想定額と並べて別の文にする。想定額を記事の事実のように、「確認されています」と同じ文に書かない
 - avertedInArticle が true のとき：最初の文で「記事の会社は被害を防げた事例です」と書き、以降は「同じ手口が御社に来たら」の見立てとして書く（記事の会社が被害を受けたとは書かない）

@@ -175,3 +175,102 @@ describe("拡張性：新しい入口の種類は YAML だけで足せる", () =
     ]);
   });
 });
+
+describe("第三者の事故：記事の入口の資産がカルテに無くても「入口なし」にしない（TRIAL-I-007）", () => {
+  const thirdCase = (victim: string, entryKind: string, technique: string): Case => ({
+    title: "t",
+    damageType: "data_breach",
+    clarity: "partial",
+    suspiciousInstructions: [],
+    victim,
+    steps: [
+      { tactic: "TA0001", techniques: [technique], source: "stated", entryKind },
+      { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+    ],
+  });
+  it("提供元 × 正規の認証情報：第三者の事故の見出し、確認すること、入口は「記事の入口は〇〇（記載）。御社が同じ立場なら」の想定", () => {
+    const v = evaluate(thirdCase("provider", "credential", "T1078"), demo, { knowledge: k });
+    expect(v.result).not.toBe("no_entry");
+    expect(v.headlineJa).toMatch(
+      /^これはクラウド・ソフトウェアの提供元で起きた事故です。御社が同じ立場なら/,
+    );
+    expect(v.thirdParty?.checksJa.length).toBeGreaterThan(0);
+    const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+    expect(text).toContain(
+      "記事の入口は「正規の認証情報（ログイン先は不明）」（記載）。御社が同じ立場なら、攻撃は次の順に進むと見込まれます：入口から侵入される",
+    );
+    expect(text).not.toMatch(/登録されていません/);
+    expect(text).not.toMatch(/VPN装置が/);
+    expect(text).toContain("御社が確認すること：");
+  });
+  it("委託先 × 公開 Web：同じく「入口なし」にせず、入口は記載の想定。推定なら（推定）と書く", () => {
+    const v = evaluate(thirdCase("vendor", "web", "T1190"), demo, { knowledge: k });
+    expect(v.result).not.toBe("no_entry");
+    expect(v.headlineJa).toMatch(/^これは委託先・取引先で起きた事故です。御社が同じ立場なら/);
+    expect(buildOnePager(v, demo, k).whatHappensJa.join("\n")).toContain(
+      "記事の入口は「公開 Web サイト・Web アプリ」（記載）。御社が同じ立場なら",
+    );
+    const inferred = thirdCase("vendor", "web", "T1190");
+    inferred.steps[0] = { ...(inferred.steps[0] as Case["steps"][number]), source: "inferred" };
+    const w = evaluate(inferred, demo, { knowledge: k });
+    expect(buildOnePager(w, demo, k).whatHappensJa.join("\n")).toContain(
+      "記事の入口は「公開 Web サイト・Web アプリ」（推定）。",
+    );
+  });
+  it("5 問のカルテ（既定の枠）でも、第三者の事故なら「登録されていません」にしない", () => {
+    const v = evaluate(thirdCase("vendor", "web", "T1190"), frame(["vpn"]), { knowledge: k });
+    expect(v.headlineJa).toMatch(/^これは委託先・取引先で起きた事故です/);
+    expect(v.coverageGapJa).toBeUndefined();
+  });
+  it("自社の事故は、これまでどおり「入口は未登録」（第三者の事故だけの変更）", () => {
+    const own = thirdCase("self", "rdp", "T1133");
+    const { victim: _v, ...plain } = own;
+    const v = evaluate(plain, demo, { knowledge: k });
+    expect(v.result).toBe("no_entry");
+    expect(v.paths).toEqual([]);
+  });
+});
+
+describe("入口が正規の認証情報のとき、想定の候補に VPN を置かず「記事の入口は〇〇（記載）」と書く（TRIAL-I-008 の暫定）", () => {
+  const credCase = (source: "stated" | "inferred" = "stated"): Case => ({
+    title: "リスト型の不正ログイン",
+    damageType: "data_breach",
+    clarity: "partial",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0001", techniques: ["T1078"], source, entryKind: "credential" },
+      { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+    ],
+  });
+  it("記載：「入口はまだ分かっていません。たとえば VPN装置から」でなく、「記事の入口は〇〇（記載）。」", () => {
+    const v = evaluate(credCase(), demo, { knowledge: k });
+    const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+    expect(text).toContain(
+      "記事の入口は「正規の認証情報（ログイン先は不明）」（記載）。攻撃は次の順に進みます：入口から侵入される",
+    );
+    expect(text).not.toContain("入口はまだ分かっていません");
+    expect(text).not.toMatch(/VPN装置/);
+  });
+  it("判定そのもの（経路・結論）は変えない", () => {
+    const v = evaluate(credCase(), demo, { knowledge: k });
+    expect(v.paths.every((p) => p.source === "candidate")).toBe(true);
+    expect(v.paths.every((p) => p.statedEntry?.kindId === "credential")).toBe(true);
+  });
+  it("入口が書かれていないとき（unknown）は、これまでどおり「入口はまだ分かっていません。たとえば〜」", () => {
+    const unknown: Case = {
+      ...credCase(),
+      clarity: "unknown",
+      steps: [
+        { tactic: "TA0001", techniques: [], source: "unknown" },
+        { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+      ],
+    };
+    const text = buildOnePager(
+      evaluate(unknown, demo, { knowledge: k }),
+      demo,
+      k,
+    ).whatHappensJa.join("\n");
+    expect(text).toContain("入口はまだ分かっていません。たとえば「");
+    expect(text).not.toContain("記事の入口は");
+  });
+});

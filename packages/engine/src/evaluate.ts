@@ -469,8 +469,12 @@ function pathsForTemplate(
     : undefined;
   const kind = kindDef && kindDef.roles.some((r) => r in entryStage.byRole) ? kindDef : undefined;
   const kindNodes = kind ? walkable.filter((n) => kind.roles.includes(n.role)) : [];
-  // 一致する種類の資産がカルテに無い：別の入口の候補（VPN、フィッシングなど）に切り替えず、「未登録」と答える
-  if (kind && kindNodes.length === 0) return { paths: [], hasEntry: false, missingEntryKind: kind };
+  // 一致する種類の資産がカルテに無い：別の入口の候補（VPN、フィッシングなど）に切り替えず、「未登録」と答える。
+  // ただし第三者の事故（委託先・提供元・グループ会社）の入口は、御社の資産ではないので、カルテに無いことを理由に「入口なし」にしない。
+  // 御社が同じ立場なら、という想定として経路を作り、一枚は「記事の入口は〇〇（記載）」と書く（TRIAL-I-007）
+  const thirdParty = knowledge.victims.find((x) => x.id === theCase.victim)?.thirdParty === true;
+  if (kind && kindNodes.length === 0 && (!thirdParty || walkable.length === 0))
+    return { paths: [], hasEntry: false, missingEntryKind: kind };
   if (walkable.length === 0) return { paths: [], hasEntry: false };
   const canon = entryKnown
     ? entryStep.techniques
@@ -483,7 +487,19 @@ function pathsForTemplate(
       ? walkable.map((node) => ({ node }))
       : fitEntries(walkable, entryStage, canon, knowledge);
   let chosen: { node: GraphNode; source: PathSource; technique?: string }[];
-  if (kind) {
+  // 記事は入口の種類を書いているが、その種類では入口の資産を絞れない：正規の認証情報だけ（ログイン先が不明）、または第三者の事故で
+  // カルテに同じ種類の資産が無い。仮に置く入口の候補（VPN など）を記事の入口のように書かないための印（TRIAL-I-007、I-008）
+  const statedEntry: AttackPath["statedEntry"] =
+    kind && entryStep && (kind.pinsAsset === false || kindNodes.length === 0)
+      ? {
+          kindId: kind.id,
+          labelJa: kind.labelJa,
+          source: entryStep.source === "stated" ? "stated" : "inferred",
+        }
+      : undefined;
+  if (kind && kindNodes.length === 0) {
+    chosen = walkable.map((node) => ({ node, source: "candidate" }));
+  } else if (kind) {
     // 種類が一致する資産だけを入口にする。手法は、記事の手法のうちその資産に当たるもの（無ければ型紙の典型手法）
     chosen = kindNodes.map((node, i) => {
       const technique = canon.find((t) => entryFits(node, entryStage, t, knowledge));
@@ -545,6 +561,7 @@ function pathsForTemplate(
         steps,
         reachedCore,
         reachedAssetIds,
+        ...(statedEntry && source === "candidate" ? { statedEntry } : {}),
       };
     }),
   );

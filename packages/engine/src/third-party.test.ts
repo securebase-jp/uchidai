@@ -135,8 +135,8 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
       effectiveMeasures(self, k.measures, demo).some((e) => e.measure.mitigation === "UD-04"),
     ).toBe(false);
   });
-  it("入口なし・未登録のときも、第三者の事故なら確認することを付ける（見出しは書き換えない）", () => {
-    const rdp = vpnCase("provider", {
+  it("自社の事故で、記事の入口の資産がカルテに無いときは、これまでどおり「入口なし（未登録）」（見出しは書き換えない）", () => {
+    const rdp = vpnCase(undefined, {
       steps: [
         { tactic: "TA0001", techniques: ["T1133"], source: "stated", entryKind: "rdp" },
         { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
@@ -145,7 +145,22 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
     const v = evaluate(rdp, demo, { knowledge: k });
     expect(v.result).toBe("no_entry");
     expect(v.headlineJa).toMatch(/リモートデスクトップ/);
+  });
+  it("第三者の事故（TRIAL-I-007）：記事の入口の資産がカルテに無くても「入口なし」にせず、第三者の事故の見出しと確認することを出す", () => {
+    const rdp = vpnCase("provider", {
+      steps: [
+        { tactic: "TA0001", techniques: ["T1133"], source: "stated", entryKind: "rdp" },
+        { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      ],
+    });
+    const v = evaluate(rdp, demo, { knowledge: k });
+    expect(v.result).not.toBe("no_entry");
+    expect(v.headlineJa).toMatch(
+      /^これはクラウド・ソフトウェアの提供元で起きた事故です。御社が同じ立場なら、/,
+    );
     expect(v.thirdParty?.id).toBe("provider");
+    expect(v.paths.length).toBeGreaterThan(0);
+    expect(v.paths.every((p) => p.statedEntry?.kindId === "rdp")).toBe(true);
   });
   it("対象外（out_of_scope）には付けない", () => {
     const v = evaluate({ ...vpnCase("vendor"), damageType: "out_of_scope", steps: [] }, demo, {
