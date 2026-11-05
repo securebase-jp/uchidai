@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "victims": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "thirdParty": {
+            "default": false,
+            "type": "boolean"
+          },
+          "readingHintJa": {
+            "type": "string"
+          },
+          "checksJa": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reportNoteJa": {
+            "type": "string"
+          },
+          "measureIds": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "thirdParty",
+          "readingHintJa",
+          "checksJa",
+          "measureIds"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "victims"
+  ],
+  "additionalProperties": false
+}

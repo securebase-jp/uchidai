@@ -114,6 +114,12 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     })
     .join(" → ");
   const lines: string[] = [];
+  // 第三者（委託先・取引先・提供元）で起きた事故：御社の設備が入口になったとは書かず、「御社が同じ立場なら」の見立てにする
+  const third = verdict.thirdParty;
+  if (third)
+    lines.push(
+      `これは${third.labelJa}で起きた事故です。御社の設備が入口になったのではありません。`,
+    );
   // 入口が記事から分からず仮に置いた候補のときは、その入口から入られたと断定しない
   const first = path.steps.find((s) => !s.precondition);
   const entryNode = first ? nodeLabel(first.nodeId, first.role, profile, knowledge) : "";
@@ -122,14 +128,18 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
       ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた場合、`
       : "";
   if (path.reachedCore) {
-    lines.push(`${lead}攻撃は次の順に進みます：${chain}。`);
+    lines.push(
+      `${lead}${third ? "御社が同じ立場だった場合、攻撃は次の順に進むと見込まれます：" : "攻撃は次の順に進みます："}${chain}。`,
+    );
   } else {
     const stop = path.steps.find((s) => s.state === "blocked");
     const where = stop
       ? `「${stop.labelJa ?? "途中"}」の段階（${nodeLabel(stop.nodeId, stop.role, profile, knowledge)}）`
       : "途中";
     const reason = stop?.reasonJa ? stripIds(stop.reasonJa) : "";
-    lines.push(`この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`);
+    lines.push(
+      `${third ? "御社が同じ立場だった場合、" : ""}この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`,
+    );
     if (verdict.result === "pending")
       lines.push(
         "ただし、確認が取れていない項目が残っています。回答が届き次第、判定を更新します。",
@@ -162,6 +172,7 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
 
 /** 経路が無いときの「何が起きるか」の代わりの文 */
 function emptyPathLines(verdict: Verdict): string[] {
+  if (verdict.guidanceJa) return verdict.guidanceJa;
   if (verdict.coverageGapJa) return [verdict.coverageGapJa];
   if (verdict.result === "no_entry")
     return ["この攻撃が入る入口は、登録されたカルテにありません。"];
@@ -170,8 +181,20 @@ function emptyPathLines(verdict: Verdict): string[] {
   return [];
 }
 
+/** 第三者の事故のとき、御社が確認すること（判定は出さない。個人情報の報告は「確認が必要」と書く） */
+export function thirdPartyLines(verdict: Verdict): string[] {
+  const t = verdict.thirdParty;
+  if (!t) return [];
+  return [
+    ...t.checksJa.map((c) => `御社が確認すること：${c}。`),
+    ...(t.reportNoteJa ? [t.reportNoteJa] : []),
+  ];
+}
+
 /** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
 function alreadyApplied(m: MeasureDef, profile: CompanyProfile): boolean {
+  // 助言だけの対策（patches が空）は、カルテに書き込めないので「済み」とは見なさない
+  if (m.patches.length === 0) return false;
   return m.patches.every((p) => {
     const targets = profile.assets.filter((a) => a.role === p.role);
     return (
@@ -222,9 +245,17 @@ export function effectiveMeasures(
         order,
       });
   });
-  return out
+  const effective = out
     .sort((a, b) => a.index - b.index || a.order - b.order)
     .map(({ measure, stageJa }) => ({ measure, ...(stageJa ? { stageJa } : {}) }));
+  // 第三者の事故のときは、判定に使わない助言（委託先管理など。victims.yaml の measureIds）を、効く対策のあとに足す
+  const advice = (verdict.thirdParty?.measureIds ?? [])
+    .map((id) => measures.find((m) => m.id === id))
+    .filter(
+      (m): m is MeasureDef => m !== undefined && !effective.some((e) => e.measure.id === m.id),
+    )
+    .map((measure) => ({ measure }));
+  return [...effective, ...advice];
 }
 
 /** 対策の費用の目安（knowledge/costs.yaml と カルテの人数から）。画面の対策ボタンでも使う */
@@ -315,6 +346,7 @@ export function buildOnePager(
     whatHappens.push(
       `${impact.personalDataReached.map((p) => p.descriptionJa).join("、")}が漏えいしたおそれがあり、個人情報保護委員会への報告と本人への通知が必要になります。`,
     );
+  whatHappens.push(...thirdPartyLines(verdict));
 
   const deadlines: OnePagerDeadline[] = verdict.timeline
     .filter(
