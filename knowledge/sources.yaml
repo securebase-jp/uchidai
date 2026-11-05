@@ -62,7 +62,7 @@ sources:
     url: https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/
     publisherJa: 個人情報保護委員会
     checkedAt: "2026-11-02"
-    usedForJa: 個人データの漏えい等を報告する条件と、本人へ通知する義務の根拠にしています。
+    usedForJa: 個人データの漏えい等を報告する条件と、本人へ通知する義務の根拠にしています。委託先の監督（3-4-4）は、第三者（委託先・提供元）の事故のときに御社が確認することの根拠にしています。
   - id: ppc-leak
     categoryId: law-stats
     nameJa: 個人情報保護委員会「漏えい等の対応とお役立ち資料」
