@@ -22,6 +22,7 @@ import {
   loadVictims,
   OUT_OF_SCOPE,
   type StepCertainty,
+  yenAppearsIn,
 } from "@uchidai/engine";
 import { dedupeInstructions, detectInstructions } from "./injection.ts";
 import { RawCase } from "./schema.ts";
@@ -90,6 +91,8 @@ export type VerifyReport = {
   downgraded: { index: number; certainty: StepCertainty }[];
   /** 根拠文がタイトルにしか無く、stated を inferred に下げた段階 */
   titleOnlyQuotes: number[];
+  /** 記事に見当たらないので捨てた被害額（円。読解が写した値が、記事の円の金額のどれにも一致しなかった） */
+  droppedReportedLoss?: number;
   /** 捨てた漏えいした情報の種類（定義にない値） */
   droppedLeakedData?: string[];
   /** 捨てた被害を受けた側（定義にない値） */
@@ -365,6 +368,19 @@ export function verifyCase(
     else if (!leakedData.includes(id)) leakedData.push(id);
   }
 
+  // 記事が書く被害額：記事の円の金額のどれかと一致するときだけ残す（Claude は金額を読んで写すだけ。作った値は捨てる）
+  let reportedLossJpy: number | undefined;
+  const claimed = parsed.reportedLossJpy;
+  if (claimed !== null && claimed !== undefined) {
+    if (
+      Number.isInteger(claimed) &&
+      claimed > 0 &&
+      yenAppearsIn(claimed, `${articleText}\n${options.title ?? ""}`)
+    )
+      reportedLossJpy = claimed;
+    else report.droppedReportedLoss = claimed;
+  }
+
   const detected = detectInstructions(articleText);
   const reported: string[] = [];
   for (const line of parsed.suspiciousInstructions) {
@@ -408,6 +424,8 @@ export function verifyCase(
     suspiciousInstructions: report.suspiciousInstructions,
     ...(victim ? { victim } : {}),
     ...(leakedData.length > 0 ? { leakedData } : {}),
+    ...(reportedLossJpy !== undefined ? { reportedLossJpy } : {}),
+    ...(parsed.averted ? { averted: true } : {}),
   });
   return { case: c, report };
 }

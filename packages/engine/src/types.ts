@@ -84,6 +84,10 @@ export const Case = z.object({
     .optional(),
   /** 記事が書く、漏えいした（可能性がある）情報の種類（knowledge/leak-kinds.yaml の id）。省略は書かれていない */
   leakedData: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/)).optional(),
+  /** 記事が書く被害額（円）。記事が円で書いているときだけ。御社の想定額（会社カルテ）とは別で、計算には使わない */
+  reportedLossJpy: z.number().int().positive().optional(),
+  /** 記事の会社は被害を防げた（未遂・送金前に気づいた・被害が出なかった）。省略は被害が出た */
+  averted: z.boolean().optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -389,6 +393,13 @@ export const Verdict = z.object({
       reportNoteJa: z.string().optional(),
       /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */
       measureIds: z.array(z.string()).default([]),
+    })
+    .optional(),
+  /** 記事が書く事実（被害額、未遂）。御社の想定とは別に、一枚で並べて書く */
+  article: z
+    .object({
+      reportedLossJpy: z.number().optional(),
+      averted: z.boolean().optional(),
     })
     .optional(),
   /** 記事が書く、漏えいした情報の種類と、その案内（leak-kinds.yaml から解いたもの） */

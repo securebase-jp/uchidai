@@ -626,6 +626,30 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
   };
 }
 
+/**
+ * 記事が書く事実（被害額、未遂）を結論に載せる（B-003、B-013）。未遂のときは、見出しも
+ * 「記事の会社は被害を防げた事例です。同じ手口が御社に来たら、…」にする（第三者の事故の見出しを優先する）
+ */
+function applyArticleFacts(v: Verdict, theCase: Case): Verdict {
+  if (theCase.reportedLossJpy === undefined && !theCase.averted) return v;
+  const headline =
+    theCase.averted && !v.thirdParty && v.paths.length > 0 ? avertedHeadline(v.result) : undefined;
+  return {
+    ...v,
+    ...(headline ? { headlineJa: headline } : {}),
+    article: {
+      ...(theCase.reportedLossJpy !== undefined
+        ? { reportedLossJpy: theCase.reportedLossJpy }
+        : {}),
+      ...(theCase.averted ? { averted: true } : {}),
+    },
+  };
+}
+export const avertedHeadline = (result: VerdictResult): string | undefined =>
+  THIRD_PARTY_TAIL[result] === undefined
+    ? undefined
+    : `記事の会社は被害を防げた事例です。同じ手口が御社に来たら、${THIRD_PARTY_TAIL[result]}`;
+
 /** 記事が書く漏えいした情報の種類（定義済みのもの）を、案内つきで結論に載せる（D-011） */
 function applyLeakedData(v: Verdict, theCase: Case, knowledge: Knowledge): Verdict {
   const kinds = (theCase.leakedData ?? [])
@@ -644,10 +668,17 @@ export function evaluate(
   options: EvaluateOptions = {},
 ): Verdict {
   const knowledge = options.knowledge ?? loadKnowledge();
-  return applyLeakedData(
-    applyThirdParty(evaluateCore(theCase, profile, { ...options, knowledge }), theCase, knowledge),
+  return applyArticleFacts(
+    applyLeakedData(
+      applyThirdParty(
+        evaluateCore(theCase, profile, { ...options, knowledge }),
+        theCase,
+        knowledge,
+      ),
+      theCase,
+      knowledge,
+    ),
     theCase,
-    knowledge,
   );
 }
 

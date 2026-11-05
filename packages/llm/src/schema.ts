@@ -37,6 +37,10 @@ export const RawCase = z.object({
   victim: z.string().nullable().optional(),
   /** 記事が書く漏えいした情報の種類（knowledge/leak-kinds.yaml の id）。古い記録には無い */
   leakedData: z.array(z.string()).optional(),
+  /** 記事が書く被害額（円）。古い記録には無い */
+  reportedLossJpy: z.number().nullable().optional(),
+  /** 記事の会社が被害を防げた（未遂）。古い記録には無い */
+  averted: z.boolean().optional(),
   steps: z.array(RawStep),
   suspiciousInstructions: z.array(z.string()),
 });
@@ -62,6 +66,8 @@ export function buildRawCaseJsonSchema(
       "clarity",
       "victim",
       "leakedData",
+      "reportedLossJpy",
+      "averted",
       "steps",
       "suspiciousInstructions",
     ],
@@ -85,6 +91,16 @@ export function buildRawCaseJsonSchema(
         type: "array",
         items: { type: "string", enum: leakKinds.map((l) => l.id) },
         description: `記事が書く、漏えいした（可能性がある）情報の種類（${leakKinds.map((l) => `${l.id}=${l.labelJa}`).join("、")}）。無ければ空`,
+      },
+      reportedLossJpy: {
+        type: ["number", "null"],
+        description:
+          "記事が書く被害額（円の整数。例 256000000）。外貨・不明・記載なしは null。記事にない金額を作らない",
+      },
+      averted: {
+        type: "boolean",
+        description:
+          "記事の会社が被害を防げた（未遂・送金前に気づいた・被害が出なかった）なら true",
       },
       steps: {
         type: "array",

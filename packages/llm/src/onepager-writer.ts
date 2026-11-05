@@ -13,6 +13,7 @@ import {
   StepState,
   type Verdict,
   VerdictResult,
+  yenAppearsIn,
 } from "@uchidai/engine";
 import { z } from "zod";
 import { callStructured, type LlmOptions, type StructuredResult } from "./client.ts";
@@ -58,6 +59,10 @@ export const OnePagerWriterInput = z.object({
   personalDataJa: z.array(z.string()),
   /** 被害が第三者（委託先・取引先・提供元）に起きた事故のとき。その呼び名（例：委託先・取引先） */
   thirdPartyJa: z.string().optional(),
+  /** 記事が書く被害額（円）。御社の想定額（moneyLossJpy）とは別 */
+  reportedLossJpy: z.number().optional(),
+  /** 記事の会社は被害を防げた（未遂） */
+  avertedInArticle: z.boolean().optional(),
 });
 export const OnePagerWriterOutput = z.object({
   whatHappensJa: z.array(z.string().min(1).max(200)).min(1).max(8),
@@ -118,6 +123,10 @@ export function writerInputFrom(
     reportRequired: impact.reportRequired,
     personalDataJa: impact.personalDataReached.map((p) => p.descriptionJa),
     ...(verdict.thirdParty ? { thirdPartyJa: verdict.thirdParty.labelJa } : {}),
+    ...(verdict.article?.reportedLossJpy !== undefined
+      ? { reportedLossJpy: verdict.article.reportedLossJpy }
+      : {}),
+    ...(verdict.article?.averted ? { avertedInArticle: true } : {}),
   });
 }
 
@@ -137,6 +146,8 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
 - 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
+- 金額：moneyLossJpy は御社の想定額（会社カルテの値）で、「御社の想定では約〇〇円」と書く。なりすましの送金は直接の損失で、売上への影響とは書かない。reportedLossJpy は記事が書く被害額で、「記事の事例では約〇〇円」と書き、御社の想定額と並べて別の文にする。想定額を記事の事実のように、「確認されています」と同じ文に書かない
+- avertedInArticle が true のとき：最初の文で「記事の会社は被害を防げた事例です」と書き、以降は「同じ手口が御社に来たら」の見立てとして書く（記事の会社が被害を受けたとは書かない）
 - 個人情報の報告について「必要ありません」「不要」と書かない（reportRequired が false でも、報告が要らないと言い切れないため。書けるのは、reportRequired が true のときの「必要になります」だけ。false のときは報告のことを書かない）
 - result が blocked または mitigated のときは、止まる・抑えられるという文を「この経路では」と範囲を限って書く（御社が安全だと言い切らない）
 - 文の分け方：前半は記事に書かれた出来事だけを書く（確度に合う言い方で）。止まる業務・日数・売上・取引先への影響は、御社に当てはめた試算なので、別の文にして「御社の場合は〜と見込まれます」と書く。試算の文に「確認されています」「起きています」を使わない（試算は記事の事実ではない）。記事の事実の文に、業務が止まったことを書かない（業務が止まることは、御社の試算の文にだけ書く。記事の会社の業務が止まったかどうかは入力にない）。一つの文に、確認の言い方と日数・金額を混ぜない。例：「中核システムが暗号化されたことが確認されています。」（記事の事実）と「御社の場合は、受注・生産管理が10日止まると見込まれます。」（試算）は別の文にする。段階が多いときは、近い段階を 1 文にまとめ、全体で 6 文以内にする
@@ -187,6 +198,7 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
       const oku = v / 100_000_000;
       add(Math.round(oku));
       add(Math.round(oku * 10) / 10);
+      add(Math.round(oku * 100) / 100);
       const rest = Math.round((v % 100_000_000) / 10_000);
       if (rest > 0) add(rest);
     }
@@ -199,6 +211,7 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
   }
   yen(input.revenueImpactJpy);
   yen(input.moneyLossJpy);
+  yen(input.reportedLossJpy);
   return out;
 }
 
@@ -224,12 +237,34 @@ export function checkWriterOutput(
     }
   }
   // 止まる業務・金額（御社に当てはめた試算）は、記事の事実と別の文で「御社の場合は〜と見込まれます」と書く
+  // 金額：御社の想定額（moneyLossJpy）は「想定」と書き、売上への影響とは書かない（直接の損失）。記事の被害額は「記事の事例では」
+  if (input.moneyLossJpy !== undefined) {
+    const moneyLine = output.whatHappensJa.find((l) =>
+      yenAppearsIn(input.moneyLossJpy as number, l),
+    );
+    if (moneyLine !== undefined) {
+      if (!moneyLine.includes("想定"))
+        return `御社の金額は「想定では」と書いてください（記事の事実と区別するため）：${moneyLine}`;
+      if (moneyLine.includes("売上"))
+        return `送金額は売上への影響ではなく、直接の損失です：${moneyLine}`;
+    }
+  }
+  if (
+    input.reportedLossJpy !== undefined &&
+    !output.whatHappensJa.some(
+      (l) => l.includes("記事の事例では") && yenAppearsIn(input.reportedLossJpy as number, l),
+    )
+  )
+    return "記事が書く被害額は「記事の事例では約〇〇円」と書いてください";
+  if (input.avertedInArticle && !output.whatHappensJa.some((l) => l.includes("防げ")))
+    return "記事の会社が被害を防げた事例なら、「記事の会社は被害を防げた事例です」と書いてください";
   const hasEstimate =
     input.stopped.length > 0 ||
     input.revenueImpactJpy !== undefined ||
     input.moneyLossJpy !== undefined;
   const isEstimateLine = (l: string) =>
     (l.includes(ESTIMATE_PHRASE) ||
+      l.includes("御社の想定では") ||
       (input.thirdPartyJa !== undefined && l.includes("御社が同じ立場"))) &&
     l.includes("見込まれ");
   if (hasEstimate && !output.whatHappensJa.some(isEstimateLine))

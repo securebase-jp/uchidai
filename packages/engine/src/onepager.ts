@@ -114,6 +114,11 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     })
     .join(" → ");
   const lines: string[] = [];
+  // 記事の会社が被害を防げた事例（未遂・回避）：被害が出た記事と取り違えないよう、最初に書く
+  if (verdict.article?.averted)
+    lines.push(
+      "記事の会社は、被害を防げた事例です。以下は、同じ手口が御社に来たら、という見立てです。",
+    );
   // 第三者（委託先・取引先・提供元）で起きた事故：御社の設備が入口になったとは書かず、「御社が同じ立場なら」の見立てにする
   const third = verdict.thirdParty;
   if (third)
@@ -371,9 +376,15 @@ export function buildOnePager(
         ? "復旧が手作業で回せる期間に収まるため、取引先への影響は見込みません。"
         : undefined;
   if (partnerImpactJa) whatHappens.push(partnerImpactJa);
+  const reported = verdict.article?.reportedLossJpy;
+  // 記事の被害額は記事の事実として別の文にし、御社の額は必ず「想定では」を付けて並べる（計算には記事の額を使わない）
+  if (reported !== undefined)
+    whatHappens.push(`記事の事例では、被害額は${formatJpy(reported)}です。`);
   if (impact.moneyLossJpy !== undefined)
     whatHappens.push(
-      `なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出します（会社カルテの想定額）。`,
+      reported !== undefined
+        ? `御社の想定では、なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出すると見込まれます（会社カルテの想定額）。`
+        : `なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出します（会社カルテの想定額）。`,
     );
   if (impact.reportRequired)
     whatHappens.push(
