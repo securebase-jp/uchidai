@@ -280,3 +280,52 @@ describe("一枚の言い換えの検証：確度に合わない言い方を捨�
     ).toBeUndefined();
   });
 });
+
+describe("記事の事実の文に、業務が止まったことを書かない（R-004 cbys：記事は業務を継続）", () => {
+  it("「業務が止まったことが確認されています」は捨てる", () => {
+    const i: OnePagerWriterInput = {
+      result: "breached",
+      stages: [{ labelJa: "暗号化", roleJa: "中核システム", state: "breached", source: "stated" }],
+      stopped: [{ name: "受注", days: 10, manualDays: 2 }],
+      downtimeDays: 10,
+      reportRequired: false,
+      personalDataJa: [],
+    };
+    expect(
+      checkWriterOutput(
+        { whatHappensJa: ["中核システムが暗号化され、業務が止まったことが確認されています。"] },
+        i,
+      ),
+    ).toMatch(/試算/);
+    expect(
+      checkWriterOutput(
+        {
+          whatHappensJa: [
+            "中核システムが暗号化されたことが確認されています。",
+            "御社の場合は、受注が10日止まると見込まれます。",
+          ],
+        },
+        i,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("writerInputFrom は段階名の「業務停止」を外す（試算の話を記事の事実に混ぜないため）", () => {
+  it("暗号化・業務停止 → 暗号化", () => {
+    const v = evaluate(
+      Case.parse({
+        title: "t",
+        damageType: "ransomware",
+        clarity: "partial",
+        suspiciousInstructions: [],
+        steps: [{ tactic: "TA0040", techniques: ["T1486"], source: "stated" }],
+      }),
+      loadProfile(join(repoRoot, "examples", "demo-seiko.json")),
+      { knowledge: k },
+    );
+    const labels = writerInputFrom(v, k).stages.map((s) => s.labelJa);
+    expect(labels.some((l) => l.includes("暗号化"))).toBe(true);
+    expect(labels.some((l) => l.includes("業務停止"))).toBe(false);
+  });
+});
