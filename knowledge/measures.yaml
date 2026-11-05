@@ -183,6 +183,30 @@ measures:
         mitigation: M1047
         status: present
     requestToJa: ホームページの制作・保守会社
+  - id: web-service-mfa
+    labelJa: 会員・顧客向けのログインに多要素認証（追加認証）
+    mitigation: UD-08
+    patches:
+      - role: entry.web
+        mitigation: UD-08
+        status: present
+    requestToJa: 会員サイトの開発・運用会社
+  - id: web-service-login-limit
+    labelJa: 会員向けのログイン試行の回数・接続元を制限
+    mitigation: M1036
+    patches:
+      - role: entry.web
+        mitigation: M1036
+        status: present
+    requestToJa: 会員サイトの開発・運用会社
+  - id: web-service-reuse-notice
+    labelJa: 会員へパスワードの使い回しを注意喚起し、漏えい済みパスワードを拒否
+    mitigation: UD-09
+    patches:
+      - role: entry.web
+        mitigation: UD-09
+        status: present
+    requestToJa: 会員サイトの運営担当者（案内）と開発・運用会社（拒否の設定）
   - id: storage-sharing-review
     labelJa: クラウドストレージの公開共有を禁止し、棚卸しする
     mitigation: M1022

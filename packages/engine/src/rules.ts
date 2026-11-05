@@ -222,9 +222,22 @@ function parentOf(id: string): string {
   return id.split(".")[0] ?? id;
 }
 
-/** 役割と手法に合うルールを探す。手法が一致するものを優先し、なければ役割の既定ルール（techniques が空） */
-export function findRule(rules: Rule[], role: string, technique?: string): Rule | undefined {
-  const forRole = rules.filter((r) => r.role === role);
+/**
+ * 役割と手法に合うルールを探す。手法が一致するものを優先し、なければ役割の既定ルール（techniques が空）。
+ * stages を持つルールは、その段階 ID（stageId）で呼ばれたときだけ当たり、同じ役割の段階を指定しないルールより先に見る
+ */
+export function findRule(
+  rules: Rule[],
+  role: string,
+  technique?: string,
+  stageId?: string,
+): Rule | undefined {
+  const forRole = rules
+    .filter(
+      (r) =>
+        r.role === role && (!r.stages || (stageId !== undefined && r.stages.includes(stageId))),
+    )
+    .sort((a, b) => Number(b.stages !== undefined) - Number(a.stages !== undefined));
   if (technique) {
     const exact = forRole.find((r) => r.techniques.includes(technique));
     if (exact) return exact;

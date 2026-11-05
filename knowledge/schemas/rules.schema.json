@@ -21,6 +21,12 @@
               "pattern": "^T\\d{4}(\\.\\d{3})?$"
             }
           },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "materialsJa": {
             "type": "string"
           },

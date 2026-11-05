@@ -92,6 +92,15 @@ measures:
   - measureId: web-tamper-detect
     basis: quote
     noteJa: IPA 事例集の明細に改ざん検知サービスの単価はない
+  - measureId: web-service-mfa
+    basis: quote
+    noteJa: 会員向けのログインの追加認証は、サービスの作りや使う仕組み（SMS、認証アプリ、パスキーなど）で費用が変わる。IPA 事例集の明細に単価はない（ウェブアプリケーション診断の単価とは別）
+  - measureId: web-service-login-limit
+    basis: quote
+    noteJa: ログイン試行の制限（回数・接続元・ボット対策）は、サービスの作りで費用が変わる。IPA 事例集の明細に単価はない
+  - measureId: web-service-reuse-notice
+    basis: internal
+    noteJa: 会員への案内（メール、画面の表示）は社内作業で、外部費用は見込まない。漏えい済みパスワードの拒否の設定を開発会社に頼む場合は見積もりが別に要る
   - measureId: storage-sharing-review
     basis: internal
     noteJa: 設定画面で公開共有を禁止し、定期的に棚卸しする社内作業。外部費用は見込まない

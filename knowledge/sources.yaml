@@ -85,6 +85,21 @@ sources:
     checkedAt: "2026-11-02"
     usedForJa: 入口が分からないときに、ランサムウェアの感染経路の件数が多い順に入口の候補を並べる根拠にしています。
     noticeJa: 数値は統計編「ランサムウェア感染経路」（p.124）から転記しました。読んだ PDF は奈良県警察のサイトの掲載分で、警察庁サイト上の掲載場所は要確認です。
+  - id: ipa-account-security
+    categoryId: law-stats
+    nameJa: IPA「不正ログイン対策特集ページ」
+    url: https://www.ipa.go.jp/security/anshin/measures/account_security.html
+    publisherJa: 独立行政法人情報処理推進機構（IPA）
+    checkedAt: "2026-11-05"
+    usedForJa: 会員・顧客向けサービスへの不正ログイン（外部で漏れた ID・パスワードを試すリスト型攻撃）の対策として、追加の認証、ログイン試行の制限、パスワードの使い回しへの注意喚起を挙げる根拠にしています。
+    noticeJa: 対策の費用の単価は載っていないため、費用はベンダーの見積もり待ちか社内作業として扱います（knowledge/costs.yaml）。
+  - id: npa-unauthorized-access
+    categoryId: law-stats
+    nameJa: 国家公安委員会・総務大臣・経済産業大臣「不正アクセス行為の発生状況及びアクセス制御機能に関する技術の研究開発の状況」（令和8年3月12日）
+    url: https://www.soumu.go.jp/main_content/001059979.pdf
+    publisherJa: 警察庁・総務省・経済産業省
+    checkedAt: "2026-11-05"
+    usedForJa: 他人の ID・パスワードを使った不正アクセスで、パスワードの設定・管理の甘さにつけ込む手口が多いことを、パスワードの使い回しへの注意喚起を対策に挙げる背景にしています。件数は転記せず、画面にも出しません。
   - id: mpd-bec
     categoryId: law-stats
     nameJa: 警視庁「ビジネスメール詐欺（BEC）対策」
