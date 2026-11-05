@@ -53,6 +53,14 @@ export const CaseStep = z.object({
   source: CaseStepSource,
   /** 出来事の確度。省略は confirmed と同じ */
   certainty: StepCertainty.optional(),
+  /**
+   * 入口の種類（knowledge/entry-kinds.yaml の id）。入口（TA0001）の段階だけ。手法 ID では見分けられない
+   * VPN・リモートデスクトップ・保守接続・メールなどを、会社カルテの入口の資産に種類で対応づける。省略は種類が分からない
+   */
+  entryKind: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]*$/)
+    .optional(),
   /** 持ち出された情報が、すでに公開された（リークサイトへの掲載など）と記事が書いている */
   published: z.boolean().optional(),
   /** 根拠となる記事中の文（原文に実在することを照合済み） */
@@ -264,6 +272,8 @@ export const PathStep = z.object({
   source: PathSource,
   /** 記事から読んだ出来事の確度（記事に対応づいた段階だけ。省略は confirmed と同じ） */
   certainty: StepCertainty.optional(),
+  /** 記事が書いた入口の種類（入口の段階だけ） */
+  entryKind: z.string().optional(),
   /** 持ち出された情報がすでに公開されたと記事が書いている段階 */
   published: z.boolean().optional(),
   state: StepState,

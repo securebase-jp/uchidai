@@ -1,0 +1,47 @@
+# 入口の種類（記事の入口が、どの種類の入口か）。読解の入口の段階に付け、判定で「その種類の資産だけを入口にする」ために使う
+# 手法 ID だけでは見分けられない（VPN・リモートデスクトップ・保守接続は、どれも T1133 や T1190 になる）ため。
+# 新しい種類は、ここに 1 件足すだけで、読解の選択肢と判定に効く（コードの変更は要らない）
+#
+# id：英小文字・数字・ハイフン。Case の入口の段階（entryKind）に使う
+# labelJa：画面と一枚に出す名前（「記事の入口は〇〇」）
+# roles：この種類の入口に当たる役割（roles.yaml）。会社カルテにこの役割の資産が無ければ「入口は未登録」になる
+# pinsAsset：true なら、この種類の資産を「記事が書いた入口」として記載の出所で当てる。
+#   false は、入口が絞れない種類（「正規のアカウントでログイン」だけで、ログイン先が分からない）。役割のどれを入口にしても
+#   記載とは言わず、入口の候補として並べる
+# readingHintJa：Claude が記事を読むときの分類基準
+kinds:
+  - id: vpn
+    labelJa: VPN 装置
+    roles: [entry.vpn]
+    pinsAsset: true
+    readingHintJa: VPN 機器・VPN 装置の脆弱性、設定の不備、VPN への不正ログインからの侵入
+  - id: network-device
+    labelJa: ネットワーク機器（VPN 以外）
+    roles: [entry.vpn]
+    pinsAsset: true
+    readingHintJa: UTM・ファイアウォール・ルータ・リモートアクセス機器など、VPN と書かれていない、外部に公開されたネットワーク機器からの侵入（会社カルテでは「社外から社内への入口の機器」の役割で扱う）
+  - id: rdp
+    labelJa: リモートデスクトップ
+    roles: [entry.rdp]
+    pinsAsset: true
+    readingHintJa: リモートデスクトップ（RDP）や、外部に公開された端末の遠隔操作からの侵入
+  - id: vendor
+    labelJa: 委託先・保守ベンダーの接続
+    roles: [entry.vendor_remote]
+    pinsAsset: true
+    readingHintJa: 委託先・再委託先・保守ベンダーの遠隔接続、またはその認証情報を経由した侵入
+  - id: credential
+    labelJa: 正規の認証情報（ログイン先は不明）
+    roles: [entry.vpn, entry.rdp, entry.web, cloud.mail_account.exec, cloud.mail_account.staff]
+    pinsAsset: false
+    readingHintJa: 盗まれた・使い回しの ID・パスワードで正規にログインされた、とだけ書かれ、ログイン先（VPN、リモートデスクトップ、メールなど）が書かれていないとき。ログイン先が書かれていれば、その種類にする
+  - id: mail
+    labelJa: メール（フィッシング・添付ファイル）
+    roles: [pc, cloud.mail_account.staff, cloud.mail_account.exec]
+    pinsAsset: true
+    readingHintJa: フィッシングメール、不審な添付ファイル、メールのリンクからの侵入や、メールアカウントの乗っ取り
+  - id: web
+    labelJa: 公開 Web サイト・Web アプリ
+    roles: [entry.web]
+    pinsAsset: true
+    readingHintJa: 公開 Web サイト・Web アプリケーション・EC サイトの脆弱性や管理画面からの侵入

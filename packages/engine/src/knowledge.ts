@@ -286,6 +286,22 @@ export const EntryCandidate = z.object({
     .optional(),
   noteJa: z.string().optional(),
 });
+// ---------------------------------------------------------------------------
+// 入口の種類（knowledge/entry-kinds.yaml）。記事の入口と会社カルテの入口の資産を、手法 ID でなく種類で対応づける
+// ---------------------------------------------------------------------------
+export const EntryKindDef = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/, "入口の種類は英小文字・数字・- で書く"),
+  labelJa: z.string(),
+  /** この種類の入口に当たる役割（roles.yaml）。カルテにこの役割の資産が無ければ「入口は未登録」 */
+  roles: z.array(Role).min(1),
+  /** この種類の資産を、記事が書いた入口として記載の出所で当てるか（false は入口が絞れない種類。候補として並べる） */
+  pinsAsset: z.boolean().default(true),
+  /** Claude が記事を読むときの分類基準 */
+  readingHintJa: z.string(),
+});
+export const EntryKindsFile = z.object({ kinds: z.array(EntryKindDef).min(1) });
+export type EntryKindDef = z.infer<typeof EntryKindDef>;
+
 export const EntryCandidates = z.object({
   sourceJa: z.string(),
   sourceUrl: z.string(),
@@ -472,6 +488,9 @@ export function loadIndustries(): IndustryOption[] {
 export function loadDamageTypes(): DamageTypeDef[] {
   return DamageTypesFile.parse(readYaml("damage-types.yaml")).damageTypes;
 }
+export function loadEntryKinds(): EntryKindDef[] {
+  return EntryKindsFile.parse(readYaml("entry-kinds.yaml")).kinds;
+}
 export function loadEntryCandidates(): EntryCandidates {
   return EntryCandidates.parse(readYaml("entry-candidates.yaml"));
 }
@@ -524,6 +543,8 @@ export type Knowledge = {
   /** 「現場」の選択肢と、それが足す現場の業務 */
   sites: SiteOption[];
   entryCandidates: EntryCandidates;
+  /** 入口の種類（entry-kinds.yaml） */
+  entryKinds: EntryKindDef[];
   deadlines: DeadlinesFile;
   costs: CostsFile;
 };
@@ -540,6 +561,7 @@ export function loadKnowledge(): Knowledge {
     damageTypes: loadDamageTypes(),
     sites: loadSites(),
     entryCandidates: loadEntryCandidates(),
+    entryKinds: loadEntryKinds(),
     deadlines: loadDeadlines(),
     costs: loadCosts(),
   };
@@ -624,6 +646,14 @@ export function checkKnowledge(profilePaths: string[]): string[] {
       return undefined;
     }
   };
+
+  const entryKinds = collect("entry-kinds", loadEntryKinds) ?? [];
+  for (const id of entryKinds.map((k) => k.id).filter((id, i, a) => a.indexOf(id) !== i))
+    problems.push(`entry-kinds: ${id} が重複`);
+  for (const kind of entryKinds)
+    for (const role of kind.roles)
+      if (!isKnownRole(role, roles))
+        problems.push(`entry-kinds/${kind.id}: 役割 ${role} が roles.yaml にない`);
 
   const templates = collect("templates", loadTemplates) ?? [];
   const templateIds = templates.map((t) => t.id);
@@ -947,6 +977,7 @@ export const schemaExports = {
   "pattern.schema.json": Pattern,
   "damage-types.schema.json": DamageTypesFile,
   "entry-candidates.schema.json": EntryCandidates,
+  "entry-kinds.schema.json": EntryKindsFile,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
   "sources.schema.json": SourcesFile,
