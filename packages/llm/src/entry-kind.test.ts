@@ -31,12 +31,20 @@ describe("読解のスキーマと指示文は entry-kinds.yaml から組み立�
   it("スキーマの entryKind の選択肢は YAML の種類と null", () => {
     const schema = buildRawCaseJsonSchema() as {
       properties: {
-        steps: { items: { required: string[]; properties: Record<string, { enum?: unknown[] }> } };
+        steps: {
+          items: {
+            required: string[];
+            properties: Record<string, { anyOf?: { enum?: string[]; type: string }[] }>;
+          };
+        };
       };
     };
     const items = schema.properties.steps.items;
     expect(items.required).toContain("entryKind");
-    expect(items.properties.entryKind?.enum).toEqual([...kinds.map((k) => k.id), null]);
+    expect(items.properties.entryKind?.anyOf).toEqual([
+      { type: "string", enum: kinds.map((k) => k.id) },
+      { type: "null" },
+    ]);
   });
   it("指示文に全種類の分類基準が入り、種類を足せば増える", () => {
     const text = buildRulesJa();
@@ -48,9 +56,13 @@ describe("読解のスキーマと指示文は entry-kinds.yaml から組み立�
       readingHintJa: "社内の無線 LAN からの侵入",
     });
     const schema = buildRawCaseJsonSchema(undefined, [...kinds, extra]) as {
-      properties: { steps: { items: { properties: Record<string, { enum?: unknown[] }> } } };
+      properties: {
+        steps: {
+          items: { properties: Record<string, { anyOf?: { enum?: string[]; type: string }[] }> };
+        };
+      };
     };
-    expect(schema.properties.steps.items.properties.entryKind?.enum).toContain("wifi");
+    expect(schema.properties.steps.items.properties.entryKind?.anyOf?.[0]?.enum).toContain("wifi");
     expect(buildRulesJa(undefined, [...kinds, extra])).toContain("wifi：社内の無線 LAN");
   });
 });

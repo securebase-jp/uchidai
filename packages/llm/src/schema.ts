@@ -95,8 +95,8 @@ export function buildRawCaseJsonSchema(
                 "出来事の確度。confirmed=記事が出来事として書いている、possible=可能性・おそれ・とみられる・考えられる、exposed_only=閲覧できる状態だったが第三者が取得したかは書いていない、no_trace=痕跡は確認されず・確認されていない（否定）、claimed=攻撃者の主張、not_stated=記事に書かれていない（入口の方法など）。confirmed 以外のときは source を stated にしない",
             },
             entryKind: {
-              type: ["string", "null"],
-              enum: [...entryKinds.map((k) => k.id), null],
+              // type と enum を同時に ["string","null"] で書くと API が拒否する。選択肢と null は anyOf で分ける
+              anyOf: [{ type: "string", enum: entryKinds.map((k) => k.id) }, { type: "null" }],
               description: `入口（TA0001）の段階の入口の種類（${entryKinds.map((k) => `${k.id}=${k.labelJa}`).join("、")}）。入口の方法が書かれていない・入口以外の段階は null`,
             },
             quote: {
