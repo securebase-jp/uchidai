@@ -57,6 +57,10 @@
           "reachesMoney": {
             "default": false,
             "type": "boolean"
+          },
+          "stopsOperations": {
+            "default": true,
+            "type": "boolean"
           }
         },
         "required": [
@@ -65,7 +69,8 @@
           "shortJa",
           "readingHintJa",
           "day0",
-          "reachesMoney"
+          "reachesMoney",
+          "stopsOperations"
         ],
         "additionalProperties": false
       }

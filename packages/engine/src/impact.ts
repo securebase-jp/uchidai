@@ -70,7 +70,8 @@ export function reportReasons(
 
 /**
  * 経路（または Verdict）と会社カルテから経営への影響を計算する。
- * - 業務は、依存する資産のどれかに経路が到達したら止まる（recoveryDays が 0 の業務は止まらない）
+ * - 業務は、依存する資産のどれかに経路が到達したら止まる（recoveryDays が 0 の業務は止まらない）。
+ *   ただし被害の種類が業務を止めない（stopsOperations: false。情報漏えいなど）ときは、止まる業務を空にする
  * - 停止日数は復旧日数。到達した経路に「復旧できる」段階があれば recoveryDaysWithBackup
  * - 取引先に影響が出始める日 = 手作業で回せる日数 + 1（復旧が手作業の範囲に収まればなし）
  * - 売上影響の目安 = 1 日あたりの売上 × 最長の停止日数
@@ -88,8 +89,15 @@ export function computeImpact(
   const deadlines = options.deadlines ?? options.knowledge?.deadlines ?? loadDeadlines();
   const damageType = options.damageType ?? damageTypeOf(paths, options.knowledge);
 
+  // 業務が止まるかは被害の種類が決める（knowledge/damage-types.yaml の stopsOperations）。
+  // 暗号化は止まるが、情報漏えいは経路がサーバに届いても業務は止まらない。宣言が無い種類・種類が分からないときは止まる
+  const damageTypeDefs = options.knowledge?.damageTypes ?? loadKnowledge().damageTypes;
+  const stopsOperations = damageTypeDefs.find((d) => d.id === damageType)?.stopsOperations ?? true;
+
   const stopped = profile.businesses
-    .filter((b) => b.recoveryDays > 0 && b.assetIds.some((id) => reached.has(id)))
+    .filter(
+      (b) => stopsOperations && b.recoveryDays > 0 && b.assetIds.some((id) => reached.has(id)),
+    )
     .map((b) => {
       const days =
         recoverable && b.recoveryDaysWithBackup !== undefined
@@ -112,10 +120,9 @@ export function computeImpact(
   const personalDataReached = profile.personalData.filter((p) => reached.has(p.assetId));
   const reasons = reportReasons(personalDataReached, deadlines);
 
-  const damageTypes = options.knowledge?.damageTypes ?? loadKnowledge().damageTypes;
   const moneyReached =
     reachedPaths.length > 0 &&
-    (damageTypes.find((d) => d.id === damageType)?.reachesMoney === true ||
+    (damageTypeDefs.find((d) => d.id === damageType)?.reachesMoney === true ||
       reachedPaths.some((p) =>
         p.steps.some((s) => s.role === "impact.money" && s.state !== "blocked"),
       ));

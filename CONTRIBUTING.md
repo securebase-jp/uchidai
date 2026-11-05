@@ -42,7 +42,7 @@ examples/demo-seiko.json                    架空の会社のカルテ（検証
 
 「ランサムウェア」「なりすまし送金（bec）」「メールアカウントの乗っ取り（account_takeover）」「情報漏えい」のほかに、新しい種類の攻撃を足す手順。**YAML だけで足せる**。足したものは、記事の読解（分類の選択肢と基準）、型紙の選択、判定、時間軸、検証にそのまま効く。動く例は `packages/engine/src/extension.test.ts`（架空の攻撃「会計クラウドの乗っ取り」を足して判定まで通している）と、実際に足した `account_takeover`（`packages/engine/src/account-takeover.test.ts`。型紙・ルール・役割 `cloud.mail_account.staff`・対策・期限・5 問のカルテへの資産の追加まで）。
 
-1. **被害の種類を定義する**（`damage-types.yaml`）。`id`（英小文字・数字・`_`）、画面の名前（`labelJa`）、Claude への出力指示で使う短い言い方（`shortJa`）、記事の分類基準（`readingHintJa`。ほかの種類との境目が分かるように書く）、時間軸の最初の出来事（`day0`）。送金額の目安を出す種類は `reachesMoney: true`。`out_of_scope`（攻撃経路で判定できない事故）は組み込みなので書かない
+1. **被害の種類を定義する**（`damage-types.yaml`）。`id`（英小文字・数字・`_`）、画面の名前（`labelJa`）、Claude への出力指示で使う短い言い方（`shortJa`）、記事の分類基準（`readingHintJa`。ほかの種類との境目が分かるように書く）、時間軸の最初の出来事（`day0`）。送金額の目安を出す種類は `reachesMoney: true`。経路が届いても業務が止まらない種類（情報漏えいなど）は `stopsOperations: false`（止まる業務・復旧日数・売上影響を出さない。省略すると止まる扱い。false の種類の `day0.kind` を `business_stop` にすると `knowledge:check` が止める）。`out_of_scope`（攻撃経路で判定できない事故）は組み込みなので書かない
 2. **役割を足す**（必要なときだけ。`roles.yaml`）。新しい入口や中継が要るとき。`links` に「この役割から通信で届く役割」を、`attrs` に判定ルールが見る属性（型と意味）を書く。攻撃者が最初に届く役割は `attacker` の `links` に足す。型紙の次の段階や AI攻撃者の経路は、`links` でつながった役割の間でだけ組み立てられる
 3. **型紙を書く**（`templates/<id>.yaml`、次項）。`damageType` は手順 1 の `id`
 4. **判定ルールを書く**（`rules/<id>.yaml`、その次の項）。型紙の全段階（役割 × 典型手法）に要る

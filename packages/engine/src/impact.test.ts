@@ -203,6 +203,85 @@ describe("事例2（情報漏えい）の経営への影響", () => {
   });
 });
 
+describe("被害の種類ごとに「業務が止まるか」を決める（stopsOperations。TRIAL-D-001）", () => {
+  // VPN 装置の脆弱性から入り、データを持ち出す（情報漏えい）。ランサムウェアと同じ入口・同じ到達資産
+  const breachViaVpn: Case = {
+    title: "VPN の脆弱性から侵入され、顧客情報が持ち出された",
+    damageType: "data_breach",
+    clarity: "partial",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0001", techniques: ["T1190"], source: "stated", quote: "VPN装置の脆弱性" },
+      { tactic: "TA0010", techniques: ["T1041"], source: "stated", quote: "情報が外部に送信" },
+    ],
+  };
+
+  it("情報漏えいは、経路が生産管理に届いても止まる業務・復旧日数・売上影響が空になり、報告義務は残る", () => {
+    const v = evaluate(breachViaVpn, demo, { knowledge });
+    expect(v.result).toBe("breached");
+    expect(v.impact.stopped).toEqual([]);
+    expect(v.impact.downtimeDays).toBe(0);
+    expect(v.impact.revenueImpactJpy).toBeUndefined();
+    expect(v.impact.partnerImpactDay).toBeUndefined();
+    expect(v.impact.personalDataReached.length).toBeGreaterThan(0);
+    expect(v.impact.reportRequired).toBe(true);
+    const t = v.timeline;
+    expect(t[0]).toMatchObject({ day: 0, kind: "legal" });
+    expect(t.some((e) => e.kind === "business_stop" || e.kind === "recovery")).toBe(false);
+    expect(byDeadline(t, "ppc-final")?.day).toBe(60);
+    expect(byDeadline(t, "ppc-notify")).toBeDefined();
+    expect(byDeadline(t, "police")?.day).toBe(1);
+  });
+  it("同じ入口でも、ランサムウェアなら従来どおり止まる（受注・生産管理、10 日、1 億円）", () => {
+    const v = evaluate(case1, demo, { knowledge });
+    expect(v.impact.stopped.map((s) => s.businessId)).toEqual(["biz-order"]);
+    expect(v.impact.downtimeDays).toBe(10);
+    expect(v.impact.revenueImpactJpy).toBe(100_000_000);
+  });
+  it("一枚は、止まる業務が空のとき止まる業務の文を書かず、報告義務の文は書く", () => {
+    const v = evaluate(breachViaVpn, demo, { knowledge });
+    const op = buildOnePager(v, demo, knowledge);
+    expect(op.stopped).toEqual([]);
+    expect(op.revenueImpactJa).toBeUndefined();
+    expect(op.whatHappensJa.join("")).not.toContain("止まり、復旧まで");
+    expect(op.whatHappensJa.join("")).toContain("個人情報保護委員会への報告");
+  });
+  it("定義の無い種類・種類が分からないときは、従来どおり止まる", () => {
+    const paths = evaluate(case1, demo, { knowledge }).paths;
+    // 種類を渡さず、型紙も引けない経路（templateId なし）
+    const bare = paths.map(({ templateId: _t, ...p }) => p);
+    expect(computeImpact(bare, demo, { knowledge }).stopped.length).toBeGreaterThan(0);
+    // 知識ファイルに無い種類
+    expect(
+      computeImpact(paths, demo, { knowledge, damageType: "new_kind_of_attack" }).stopped.length,
+    ).toBeGreaterThan(0);
+  });
+  it("stopsOperations を宣言すれば、新しい種類も同じ扱いになる（コードは変えない）", () => {
+    const paths = evaluate(case1, demo, { knowledge }).paths;
+    const extended: Knowledge = {
+      ...knowledge,
+      damageTypes: [
+        ...knowledge.damageTypes,
+        { ...knowledge.damageTypes[0]!, id: "quiet_theft", stopsOperations: false },
+        { ...knowledge.damageTypes[0]!, id: "loud_outage" },
+      ],
+    };
+    expect(
+      computeImpact(paths, demo, { knowledge: extended, damageType: "quiet_theft" }).stopped,
+    ).toEqual([]);
+    expect(
+      computeImpact(paths, demo, { knowledge: extended, damageType: "loud_outage" }).stopped.length,
+    ).toBeGreaterThan(0);
+  });
+  it("知識ファイルの宣言：ransomware だけが止まる。省略時は止まる", () => {
+    const flag = (id: string) => knowledge.damageTypes.find((d) => d.id === id)?.stopsOperations;
+    expect(flag("ransomware")).toBe(true);
+    expect(flag("data_breach")).toBe(false);
+    expect(flag("account_takeover")).toBe(false);
+    expect(flag("bec")).toBe(false);
+  });
+});
+
 describe("業種による違い：医療・福祉", () => {
   it("電子カルテの病歴（要配慮個人情報）に到達すると、件数にかかわらず報告対象と時間軸に出る", () => {
     const p = profileFromAnswers(

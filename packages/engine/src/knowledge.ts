@@ -187,6 +187,12 @@ export const DamageTypeDef = z.object({
   }),
   /** 到達すると送金額の目安を出す種類（なりすまし送金など） */
   reachesMoney: z.boolean().default(false),
+  /**
+   * 経路が資産に届いたとき、その資産に依存する業務が止まる種類か。
+   * 止まらない種類（情報漏えい、乗っ取り、送金詐欺）は、止まる業務・復旧日数・売上影響を空にする。
+   * 宣言が無い種類は従来どおり止まる（true）。省略時の true は、新しい種類を足したときの安全側
+   */
+  stopsOperations: z.boolean().default(true),
 });
 export const DamageTypesFile = z.object({ damageTypes: z.array(DamageTypeDef).min(1) });
 export type DamageTypeDef = z.infer<typeof DamageTypeDef>;
@@ -628,6 +634,13 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   const damageTypeIds = new Set(damageTypes.map((d) => d.id));
   for (const id of damageTypes.map((d) => d.id).filter((id, i, a) => a.indexOf(id) !== i))
     problems.push(`damage-types: ${id} が重複`);
+  for (const d of damageTypes) {
+    // 業務が止まらない種類が、時間軸の最初に「業務が止まる」を置くと、画面が食い違う
+    if (!d.stopsOperations && d.day0.kind === "business_stop")
+      problems.push(
+        `damage-types/${d.id}: stopsOperations が false なのに day0.kind が business_stop（止まらない種類は別の出来事から始める）`,
+      );
+  }
   for (const dt of damageTypeIds)
     if (!templates.some((t) => t.damageType === dt))
       problems.push(`templates: 被害の種類 ${dt} の型紙がない`);
