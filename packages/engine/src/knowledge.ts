@@ -117,6 +117,11 @@ export const Rule = z.object({
   role: Role,
   /** 空なら、その役割の既定ルール（手法を問わない） */
   techniques: z.array(TechniqueId),
+  /**
+   * 型紙の段階 ID に限るルール。同じ役割・同じ手法でも、型紙の段階によって判定の中身が違うとき（公開ホームページの
+   * 管理画面へのログインと、顧客向けサービスへの不正ログインなど）に使う。省略すると、どの段階にも当たる（従来どおり）
+   */
+  stages: z.array(z.string()).optional(),
   materialsJa: z.string(),
   mitigations: z.array(MitigationId),
   ineffective: z
@@ -179,6 +184,12 @@ export const Template = z.object({
   descriptionJa: z.string(),
   /** 同じ被害の型の型紙で、記事の段階の対応づけが同数のときに優先する順（大きいほど優先。既定 0） */
   priority: z.number().int().default(0),
+  /**
+   * 記事の入口の種類（entry-kinds.yaml の id）がこのどれかで記載のとき、型紙の当てはまりが同数なら優先する。
+   * 入口の種類が「正規の認証情報」「公開 Web サイト」のとき、社内への侵入の型紙より顧客向けサービスの型紙を先にする、など。
+   * 当てはまりの数は変えない（同数のときの順序だけ）。省略すると何もしない
+   */
+  preferEntryKinds: z.array(z.string()).default([]),
   stages: z.array(TemplateStage).min(1),
 });
 export type Template = z.infer<typeof Template>;
@@ -793,6 +804,10 @@ export function checkKnowledge(profilePaths: string[]): string[] {
       problems.push(
         `templates/${t.id}: 被害の種類 ${t.damageType} が damage-types.yaml にない（先に定義する）`,
       );
+  for (const t of templates)
+    for (const kind of t.preferEntryKinds)
+      if (!entryKinds.some((k) => k.id === kind))
+        problems.push(`templates/${t.id}: preferEntryKinds の ${kind} は entry-kinds.yaml にない`);
   for (const t of templates) {
     if (t.stages.filter((s) => s.entry).length !== 1)
       problems.push(`templates/${t.id}: 入口（entry）の段階はちょうど 1 つにする`);
@@ -842,6 +857,11 @@ export function checkKnowledge(profilePaths: string[]): string[] {
             `rules: 型紙 ${t.id} の段階 ${s.id}（${role} × ${tech ?? "手法なし"}）に判定ルールがない`,
           );
   for (const r of rules) {
+    for (const stageId of r.stages ?? [])
+      if (!templates.some((t) => t.stages.some((s) => s.id === stageId && r.role in s.byRole)))
+        problems.push(
+          `rules/${r.id}: stages の ${stageId} は、役割 ${r.role} を持つ型紙の段階にない`,
+        );
     const last = r.outcomes[r.outcomes.length - 1];
     if (last?.when) problems.push(`rules/${r.id}: 最後の outcome は条件なし（既定値）にする`);
     // 止まる状態（blocked、recoverable、human）は確定した対策か属性を条件にする。評価関数も未確認に落とすが、ルールの書き方で守る

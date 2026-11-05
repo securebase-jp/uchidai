@@ -21,6 +21,13 @@
       "minimum": -9007199254740991,
       "maximum": 9007199254740991
     },
+    "preferEntryKinds": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "stages": {
       "minItems": 1,
       "type": "array",
@@ -147,6 +154,7 @@
     "labelJa",
     "descriptionJa",
     "priority",
+    "preferEntryKinds",
     "stages"
   ],
   "additionalProperties": false

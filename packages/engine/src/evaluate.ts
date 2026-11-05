@@ -213,7 +213,7 @@ function evaluateStageNode(
     ...(stage.branch ? { branch: true } : {}),
     ...(matched?.quote ? { quote: matched.quote } : {}),
   };
-  const rule = findRule(knowledge.rules, node.role, technique);
+  const rule = findRule(knowledge.rules, node.role, technique, stage.id);
   if (!rule) {
     return {
       ...base,
@@ -339,6 +339,8 @@ export function rankTemplates(theCase: Case, knowledge: Knowledge): TemplateMatc
         .filter((t): t is string => t !== undefined),
     ),
   );
+  // 記事の入口の種類（入口が記載されているときだけ）。型紙の preferEntryKinds に含まれる型紙を、同数のとき先にする
+  const entryKind = theCase.steps.find((s) => s.entryKind && s.source !== "unknown")?.entryKind;
   const ranked = knowledge.templates
     .map((template, index) => {
       const accepted = new Set(
@@ -354,6 +356,7 @@ export function rankTemplates(theCase: Case, knowledge: Knowledge): TemplateMatc
         stageMatches: [...matched.values()].filter((m) => m.technique !== undefined).length,
         techniqueMatches: [...canon].filter((t) => accepted.has(t) || accepted.has(parentOf(t)))
           .length,
+        kindPreferred: entryKind !== undefined && template.preferEntryKinds.includes(entryKind),
         index,
       };
     })
@@ -362,10 +365,11 @@ export function rankTemplates(theCase: Case, knowledge: Knowledge): TemplateMatc
       (a, b) =>
         b.stageMatches - a.stageMatches ||
         b.techniqueMatches - a.techniqueMatches ||
+        Number(b.kindPreferred) - Number(a.kindPreferred) ||
         b.template.priority - a.template.priority ||
         a.index - b.index,
     );
-  return ranked.map(({ index: _index, ...m }) => m);
+  return ranked.map(({ index: _index, kindPreferred: _kindPreferred, ...m }) => m);
 }
 
 /**
