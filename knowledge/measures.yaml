@@ -159,7 +159,7 @@ measures:
         status: present
     requestToJa: 情シス担当者
   - id: web-update
-    labelJa: ホームページの CMS・追加機能を更新する
+    labelJa: ホームページの CMS・追加機能・PHP の版を更新する
     mitigation: M1051
     patches:
       - role: entry.web
