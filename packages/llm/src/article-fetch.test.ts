@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertAllowedUrl,
   decodeHtml,
+  detectThinBody,
   downloadBytes,
   extractPdfPages,
   fetchArticle,
@@ -293,5 +294,42 @@ describe("fetchArticle(url) は記事の続きのページを辿る", () => {
     );
     expect(a.htmlPages).toBe(1);
     expect(a.text).toContain("業務データが暗号化された");
+  });
+});
+
+describe("本文がほとんど取れていない HTML（TRIAL-I-002）", () => {
+  const fetchOf = (body: string) =>
+    fakeFetch({ "https://example.com/n": () => html(`<html><body>${body}</body></html>`) });
+  it("著作権表示の 1 行だけなら too_short と consent_only", async () => {
+    const a = await fetchArticle(
+      { kind: "url", url: "https://example.com/n" },
+      {
+        fetch: fetchOf("<p>Copyright (C) EXAMPLE HOLDINGS Co., Ltd. All Rights Reserved.</p>"),
+        lookup: publicLookup,
+      },
+    );
+    expect(a.incomplete).toContain("too_short");
+    expect(a.incomplete).toContain("consent_only");
+  });
+  it("200〜400 字の同意文だけなら consent_only（too_short ではない）", () => {
+    const text = `クッキーの使用に同意いただける場合は「同意」ボタンをクリックしてください。${"サイトの利用にあたっては、クッキーに関する設定をご確認ください。".repeat(6)}`;
+    expect(detectThinBody(text)).toEqual(["consent_only"]);
+  });
+  it("事故の公表らしい語がある短い本文は consent_only にしない", () => {
+    expect(detectThinBody("当社サーバへの不正アクセスについて。クッキーの同意はこちら。")).toEqual([
+      "too_short",
+    ]);
+  });
+  it("十分な長さの本文には何も付かない", async () => {
+    const a = await fetchArticle(
+      { kind: "url", url: "https://example.com/n" },
+      {
+        fetch: fetchOf(
+          `<div><p>${"当社のサーバにVPN装置の脆弱性を突いた不正アクセスがありました。".repeat(8)}</p></div>`,
+        ),
+        lookup: publicLookup,
+      },
+    );
+    expect(a.incomplete).toBeUndefined();
   });
 });

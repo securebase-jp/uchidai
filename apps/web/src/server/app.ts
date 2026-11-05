@@ -28,7 +28,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
-import { loadArticle } from "./article-source.ts";
+import { isThinReading, loadArticle, thinBodyError } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { patchProfile } from "./profile-patch.ts";
@@ -259,6 +259,9 @@ app.post("/api/case/read", async (c) => {
   const allowed = templateTechniques(k.templates, read.value.damageType);
   if (allowed.size > 0) verifyOpts.allowedTechniques = allowed;
   const verified = verifyCase(read.raw, article.text, k.attack, verifyOpts);
+  // 保険（TRIAL-I-002）：短い本文を読んで「対象外・段階なし」になったときは、判定した顔をせず、取り直す案内にする。貼り付けの短い文は対象外
+  if (input.kind !== "text" && isThinReading(verified.case, article.text.length))
+    throw thinBodyError(article.text.replace(/\s+/g, "").length);
   return c.json({
     case: verified.case,
     report: verified.report,
