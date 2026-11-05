@@ -34,9 +34,10 @@
 ### C3　情報漏えいで「止まる業務・売上影響」が出る（高 1）
 
 - 課題：D-001（高）
-- 直し方：被害の種類ごとに「業務が止まるか」を宣言する（`damage-types.yaml` に `stopsOperations`）。情報漏えいは止まる業務なし・売上影響なしにする。
-- 触る所：`packages/engine/src/impact.ts`、`knowledge/damage-types.yaml`
-- C1 とファイルが重ならないので、C1 と並行で進められる。
+- **状態：修正済み（2026-11-05）**。`damage-types.yaml` に `stopsOperations` を足し（ransomware だけ true、data_breach・account_takeover・bec は false、省略時は true）、`computeImpact` が false の種類で止まる業務・復旧日数・売上影響・取引先への影響日を空にする。報告義務・期限・送金額は残る。計器（「業務停止 なし」）と再生の動き（業務の層に連鎖しない）も合わせた。
+- 再試験（agc、montbell、nagasaki-manabie。同じ読解で前後を比較）：デモ精工「受注・生産管理と設計、10 日、約 1 億円」→ なし、5 問のカルテ「受注、在庫・発注、出荷・配送、7 日」→ なし。報告義務と期限は変わらず。ランサムウェアの事例 1 は変化なし。詳細は `breach.md` の「TRIAL-D-001 の修正と再試験」。
+- 残り：取引先との契約上の通知（`partner-notice`）が、止まる業務の無い情報漏えいでは時間軸に出ない。5 問のカルテの一枚（テンプレート文）は「止まる業務なし」と明示しない（C1 の担当）。
+- 触った所：`packages/engine/src/impact.ts`、`knowledge.ts`、`knowledge/damage-types.yaml`、`apps/web` の `Meters.tsx`、`playback.ts`。
 
 ### C4　第三者に起きた被害を、自社のものとして書く（中 5）
 
