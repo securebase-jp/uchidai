@@ -102,6 +102,11 @@ export const Case = z.object({
    * 検証（verify.ts）が本文から決める。Claude の出力は使わない。第一報と合わせて読むよう案内する（TRIAL-I-005）
    */
   needsPrevious: z.boolean().optional(),
+  /**
+   * 事故の報告ではなく、脆弱性への対応（予防的な停止、修正の適用、影響なしの知らせ）のお知らせ（読解が out_of_scope で段階が 0）。
+   * 検証（verify.ts）が本文から決める。Claude の出力は使わない。「事故」「被害」の言い方をしない固定文で答える（TRIAL-P-002）
+   */
+  notAnIncident: z.boolean().optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -408,6 +413,8 @@ export const Verdict = z.object({
   headlineJa: z.string(),
   /** 続報で種類が分からず、第一報と合わせて読む必要がある対象外（Case.needsPrevious。TRIAL-I-005） */
   needsPrevious: z.boolean().optional(),
+  /** 事故の報告ではなく、脆弱性への対応のお知らせの対象外（Case.notAnIncident。TRIAL-P-002） */
+  notAnIncident: z.boolean().optional(),
   /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
   templateId: z.string().optional(),
   templateLabelJa: z.string().optional(),

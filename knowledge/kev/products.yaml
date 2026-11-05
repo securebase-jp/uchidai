@@ -495,3 +495,57 @@ products:
     unverified:
       - cve: CVE-2021-26855
         noteJa: 修正は CU ごとのセキュリティ更新で入るため、ビルド番号の範囲表はこの表では未確認
+
+  # PHP 本体（2026-10 の PHP2Shell）。公開 Web サイトを動かしているサーバー（レンタルサーバーの PHP の版の選択を含む）の入口に付ける。
+  # 範囲は php.net の告知（2026-10-21）と JPCERT/CC の注意喚起 JPCERT-AT-2026-0033 で確認した 8.2〜8.5 の 4 系統。
+  # 別名は「php」だけにしない：phpMyAdmin や PHPMailer など、名前に php を含む別の製品に当たってしまうため、版の頭（php8 など）と構成名で当てる
+  - id: php-core
+    labelJa: PHP 本体（Web サイトを動かす PHP）
+    aliases:
+      - php本体
+      - php8
+      - php7
+      - php5
+      - php-fpm
+      - mod_php
+      - php-cgi
+      - ピーエイチピー
+    kev:
+      - vendorProject: PHP Group
+        productPattern: "^PHP$"
+      - vendorProject: PHP
+        productPattern: "^(PHP$|FastCGI Process Manager)"
+    versionScheme: dotted
+    versionHintJa: "例：8.4.26（サーバーで php -v を実行したときの版。レンタルサーバーなら管理画面で選んでいる PHP の版）"
+    ranges:
+      - cve: CVE-2026-109618
+        authBypass: true
+        kindJa: メモリ不足（OOM）の処理に起因するメモリ破壊（認証前に任意コード実行）
+        affected:
+          - { from: "8.2.0", below: "8.2.35" }
+          - { from: "8.3.0", below: "8.3.36" }
+          - { from: "8.4.0", below: "8.4.27" }
+          - { from: "8.5.0", below: "8.5.12" }
+        fixedJa: 8.2.35、8.3.36、8.4.27、8.5.12 以上
+        sourceUrl: https://www.php.net/archive/2026.php#2026-10-21-5
+        checkedAt: "2026-11-05"
+        noteJa: PHP 8.1 以前は公式の修正版が出ておらず（php.net は 7.4・8.0・8.1 に最小限のソース向けの移植だけを提供）、この表では「未確認」になります。ディストリビューションや提供元が修正を移植した版は、版番号が上流のままのことがあるので、提供元の公開情報で確かめてください。mod_php（Apache）が最も危険とされています
+      - cve: CVE-2026-109619
+        authBypass: true
+        kindJa: リクエスト処理後に残った古い内部状態の再利用（認証前に任意コード実行）
+        affected:
+          - { from: "8.2.0", below: "8.2.35" }
+          - { from: "8.3.0", below: "8.3.36" }
+          - { from: "8.4.0", below: "8.4.27" }
+          - { from: "8.5.0", below: "8.5.12" }
+        fixedJa: 8.2.35、8.3.36、8.4.27、8.5.12 以上
+        sourceUrl: https://www.php.net/archive/2026.php#2026-10-21-5
+        checkedAt: "2026-11-05"
+        noteJa: 同じ 4 系統が対象。更新できないときの暫定策（session.upload_progress.enabled の無効化など）は侵入を完全には止めないと php.net が明記しています
+    unverified:
+      - cve: CVE-2024-4577
+        noteJa: Windows 上の PHP-CGI の構成だけが対象で、版の範囲はこの表では未確認
+      - cve: CVE-2019-11043
+        noteJa: PHP-FPM と Nginx の特定の設定の組み合わせだけが対象で、版の範囲はこの表では未確認
+      - cve: CVE-2012-1823
+        noteJa: 古い CGI 構成の脆弱性で、版の範囲はこの表では未確認

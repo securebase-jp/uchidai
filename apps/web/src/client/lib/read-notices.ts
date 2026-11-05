@@ -3,6 +3,7 @@
  * 判定には関わらない。読解の結果をどう受け取ればよいかだけを伝える。
  *  - 攻撃の記事ではないと判断したとき（out_of_scope で段階が 0）：警告ではなく、そのとおりに伝える（TRIAL-S-009）
  *  - 続報で、この文書だけでは種類が分からないとき（needsPrevious）：第一報と合わせて読むよう伝える（TRIAL-I-005）
+ *  - 事故の報告ではなく、脆弱性への対応（予防的な停止、修正の適用）のお知らせのとき（notAnIncident）：そのとおりに伝える（TRIAL-P-002）
  *  - 本文が途中で切れていそうなとき：本文を貼れば読めると案内する（TRIAL-B-012）
  */
 import type { Case } from "./types.ts";
@@ -11,7 +12,7 @@ import type { Case } from "./types.ts";
 export type ReadFlag = "incomplete" | "truncated";
 
 export type ReadNotice = {
-  id: "out_of_scope" | "needs_previous" | ReadFlag;
+  id: "out_of_scope" | "needs_previous" | "not_an_incident" | ReadFlag;
   /** info：そのとおりの報告、warn：確かめてほしいこと */
   tone: "info" | "warn";
   textJa: string;
@@ -28,7 +29,7 @@ export function readFlagsOf(article: { incomplete?: string[]; truncated?: boolea
 }
 
 export function readNotices(
-  theCase: Pick<Case, "damageType" | "steps" | "needsPrevious">,
+  theCase: Pick<Case, "damageType" | "steps" | "needsPrevious" | "notAnIncident">,
   flags: readonly ReadFlag[] = [],
 ): ReadNotice[] {
   const out: ReadNotice[] = [];
@@ -37,6 +38,12 @@ export function readNotices(
       id: "needs_previous",
       tone: "warn",
       textJa: "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください",
+    });
+  else if (theCase.damageType === "out_of_scope" && theCase.notAnIncident)
+    out.push({
+      id: "not_an_incident",
+      tone: "info",
+      textJa: "事故の報告ではなく、脆弱性への対応のお知らせと判断しました",
     });
   else if (theCase.damageType === "out_of_scope" && theCase.steps.length === 0)
     out.push({

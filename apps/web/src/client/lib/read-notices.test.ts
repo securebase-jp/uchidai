@@ -20,6 +20,16 @@ describe("readNotices（読解の確認の文）", () => {
       },
     ]);
   });
+  it("事故の報告ではなく脆弱性への対応のお知らせ（notAnIncident）は、「攻撃の記事ではない」ではなく、そのとおりに伝える", () => {
+    const n = readNotices({ damageType: "out_of_scope", steps: [], notAnIncident: true });
+    expect(n).toEqual([
+      {
+        id: "not_an_incident",
+        tone: "info",
+        textJa: "事故の報告ではなく、脆弱性への対応のお知らせと判断しました",
+      },
+    ]);
+  });
   it("攻撃の記事で段階があれば何も出さない。段階が 0 でも out_of_scope でなければ出さない（読めなかった警告は API 側）", () => {
     expect(readNotices({ damageType: "ransomware", steps: [step] })).toEqual([]);
     expect(readNotices({ damageType: "ransomware", steps: [] })).toEqual([]);

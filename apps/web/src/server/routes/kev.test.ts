@@ -245,6 +245,57 @@ describe("POST /api/kev/match", () => {
     expect(body.applied.contradictions).toHaveLength(1);
     expect(body.applied.contradictions[0].registered).toBe("ベンダー回答：該当");
   });
+  it("公開ホームページの PHP（PHP2Shell。8.4.26）は CVE-2026-109618・109619 に該当し、8.4.27 は該当しない", async () => {
+    const phpEntry = (cveID: string) => ({
+      cveID,
+      vendorProject: "PHP Group",
+      product: "PHP",
+      vulnerabilityName: `PHP ${cveID}`,
+      dateAdded: "2026-10-26",
+      shortDescription: "…",
+      requiredAction: "Apply mitigations in accordance with vendor instructions.",
+      dueDate: "2026-10-29",
+      knownRansomwareCampaignUse: "Unknown",
+      notes: "",
+    });
+    const php = {
+      ...catalog("2026.11.04"),
+      count: 2,
+      vulnerabilities: [phpEntry("CVE-2026-109618"), phpEntry("CVE-2026-109619")],
+    };
+    const { post } = build({
+      respond: () => jsonResponse(php),
+      now: () => new Date("2026-11-05T01:00:00Z"),
+    });
+    await post("/api/kev/refresh");
+    const product = "PHP 本体（Web サイトを動かす PHP）";
+    const hit = await loose(
+      post("/api/kev/match", {
+        profile: await demoProfile(),
+        assetId: "campaign-site",
+        product,
+        version: "8.4.26",
+      }),
+    );
+    expect(hit.match.product.id).toBe("php-core");
+    expect(hit.match.versionStatus).toBe("affected");
+    expect(hit.match.matched.map((m: { cve: string }) => m.cve)).toEqual([
+      "CVE-2026-109618",
+      "CVE-2026-109619",
+    ]);
+    const web = hit.applied.profile.assets.find((a: { id: string }) => a.id === "campaign-site");
+    expect(web.attrs).toMatchObject({ knownExploited: true, authBypass: true });
+    expect(web.attrEvidence.knownExploited).toBe("external");
+    const fixed = await loose(
+      post("/api/kev/match", {
+        profile: await demoProfile(),
+        assetId: "campaign-site",
+        product,
+        version: "8.4.27",
+      }),
+    );
+    expect(fixed.match.versionStatus).toBe("not_affected");
+  });
   it("版が空なら未確認で、カルテは変えない（版は消す）", async () => {
     const { post } = build();
     await post("/api/kev/refresh");

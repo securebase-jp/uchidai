@@ -324,3 +324,94 @@ describe("applyKev（カルテへの反映と矛盾）", () => {
     expect(vpn?.attrEvidence.authBypass).toBe("vendor");
   });
 });
+
+describe("PHP 本体（PHP2Shell。CVE-2026-109618・CVE-2026-109619）", () => {
+  const phpCatalog: KevCatalog = {
+    title: "CISA Catalog of Known Exploited Vulnerabilities",
+    catalogVersion: "2026.11.04",
+    dateReleased: "2026-11-04T20:00:05.774Z",
+    count: 6,
+    vulnerabilities: [
+      entry("CVE-2026-109618", "PHP Group", "PHP", "2026-10-26"),
+      entry("CVE-2026-109619", "PHP Group", "PHP", "2026-10-26"),
+      entry("CVE-2024-4577", "PHP Group", "PHP", "2024-06-12", "Known"),
+      entry("CVE-2019-11043", "PHP", "FastCGI Process Manager (FPM)", "2022-03-25", "Known"),
+      entry("CVE-2012-1823", "PHP", "PHP", "2022-03-25"),
+      // PHP の名前を含むが別の製品
+      entry("CVE-2016-10033", "PHP", "PHPMailer", "2025-07-07"),
+      entry("CVE-2009-1151", "phpMyAdmin", "phpMyAdmin", "2022-03-25"),
+    ],
+  };
+  const asset = (product: string, version: string) => ({ product, version });
+
+  it("php の名前を含む別の製品（phpMyAdmin、PHPMailer）には当てない。版つきの PHP と構成名には当てる", () => {
+    for (const text of ["phpMyAdmin 5.2.1", "PHPMailer 6.9", "WordPress 6.8"])
+      expect(matchProduct(text, table)?.id, text).toBeUndefined();
+    for (const text of [
+      "PHP 8.4.26",
+      "php8.3",
+      "ＰＨＰ ８．２",
+      "PHP 7.4.33",
+      "mod_php",
+      "PHP-FPM",
+      "PHP 本体（Web サイトを動かす PHP）",
+    ])
+      expect(matchProduct(text, table)?.id, text).toBe("php-core");
+  });
+
+  it("KEV から PHP 本体の項目だけを拾う（PHPMailer と phpMyAdmin は拾わない）", () => {
+    const php = table.products.find((p) => p.id === "php-core");
+    if (!php) throw new Error("php-core が無い");
+    expect(kevEntriesFor(php, phpCatalog).map((e) => e.cveID)).toEqual([
+      "CVE-2026-109618",
+      "CVE-2026-109619",
+      "CVE-2024-4577",
+      "CVE-2019-11043",
+      "CVE-2012-1823",
+    ]);
+  });
+
+  it("4 系統の境界：修正版の直前は該当、修正版は該当しない", () => {
+    const status = (v: string) => matchKev(asset("PHP 本体", v), phpCatalog, table).versionStatus;
+    expect(status("8.2.34")).toBe("affected");
+    expect(status("8.2.35")).toBe("not_affected");
+    expect(status("8.3.35")).toBe("affected");
+    expect(status("8.3.36")).toBe("not_affected");
+    expect(status("8.4.26")).toBe("affected");
+    expect(status("8.4.27")).toBe("not_affected");
+    expect(status("8.5.11")).toBe("affected");
+    expect(status("8.5.12")).toBe("not_affected");
+    expect(status("9.0.0")).toBe("not_affected");
+  });
+
+  it("両方の CVE が該当し、認証回避（多要素認証では止まらない）として反映される", () => {
+    const m = matchKev(asset("PHP 8.4.26", "8.4.26"), phpCatalog, table);
+    expect(m.matched.map((x) => x.cve)).toEqual(["CVE-2026-109618", "CVE-2026-109619"]);
+    expect(m.matched.every((x) => x.authBypass === true && x.entry !== undefined)).toBe(true);
+    const next = applyKev(demo, "vpn", m, "2026-11-05T00:00:00Z").profile;
+    const vpn = next.assets.find((a) => a.id === "vpn");
+    expect(vpn?.attrs.knownExploited).toBe(true);
+    expect(vpn?.attrs.kevCves).toBe("CVE-2026-109618,CVE-2026-109619");
+  });
+
+  it("ディストリビューションの版表記（8.4.26-1+deb13u1）でも先頭の版で比べる", () => {
+    const m = matchKev(asset("PHP 本体", "8.4.26-1+deb13u1"), phpCatalog, table);
+    expect(m.versionStatus).toBe("affected");
+    expect(matchKev(asset("PHP 本体", "8.4.27-1"), phpCatalog, table).versionStatus).toBe(
+      "not_affected",
+    );
+  });
+
+  it("修正版が出ていない 8.1 以前は「該当しない」にしない（未確認）。KEV の他の項目は範囲未確認として残す", () => {
+    const old = matchKev(asset("PHP 本体", "8.1.31"), phpCatalog, table);
+    expect(old.versionStatus).toBe("unknown");
+    expect(old.reasonJa).toContain("8.2.0");
+    const fixed = matchKev(asset("PHP 本体", "8.4.27"), phpCatalog, table);
+    expect(fixed.unverified.map((u) => u.cve)).toEqual([
+      "CVE-2024-4577",
+      "CVE-2019-11043",
+      "CVE-2012-1823",
+    ]);
+    expect(fixed.cleared).toEqual(["CVE-2026-109618", "CVE-2026-109619"]);
+  });
+});
