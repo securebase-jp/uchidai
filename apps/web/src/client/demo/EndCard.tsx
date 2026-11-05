@@ -21,6 +21,8 @@ const CLAUDE_USES: { verb: string; what: string; at: number }[] = [
   { verb: "書く", what: "ベンダーへのメール、社長の一枚", at: 2.2 },
   { verb: "比べる", what: "知見のない AI の答えと並べる", at: 3.0 },
 ];
+/** 使い道を 1 つずつ大きく出し終えて、3 つの箱の図に移る時刻（読み上げ「読む、探す、書く」の終わり） */
+const FOCUS_END = 3.75;
 const CHECKS: { text: string; at: number; drop?: boolean }[] = [
   { text: "手法 ID の照合（存在しない ID は捨てる）", at: 4.4 },
   { text: "根拠文（記事に書いてあるか）", at: 5.0 },
@@ -29,7 +31,32 @@ const CHECKS: { text: string; at: number; drop?: boolean }[] = [
   { text: "通らなければ、捨てる", at: 6.8, drop: true },
 ];
 
+/** 使い道を 1 つずつ、画面の中央に大きく出す（読み上げ「読む、探す、書く」に合わせる） */
+function UseFocus({ elapsed }: { elapsed: number }) {
+  if (elapsed >= FOCUS_END) return null;
+  const cur = [...CLAUDE_USES].reverse().find((u) => elapsed >= u.at - 0.2);
+  return (
+    <div className="end-focus" aria-hidden="true">
+      <p className="end-focus-k">Claude の使い道</p>
+      {cur && (
+        <div key={cur.verb} className="end-focus-item">
+          <b>{cur.verb}</b>
+          <span>{cur.what}</span>
+        </div>
+      )}
+      <ol className="end-focus-dots">
+        {CLAUDE_USES.map((u) => (
+          <li key={u.verb} className={cur && u.at <= cur.at ? "on" : ""}>
+            {u.verb}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function Roles({ elapsed }: { elapsed: number }) {
+  if (elapsed < FOCUS_END) return <UseFocus elapsed={elapsed} />;
   return (
     <div className="end-wrap roles">
       <header className="end-title in">

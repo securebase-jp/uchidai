@@ -21,6 +21,8 @@ import type { SlotProps } from "./slots.tsx";
 
 /** AiAttackerPanel が 1 行ずつ出す間隔（秒）。検証の瞬間を、ログを出し終えた時刻に合わせる */
 const LOG_LINE_SECONDS = 0.42;
+/** 要点の札（見つけた別の入口と検証）を出す時刻：検証の帯が出てからの秒 */
+const T_CALLOUT = 1.0;
 const VERIFY_POINTS = ["手法 ID", "役割", "つながり", "判定ルール"];
 /** 動画での見せ方：攻撃ではなく「守る側の点検」。AI がしないことを、実際の仕組みの事実だけで 3 つ並べる */
 const AI_SAFETY_CHIPS = [
@@ -44,6 +46,18 @@ export function AiAttackerSlot({ elapsed }: SlotProps) {
   }, [app.evaluation, ai]);
   if (!app.evaluation || !app.knowledge) return null;
   const t = elapsed - (ai.log.length * LOG_LINE_SECONDS + 0.4);
+  // 報道（人の手順の経路）になかった入口：AI の経路の入口のうち、判定の経路の入口と違うもの。名前は構成図のノードの名前
+  const graph = app.evaluation.graph;
+  const reported = new Set(
+    app.evaluation.verdict.paths.filter((p) => p.source !== "ai").map((p) => p.steps[0]?.nodeId),
+  );
+  const newEntries = [
+    ...new Set(
+      ai.paths
+        .map((p) => p.steps[0]?.nodeId)
+        .filter((id): id is string => !!id && !reported.has(id)),
+    ),
+  ].map((id) => graph.nodes.find((n) => n.id === id)?.label ?? id);
   return (
     <div className="demo-slot full attacker">
       <header className="ai-safe">
@@ -84,6 +98,24 @@ export function AiAttackerSlot({ elapsed }: SlotProps) {
           </span>
         </div>
       )}
+      {ai.ran && newEntries.length > 0 && t >= T_CALLOUT && (
+        <div className="ai-callout" role="status">
+          <div className="ai-callout-card">
+            <p className="ai-callout-k">報道になかった、別の入口</p>
+            {/* AI が最初に挙げた経路の入口を大きく。ほかの新しい入口は数と名前を小さく添える */}
+            <p className="ai-callout-v">{newEntries[0]}</p>
+            {newEntries.length > 1 && (
+              <p className="ai-callout-more">ほかに {newEntries.slice(1).join("、")}</p>
+            )}
+            <p className="ai-callout-checks">
+              検証
+              {VERIFY_POINTS.map((p) => (
+                <span key={p}>✓ {p}</span>
+              ))}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -94,7 +126,9 @@ type Row = { item: ComparedMitigation; kind: Kind };
 /**
  * 知見なし AI との並置：左に一般的な AI の提案（挙げた順）、右に同じ提案へのウチダイの判定。
  * 「効かない」の印が付くのは、判定ルールで効かないと決まった提案だけ（多要素認証）。
+ * 「効かない」は、ほかの行の判定より遅らせ、行に寄せた（絵コンテの spot）あとに大きく弾ませて出す（山場 2）
  */
+export const T_SLAM = 2.2;
 export function ComparisonSlot({ elapsed }: SlotProps) {
   const app = useApp();
   const ai = useAiAttacker();
@@ -134,7 +168,10 @@ export function ComparisonSlot({ elapsed }: SlotProps) {
           {rows.map((r, i) => {
             const at = 0.4 + i * 0.45;
             const shown = elapsed >= at;
-            const judged = elapsed >= at + 0.3;
+            const judged =
+              r.kind === "ineffective"
+                ? elapsed >= Math.max(T_SLAM, at + 0.3)
+                : elapsed >= at + 0.3;
             return (
               <li
                 key={`${r.item.mitigation ?? "-"}-${r.item.nameJa}`}
@@ -147,9 +184,10 @@ export function ComparisonSlot({ elapsed }: SlotProps) {
                       効く{r.item.stageLabelJa ? `（${r.item.stageLabelJa}）` : ""}
                     </b>
                   )}
-                  {r.kind === "ineffective" && (
+                  {/* 「効かない」は出す瞬間に描く（先に描くと、見えない間に弾む動きが終わってしまう） */}
+                  {r.kind === "ineffective" && judged && (
                     <>
-                      <b className="chip-ng">効かない</b>
+                      <b className="chip-ng slam">効かない</b>
                       {r.item.verdictReasonJa && <small>{r.item.verdictReasonJa}</small>}
                     </>
                   )}
