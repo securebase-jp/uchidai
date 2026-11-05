@@ -12,7 +12,7 @@
  */
 import { execFileSync } from "node:child_process";
 
-const ALLOWED_NAMES = new Set(["ab3xy", "securebase-jp", "dependabot[bot]", "GitHub"]);
+const ALLOWED_NAMES = new Set(["ab3xy", "dependabot[bot]", "GitHub"]);
 const NOREPLY_SUFFIX = "@users.noreply.github.com";
 const GITHUB_NOREPLY = "noreply@github.com";
 
