@@ -21,18 +21,22 @@ import { parse } from "yaml";
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, "..", "..");
 
-const { values } = parseArgs({ options: { id: { type: "string" } } });
+const { values } = parseArgs({
+  options: { id: { type: "string" }, file: { type: "string" }, profiles: { type: "string" } },
+});
 if (!values.id) {
-  console.error("使い方：--id <ir.yaml の id>");
+  console.error(
+    "使い方：--id <一覧の id> [--file <articles/ 以下の一覧。既定は ir.yaml>] [--profiles demo3]",
+  );
   process.exit(2);
 }
 const id = values.id;
-const list = parse(readFileSync(join(here, "articles", "ir.yaml"), "utf8")) as {
+const list = parse(readFileSync(join(here, "articles", values.file ?? "ir.yaml"), "utf8")) as {
   articles: { id: string; url: string; title: string; fetched: boolean }[];
 };
 const entry = list.articles.find((a) => a.id === id);
 if (!entry) {
-  console.error(`ir.yaml に ${id} がありません`);
+  console.error(`${values.file ?? "ir.yaml"} に ${id} がありません`);
   process.exit(2);
 }
 const outDir = join(root, "eval", ".cache", "trials", id);
@@ -123,25 +127,32 @@ if (read.status !== 200) {
 }
 const theCase = read.json.case;
 
-// 2. カルテ 2 種（run-trial.ts と同じ）
-const demo = await call("GET", "/api/examples/demo-seiko");
-const answers = {
-  industry: "wholesale_service",
-  site: "office_only",
-  hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
-  remoteAccess: ["rdp"],
-  backup: "same_network",
-};
-const mine = await call("POST", "/api/profile/from-answers", {
-  answers,
-  companyName: "試験用商事（5問から）",
-  profileId: "trial-from-answers",
-});
-if (mine.status !== 200) console.error("from-answers failed", mine.status, mine.json);
-const profiles: Record<string, unknown> = {
-  "demo-seiko": demo.json.profile,
-  "from-answers": mine.json.profile,
-};
+// 2. カルテ。既定は 2 種（run-trial.ts と同じ）。--profiles demo3 は架空企業 3 社（デモ精工・デモ商事・デモ医院）
+const profiles: Record<string, unknown> = {};
+if (values.profiles === "demo3") {
+  for (const name of ["demo-seiko", "demo-bussan", "demo-clinic"]) {
+    const r = await call("GET", `/api/examples/${name}`);
+    if (r.status !== 200) console.error("examples failed", name, r.status);
+    profiles[name] = r.json.profile;
+  }
+} else {
+  const demo = await call("GET", "/api/examples/demo-seiko");
+  const answers = {
+    industry: "wholesale_service",
+    site: "office_only",
+    hosting: { mail: "cloud", files: "onprem", core: "onprem", web: "provider" },
+    remoteAccess: ["rdp"],
+    backup: "same_network",
+  };
+  const mine = await call("POST", "/api/profile/from-answers", {
+    answers,
+    companyName: "試験用商事（5問から）",
+    profileId: "trial-from-answers",
+  });
+  if (mine.status !== 200) console.error("from-answers failed", mine.status, mine.json);
+  profiles["demo-seiko"] = demo.json.profile;
+  profiles["from-answers"] = mine.json.profile;
+}
 for (const [name, profile] of Object.entries(profiles)) {
   const ev = await call("POST", "/api/evaluate", {
     case: theCase,

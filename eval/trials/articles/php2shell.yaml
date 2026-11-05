@@ -1,0 +1,89 @@
+# PHP2Shell（PHP 本体の CVE-2026-109618・CVE-2026-109619）に関わる国内の公表の試験（2026-11-05 収集）
+#
+# 公表の本文は入れない（出典 URL、自分の言葉の要約、期待するラベルだけ）。本文は fetch-batch.ts で 1 回だけ取得して
+# eval/.cache/trials/<id>/article.txt に置く（git 管理外）。実行は run-ir.ts（--file php2shell.yaml）。
+# 経緯と結果は docs/article-trials/php2shell.md。
+#
+# 集め方：公開の検索で、PHP2Shell への対応・被害を会社や機関が自分で公表したものを探し、次の 6 件を選んだ。
+# 「PHP2Shell によって被害を受けた」と会社が公表した国内の例は、2026-11-05 時点で見つけられなかった（IPA は 10/27 の更新で
+# 「国内での攻撃被害の事例は把握していない」と書いている）。バルテックは第一報で原因を PHP の脆弱性としたが、同日に
+# 「自社サービス自体の脆弱性」と訂正した。そのため、この試験の中心は「事故の報告」ではなく「予防的な停止・対応完了の
+# お知らせ」と「PHP の脆弱性が原因と書いて訂正された事故」である。
+#
+# 項目は ir.yaml と同じ。kind の out_of_scope は「被害は起きておらず、予防的な対応や対応完了の知らせ」の意味。
+articles:
+  # ===== バルテック（業務用クラウドサービス。第一報の原因を訂正した事故） =====
+  - id: php-valtec1
+    url: https://www.webjapan.co.jp/maintenance/serviceteishi261022/
+    company: 株式会社バルテック
+    title: 不正アクセスによるお客様情報流出の可能性および一部サービス停止のお知らせ（第一報。第二報・第三報への案内と、原因の訂正を同じページに追記）
+    publishedAt: "2026-10-22"
+    format: html
+    series: valtec:1
+    kind: data_breach
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 第一報は流出の原因を「PHP の脆弱性を標的とした攻撃」と書いたが、同じページの追記で「誤報。PHP の脆弱性ではなく自社サービス自体の脆弱性を突かれた」と訂正している。読解は訂正を採り、入口を PHP2Shell としないこと。流出は「とみなされる事実」で、範囲は調査中。
+
+  - id: php-valtec3
+    url: https://www.webjapan.co.jp/maintenance/serviceteishi261026/
+    company: 株式会社バルテック
+    title: 《第三報》不正アクセスによるお知らせ（一部誤記修正しました）
+    publishedAt: "2026-10-26"
+    format: html
+    series: valtec:3
+    kind: data_breach
+    entry: web
+    victim: self
+    fetched: true
+    expectNote: 自社サービスのプログラムの脆弱性を突かれ、サーバー内にマルウェアが置かれ、一部のデータが外部へ送られたことを確認。企業情報 1,213 件、売上等のデータ 875 社などの流出を確認し、個人情報を含む可能性がある。原因は PHP の脆弱性ではない。パスワードの一括リセットと新しいサーバー環境への移行を案内。
+
+  # ===== 予防的な停止・対応完了のお知らせ（被害なし） =====
+  - id: php-xserver
+    url: https://www.xserver.ne.jp/news_detail.php?view_id=19734
+    company: エックスサーバー
+    title: 予防的な安全対策に伴う公式サイト・管理画面等の一時停止のお知らせ
+    publishedAt: "2026-10-21"
+    format: html
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 脆弱性の詳細と修正版の公開を前に、公式サイトと管理画面を予防的に止めたというお知らせ。不正アクセスの発生に伴うものではないと明記している。事故ではないので、被害の一枚にはしないこと。
+
+  - id: php-sakura
+    url: https://www.sakura.ad.jp/corporate/information/announcements/2026/10/22/1968226117/
+    company: さくらインターネット
+    title: 【重要】PHPの脆弱性に関する当社の対応状況について（2026年10月23日17:30追記）
+    publishedAt: "2026-10-22"
+    format: html
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 修正版の公開に先立つ予防的な緊急メンテナンスと、サービスごとの対応状況。10/23 17 時時点で、この脆弱性を悪用した不正アクセスや情報漏えいは報告されていないと書いている。事故ではない。
+
+  - id: php-lineworks
+    url: https://line-works.com/notice/159686/
+    company: ワークスモバイルジャパン（LINE WORKS）
+    title: PHPの脆弱性（CVE-2026-109618、CVE-2026-109619）への対応完了について
+    publishedAt: "2026-10-22"
+    format: html
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 自社サイトの PHP を修正版に更新済みで、提供製品・サービスは PHP を使っていないという知らせ。修正の適用までに、この脆弱性を悪用した不正アクセス等の影響は確認されていない。事故ではない。
+
+  - id: php-osaka
+    url: https://www.city.osaka.lg.jp/hodoshiryo/ictsenryakushitsu/0000689897.html
+    company: 大阪市
+    title: PHP脆弱性情報への対応に伴うサービス等の利用停止について
+    publishedAt: "2026-10-22"
+    format: html
+    kind: out_of_scope
+    entry: none
+    victim: self
+    fetched: true
+    expectNote: 自治体のサービスを、修正プログラムの適用のあいだ止めるという報道発表。会社ではなく自治体の公表で、事故ではない。製品の対象（会社）の外だが、予防停止の公表の形として含めた。
