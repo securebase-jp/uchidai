@@ -9,8 +9,7 @@
  * - DELETE /:id/reply 入力した回答を取り消し、依頼を回答待ちに戻す
  * - POST /measure-draft  対策依頼文の下書き（保存も送信もしない）
  */
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { loadKnowledge } from "@uchidai/engine";
 import { type WriterOptions, writeMeasureRequest, writeVendorRequest } from "@uchidai/llm";
 import { Hono } from "hono";
@@ -21,6 +20,7 @@ import {
   type MeasureDraftView,
   ReplyRequest,
 } from "../../shared/requests.ts";
+import { dataDir } from "../data-dir.ts";
 import { type Mailer, mailerFromEnv, mailtoUrl } from "../mail/mailer.ts";
 import { backgroundFor, questionFor } from "../requests/questions.ts";
 import {
@@ -50,14 +50,7 @@ export type RequestDeps = {
 export const DEFAULT_MAX_SUBSCRIBERS = 32;
 export const DEFAULT_MAX_REQUESTS = 1000;
 
-export const defaultStoreFile = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  ".data",
-  "requests.json",
-);
+export const defaultStoreFile = join(dataDir, "requests.json");
 
 /** 環境変数から既定の依存を組む */
 export function depsFromEnv(env: NodeJS.ProcessEnv = process.env): RequestDeps {

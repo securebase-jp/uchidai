@@ -30,6 +30,8 @@ Claude がするのは「読む（記事・PDF）、言い換える（社長向�
 
 ## 動かし方
 
+Node も Docker も入っていない PC では、ポータブル ZIP が使えます。Releases から自分の環境の ZIP を取り、展開して「ウチダイを起動」をダブルクリックするだけです（手元の PC だけで動きます）。手順と、警告が出たときの対処は [docs/install-zip.md](docs/install-zip.md) にあります。
+
 Node 22.18 以上と pnpm。
 
 ```bash

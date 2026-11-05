@@ -32,3 +32,6 @@ apps/web/.data/
 
 # lego（Let's Encrypt）のアカウント鍵と証明書。絶対にコミットしない
 .lego/
+
+# ポータブル ZIP のビルドの出力
+dist-zip/

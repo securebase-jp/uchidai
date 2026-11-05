@@ -1,0 +1,153 @@
+name: Release ZIP
+
+# ポータブル ZIP（Node 同梱、展開してダブルクリックで使える）を作り、ドラフトの GitHub Release に添付する。
+# v* のタグの push か、手動実行で動く。公開（ドラフトの解除）は人が内容を確かめてから行う。
+# 説明は docs/install-zip.md
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "ドラフトの Release に使うタグ名（例 v0.1.0-rc1）。公開するまでタグは作られません"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-zip-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: ZIP の組み立て（4 環境）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: タグから版を決める
+        id: ver
+        # タグ名は利用者が決められる値なので、スクリプトに直接埋めず環境変数で受け、形を検査する
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then tag="$INPUT_TAG"; else tag="$REF_NAME"; fi
+          if ! printf '%s' "$tag" | grep -Eq '^v[0-9][0-9A-Za-z._+-]{0,40}$'; then
+            echo "タグは v0.1.0 のような形にしてください: $tag" >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: ZIP の組み立ての部品のテスト
+        run: pnpm test:portable
+      - name: 画面をビルド
+        run: pnpm build
+      - name: ZIP を作る（Node の取得、SHASUMS256.txt との照合、中身の検査を含む）
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          SOURCE_DATE_EPOCH="$(git log -1 --pretty=%ct)"
+          export SOURCE_DATE_EPOCH
+          pnpm portable:build --target all --version "$VERSION" --out dist-zip
+          (cd dist-zip && sha256sum -c SHA256SUMS && ls -l)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-zips
+          path: |
+            dist-zip/*.zip
+            dist-zip/SHA256SUMS
+          if-no-files-found: error
+
+  smoke:
+    name: 展開して起動（${{ matrix.target }}、${{ matrix.os }}）
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+          - os: macos-latest
+            target: macos-arm64
+          - os: windows-latest
+            target: win-x64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v5
+      # 起動の確認を動かす道具だけが使う Node。ZIP の中のウチダイは、PATH から node を外した状態で、同梱の Node だけで動かす
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: portable-zips
+          path: zips
+      - name: 展開（Windows）
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Expand-Archive -Path "zips/uchidai-$env:VERSION-$env:TARGET.zip" -DestinationPath extracted
+      - name: 展開（macOS / Linux）
+        if: runner.os != 'Windows'
+        shell: bash
+        run: unzip -q "zips/uchidai-${VERSION}-${TARGET}.zip" -d extracted
+      - name: 起動 → /api/health → 画面の HTML → IPA 事例の判定 → 終了
+        shell: bash
+        run: node --disable-warning=ExperimentalWarning scripts/portable/smoke.ts "extracted/uchidai-${VERSION}-${TARGET}"
+
+  release:
+    name: ドラフトの Release に添付
+    needs: [build, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.build.outputs.tag }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: portable-zips
+          path: dist
+      - name: 受け取った ZIP が SHA256SUMS と合うか確かめる
+        run: cd dist && sha256sum -c SHA256SUMS
+      - name: ドラフトの Release を作って添付する
+        run: |
+          cat > notes.md <<EOF
+          ウチダイ ${TAG} のポータブル ZIP です。Node も Docker も入っていない PC で、展開して「ウチダイを起動」を開くだけで使えます。
+
+          - 自分の環境の ZIP を 1 つだけ取ってください（Windows は win-x64、Apple シリコンの Mac は macos-arm64、Intel の Mac は macos-x64、Linux は linux-x64）
+          - ダウンロードしたら、\`SHA256SUMS\` の値と一致することを確かめてください
+          - ZIP には Microsoft・Apple の署名がないため、Windows と Mac は警告を出します。対処は docs/install-zip.md の「警告が出たとき」にあります
+          - Windows 版は GitHub Actions の Windows で、Linux 版と macOS（Apple シリコン）版は各環境で、展開して起動する確認を通しています。macOS（Intel）版は、同じ中身で Node だけが違い、起動の確認はしていません
+          EOF
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" != "true" ]; then
+              echo "Release $TAG はすでに公開されています。公開済みの添付は差し替えません" >&2
+              exit 1
+            fi
+            gh release upload "$TAG" dist/*.zip dist/SHA256SUMS --clobber
+          else
+            gh release create "$TAG" dist/*.zip dist/SHA256SUMS --draft --target "$GITHUB_SHA" --title "ウチダイ ${TAG}" --notes-file notes.md
+          fi

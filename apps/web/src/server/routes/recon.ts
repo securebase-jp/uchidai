@@ -14,7 +14,6 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { CompanyProfile } from "@uchidai/engine";
 import {
   applyAssetHints,
@@ -55,16 +54,10 @@ import {
   type TokenView,
   type VerifyView,
 } from "../../shared/recon.ts";
+import { dataDir } from "../data-dir.ts";
 import { ClientError } from "../errors.ts";
 
-export const defaultTokenFile = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  ".data",
-  "recon-tokens.json",
-);
+export const defaultTokenFile = join(dataDir, "recon-tokens.json");
 
 type StoredToken = { domain: string; token: string; createdAt: string };
 const StoredTokens = z.object({

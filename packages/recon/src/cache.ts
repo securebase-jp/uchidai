@@ -3,14 +3,21 @@
  */
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ReconCache } from "./sources.ts";
 
 export const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const repoRoot = join(packageRoot, "..", "..");
-/** 既定のキャッシュ置き場（packages/recon/.cache。gitignore 済み） */
-export const defaultCacheDir = join(packageRoot, ".cache");
+/**
+ * 既定のキャッシュ置き場。packages/recon/.cache（gitignore 済み）。
+ * 環境変数 UCHIDAI_DATA_DIR があれば、その下の recon-cache（ポータブル ZIP はここへ移す）
+ */
+export function defaultCacheDirFrom(env: NodeJS.ProcessEnv = process.env): string {
+  const dataDir = env.UCHIDAI_DATA_DIR?.trim();
+  return dataDir ? join(resolve(dataDir), "recon-cache") : join(packageRoot, ".cache");
+}
+export const defaultCacheDir = defaultCacheDirFrom();
 
 export class MemoryCache implements ReconCache {
   private readonly store = new Map<string, string>();

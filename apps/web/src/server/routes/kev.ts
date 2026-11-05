@@ -12,7 +12,6 @@
 import { randomBytes } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   applyKev,
   CompanyProfile,
@@ -31,16 +30,10 @@ import {
   type KevStatusView,
   RefreshRequest,
 } from "../../shared/kev.ts";
+import { dataDir } from "../data-dir.ts";
 import { ClientError, publicMessage } from "../errors.ts";
 
-export const defaultKevFile = join(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-  "..",
-  ".data",
-  "kev.json",
-);
+export const defaultKevFile = join(dataDir, "kev.json");
 export const KEV_TTL_MS = 24 * 60 * 60 * 1000;
 /** JSON の大きさの上限（2026 年時点で約 2MB。桁違いに大きければ壊れているか別物） */
 const MAX_BYTES = 32 * 1024 * 1024;
