@@ -70,8 +70,15 @@ demo/
    node demo/scripts/assemble.ts --video demo/capture/screen.mov [--title demo/capture/title.png] [--font "BIZ UDPGothic"]
    ```
 
+   字幕は、録画時の `?captions=1` で画面に出したものを使う。libass の無い ffmpeg では、字幕トラック（mov_text）は `--soft-subtitles` を付けたときだけ埋め込む（画面の字幕とトラックの字幕が再生ソフトで重なって見えるため。11/5 に「字幕が何重にも重なる」と指摘があった）。
+
+   ```bash
+   # （字幕トラックが要るときだけ）
+   node demo/scripts/assemble.ts --video demo/capture/screen.mp4 --soft-subtitles
+   ```
+
    出力は `demo/out/uchidai-demo.mp4`（1920×1080・60fps・H.264/AAC）。エンドカードは場面 10・11 として録画に含まれる。
-   字幕の焼き込みには libass つきの ffmpeg（`subtitles` フィルタ）が要る。手元の Homebrew の ffmpeg 9.0.2 には無かったため、その場合は字幕トラック（mov_text）として埋め込み、焼き込みたいときは `&captions=1` で録画する。`--no-subtitles`、`--no-audio`、`--dry-run`（コマンドを表示するだけ）がある
+   字幕の焼き込みには libass つきの ffmpeg（`subtitles` フィルタ）が要る。手元の Homebrew の ffmpeg 9.0.2 には無かったため、その場合は録画時の `&captions=1` で画面に出した字幕を使い、字幕トラックは `--soft-subtitles` のときだけ埋め込む。`--no-subtitles`、`--no-audio`、`--dry-run`（コマンドを表示するだけ）がある
 
 ## 場面の表（11 場面・180 秒）
 

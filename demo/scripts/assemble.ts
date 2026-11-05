@@ -1,7 +1,7 @@
 /**
  * 録画（デモモードの画面収録 MP4/MOV）と音声、効果音、字幕、タイトルカードを ffmpeg で結合して 1 本の MP4 にする。
  *   node demo/scripts/assemble.ts --video demo/capture/screen.mov [--out demo/out/uchidai-demo.mp4]
- *        [--title demo/assets/title.png] [--title-seconds 3] [--font "BIZ UDPGothic"] [--no-subtitles] [--no-audio]
+ *        [--title demo/assets/title.png] [--title-seconds 3] [--font "BIZ UDPGothic"] [--no-subtitles] [--soft-subtitles] [--no-audio]
  *        [--no-sfx] [--sfx-gain -14] [--sfx demo/sfx.json] [--sfx-dir demo/audio/sfx]
  *        [--timeline demo/out/timeline.json] [--work-dir demo/out] [--fps 60] [--dry-run]
  * 手順：
@@ -77,11 +77,15 @@ const hasSubtitlesFilter = /\bsubtitles\b/.test(
   spawnSync("ffmpeg", ["-hide_banner", "-filters"], { encoding: "utf8" }).stdout ?? "",
 );
 const burnSubs = withSubs && hasSubtitlesFilter;
-const softSubs = withSubs && !hasSubtitlesFilter;
-if (softSubs)
+// 字幕トラック（mov_text）は --soft-subtitles のときだけ埋め込む。録画で画面に字幕を出している（?captions=1）と、
+// 再生ソフトがトラックの字幕を上に重ねて、字幕が二重・三重に見えるため
+const softSubs = withSubs && !hasSubtitlesFilter && flag("soft-subtitles");
+if (withSubs && !hasSubtitlesFilter)
   console.warn(
-    "注意：この ffmpeg には subtitles フィルタ（libass）が無いため、字幕は焼き込まず mov_text の字幕トラックとして埋め込みます。\n" +
-      "焼き込みたいときは、libass つきの ffmpeg を使うか、録画時に ?demo=1&captions=1 で画面に字幕を出してください。YouTube には narration.srt を別途アップロードできます。",
+    softSubs
+      ? "注意：字幕を mov_text の字幕トラックとして埋め込みます。録画で画面に字幕を出しているときは、字幕が重なって見えます。"
+      : "注意：この ffmpeg には subtitles フィルタ（libass）が無いため、字幕は焼き込みません（録画時の ?captions=1 で画面に出した字幕を使います）。\n" +
+          "字幕トラックが要るときは --soft-subtitles を付けてください。YouTube には narration.srt を別途アップロードできます。",
   );
 
 const run = (args: string[]) => {
