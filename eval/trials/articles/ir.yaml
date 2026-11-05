@@ -16,7 +16,7 @@
 #                   out_of_scope（型紙の対象外。Web 改ざん、なりすましの注意喚起など）
 #   alsoAcceptable  kind のほかに、読解として妥当と認める種類（境目の公表）
 #   entry           公表に書かれた入口。vpn / network-device / vendor（委託先・提供元・提携先）/ credential / web / mail / none（書かれていない）
-#   victim          被害を受けた側。self（自社）/ subsidiary（子会社・孫会社）/ vendor（委託先・提供元の事故が自社に波及）/ partner（取引先・提携先の事故の周知）
+#   victim          被害を受けた側。self（自社）/ subsidiary（子会社・孫会社。victims.yaml の group に当たる）/ vendor（委託先・提供元の事故が自社に波及）/ partner（取引先・提携先の事故の周知）
 #   fetched         true は取得して本文が読めたもの。false は取得できなかったもの（理由は fetchNote）。取得は URL ごとに 1 回だけ
 #   expectNote      期待の根拠（自分の言葉。公表の文は引用しない）
 #

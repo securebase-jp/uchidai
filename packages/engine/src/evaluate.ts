@@ -54,6 +54,24 @@ export const entryKindGapHeadline = (kind: Pick<EntryKindDef, "labelJa">): strin
 export const entryKindGapNote = (kind: Pick<EntryKindDef, "labelJa">): string =>
   `記事の入口は「${kind.labelJa}」です。御社のカルテには、この入口になる資産が登録されていません。登録が足りない可能性があります。この入口を使っていないか、使っているなら登録して、判定をやり直してください。`;
 
+/** 続報で、この文書だけでは被害の種類が分からないとき（Case.needsPrevious。TRIAL-I-005）の固定文 */
+export const NEEDS_PREVIOUS_LINE =
+  "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
+
+/**
+ * 第三者の事故（委託先・提供元・グループ会社）で、記事の入口の種類に当たる設備が、御社のカルテのどの経路にも見つからないとき。
+ * 記事の入口は第三者の設備で、御社の登録漏れとは限らない。「登録が足りない可能性があります」とは書かず、
+ * 第三者の事故の見出しにして、同じ種類の入口が御社に無いかの確認を促す（TRIAL-I-007）
+ */
+export const thirdPartyEntryGapHeadline = (labelJa: string): string =>
+  `これは${labelJa}で起きた事故です。御社のカルテには、記事の入口に当たる設備が見つかりません`;
+export const thirdPartyEntryGapNote = (
+  labelJa: string,
+  kind: Pick<EntryKindDef, "labelJa">,
+  source: "stated" | "inferred",
+): string =>
+  `記事の入口は「${kind.labelJa}」（${source === "stated" ? "記載" : "推定"}）で、${labelJa}の設備です。御社に同じ種類の入口（${kind.labelJa}）がないか、カルテに登録されていない入口がないかを確かめてください。`;
+
 /** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
 export const UNMAPPED_HEADLINE =
   "この記事の攻撃は、ウチダイの型紙の手法に対応づけられないため、判定できません（対象外）";
@@ -465,8 +483,12 @@ function pathsForTemplate(
     : undefined;
   const kind = kindDef && kindDef.roles.some((r) => r in entryStage.byRole) ? kindDef : undefined;
   const kindNodes = kind ? walkable.filter((n) => kind.roles.includes(n.role)) : [];
-  // 一致する種類の資産がカルテに無い：別の入口の候補（VPN、フィッシングなど）に切り替えず、「未登録」と答える
-  if (kind && kindNodes.length === 0) return { paths: [], hasEntry: false, missingEntryKind: kind };
+  // 一致する種類の資産がカルテに無い：別の入口の候補（VPN、フィッシングなど）に切り替えず、「未登録」と答える。
+  // ただし第三者の事故（委託先・提供元・グループ会社）の入口は、御社の資産ではないので、カルテに無いことを理由に「入口なし」にしない。
+  // 御社が同じ立場なら、という想定として経路を作り、一枚は「記事の入口は〇〇（記載）」と書く（TRIAL-I-007）
+  const thirdParty = knowledge.victims.find((x) => x.id === theCase.victim)?.thirdParty === true;
+  if (kind && kindNodes.length === 0 && (!thirdParty || walkable.length === 0))
+    return { paths: [], hasEntry: false, missingEntryKind: kind };
   if (walkable.length === 0) return { paths: [], hasEntry: false };
   const canon = entryKnown
     ? entryStep.techniques
@@ -479,7 +501,19 @@ function pathsForTemplate(
       ? walkable.map((node) => ({ node }))
       : fitEntries(walkable, entryStage, canon, knowledge);
   let chosen: { node: GraphNode; source: PathSource; technique?: string }[];
-  if (kind) {
+  // 記事は入口の種類を書いているが、その種類では入口の資産を絞れない：正規の認証情報だけ（ログイン先が不明）、または第三者の事故で
+  // カルテに同じ種類の資産が無い。仮に置く入口の候補（VPN など）を記事の入口のように書かないための印（TRIAL-I-007、I-008）
+  const statedEntry: AttackPath["statedEntry"] =
+    kind && entryStep && (kind.pinsAsset === false || kindNodes.length === 0)
+      ? {
+          kindId: kind.id,
+          labelJa: kind.labelJa,
+          source: entryStep.source === "stated" ? "stated" : "inferred",
+        }
+      : undefined;
+  if (kind && kindNodes.length === 0) {
+    chosen = walkable.map((node) => ({ node, source: "candidate" }));
+  } else if (kind) {
     // 種類が一致する資産だけを入口にする。手法は、記事の手法のうちその資産に当たるもの（無ければ型紙の典型手法）
     chosen = kindNodes.map((node, i) => {
       const technique = canon.find((t) => entryFits(node, entryStage, t, knowledge));
@@ -541,6 +575,7 @@ function pathsForTemplate(
         steps,
         reachedCore,
         reachedAssetIds,
+        ...(statedEntry && source === "candidate" ? { statedEntry } : {}),
       };
     }),
   );
@@ -600,10 +635,12 @@ export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[
     a.techniques.some((prefix) => techniques.some((t) => t.startsWith(prefix))),
   );
   return [
-    "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    theCase.needsPrevious
+      ? NEEDS_PREVIOUS_LINE
+      : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
     "攻撃経路は判定できませんが、個人情報が外部の人に見られた可能性がある場合は、個人情報保護委員会への報告が必要になることがあります。",
-    ...knowledge.firstActions.common,
-    ...matched.flatMap((a) => a.actionsJa),
+    // 同じ文が複数の項目に当たっても、1 回だけ出す
+    ...new Set([...knowledge.firstActions.common, ...matched.flatMap((a) => a.actionsJa)]),
   ];
 }
 
@@ -634,6 +671,7 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
     thirdParty: {
       id: def.id,
       labelJa: def.labelJa,
+      ...(def.leadNoteJa ? { leadNoteJa: def.leadNoteJa } : {}),
       checksJa: def.checksJa.map(sub),
       ...(def.reportNoteJa ? { reportNoteJa: sub(def.reportNoteJa) } : {}),
       measureIds: def.measureIds,
@@ -731,6 +769,12 @@ function evaluateCore(
         ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
         guidanceJa: supplyChainGuidance(theCase),
       };
+    if (theCase.damageType === "out_of_scope" && theCase.needsPrevious)
+      return {
+        ...empty("out_of_scope", NEEDS_PREVIOUS_LINE),
+        needsPrevious: true,
+        guidanceJa: outOfScopeGuidance(theCase, knowledge),
+      };
     return { ...empty("out_of_scope"), guidanceJa: outOfScopeGuidance(theCase, knowledge) };
   }
 
@@ -755,10 +799,22 @@ function evaluateCore(
   }
   if (!hasEntry && missingEntryKind) {
     // 記事の入口の種類に当たる資産がカルテに無い。「入口は無い」と断定せず、登録の不足として答える
-    const note = entryKindGapNote(missingEntryKind);
+    // （第三者の事故では、記事の入口は第三者の設備なので、登録の不足とは書かず、第三者の事故の見出しで答える）
+    const third = knowledge.victims.find((x) => x.id === theCase.victim);
+    const entrySource =
+      theCase.steps.find((st) => st.tactic === "TA0001" && st.entryKind === missingEntryKind?.id)
+        ?.source === "stated"
+        ? "stated"
+        : "inferred";
+    const headline = third?.thirdParty
+      ? thirdPartyEntryGapHeadline(third.labelJa)
+      : entryKindGapHeadline(missingEntryKind);
+    const note = third?.thirdParty
+      ? thirdPartyEntryGapNote(third.labelJa, missingEntryKind, entrySource)
+      : entryKindGapNote(missingEntryKind);
     return isDefaultFrameProfile(profile, knowledge.patterns, knowledge.sites)
-      ? empty("pending", entryKindGapHeadline(missingEntryKind), note)
-      : empty("no_entry", entryKindGapHeadline(missingEntryKind), note);
+      ? empty("pending", headline, note)
+      : empty("no_entry", headline, note);
   }
   if (!hasEntry) {
     // 既定の枠だけのカルテは、クラウドの共有設定などを持たない。入口の資産が無いのは「登録が足りない」かもしれず、

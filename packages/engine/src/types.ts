@@ -97,6 +97,11 @@ export const Case = z.object({
   reportedLossJpy: z.number().int().positive().optional(),
   /** 記事の会社は被害を防げた（未遂・送金前に気づいた・被害が出なかった）。省略は被害が出た */
   averted: z.boolean().optional(),
+  /**
+   * 続報で、この文書だけでは種類が分からない（読解が out_of_scope で、サイバー攻撃などの語と続報の印がある）。
+   * 検証（verify.ts）が本文から決める。Claude の出力は使わない。第一報と合わせて読むよう案内する（TRIAL-I-005）
+   */
+  needsPrevious: z.boolean().optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -329,6 +334,18 @@ export const AttackPath = z.object({
   reachedCore: z.boolean(),
   /** 到達した資産（個人情報の判定に使う） */
   reachedAssetIds: z.array(z.string()),
+  /**
+   * 記事が入口の種類を書いているが、その種類では入口の資産を絞れないとき（正規の認証情報だけ、または第三者の事故で
+   * 御社のカルテに同じ種類の資産が無い）。経路の先頭は仮に置いた資産（candidate）だが、一枚は「記事の入口は〇〇（記載）」と書き、
+   * その資産の名前（VPN装置など）を入口として出さない（TRIAL-I-007、I-008）
+   */
+  statedEntry: z
+    .object({
+      kindId: z.string(),
+      labelJa: z.string(),
+      source: z.enum(["stated", "inferred"]),
+    })
+    .optional(),
 });
 
 export const Contradiction = z.object({
@@ -389,6 +406,8 @@ export const VerdictResult = z.enum([
 export const Verdict = z.object({
   result: VerdictResult,
   headlineJa: z.string(),
+  /** 続報で種類が分からず、第一報と合わせて読む必要がある対象外（Case.needsPrevious。TRIAL-I-005） */
+  needsPrevious: z.boolean().optional(),
   /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
   templateId: z.string().optional(),
   templateLabelJa: z.string().optional(),
@@ -400,6 +419,8 @@ export const Verdict = z.object({
     .object({
       id: z.string(),
       labelJa: z.string(),
+      /** 「これは〇〇で起きた事故です。」に続ける文（省略は「御社の設備が入口になったのではありません。」） */
+      leadNoteJa: z.string().optional(),
       checksJa: z.array(z.string()),
       reportNoteJa: z.string().optional(),
       /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */

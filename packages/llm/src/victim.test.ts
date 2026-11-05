@@ -40,6 +40,14 @@ describe("読解のスキーマと指示文は victims.yaml から組み立て�
       { type: "null" },
     ]);
   });
+  it("group（グループ会社＝子会社・孫会社）は選択肢にあり、vendor の基準にはグループ会社を含めない", () => {
+    expect(victims.map((v) => v.id)).toContain("group");
+    const text = buildRulesJa();
+    expect(text).toMatch(
+      /group：被害を受けたのは、記事を公表した会社（親会社）自身ではなく、その子会社・孫会社/,
+    );
+    expect(victims.find((v) => v.id === "vendor")?.readingHintJa).not.toMatch(/グループ会社/);
+  });
   it("指示文に分類基準が入り、種類を足せば増える", () => {
     const text = buildRulesJa();
     for (const v of victims) expect(text).toContain(`${v.id}：`);
@@ -61,6 +69,7 @@ describe("verifyCase は定義済みの被害を受けた側だけを残す", ()
   it("第三者の値は残り、self と省略は持たせない（従来の Case と同じ形）", () => {
     expect(verifyCase(raw("vendor"), article, attack).case.victim).toBe("vendor");
     expect(verifyCase(raw("provider"), article, attack).case.victim).toBe("provider");
+    expect(verifyCase(raw("group"), article, attack).case.victim).toBe("group");
     expect(verifyCase(raw("self"), article, attack).case.victim).toBeUndefined();
     expect(verifyCase(raw(null), article, attack).case.victim).toBeUndefined();
     expect(verifyCase(raw(), article, attack).case.victim).toBeUndefined();
@@ -121,6 +130,31 @@ describe("一枚の言い換え：第三者の事故", () => {
   });
   it("「記事の〇〇では〜」と書き、試算を「御社が同じ立場なら〜と見込まれます」と書けば通る", () => {
     expect(checkWriterOutput({ whatHappensJa: ok }, input)).toBeUndefined();
+  });
+  it("グループ会社など、固定の注意の文（thirdPartyNoteJa）があるときは、その文を書かないと捨てる", () => {
+    const g: OnePagerWriterInput = {
+      ...input,
+      thirdPartyJa: "グループ会社（子会社・孫会社）",
+      thirdPartyNoteJa: "子会社と御社の接続の有無は、この公表からは分かりません。",
+    };
+    const lines = [
+      "これはグループ会社（子会社・孫会社）で起きた事故です。",
+      "記事のグループ会社（子会社・孫会社）では、VPN装置から侵入されたことが確認されています。",
+      "御社が同じ立場なら、受注が10日止まると見込まれます。",
+    ];
+    expect(checkWriterOutput({ whatHappensJa: lines }, g)).toMatch(/注意の文/);
+    expect(
+      checkWriterOutput(
+        {
+          whatHappensJa: [
+            lines[0] as string,
+            "子会社と御社の接続の有無は、この公表からは分かりません。",
+            ...lines.slice(1),
+          ],
+        },
+        g,
+      ),
+    ).toBeUndefined();
   });
   it("第三者の事故でなければ、これまでどおり（「御社の場合は」で足りる）", () => {
     const { thirdPartyJa: _t, ...own } = input;

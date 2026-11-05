@@ -330,6 +330,8 @@ export const VictimDef = z.object({
   thirdParty: z.boolean().default(false),
   /** Claude が記事を読むときの分類基準 */
   readingHintJa: z.string(),
+  /** 一枚と画面で「これは〇〇で起きた事故です。」に続ける文。省略は「御社の設備が入口になったのではありません。」 */
+  leadNoteJa: z.string().optional(),
   /** 第三者の事故のとき、御社が確認すること（{label} は labelJa に置き換える） */
   checksJa: z.array(z.string()).default([]),
   /** 個人情報の報告について（断定せず「確認が必要」） */

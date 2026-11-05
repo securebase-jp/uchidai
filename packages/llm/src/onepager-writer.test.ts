@@ -195,4 +195,23 @@ describe("writerInputFrom は各段階の source を渡す", () => {
     expect(input2.stages[0]?.source).toBe("candidate");
     expect(input2.stages.some((s) => s.source === "stated")).toBe(true);
   });
+  it("記事が入口の種類を書いているが資産は絞れないとき（正規の認証情報だけ）は、VPN装置の名前でなく入口の種類を渡す（TRIAL-I-008）", () => {
+    const theCase = Case.parse({
+      title: "t",
+      damageType: "data_breach",
+      clarity: "partial",
+      steps: [
+        { tactic: "TA0001", techniques: ["T1078"], source: "stated", entryKind: "credential" },
+        { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+      ],
+      suspiciousInstructions: [],
+    });
+    const profile = loadProfile(join(repoRoot, "examples", "demo-seiko.json"));
+    const input2 = writerInputFrom(evaluate(theCase, profile, { knowledge: k }), k);
+    expect(input2.stages[0]).toMatchObject({
+      roleJa: "正規の認証情報（ログイン先は不明）",
+      source: "stated",
+    });
+    expect(JSON.stringify(input2)).not.toContain("VPN装置");
+  });
 });

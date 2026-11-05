@@ -30,15 +30,47 @@ const vpnCase = (victim?: string, extra: Partial<Case> = {}): Case => ({
 });
 
 describe("victims.yaml の宣言", () => {
-  it("self（記事の会社そのもの）と、第三者（vendor、provider）がある", () => {
+  it("self（記事の会社そのもの）と、第三者（vendor、provider、group）がある", () => {
     const ids = k.victims.map((v) => v.id);
-    expect(ids).toEqual(expect.arrayContaining(["self", "vendor", "provider"]));
+    expect(ids).toEqual(expect.arrayContaining(["self", "vendor", "provider", "group"]));
     expect(k.victims.find((v) => v.id === "self")?.thirdParty).toBe(false);
     for (const v of k.victims.filter((x) => x.thirdParty)) {
       expect(v.checksJa.length).toBeGreaterThan(0);
       expect(v.reportNoteJa).toMatch(/確認が必要/);
       for (const id of v.measureIds) expect(k.measures.some((m) => m.id === id)).toBe(true);
     }
+  });
+});
+
+describe("グループ会社（group。TRIAL-I-004）：子会社・孫会社の事故", () => {
+  it("vendor の分類基準から「グループ会社」を外し、group の側に置く", () => {
+    expect(k.victims.find((v) => v.id === "vendor")?.readingHintJa).not.toMatch(/グループ会社/);
+    expect(k.victims.find((v) => v.id === "group")?.readingHintJa).toMatch(/子会社・孫会社/);
+  });
+  it("見出しは第三者の事故として書き、確認することは子会社への確認・親会社の報告と開示・接続の有無の 3 点", () => {
+    const v = evaluate(vpnCase("group"), demo, { knowledge: k });
+    expect(v.headlineJa).toMatch(
+      /^これはグループ会社（子会社・孫会社）で起きた事故です。御社が同じ立場なら、/,
+    );
+    expect(v.thirdParty?.id).toBe("group");
+    expect(v.thirdParty?.checksJa).toHaveLength(3);
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(
+      /グループ会社（子会社・孫会社）に、事故の範囲/,
+    );
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(/報告・開示（個人情報保護委員会、適時開示）/);
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(/ネットワーク・認証基盤の接続の有無/);
+  });
+  it("一枚の先頭は、「御社の設備が入口になったのではありません」でなく「子会社と御社の接続の有無は、この公表からは分かりません」", () => {
+    const g = buildOnePager(evaluate(vpnCase("group"), demo, { knowledge: k }), demo, k);
+    expect(g.whatHappensJa[0]).toBe(
+      "これはグループ会社（子会社・孫会社）で起きた事故です。子会社と御社の接続の有無は、この公表からは分かりません。",
+    );
+    expect(g.whatHappensJa.join("")).not.toContain("御社の設備が入口になったのではありません");
+    // 委託先は従来どおり
+    const v = buildOnePager(evaluate(vpnCase("vendor"), demo, { knowledge: k }), demo, k);
+    expect(v.whatHappensJa[0]).toBe(
+      "これは委託先・取引先で起きた事故です。御社の設備が入口になったのではありません。",
+    );
   });
 });
 
@@ -103,8 +135,8 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
       effectiveMeasures(self, k.measures, demo).some((e) => e.measure.mitigation === "UD-04"),
     ).toBe(false);
   });
-  it("入口なし・未登録のときも、第三者の事故なら確認することを付ける（見出しは書き換えない）", () => {
-    const rdp = vpnCase("provider", {
+  it("自社の事故で、記事の入口の資産がカルテに無いときは、これまでどおり「入口なし（未登録）」（見出しは書き換えない）", () => {
+    const rdp = vpnCase(undefined, {
       steps: [
         { tactic: "TA0001", techniques: ["T1133"], source: "stated", entryKind: "rdp" },
         { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
@@ -113,7 +145,22 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
     const v = evaluate(rdp, demo, { knowledge: k });
     expect(v.result).toBe("no_entry");
     expect(v.headlineJa).toMatch(/リモートデスクトップ/);
+  });
+  it("第三者の事故（TRIAL-I-007）：記事の入口の資産がカルテに無くても「入口なし」にせず、第三者の事故の見出しと確認することを出す", () => {
+    const rdp = vpnCase("provider", {
+      steps: [
+        { tactic: "TA0001", techniques: ["T1133"], source: "stated", entryKind: "rdp" },
+        { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      ],
+    });
+    const v = evaluate(rdp, demo, { knowledge: k });
+    expect(v.result).not.toBe("no_entry");
+    expect(v.headlineJa).toMatch(
+      /^これはクラウド・ソフトウェアの提供元で起きた事故です。御社が同じ立場なら、/,
+    );
     expect(v.thirdParty?.id).toBe("provider");
+    expect(v.paths.length).toBeGreaterThan(0);
+    expect(v.paths.every((p) => p.statedEntry?.kindId === "rdp")).toBe(true);
   });
   it("対象外（out_of_scope）には付けない", () => {
     const v = evaluate({ ...vpnCase("vendor"), damageType: "out_of_scope", steps: [] }, demo, {
@@ -191,5 +238,38 @@ describe("S-005：ソフトウェアの供給網の事故（対象外）は、�
     );
     expect(v.guidanceJa).toBeUndefined();
     expect(v.result).not.toBe("out_of_scope");
+  });
+});
+
+describe("続報で種類が分からない公表（needsPrevious。TRIAL-I-005）", () => {
+  const followUp: Case = {
+    title: "システム障害（続報）",
+    damageType: "out_of_scope",
+    clarity: "unknown",
+    suspiciousInstructions: [],
+    steps: [],
+    needsPrevious: true,
+  };
+  it("見出しと一枚の先頭が「これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください」", () => {
+    const line =
+      "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
+    const v = evaluate(followUp, demo, { knowledge: k });
+    expect(v.result).toBe("out_of_scope");
+    expect(v.needsPrevious).toBe(true);
+    expect(v.headlineJa).toBe(line);
+    expect(v.guidanceJa?.[0]).toBe(line);
+    expect(v.guidanceJa?.join("")).not.toContain("攻撃経路で判定できない");
+    expect(buildOnePager(v, demo, k).whatHappensJa[0]).toBe(line);
+    // 共通の初動（個人情報の報告の案内）は残す
+    expect(v.guidanceJa?.join("")).toContain("個人情報保護委員会への報告");
+  });
+  it("needsPrevious が無い対象外は従来どおり", () => {
+    const { needsPrevious: _n, ...plain } = followUp;
+    const v = evaluate(plain, demo, { knowledge: k });
+    expect(v.needsPrevious).toBeUndefined();
+    expect(v.headlineJa).toBe("この事故は攻撃経路で判定できないため、対象外です");
+    expect(v.guidanceJa?.[0]).toBe(
+      "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    );
   });
 });
