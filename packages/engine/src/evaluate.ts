@@ -608,8 +608,8 @@ export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[
       ? NEEDS_PREVIOUS_LINE
       : "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
     "攻撃経路は判定できませんが、個人情報が外部の人に見られた可能性がある場合は、個人情報保護委員会への報告が必要になることがあります。",
-    ...knowledge.firstActions.common,
-    ...matched.flatMap((a) => a.actionsJa),
+    // 同じ文が複数の項目に当たっても、1 回だけ出す
+    ...new Set([...knowledge.firstActions.common, ...matched.flatMap((a) => a.actionsJa)]),
   ];
 }
 

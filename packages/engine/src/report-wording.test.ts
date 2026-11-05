@@ -47,6 +47,24 @@ describe("D-006・B-002：対象外の一枚に、報告の可能性と共通の
     const ddos = evaluate(outOfScope(["T1498"]), demo, { knowledge: k });
     expect(buildOnePager(ddos, demo, k).whatHappensJa.join("")).not.toMatch(/転送ルール/);
   });
+  it("自社を装うなりすましメール（T1684）だけなら、パスワード変更・転送ルールは出さず、取引先への注意喚起だけを出す（TRIAL-I-009）", () => {
+    for (const t of ["T1684.002", "T1684.001", "T1656"]) {
+      const v = evaluate(outOfScope([t]), demo, { knowledge: k });
+      const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+      expect(text, t).toMatch(/取引先に、不審なメールが届いていないか/);
+      expect(text, t).not.toMatch(/パスワードを変更/);
+      expect(text, t).not.toMatch(/サインイン中の端末/);
+      expect(text, t).not.toMatch(/転送ルール/);
+    }
+  });
+  it("転送ルール（T1114.003）の段階だけでも、乗っ取りの初動を出す。両方に当たる文は 1 回だけ", () => {
+    const v = evaluate(outOfScope(["T1114.003"]), demo, { knowledge: k });
+    expect(v.guidanceJa?.join("\n")).toMatch(/パスワードを変更し、サインイン中の端末/);
+    const both = evaluate(outOfScope(["T1078.004", "T1684.002"]), demo, { knowledge: k });
+    expect(
+      both.guidanceJa?.filter((l) => l.startsWith("取引先に、不審なメールが届いていないか")),
+    ).toHaveLength(1);
+  });
   it("初動は YAML で足せる（コードの変更なし）", () => {
     const more: Knowledge = {
       ...k,
