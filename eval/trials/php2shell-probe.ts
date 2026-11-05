@@ -69,21 +69,28 @@ for (const v of [
   console.log(`${v.padEnd(7)} ${m.versionStatus.padEnd(12)} ${m.reasonJa}`);
 }
 
-// 2. 公開ホームページの置き場所別：自社のサーバー（社内）／事業者のサービス（レンタルサーバー）。PHP 8.4.26（修正前）と 8.4.27（修正後）
+// 2. 公開ホームページ（自社のサーバー）の PHP の版と、更新管理の登録（M1051）の組み合わせ。入口の段階の状態と理由を出す。
 // カルテはデモ精工を土台にし（社内にファイルサーバーと基幹システムがある）、廃止済みのキャンペーンサイトを「現役の公開ホームページ」に差し替える。
 // デモ精工の実際のカルテ（廃止済み）は変えない（ここはメモリ上の複製だけ）
-const bussan = JSON.parse(readFileSync(join(repoRoot, "examples", "demo-seiko.json"), "utf8"));
-for (const placement of ["internal", "external"] as const) {
+const seiko = JSON.parse(readFileSync(join(repoRoot, "examples", "demo-seiko.json"), "utf8"));
+for (const control of ["unknown", "present"] as const) {
   for (const version of ["8.4.26", "8.4.27"]) {
-    const base = structuredClone(bussan);
+    const base = structuredClone(seiko);
     const webAsset = base.assets.find((a: { role: string }) => a.role === "entry.web");
     if (!webAsset) throw new Error("entry.web が無い");
-    webAsset.side = placement;
+    webAsset.side = "internal";
     delete webAsset.attrs.decommissioned;
-    webAsset.label = `公開ホームページ（${placement === "internal" ? "自社のサーバー" : "レンタルサーバー"}）`;
-    const m = matchKev({ product, version }, catalog, table);
+    webAsset.label = "公開ホームページ（自社のサーバー）";
     webAsset.product = product;
     webAsset.version = version;
+    webAsset.controls = [
+      {
+        mitigation: "M1051",
+        status: control,
+        evidence: control === "present" ? "registered" : "none",
+      },
+    ];
+    const m = matchKev({ product, version }, catalog, table);
     const applied = applyKev(
       CompanyProfile.parse(base),
       webAsset.id,
@@ -92,11 +99,18 @@ for (const placement of ["internal", "external"] as const) {
     ).profile;
     const v = evaluate(theCase, applied, { knowledge: k });
     const op = buildOnePager(v, applied, k, { caseTitle: theCase.title });
+    const first = v.paths[0]?.steps[0];
     console.log(
-      `\n=== 公開サイト：${placement === "internal" ? "自社のサーバー" : "レンタルサーバー"}／PHP ${version} → ${v.result}（${v.headlineJa}）`,
+      `\n=== PHP ${version}（KEV：${m.versionStatus}）／更新管理 M1051：${control} → ${v.result}`,
     );
-    console.log(`  型紙：${v.templateId}`);
-    for (const w of op.whatHappensJa) console.log(`  何が起きるか：${w}`);
-    for (const m2 of op.measures.slice(0, 6)) console.log(`  初動：${JSON.stringify(m2)}`);
+    console.log(`  入口の段階：${first?.state}（${first?.reasonJa}）`);
+    console.log(`  見出し：${v.headlineJa}`);
+    for (const w of op.whatHappensJa.slice(0, 2)) console.log(`  何が起きるか：${w.slice(0, 120)}`);
+    console.log(
+      `  初動：${op.measures
+        .slice(0, 3)
+        .map((x) => x.labelJa)
+        .join(" / ")}`,
+    );
   }
 }
