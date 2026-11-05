@@ -6,26 +6,27 @@
     "date": "2025-06-04"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:03:08.072Z",
+  "recordedAt": "2026-11-05T02:37:33.207Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】元従業員が顧客情報持ち出し、在職者も関与 - プルデンシャル生命（1ページ目",
-    "chars": 536,
+    "title": "【セキュリティ ニュース】元従業員が顧客情報持ち出し、在職者も関与 - プルデンシャル生命",
+    "chars": 505,
     "truncated": false
   },
   "raw": {
-    "title": "元従業員と在職者による顧客情報の持ち出し（プルデンシャル生命）",
+    "title": "元従業員が顧客情報を持ち出し、在職者も漏えいに関与（プルデンシャル生命）",
     "damageType": "out_of_scope",
     "clarity": "unknown",
+    "victim": "self",
     "steps": [],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 626,
-    "outputTokens": 79,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 601,
+    "outputTokens": 93,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 1743
+  "elapsedMs": 2028
 }

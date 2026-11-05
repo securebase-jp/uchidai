@@ -6,18 +6,19 @@
     "date": "2026-01-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:03:04.388Z",
+  "recordedAt": "2026-11-05T02:37:29.596Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】カーテン通販サイトで決済アプリ改ざん - 個人情報流出の可能性（1ページ目",
-    "chars": 841,
+    "title": "【セキュリティ ニュース】カーテン通販サイトで決済アプリ改ざん - 個人情報流出の可能性",
+    "chars": 729,
     "truncated": false
   },
   "raw": {
-    "title": "カーテン通販サイトで決済アプリが改ざんされ、カード情報などが流出した可能性",
+    "title": "カーテン通販サイトで決済アプリ改ざん、個人情報・カード情報流出の可能性",
     "damageType": "data_breach",
-    "clarity": "clear",
+    "clarity": "partial",
+    "victim": "self",
     "steps": [
       {
         "tactic": "TA0001",
@@ -28,7 +29,7 @@
         "certainty": "confirmed",
         "entryKind": "web",
         "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
-        "summaryJa": "通販サイトのシステムの弱点を突かれて不正に侵入された"
+        "summaryJa": "通販サイトのシステムの脆弱性を突いた不正アクセスで侵入された。"
       },
       {
         "tactic": "TA0009",
@@ -39,28 +40,28 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "システムの脆弱性を突いた不正アクセスにより、決済アプリケーションが改ざんされるなど侵害され、クレジットカード情報が流出し、不正利用された可能性があることが判明した。",
-        "summaryJa": "決済アプリケーションが改ざんされ、利用者が入力した情報を盗める状態にされた"
+        "summaryJa": "決済アプリケーションが改ざんされ、利用者の入力情報を窃取される状態になった。"
       },
       {
         "tactic": "TA0010",
         "techniques": [
-          "T1567",
-          "T1041"
+          "T1041",
+          "T1567"
         ],
         "source": "inferred",
         "certainty": "possible",
         "entryKind": null,
         "quote": "氏名や住所、電話番号、メールアドレス、パスワード、任意で入力された生年月日などが被害に遭ったおそれがある。",
-        "summaryJa": "顧客の個人情報やクレジットカード情報が外部へ持ち出された可能性がある"
+        "summaryJa": "顧客の個人情報やクレジットカード情報が外部に流出した可能性がある。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 824,
-    "outputTokens": 550,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 743,
+    "outputTokens": 561,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3640
+  "elapsedMs": 3862
 }

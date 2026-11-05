@@ -6,18 +6,19 @@
     "date": "2026-07-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:02:29.956Z",
+  "recordedAt": "2026-11-05T02:37:05.332Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】フィッシング被害後、攻撃の踏み台に - スペース（1ページ目",
-    "chars": 424,
+    "title": "【セキュリティ ニュース】フィッシング被害後、攻撃の踏み台に - スペース",
+    "chars": 393,
     "truncated": false
   },
   "raw": {
-    "title": "取引先を装うフィッシングでメールアカウントを乗っ取られ、取引先2329件へ不審メールを送信（スペース）",
+    "title": "スペース：従業員のフィッシング被害後、メールアカウントが取引先2329件への攻撃の踏み台に",
     "damageType": "account_takeover",
     "clarity": "clear",
+    "victim": "self",
     "steps": [
       {
         "tactic": "TA0001",
@@ -28,18 +29,19 @@
         "certainty": "confirmed",
         "entryKind": "mail",
         "quote": "2026年6月9日に従業員1人が取引先を装ったフィッシングメールを受信。メールに記載されたリンク先のフィッシングサイトにアクセスし、メールアカウントの認証情報を入力したことで詐取され、不正アクセスを受けた。",
-        "summaryJa": "取引先を装ったフィッシングメールのリンク先で、従業員がメールアカウントの認証情報を入力して盗まれた。"
+        "summaryJa": "取引先を装ったフィッシングメールのリンク先で従業員がメールアカウントの認証情報を入力し、詐取された"
       },
       {
         "tactic": "TA0003",
         "techniques": [
-          "T1078.004"
+          "T1078.004",
+          "T1078"
         ],
         "source": "inferred",
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "盗まれた認証情報で攻撃者が従業員のメールアカウントに正規のログインをした。"
+        "summaryJa": "盗まれた認証情報で攻撃者が従業員のメールアカウントに正規のログインをした"
       },
       {
         "tactic": "TA0008",
@@ -50,25 +52,25 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "同社によれば、従業員のアカウントから取引先など2329件の宛先に対し、フィッシングメールが送信されたもの。",
-        "summaryJa": "乗っ取られた従業員のアカウントから、取引先など2329件へフィッシングメールが送られた。"
+        "summaryJa": "乗っ取られたアカウントから取引先など2329件にフィッシングメールが送信された"
       },
       {
         "tactic": "TA0040",
         "techniques": [],
-        "source": "stated",
+        "source": "inferred",
         "certainty": "confirmed",
         "entryKind": null,
-        "quote": "同社ではフィッシングメールの送信が確認された6月15日、対象アカウントを無効化してパスワードを変更。フィッシングメールの送信先に対して注意喚起を行った。",
-        "summaryJa": "取引先などの送信先に不審メールが届く二次被害が生じ、同社はアカウントを無効化して注意喚起した。"
+        "quote": null,
+        "summaryJa": "取引先などの送信先に不審なメールが届き、二次被害のおそれが生じた"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 479,
-    "outputTokens": 704,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 454,
+    "outputTokens": 622,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4496
+  "elapsedMs": 4279
 }

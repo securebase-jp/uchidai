@@ -6,18 +6,19 @@
     "date": "2025-01-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:02:15.352Z",
+  "recordedAt": "2026-11-05T02:36:49.943Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】VPN経由でランサム被害、闇サイト上に取引情報 - 日本海建設電気（1ページ目",
-    "chars": 714,
+    "title": "【セキュリティ ニュース】VPN経由でランサム被害、闇サイト上に取引情報 - 日本海建設電気",
+    "chars": 602,
     "truncated": false
   },
   "raw": {
     "title": "VPN経由でランサムウェア被害、取引情報がリークサイトに公開（日本海建設電気）",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
+    "victim": "self",
     "steps": [
       {
         "tactic": "TA0001",
@@ -29,7 +30,7 @@
         "certainty": "possible",
         "entryKind": "vpn",
         "quote": "同社が導入しているUTMアプライアンスが最新版に更新されておらず、VPN経由で侵害されたものと見られている。",
-        "summaryJa": "最新版に更新されていないUTM機器のVPN経由で侵入された可能性がある。"
+        "summaryJa": "最新版に更新されていないUTM機器のVPN経由で侵入されたとみられる。"
       },
       {
         "tactic": "TA0006",
@@ -41,7 +42,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "サーバを暗号化するため、管理者権限に必要な認証情報が奪われたと通常考えられる。"
+        "summaryJa": "社内で管理者権限などの認証情報が奪われたと通常考えられる。"
       },
       {
         "tactic": "TA0008",
@@ -53,7 +54,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入口から社内のサーバへ攻撃が広がったと通常考えられる。"
+        "summaryJa": "侵入後、サーバへ攻撃が広がったと通常考えられる。"
       },
       {
         "tactic": "TA0010",
@@ -65,7 +66,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "外部事業者が調査を行ったところ、攻撃者が運営するいわゆるリークサイト上で、個人情報を含む取引情報が公開されていることが明らかとなった。",
-        "summaryJa": "個人情報を含む取引情報が外部に持ち出され、攻撃者のリークサイトに公開された。"
+        "summaryJa": "個人情報を含む取引情報が持ち出され、リークサイトで公開された。"
       },
       {
         "tactic": "TA0040",
@@ -82,10 +83,10 @@
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 721,
-    "outputTokens": 713,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 640,
+    "outputTokens": 697,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4662
+  "elapsedMs": 5747
 }
