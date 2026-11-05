@@ -39,7 +39,13 @@ for (const id of values.id ?? []) {
 }
 
 // Claude API の使用量だけを数える（応答の usage を足す。ヘッダやキーは見ない）
-type Usage = { calls: number; input: number; output: number; cacheRead: number; cacheWrite: number };
+type Usage = {
+  calls: number;
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+};
 let usage: Usage = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 const origFetch = globalThis.fetch;
 globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
@@ -73,7 +79,11 @@ async function call(method: "GET" | "POST", path: string, body?: unknown) {
       ? { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }
       : {}),
   });
-  return { status: res.status, ms: Math.round(performance.now() - t0), json: (await res.json()) as any };
+  return {
+    status: res.status,
+    ms: Math.round(performance.now() - t0),
+    json: (await res.json()) as any,
+  };
 }
 
 const norm = (s: string) => s.replace(/\s+/g, "");
@@ -148,7 +158,10 @@ for (const item of targets) {
   row.steps = (c.steps as any[]).map(
     (s) => `${s.tactic}[${s.source}]${(s.techniques as string[]).join("+")}`,
   );
-  row.quotes = { total: quotes.length, verbatim: quotes.filter((q) => nArticle.includes(norm(q))).length };
+  row.quotes = {
+    total: quotes.length,
+    verbatim: quotes.filter((q) => nArticle.includes(norm(q))).length,
+  };
   row.suspicious = (c.suspiciousInstructions ?? []).length;
   row.report = {
     droppedSteps: read.json.report.droppedSteps?.length ?? 0,
@@ -161,7 +174,12 @@ for (const item of targets) {
   const tReadUsage = { ...usage };
   const per: Record<string, unknown> = {};
   for (const [name, profile] of Object.entries(profiles)) {
-    const ev = await call("POST", "/api/evaluate", { case: c, profile, measureIds: [], answers: [] });
+    const ev = await call("POST", "/api/evaluate", {
+      case: c,
+      profile,
+      measureIds: [],
+      answers: [],
+    });
     save(`${name}.evaluate.json`, ev.json);
     const op = await call("POST", "/api/onepager", {
       case: c,
