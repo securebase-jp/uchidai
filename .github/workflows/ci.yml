@@ -39,9 +39,12 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+      # この検査は node の標準機能だけで動き、pnpm を使わない。setup-node@v5 は package.json の
+      # packageManager（pnpm）を見てキャッシュを自動で有効にし、pnpm が無いと失敗するので、切る
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - name: PR のコミットを検査する
         if: github.event_name == 'pull_request'
         run: node --disable-warning=ExperimentalWarning scripts/check-author.ts --range "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
