@@ -161,3 +161,22 @@
   font-size: 14px;
   animation: appear 400ms ease-out 1 both;
 }
+
+/* 「依頼済み・回答待ち」の札を、送信箱へ移動するボタンにする（見た目は札のまま） */
+button.st-link {
+  font: inherit;
+  cursor: pointer;
+}
+button.st-link:hover {
+  filter: brightness(1.15);
+}
+button.st-link:focus-visible {
+  outline: 2px solid var(--steel);
+  outline-offset: 2px;
+}
+/* 移動した先の依頼を数秒だけ目立たせる（動かさず、枠と背景だけ） */
+.mail.outbox-hit {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}

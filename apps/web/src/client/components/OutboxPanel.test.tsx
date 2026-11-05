@@ -50,6 +50,9 @@ describe("OutboxPanel", () => {
     expect(m).not.toContain("回答ページ");
     expect(m).not.toContain("回答を取り消す");
   });
+  it("各依頼に、札から移動できる印（資産 id:対策 id）を付ける", () => {
+    expect(render([base])).toContain('data-outbox-key="admin:M1026"');
+  });
   it("回答済みの依頼には、ベンダー側の回答者・受領日時・入力者と「回答を取り消す」が出る", () => {
     const m = render([
       {

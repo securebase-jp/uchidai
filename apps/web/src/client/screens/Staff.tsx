@@ -1,5 +1,5 @@
 /** 担当者画面（操作型）：結論カード、経路図と動き、計器、時間軸、対策ボタン、根拠の一覧、攻撃者ログ */
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { AiAttackerPanel } from "../components/AiAttackerPanel.tsx";
 import { AttackerLog } from "../components/AttackerLog.tsx";
 import { MissingChoices } from "../components/CompanyPicker.tsx";
@@ -24,6 +24,7 @@ import type { Settings } from "../hooks/useSettings.ts";
 import { type StageInput, useStage } from "../hooks/useStage.ts";
 import { type NextMove, reasonSentence } from "../lib/conclusion.ts";
 import { RESULT_SHORT } from "../lib/labels.ts";
+import { focusOutbox, parseOutboxParam } from "../lib/outbox-focus.ts";
 import { rankPending, templateHeading, unknownStepLabels } from "../lib/pending.ts";
 import { readNotices } from "../lib/read-notices.ts";
 import { timelineOf } from "../lib/timeline.ts";
@@ -105,6 +106,20 @@ export function Staff({ settings }: { settings: Settings }) {
     () => (stage ? timelineOf(stage.input.verdict, stage.input.profile) : undefined),
     [stage],
   );
+
+  // 「依頼済み・回答待ち」の札から来たとき（#/staff?outbox=…）：判定が出て画面ができてから送信箱へ移動する。
+  // 画面の切り替え直後のスクロール位置の戻し（Shell）より後に動かすため、少し待つ。見せたら印は消す
+  const ready = Boolean(profile && theCase && stage && knowledge && tl);
+  useEffect(() => {
+    if (!ready) return;
+    const key = parseOutboxParam(location.hash);
+    if (key === undefined) return;
+    const t = setTimeout(() => {
+      focusOutbox(key);
+      history.replaceState(null, "", "#/staff");
+    }, 80);
+    return () => clearTimeout(t);
+  }, [ready]);
 
   if (!profile || !theCase) return <MissingChoices />;
   if (!stage || !knowledge || !tl) {

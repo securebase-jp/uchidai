@@ -9,6 +9,7 @@ import { useRequests } from "../hooks/useRequests.tsx";
 import { rankPending } from "../lib/pending.ts";
 import { requestsApi } from "../lib/requestsApi.ts";
 import { InfoButton } from "./InfoButton.tsx";
+import { OutboxLink } from "./OutboxLink.tsx";
 import { OutboxPanel } from "./OutboxPanel.tsx";
 import "./requests.css";
 
@@ -129,7 +130,7 @@ export function RequestPanel() {
                   {x.noteJa && <span className="muted">{x.noteJa}</span>}
                 </div>
                 {open ? (
-                  <span className="st amber">依頼済み・回答待ち</span>
+                  <OutboxLink assetId={x.assetId} mitigation={x.mitigation} />
                 ) : (
                   <button
                     type="button"
@@ -145,7 +146,7 @@ export function RequestPanel() {
           })}
         </div>
       )}
-      <div ref={outboxRef}>
+      <div ref={outboxRef} data-outbox-box>
         <OutboxPanel
           items={req.items}
           onReply={req.reply}

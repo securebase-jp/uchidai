@@ -148,7 +148,7 @@ export function OutboxItem({
   }
 
   return (
-    <div className="mail">
+    <div className="mail" data-outbox-key={`${item.assetId}:${item.mitigation}`}>
       <div className="hd">
         <span
           className={`st ${item.answer ? (item.answer.input.status === "present" ? "green" : item.answer.input.status === "absent" ? "red" : "amber") : "amber"}`}
