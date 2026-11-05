@@ -207,13 +207,14 @@ describe("磨き込み（docs/hackathon/demo-polish-plan.md の 0〜4・6）", (
     if (!s) throw new Error(`場面 ${n} がありません`);
     return s;
   };
-  it("冒頭の 4 秒：場面 1 はコールドオープンで始まり、4 秒でチャットへ。読み上げは 4 秒の無音のあと", () => {
+  it("冒頭の 4 秒：場面 1 はコールドオープンで始まり、4 秒でチャットへ。読み上げはチャットが出て 1 秒後（5 秒）から", () => {
     const s1 = scene(1);
     expect(s1.overlay).toBe("cold-open");
     expect(s1.actions.find((a) => a.do === "overlay")).toMatchObject({ at: 4, id: "chat-boss" });
     const n1 = narration.scenes.find((x) => x.n === 1);
-    expect(n1?.leadSilenceSeconds).toBe(4);
-    expect(n1?.cueStarts?.[0]).toBeGreaterThanOrEqual(4);
+    // チャットの画面が出てから話し始める（開発者の指摘、11/5）
+    expect(n1?.leadSilenceSeconds).toBe(5);
+    expect(n1?.cueStarts?.[0]).toBeGreaterThanOrEqual(5);
     // 帯もチャットが出てから
     for (const l of s1.layers) expect(l.from).toBeGreaterThanOrEqual(4);
     expect(narration.totalTargetSeconds).toBe(180);
