@@ -3,12 +3,13 @@
  * 各報を別々に読んだ結果（Case）を並べ、段階ごとの確度・入口の種類・被害額・漏えいした情報の違いを
  * **プログラムが決定的に**出す。Claude の言い換えは使わない（文はここの固定の書き方だけ）。
  */
-import type { Knowledge } from "./knowledge.ts";
+
 import { formatJpy } from "./impact.ts";
+import type { Knowledge } from "./knowledge.ts";
 import type { Case, CaseStep, StepCertainty } from "./types.ts";
 
 /** 系列の一件：画面に出す名前（「第2報」）と、その報を読んだ結果 */
-export type SeriesReportInput = { label: string; date?: string; case: Case };
+export type SeriesReportInput = { label: string; date?: string | undefined; case: Case };
 
 /** 確度の言い方（段階の表のセルと変化の文に使う） */
 export const CERTAINTY_LABEL_JA: Record<StepCertainty, string> = {
@@ -84,7 +85,7 @@ const orderOf = (t: string) => {
 /** 同じ戦術の段階が複数あるときは、確度が高いほう（confirmed、記載）を代表にする */
 function pickStep(steps: CaseStep[], tactic: string): CaseStep | undefined {
   const same = steps.filter((s) => s.tactic === tactic);
-  const rank = (s: CaseStep) => (s.certainty ?? "confirmed") === "confirmed" ? 0 : 1;
+  const rank = (s: CaseStep) => ((s.certainty ?? "confirmed") === "confirmed" ? 0 : 1);
   return [...same].sort((a, b) => rank(a) - rank(b))[0];
 }
 
@@ -197,7 +198,8 @@ export function compareSeries(
       const lnSet = new Set(r.case.leakedData ?? []);
       const added = [...lnSet].filter((x) => !lpSet.has(x)).map(leakLabel);
       const removed = [...lpSet].filter((x) => !lnSet.has(x)).map(leakLabel);
-      if (added.length > 0) changes.push(`漏えいした情報に${added.map(quote).join("、")}が加わりました`);
+      if (added.length > 0)
+        changes.push(`漏えいした情報に${added.map(quote).join("、")}が加わりました`);
       if (removed.length > 0)
         changes.push(`漏えいした情報から${removed.map(quote).join("、")}が外れました`);
       transitions.push({ fromLabel: p.label, toLabel: r.label, changesJa: changes });

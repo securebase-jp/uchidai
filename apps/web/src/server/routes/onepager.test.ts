@@ -34,6 +34,43 @@ describe("POST /api/onepager", () => {
     expect(body.verdict.result).toBe("breached");
     for (const line of body.onePager.whatHappensJa) expect(line).not.toMatch(/\bT\d{4}|M\d{4}/);
   });
+  it("reports（複数の報を別々に読んだ結果）があるときだけ、前の報から変わったことを返す（TRIAL-I-012）", async () => {
+    const { theCase, profile } = await fixture();
+    const plain = await loose(post("/api/onepager", { case: theCase, profile, rewrite: false }));
+    expect(plain.changes).toBeUndefined();
+    const withReports = await loose(
+      post("/api/onepager", {
+        case: theCase,
+        profile,
+        rewrite: false,
+        reports: [
+          {
+            label: "第1報",
+            case: {
+              ...theCase,
+              steps: [
+                { ...theCase.steps[0], certainty: "not_stated", source: "unknown" },
+                ...theCase.steps.slice(1),
+              ],
+            },
+          },
+          { label: "第2報", case: theCase },
+        ],
+      }),
+    );
+    // 一枚そのものは、reports の有無で変わらない
+    expect(withReports.onePager).toEqual(plain.onePager);
+    expect(withReports.changes.summaryJa).toHaveLength(1);
+    expect(withReports.changes.summaryJa[0]).toMatch(/^第2報で、.*入口が「分かっていません」から/);
+    // 1 件や 6 件は受け付けない
+    const one = await post("/api/onepager", {
+      case: theCase,
+      profile,
+      rewrite: false,
+      reports: [{ label: "第1報", case: theCase }],
+    });
+    expect(one.status).toBe(400);
+  });
   it("対策「VPN 装置の更新」を適用すると止められる", async () => {
     const { theCase, profile } = await fixture();
     const body = await loose(

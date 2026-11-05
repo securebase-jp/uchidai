@@ -10,6 +10,7 @@ import {
   buildOnePager,
   Case,
   CompanyProfile,
+  compareSeries,
   evaluate,
   loadKnowledge,
   type OnePager,
@@ -28,6 +29,18 @@ export const OnePagerRequest = z.object({
   answers: Answers,
   /** Claude の言い換えを使うか（キーが無ければ常にテンプレート） */
   rewrite: z.boolean().default(true),
+  /** 同じ事故の複数の公表を各報別々に読んだ結果（古い順）。あるときだけ、一枚に「前の報から変わったこと」を足す（TRIAL-I-012） */
+  reports: z
+    .array(
+      z.object({
+        label: z.string().max(40),
+        date: z.string().max(10).optional(),
+        case: Case,
+      }),
+    )
+    .min(2)
+    .max(5)
+    .optional(),
 });
 export type OnePagerTextSource = { source: "claude" | "template"; model?: string; noteJa?: string };
 
@@ -111,5 +124,17 @@ onepagerRoutes.post("/api/onepager", async (c) => {
               : {}),
           },
         };
-  return c.json({ onePager, graph, verdict, measures, profile, text });
+  // 報の間の差分は、プログラムが決定的に比べた固定の文（Claude の言い換えは通さない）
+  const changes = body.reports
+    ? (({ summaryJa, transitions }) => ({ summaryJa, transitions }))(compareSeries(body.reports, k))
+    : undefined;
+  return c.json({
+    onePager,
+    graph,
+    verdict,
+    measures,
+    profile,
+    text,
+    ...(changes ? { changes } : {}),
+  });
 });

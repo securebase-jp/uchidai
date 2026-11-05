@@ -10,11 +10,23 @@ export const MAX_ARTICLE_CHARS = 300_000;
 /** PDF（base64）の上限（文字）。llm 側の取得上限 20MB に合わせる */
 export const MAX_PDF_BASE64_CHARS = 28_000_000;
 
+/** 同じ事故の複数の公表として一度に読める URL の数 */
+export const MAX_SERIES_URLS = 5;
+
 export const CaseInput = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("url"),
     url: z.string().url().max(2048),
     pages: z.string().max(64).optional(),
+  }),
+  /**
+   * 同じ事故の複数の公表（第一報と続報など、最大 5 件）を 1 件として読む（TRIAL-I-005 の (b)）。
+   * 日付順（公表日が全部取れたとき）または指定順に並べて連結する。onError: "skip" は、取得に失敗した URL を除いて読む
+   */
+  z.object({
+    kind: z.literal("urls"),
+    urls: z.array(z.string().url().max(2048)).min(1).max(MAX_SERIES_URLS),
+    onError: z.enum(["fail", "skip"]).default("fail"),
   }),
   z.object({
     kind: z.literal("text"),
