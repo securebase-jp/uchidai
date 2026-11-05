@@ -1,0 +1,229 @@
+# 実記事の試験（BEC と、メール・アカウントの乗っ取り）に使う記事 19 件（2026-11-05 収集）
+# 本文はリポジトリに入れない。取得した本文は eval/.cache/trials/<id>/article.txt（git 管理外）。
+# ここには出典 URL・自分の言葉での要約・期待ラベルだけを書く。記事の文は引用しない。
+#
+# kind：期待する被害の種類。damage-types.yaml の id（bec）か、account_takeover（メール・アカウントの乗っ取り。
+#       現状は型紙が無いので、プロダクトは out_of_scope にするはず。TRIAL-006）
+# alsoAcceptable：kind のほかに、読解として妥当と認める種類（境目の記事）
+# entry：記事から分かる入口・手口（分からなければ「記載なし」）
+# heldOut：true の記事は「最後の測定用」。収集と期待ラベル付けだけ行い、このセッションでは通さない
+#   決め方：BEC と乗っ取りをそれぞれ公開日の順に並べ、3 件おき（BEC は 3・6・9 番目、乗っ取りは 3・6・9 番目）
+#   BEC の並び：ipa-2023, 3dmatrix, ipa-2024*, survey-2024, sanshin, fin-6oku*, npa-nise, kyoto-boeki, oita*, odawara（* が heldOut。odawara は 10 番目）
+#   乗っ取りの並び：nmr, kawai, sakura*, jems, toho, proofpoint-rules*, kodansha, m365-mfa, hotel*
+articles:
+  # ===== なりすまし送金（BEC）10 件 =====
+  - id: bec-ipa-2023
+    url: https://scan.netsecurity.ne.jp/article/2023/04/19/49228.html
+    title: 社長になりすましグループ企業取締役に金銭要求 ～ IPA「BEC事例集」新規事例
+    publishedAt: "2023-04-19"
+    kind: bec
+    entry: 国内企業の社長を装うメール（M&A への協力を名目に、東南アジアのグループ会社の役員へ）
+    industry: 不明（グループ企業）
+    size: 不明
+    heldOut: false
+    expectNote: 社長を装って役員に金銭を要求した事例。役員が電話で本人に確認して未遂。実害なし。段階は「なりすましの接触 → 口座残高の確認 → 支払い要求」で、送金には至らない
+
+  - id: bec-3dmatrix
+    url: https://scan.netsecurity.ne.jp/article/2024/02/02/50548.html
+    title: 経営者間の信頼関係から口座変更に応じる ～ 医療製品開発企業で送金詐欺
+    publishedAt: "2024-02-02"
+    kind: bec
+    entry: 取引先を装うメール（支払口座の変更依頼）
+    industry: 医療製品開発
+    size: 東証グロース上場
+    heldOut: false
+    expectNote: 原料代金の支払い口座を変えるメールに応じ、約 86 万ドルを偽の口座へ。翌月にも別の支払いで同様。取引先の請求書（振込先の変更）型。開示は上場企業のお知らせ
+
+  - id: bec-ipa-2024
+    url: https://www.security-next.com/157567
+    title: 実際に確認された巧妙な「ビジネスメール詐欺」 - IPAが事例集
+    publishedAt: "2024-05-28"
+    kind: bec
+    entry: 取引先のメールアカウントの乗っ取りと、国内企業と海外取引先の双方へのなりすまし
+    industry: 不明（事例集 7 件）
+    size: 不明
+    heldOut: true
+    expectNote: IPA の事例集の紹介（実際の既遂・未遂 7 件）。取引先のアカウントが乗っ取られて口座変更を求められた例を含む。複数事例のまとめで、個別の事案ではない
+
+  - id: bec-survey-2024
+    url: https://scan.netsecurity.ne.jp/article/2024/07/10/51278.html
+    title: なりすましメール被害発覚 きっかけの 4 割が「取引先・顧客より連絡」 ～ 被害企業 190 社調査
+    publishedAt: "2024-07-10"
+    kind: bec
+    entry: 取引先を装う振込先変更依頼（調査対象のなりすましメールの一部。大半は請求書などを装うマルウェア）
+    industry: 建設業・サービス業が多い
+    size: 不明
+    heldOut: false
+    expectNote: 調査の記事で、個別の事案ではない。BEC は一部（振込先変更依頼が約 3%）。境目の記事なので、out_of_scope や情報不足という答えも妥当。期待は bec だが、無理に判定しないことを良しとする
+
+  - id: bec-sanshin
+    url: https://scan.netsecurity.ne.jp/article/2025/07/30/53326.html
+    title: 約 2 億 5,600 万円 資金流出 ～ 虚偽の送金指示に従った三信電気 香港子会社
+    publishedAt: "2025-07-30"
+    kind: bec
+    entry: 記載なし（虚偽の送金指示。手口の詳細は捜査上の理由で非開示）
+    industry: 電子部品商社
+    size: 東証プライム上場（海外子会社）
+    heldOut: false
+    expectNote: 海外子会社が第三者の虚偽の送金指示に従い約 2.56 億円が流出。入口は書かれていないので、入口は unknown か推定になるのが正しい。金額が大きい例
+
+  - id: bec-fin-6oku
+    url: https://financial-field.com/living/entry-486599
+    title: 【要注意】社長からの「LINEグループを作成してください」メールに返信で、被害総額“6億円超”!?
+    publishedAt: "2026-01-14"
+    kind: bec
+    entry: 社長を名乗るメール → LINE グループの作成と QR コードの返信 → 送金指示（チャットワークでも類似）
+    industry: 不明
+    size: 不明
+    heldOut: true
+    expectNote: ニセ社長詐欺の解説（2 ページ）。2026 年 1 月に急増、被害総額 6 億円超と報じられた。個別の事案ではなく手口の解説。チャット経由の例
+
+  - id: bec-npa-nise
+    url: https://scan.netsecurity.ne.jp/article/2026/02/18/54646.html
+    title: 警察庁「ニセ社長詐欺」に注意呼びかけ
+    publishedAt: "2026-02-18"
+    kind: bec
+    entry: 経営者を装うメール → SNS グループの作成と QR コードの返信 → 口座残高の確認 → 送金指示
+    industry: 不明
+    size: 不明
+    heldOut: false
+    expectNote: 警察庁の注意喚起（短い記事）。実害の個別の事案ではない。手口の流れは書かれている。送金額の記載なし
+
+  - id: bec-kyoto-boeki
+    url: https://rocket-boys.co.jp/security-measures-lab/ceo-impersonation-chat-group-bec-58m/
+    title: 社長かたり「チャットグループ作って」、経理担当者が信じ込み5,880万円を不正送金
+    publishedAt: "2026-06-19"
+    kind: bec
+    entry: SNS で社長を名乗る連絡 → チャットグループの作成 → 経理担当者への送金指示
+    industry: 貿易業
+    size: 不明（社長 1 人、経理担当者 1 人の規模）
+    heldOut: false
+    expectNote: 京都府警の発表（2026-06-19）。被害額約 5,880 万円。送金後に社長へ電話報告して発覚。セキュリティの解説サイトによる要約記事
+
+  - id: bec-oita
+    url: https://rocket-boys.co.jp/?p=36299
+    title: 大分県の社会福祉法人が社長を騙るニセ社長詐欺(BEC詐欺)で1,990万円被害
+    publishedAt: "2026-07-02"
+    kind: bec
+    entry: 業務用メールに代表者を名乗る連絡 → LINE グループへ誘導 → 経理担当者に送金指示（ネットバンキングで 2 口座へ）
+    industry: 社会福祉法人
+    size: 不明
+    heldOut: true
+    expectNote: 大分県警の発表（2026-07-02）。被害額 1,990 万円（2 回）。上司がプロフィール画像の違いに気づいて発覚。業種が社会福祉法人
+
+  - id: bec-odawara
+    url: https://scan.netsecurity.ne.jp/article/2026/10/07/56400.html
+    title: なりすましメールで取引先に金銭的な被害も ～ 小田原エンジニアリング従業員のメールアカウントに不正アクセス
+    publishedAt: "2026-10-07"
+    kind: bec
+    alsoAcceptable: [account_takeover]
+    entry: 海外子会社に出向中の従業員のメールアカウントへの不正アクセス（約 5 か月間メールを閲覧）
+    industry: 製造（自動化装置）
+    size: 不明
+    heldOut: false
+    expectNote: 境目の記事。タイトルは、従業員になりすまして取引先へ入金を指示するメールで取引先に金銭被害が出たと書く。ただし取得した本文はアカウントへの不正アクセスの説明だけで、入金指示の部分が欠けている。本文だけなら account_takeover
+
+  # ===== メール・アカウントの乗っ取り／取引先を装うフィッシング 9 件（期待は account_takeover。現状は型紙なし） =====
+  - id: ato-nmr
+    url: https://www.security-next.com/167806
+    title: フィッシング被害から個人情報流出や不正メール送信が発生 - 日本無線
+    publishedAt: "2025-03-17"
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: 取引先から届いたメールの URL にアクセスして ID・パスワードを詐取され、海外からメールアカウントを侵害された
+    industry: 無線機器メーカー
+    size: 大企業
+    heldOut: false
+    expectNote: 取引先を装うフィッシング → メールアカウントの乗っ取り → 顧客に標的型メール 994 件 → アカウントのメール全文がダウンロードされた。取引先を装う型の代表例。個人情報の流出もある（個人情報保護委員会へ報告）。2 ページ
+
+  - id: ato-kawai
+    url: https://www.security-next.com/171581
+    title: 従業員メールアカウントがスパムの踏み台に - 河合楽器グループ会社
+    publishedAt: "2025-06-23"
+    kind: account_takeover
+    entry: 記載なし（従業員 1 人のメールアカウントへの不正アクセス）
+    industry: システム開発（楽器メーカーのグループ会社）
+    size: 不明
+    heldOut: false
+    expectNote: 従業員 1 人のアカウントが迷惑メールの踏み台に。入口は書かれていない。情報漏えいの記載なし。短い記事。「踏み台」型で、金銭目的ではない
+
+  - id: ato-sakura
+    url: https://scan.netsecurity.ne.jp/article/2026/04/02/54966.html
+    title: フィッシングメールをクリック ～ サクラ工業の海外拠点の社員のメールアカウントに不正アクセス
+    publishedAt: "2026-04-02"
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: フィッシングメールのクリック → 海外拠点の社員のアカウントへ海外から不正ログイン
+    industry: 製造（工業）
+    size: 不明
+    heldOut: true
+    expectNote: 発表は 2026-03-20、事案は 2025-09。多数の社員に不審メールが届いて発覚。保管していた個人情報が漏えいした可能性。海外拠点が入口
+
+  - id: ato-jems
+    url: https://www.security-next.com/182964
+    title: メルアカが不正アクセス被害、フィッシングメール送信される - JEMS
+    publishedAt: "2026-04-09"
+    kind: account_takeover
+    entry: 記載なし（海外からのログイン。一部クラウドストレージへのアクセス試行もあった）
+    industry: 廃棄物管理システムの提供
+    size: 不明
+    heldOut: false
+    expectNote: 従業員のアカウントから、特定の取引先を含む外部へ、ファイル共有サービスを装うフィッシングメールが 223 件送信された。取引先への踏み台。2 ページ
+
+  - id: ato-toho
+    url: https://www.security-next.com/183310
+    title: 従業員メルアカが不正利用、取引先へ不審メール - トーホー
+    publishedAt: "2026-04-16"
+    kind: account_takeover
+    entry: 記載なし（従業員 1 人のメールアカウントの侵害。2026-03-31〜04-06）
+    industry: 業務用食品卸
+    size: 不明
+    heldOut: false
+    expectNote: 取引先へ大量の不正なメールが送られた。入口は不明。取引先を特定して個別に連絡中。短い記事
+
+  - id: ato-proofpoint-rules
+    url: https://scan.netsecurity.ne.jp/article/2026/06/23/55552.html
+    title: Proofpoint Blog 第57回【O365】自動転送やフォルダへの移動 ～ メールボックスのルールを書き換えデータ窃取
+    publishedAt: "2026-06-23"
+    kind: account_takeover
+    entry: 侵害後に攻撃者がメールボックスのルール（転送・移動・削除）を作って永続化・流出・通信の操作を行う（個別の事案ではない）
+    industry: 不明
+    size: 不明
+    heldOut: true
+    expectNote: セキュリティ企業のブログ（約 1 万字）。転送ルールの悪用の解説で、個別の被害ではない。out_of_scope か、乗っ取りの手口の解説として扱うのが妥当。長い本文の取り込みの確認にもなる
+
+  - id: ato-kodansha
+    url: https://www.security-next.com/188284
+    title: 従業員がフィッシング被害、連絡先情報が流出 - 講談社
+    publishedAt: "2026-08-04"
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: 取引先を装うフィッシングメール → 偽のログイン画面で認証情報を入力 → アカウントへ不正アクセス
+    industry: 出版
+    size: 大企業
+    heldOut: false
+    expectNote: 取引先を装うフィッシングの典型。連絡先 3,812 件が窃取され、そのうち 553 件のアドレスへフィッシングメールが送信された（二次被害）。従業員の気づきで同日に遮断。個人情報保護委員会へ報告
+
+  - id: ato-m365-mfa
+    url: https://techtarget.itmedia.co.jp/tt/article/2608/31/2000000903/
+    title: 「Microsoft 365」が乗っ取られる　跡形もなくMFAを破る手口
+    publishedAt: "2026-08-31"
+    kind: account_takeover
+    alsoAcceptable: [bec]
+    entry: セッションの窃取で多要素認証（MFA）を回避し、財務担当者の Microsoft 365 メールボックスを乗っ取る。以降は取引先になりすまして支払いを詐取しようとした
+    industry: 不明（被害組織の買掛金業務部門）
+    size: 不明
+    heldOut: false
+    expectNote: セキュリティ企業の調査チームによる解説で、約 30 日間の侵入。最終目的は取引先を装う支払いの詐取（BEC）だが、主題は MFA を破るアカウントの乗っ取りの手口。境目の記事。取得した本文は冒頭の一部（約 700 字）の可能性がある
+
+  - id: ato-hotel
+    url: https://www.security-next.com/189987
+    title: 従業員アカウントが侵害、なりすましメールが送信 - ホテル運営会社
+    publishedAt: "2026-09-17"
+    kind: account_takeover
+    alsoAcceptable: [data_breach]
+    entry: 記載なし（従業員のメールアカウントへの不正アクセス）
+    industry: ホテル運営（TRUNK）
+    size: 不明
+    heldOut: true
+    expectNote: 424 人分の氏名・住所・メールアドレスなどが流出した可能性。同じアカウントから社や従業員になりすましたメールが送信された。個人情報保護委員会へ報告。短い記事
