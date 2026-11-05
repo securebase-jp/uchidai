@@ -152,7 +152,7 @@ function GeneratePanel({
 export function OnePager() {
   const app = useApp();
   const params = useOnePagerParams();
-  const { state, generate, rewrite } = useOnePager(params);
+  const { state, generate, rewrite, recordedAvailable } = useOnePager(params);
   const [copied, setCopied] = useState<string>();
   const [shareNote, setShareNote] = useState<string>();
   const [shareError, setShareError] = useState<string>();
@@ -306,7 +306,10 @@ export function OnePager() {
           />
         </div>
       )}
-      {state.status === "idle" && <GeneratePanel available={available} onGenerate={generate} />}
+      {state.status === "idle" && (
+        // デモモードで記録した一枚を使えるときは、キーが無くても押せる（押しても Claude は呼ばない）
+        <GeneratePanel available={recordedAvailable || available} onGenerate={generate} />
+      )}
       {state.status === "loading" && (
         <>
           <p className="muted" role="status">

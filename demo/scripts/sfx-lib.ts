@@ -22,16 +22,33 @@ export const SfxCue = z.object({
   sound: z.enum(SOUND_NAMES),
   /** 0〜1。音ごとの基準の音量に対する割合 */
   gain: z.number().min(0).max(1),
+  /**
+   * 山場の強い一打（「効かない」「赤に変わる」など）。ナレーションの発話中も下げず（ダッキングしない）、
+   * ほかの効果音より STRONG_EXTRA_DB だけ大きく鳴らす
+   */
+  strong: z.boolean().optional(),
   note: z.string().optional(),
 });
 export type SfxCue = z.infer<typeof SfxCue>;
+
+/** 全部の音（ナレーションと効果音）を切る区間。結論の直前の「間」など。場面の開始からの秒 at から seconds 秒 */
+export const SfxMute = z.object({
+  scene: z.number().int().min(1),
+  at: z.number().min(0),
+  seconds: z.number().positive().max(5),
+  note: z.string().optional(),
+});
+export type SfxMute = z.infer<typeof SfxMute>;
 
 export const SfxFile = z.object({
   version: z.literal(1),
   note: z.string().optional(),
   cues: z.array(SfxCue).min(1),
+  mutes: z.array(SfxMute).default([]),
 });
 export type SfxFile = z.infer<typeof SfxFile>;
+/** 強い一打（strong）を、ほかの効果音よりどれだけ大きくするか（dB） */
+export const STRONG_EXTRA_DB = 11;
 
 export function parseSfx(raw: unknown): SfxFile {
   return SfxFile.parse(raw);
@@ -78,7 +95,29 @@ export function resolveCues(cues: SfxCue[], scenes: SceneTime[]): Resolution {
   return out;
 }
 
+/** 音を切る区間を、動画の絶対時刻（秒）に直す。場面が無いものは飛ばす */
+export function resolveMutes(
+  mutes: SfxMute[],
+  scenes: SceneTime[],
+): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = [];
+  for (const m of mutes) {
+    const sc = scenes.find((s) => s.n === m.scene);
+    if (!sc) continue;
+    const start = sc.start + m.at;
+    out.push({ start, end: start + m.seconds });
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
+
 const num = (n: number) => String(Number(n.toFixed(6)));
+
+/** 区間のあいだだけ音量を 0 にするフィルタ（区間が無ければ空文字） */
+export function muteFilter(mutes: { start: number; end: number }[]): string {
+  if (mutes.length === 0) return "";
+  const when = mutes.map((m) => `between(t,${num(m.start)},${num(m.end)})`).join("+");
+  return `volume=0:enable='${when}'`;
+}
 
 /**
  * 効果音を絶対時刻に並べたトラック（モノラル 48 kHz）を作る ffmpeg の引数。
@@ -159,19 +198,35 @@ export function buildMixArgs(opts: {
   sfxGainDb: number;
   out: string;
   duck?: Duck;
+  /** 強い一打だけのトラック（ダッキングしない。sfxGainDb + STRONG_EXTRA_DB で混ぜる） */
+  strongTrack?: string | undefined;
+  /** 全部の音を切る区間（動画の絶対時刻） */
+  mutes?: { start: number; end: number }[];
 }): string[] {
-  const { narration, sfxTrack, sfxGainDb, out } = opts;
+  const { narration, sfxTrack, sfxGainDb, out, strongTrack } = opts;
+  const mute = muteFilter(opts.mutes ?? []);
+  const muted = mute ? `${mute},` : "";
+  const strongDb = sfxGainDb + STRONG_EXTRA_DB;
   const d = opts.duck ?? DEFAULT_DUCK;
   const limiter = "alimiter=limit=0.95:level=disabled";
   // 仕上げ：動画サイトで小さく聞こえないよう、全体の音量を -16 LUFS（ピーク -1.5 dB）にそろえる
   const loudness = "loudnorm=I=-16:TP=-1.5:LRA=11";
   const tail = ["-ar", String(SAMPLE_RATE), "-ac", "1", "-c:a", "pcm_s16le", out];
   if (!narration) {
+    const filter = strongTrack
+      ? [
+          `[0:a]volume=${num(sfxGainDb)}dB[sfxg]`,
+          `[1:a]volume=${num(strongDb)}dB[str]`,
+          "[sfxg][str]amix=inputs=2:normalize=0:duration=first[m]",
+          `[m]${muted}${limiter},${loudness}[mix]`,
+        ].join(";")
+      : `[0:a]volume=${num(sfxGainDb)}dB,${muted}${limiter},${loudness}[mix]`;
     return [
       "-i",
       sfxTrack,
+      ...(strongTrack ? ["-i", strongTrack] : []),
       "-filter_complex",
-      `[0:a]volume=${num(sfxGainDb)}dB,${limiter},${loudness}[mix]`,
+      filter,
       "-map",
       "[mix]",
       ...tail,
@@ -181,8 +236,24 @@ export function buildMixArgs(opts: {
     "[0:a]asplit=2[nar][key]",
     `[1:a]volume=${num(sfxGainDb)}dB[sfxg]`,
     `[sfxg][key]sidechaincompress=threshold=${num(d.threshold)}:ratio=${num(d.ratio)}:attack=${num(d.attack)}:release=${num(d.release)}:makeup=1[duck]`,
-    "[nar][duck]amix=inputs=2:normalize=0:duration=first[m]",
-    `[m]${limiter},${loudness}[mix]`,
+    ...(strongTrack
+      ? [
+          `[2:a]volume=${num(strongDb)}dB[str]`,
+          "[nar][duck][str]amix=inputs=3:normalize=0:duration=first[m]",
+        ]
+      : ["[nar][duck]amix=inputs=2:normalize=0:duration=first[m]"]),
+    `[m]${muted}${limiter},${loudness}[mix]`,
   ].join(";");
-  return ["-i", narration, "-i", sfxTrack, "-filter_complex", filter, "-map", "[mix]", ...tail];
+  return [
+    "-i",
+    narration,
+    "-i",
+    sfxTrack,
+    ...(strongTrack ? ["-i", strongTrack] : []),
+    "-filter_complex",
+    filter,
+    "-map",
+    "[mix]",
+    ...tail,
+  ];
 }

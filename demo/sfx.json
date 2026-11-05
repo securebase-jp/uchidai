@@ -1,14 +1,31 @@
 {
   "version": 1,
-  "note": "脚本 v2（docs/hackathon/demo-script-v2.md）の「効果音」の表と各場面の演出から置いた cue を、実際の画面（storyboard.json と演出の部品の定数、台本 playback.ts の時刻）から数え直したもの。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。再生時計の入る cue（場面 5 の flip、場面 8 の盾と緑）は、判定 API・巻き戻し 0.7 秒・台本の時刻からの概算なので、録画の映像で ±0.3 秒を調整する。場面 10・11（エンドカード）に鳴らす音は、既存の音の使い道が sfx.test.ts で場面ごとに固定されているため足していない。調べ方と直し方は demo/sfx.md。",
+  "note": "脚本 v2（docs/hackathon/demo-script-v2.md）の「効果音」の表と各場面の演出から置いた cue を、実際の画面（storyboard.json と演出の部品の定数、台本 playback.ts の時刻）から数え直したもの。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。再生時計の入る cue（場面 5 の flip、場面 8 の盾と緑）は、判定 API・巻き戻し 0.7 秒・台本の時刻からの概算なので、録画の映像で ±0.3 秒を調整する。場面 10・11（エンドカード）に鳴らす音は、既存の音の使い道が sfx.test.ts で場面ごとに固定されているため足していない。調べ方と直し方は demo/sfx.md。 2026-11-05 の磨き込み（docs/hackathon/demo-polish-plan.md の 1・6）：冒頭の 4 秒の cue、強い一打（strong：ダッキングせず STRONG_EXTRA_DB だけ大きく）を「効かない」「赤に変わる」に、結論の直前の無音（mutes）を足した。",
   "cues": [
     {
       "scene": 1,
+      "label": "冒頭の 4 秒",
+      "at": 0.3,
+      "sound": "scan",
+      "gain": 0.6,
+      "note": "コールドオープン：赤い線が構成図を一瞬で走る（overlays/ColdOpen.tsx の COLD_OPEN.lineFrom 0.3〜lineTo 1.5 秒）"
+    },
+    {
+      "scene": 1,
+      "label": "冒頭の 4 秒",
+      "at": 1.7,
+      "sound": "stamp",
+      "gain": 0.85,
+      "strong": true,
+      "note": "「業務停止 10 日／売上影響 約 1 億円」が出る（COLD_OPEN.figures 1.7 秒）。読み上げは無い"
+    },
+    {
+      "scene": 1,
       "label": "社長の一言",
-      "at": 1.0,
+      "at": 5.0,
       "sound": "message",
       "gain": 0.8,
-      "note": "チャットの着信。storyboard の chat-boss で、リンクのカードが出る時刻（overlays/Chat.tsx：elapsed >= 1）。2 通目「これ、うちは大丈夫？」は 4.0 秒（同じ音は場面 1 に 1 回だけ）"
+      "note": "チャットの着信。冒頭の 4 秒（コールドオープン）のあと、storyboard の chat-boss は 4.0 秒に出て、リンクのカードは overlay が出てから 1 秒（overlays/Chat.tsx：elapsed >= 1）。2 通目「これ、うちは大丈夫？」は 8.0 秒（同じ音は場面 1 に 1 回だけ）"
     },
     {
       "scene": 2,
@@ -119,6 +136,15 @@
       "note": "黄 → 赤（返事を送った 22.4 秒の直後。読み上げの「赤に変わりました」と合わせる）"
     },
     {
+      "scene": 5,
+      "label": "攻撃の再生とベンダー確認",
+      "at": 24.05,
+      "sound": "red-hit",
+      "gain": 1,
+      "strong": true,
+      "note": "「赤に変わりました」の山場。返事の送信（22.9 秒）で、担当者画面は 0.7 秒巻き戻してから判定を取り直し、再生を最初からやり直す（23.7〜23.9 秒）。それを待って 24.0 秒に再生を結論まで進め（clock toEnd）、寄っている管理者アカウントが赤になる瞬間。読み上げと重なりうるので、ダッキングしない強い一打（strong）"
+    },
+    {
       "scene": 6,
       "label": "AI 攻撃者",
       "at": 5.84,
@@ -146,6 +172,14 @@
       "at": 6.89,
       "sound": "verify",
       "gain": 0.7
+    },
+    {
+      "scene": 7,
+      "label": "結論",
+      "at": 0,
+      "sound": "riser",
+      "gain": 0.8,
+      "note": "暗転のあいだに高まる音。1.2 秒で mutes により全部の音を切り、0.8 秒の無音のあと 2.0 秒に結論の一打（impact）"
     },
     {
       "scene": 7,
@@ -182,6 +216,15 @@
     {
       "scene": 8,
       "label": "一手で変わる",
+      "at": 13.4,
+      "sound": "stamp",
+      "gain": 1,
+      "strong": true,
+      "note": "一般的な AI との比較で「効かない」が弾む（山場 2）。比較の差し込み口は 11.2 秒に出て、「効かない」は出てから T_SLAM = 2.2 秒（slot-components.tsx）。行への寄りは 12.7 秒から。読み上げ「多要素認証も勧めてきます」と重なるのでダッキングしない（strong）"
+    },
+    {
+      "scene": 8,
+      "label": "一手で変わる",
       "at": 17.6,
       "sound": "wall-down",
       "gain": 0.5,
@@ -202,6 +245,20 @@
       "sound": "wall-down",
       "gain": 0.8,
       "note": "最後の壁「時間」が崩れる。storyboard 場面 9 の walls 層の crumble（10.6 秒）。「数分で、根拠つきで」は 11.6 秒から"
+    }
+  ],
+  "mutes": [
+    {
+      "scene": 1,
+      "at": 3.5,
+      "seconds": 0.5,
+      "note": "冒頭の 4 秒の最後：暗転して無音 0.5 秒（stamp の残響もここで切る）→ 4.0 秒にチャットへ"
+    },
+    {
+      "scene": 7,
+      "at": 1.2,
+      "seconds": 0.8,
+      "note": "結論の直前で全部の音を 0.8 秒切る（riser を途中で断ち、2.0 秒の impact と結論の文字まで無音）"
     }
   ]
 }

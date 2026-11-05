@@ -2,8 +2,11 @@
  * 一枚のデータを集める。
  * - URL に d=（内容を載せた共有リンク）があれば、その文字列だけから一枚を復元する（API も、カルテも使わない）
  * - 無ければ、URL の指定（profile / case / measures）か画面の状態を POST /api/onepager に渡す。判定と計算はサーバ（engine）
+ * - デモモード（?demo=1）で条件が記録と同じときだけ、記録した一枚（Claude の言い換えつき）を即座に使い、API を呼ばない
+ *   （demo/onepager-recording.ts。録画で言い換えを待つ空白を出さず、毎回同じ文にする）
  */
 import { useEffect, useRef, useState } from "react";
+import { recordedOnePagerForDemo } from "../demo/onepager-recording.ts";
 import { isDemoMode } from "../demo/params.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import { ApiError, api, type OnePagerResponse } from "../lib/api.ts";
@@ -27,9 +30,18 @@ export type OnePagerState =
       entryUnknown: boolean;
       /** 文の書き方（Claude／テンプレート）だけを切り替えて、同じ一枚を取り直している間 true（紙は前のまま出しておく） */
       writing: boolean;
+      /** デモモードで、記録した一枚を使った（API も Claude も呼んでいない） */
+      recorded?: { recordedAt: string; model: string };
     }
   /** 共有リンク（d=）から復元した一枚 */
   | { status: "shared"; payload: SharePayload };
+
+/** 記録から作った状態どうしが同じか（同じなら描き直さない） */
+const same = (a: OnePagerState, b: OnePagerState) =>
+  a.status === "ready" &&
+  b.status === "ready" &&
+  a.data === b.data &&
+  a.idShareHash === b.idShareHash;
 
 export function useOnePager(params: OnePagerParams): {
   state: OnePagerState;
@@ -37,9 +49,10 @@ export function useOnePager(params: OnePagerParams): {
   generate(ai: boolean): void;
   /** いま使う文の書き方（true は Claude）。押された選択が先で、押す前は URL の指定 */
   rewrite: boolean;
+  /** デモモードで、押せば記録した一枚を出せる（API キーが無くても「AI で一枚を作る」を押せる） */
+  recordedAvailable: boolean;
 } {
   const app = useApp();
-  const [state, setState] = useState<OnePagerState>({ status: "loading" });
   // 作ってよいと押された時点の入力（会社・事例・対策・回答）。これが変わったら、また押すまで作らない
   const [requested, setRequested] = useState<{ base: unknown[]; rewrite: boolean }>();
 
@@ -56,8 +69,18 @@ export function useOnePager(params: OnePagerParams): {
   // 文の書き方だけが変わったときは紙を消さずに取り直す（そのほかが前回と同じかを覚えておく）
   const lastBase = useRef<unknown[]>([]);
   const base = [shared, params.profile, params.case, measuresKey, answersKey, appProfile, appCase];
-  // 録画（デモモード）と generate=1 のときだけ、押さずに作る。ふだんは押されるまで何も送らない
-  const auto = isDemoMode() || params.generate === true;
+  // デモモードで条件が記録と同じなら、記録した一枚（Claude の言い換えつき）を使える（デモでなければ常に undefined）
+  const recorded = recordedOnePagerForDemo({
+    profileId: params.profile,
+    caseId: params.case,
+    measureIds,
+    answers: app.answers,
+    shared,
+    rewrite: params.rewrite,
+  });
+  // 録画（デモモード）と generate=1 のときだけ、押さずに作る。ふだんは押されるまで何も送らない。
+  // ただしデモで記録を使えるときは、ふだんと同じく「AI で一枚を作る」が押されてから出す（録画では絵コンテのカーソルが押す）
+  const auto = (isDemoMode() && !recorded) || params.generate === true;
   const enabled =
     auto ||
     (requested !== undefined &&
@@ -66,12 +89,39 @@ export function useOnePager(params: OnePagerParams): {
   // 押された選択（AI か、使わないか）を、URL の rewrite より先に使う。URL が追いつく前に別の書き方で送らないため
   const rewrite = !auto && requested && enabled ? requested.rewrite : params.rewrite;
 
+  // 押されたら（デモで記録を使えて、Claude の文を選んだとき）、記録した一枚を API を呼ばずに即座に出す
+  const recordedState = (): OnePagerState | undefined =>
+    recorded && enabled && rewrite && profileId && caseId
+      ? {
+          status: "ready",
+          data: recorded.data,
+          entryUnknown: recorded.entryUnknown,
+          writing: false,
+          idShareHash: buildOnePagerHash({
+            profile: profileId,
+            case: caseId,
+            measures: measureIds,
+          }),
+          recorded: { recordedAt: recorded.recordedAt, model: recorded.model },
+        }
+      : undefined;
+  const [state, setState] = useState<OnePagerState>(() => recordedState() ?? { status: "loading" });
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: 判定に影響する値だけで再取得する
   useEffect(() => {
     let alive = true;
     const onlyTextChanged =
       base.length === lastBase.current.length && base.every((v, i) => v === lastBase.current[i]);
     lastBase.current = base;
+    const fromRecording = recordedState();
+    if (fromRecording) {
+      setState((prev) =>
+        prev.status === "ready" && prev.recorded && same(prev, fromRecording)
+          ? prev
+          : fromRecording,
+      );
+      return;
+    }
     (async () => {
       try {
         if (shared) {
@@ -152,5 +202,5 @@ export function useOnePager(params: OnePagerParams): {
     if (next !== location.hash) location.hash = next;
   };
 
-  return { state, generate, rewrite };
+  return { state, generate, rewrite, recordedAvailable: recorded !== undefined };
 }

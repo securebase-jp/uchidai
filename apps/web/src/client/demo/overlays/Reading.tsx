@@ -1,15 +1,18 @@
 /**
  * 記事リンクの貼り付け → 読解結果（場面 3）。
- * 入力欄に URL を打ち、「読む」を押し、記録済みの Case を「記載／推定／不明」のタグと手法 ID つきで並べる。
+ * 入力欄に URL を貼り（カーソルで入力欄を押してから貼る。絵コンテの tap）、「読む」を押し、
+ * 記録済みの Case を「記載／推定／不明」のタグと手法 ID つきで並べる。
  * Claude は呼ばない（記録済みの読解結果を再生する）。
  */
 import { useApp } from "../../hooks/useApp.tsx";
 
 const URL = "https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf";
 const SOURCE_JA = { stated: "記載", inferred: "推定", unknown: "不明" } as const;
-// 場面 3 の後半（約 7.5 秒）に収める。時刻は overlay が出てからの経過秒数
-const T_TYPE = 0.3;
-const T_PRESS = 2.2;
+// 場面 3 の後半（約 6 秒）に収める。時刻は overlay が出てからの経過秒数（絵コンテの tap の時刻と合わせる）
+/** 入力欄を押す（tap 0.5 秒）→ 貼る */
+export const T_PASTE = 0.8;
+/** 「URL を読む」を押す（tap 2.2 秒） */
+export const T_PRESS = 2.2;
 const T_RESULT = 3.2;
 const T_STEP = 0.4;
 
@@ -17,8 +20,8 @@ export function ReadingOverlay({ elapsed }: { elapsed: number; seconds: number }
   const app = useApp();
   const c = app.theCase;
   const labels = app.knowledge?.labels;
-  const typedUrl =
-    elapsed < T_TYPE ? "" : URL.slice(0, Math.min(URL.length, Math.floor((elapsed - T_TYPE) * 48)));
+  const typedUrl = elapsed < T_PASTE ? "" : URL;
+  const justPasted = elapsed >= T_PASTE && elapsed < T_PASTE + 0.5;
   const pressed = elapsed >= T_PRESS;
   const showResult = elapsed >= T_RESULT && c;
   const rows = c?.steps ?? [];
@@ -33,7 +36,7 @@ export function ReadingOverlay({ elapsed }: { elapsed: number; seconds: number }
           </span>
         </div>
         <div className="reading-row">
-          <div className={`reading-input${typedUrl ? " on" : ""}`}>
+          <div className={`reading-input${typedUrl ? " on" : ""}${justPasted ? " pasted" : ""}`}>
             {typedUrl || <span className="muted">https://…（報道記事や公的機関の事例の URL）</span>}
             {!pressed && typedUrl && <span className="chat-caret" aria-hidden="true" />}
           </div>

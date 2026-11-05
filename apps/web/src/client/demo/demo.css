@@ -84,17 +84,28 @@
 }
 .demo-fine {
   position: absolute;
-  bottom: 16px;
+  /* 字幕の段より上（字幕と重ねない） */
+  bottom: calc(var(--demo-safe-bottom) - 24px);
   color: var(--ink-3);
   font-size: 12px;
 }
 
 /* 字幕と右上の表示 */
+/*
+ * 画面の下の決まり（録画の 1080p で、字幕と帯が重ならないように）：
+ *   字幕は一番下（--demo-caption-bottom）、帯・下の注記・壁の帯は、その上の一段（--demo-band-bottom）だけ。
+ *   演出の画面（チャットなど）は、下の --demo-safe-bottom を空けて描く
+ */
+:root {
+  --demo-caption-bottom: 26px;
+  --demo-band-bottom: 100px;
+  --demo-safe-bottom: 190px;
+}
 .demo-caption {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 56px;
+  bottom: var(--demo-caption-bottom);
   z-index: 70;
   display: flex;
   justify-content: center;
@@ -212,7 +223,7 @@
 }
 .demo-slot.full {
   /* 下は字幕・注記・壁の帯のために空ける */
-  inset: 40px 40px 170px;
+  inset: 40px 40px var(--demo-safe-bottom);
   width: auto;
   border: 1px solid var(--edge);
   background: var(--bg);
@@ -243,7 +254,11 @@
   background: var(--violet);
 }
 
-/* チャット */
+/* チャット：窓は上に寄せ、下の帯と字幕の段（--demo-safe-bottom）を空ける */
+.demo-overlay.chat {
+  justify-content: flex-start;
+  padding-top: 28px;
+}
 .chat-window {
   /* 吹き出しの色：社長は灰、情シス担当（画面の「自分」）は緑。文字はどちらも 4.5:1 以上 */
   --bubble-boss: #2d333d;
@@ -251,7 +266,8 @@
   --bubble-staff: #1f7a45;
   --bubble-staff-ink: #ffffff;
   width: min(900px, 92vw);
-  height: min(760px, 86vh);
+  /* 下の帯と字幕の段（--demo-safe-bottom）に入力欄が掛からない高さ。zoom の分だけ割る */
+  height: min(760px, calc((100vh - var(--demo-safe-bottom) - 40px) / 1.3));
   /* 動画で読みやすいよう、窓ごと大きくする（文字も同じ比率） */
   zoom: 1.3;
   background: var(--panel);
@@ -688,7 +704,7 @@
 
 /* 5問で構成図が組み上がる（場面 4 の後半） */
 .build {
-  padding: 48px 56px 160px;
+  padding: 48px 56px var(--demo-safe-bottom);
 }
 .build-quiz {
   width: min(1780px, 100%);
@@ -978,13 +994,19 @@
 .dl-tap {
   position: fixed;
   z-index: 90;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
-  border: 3px solid var(--cyan);
+  width: 34px;
+  height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 4px solid var(--cyan);
   border-radius: 50%;
+  background: color-mix(in srgb, var(--cyan) 25%, transparent);
   pointer-events: none;
   animation: dl-tap 0.8s ease-out both;
+}
+.dl-tap.outer {
+  background: none;
+  border-width: 2px;
+  animation: dl-tap 1.05s 0.08s ease-out both;
 }
 @keyframes dl-tap {
   from {
@@ -1076,7 +1098,7 @@
 .dl-text.pos-band {
   left: 0;
   right: 0;
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   justify-content: center;
 }
 .dl-text.pos-band span {
@@ -1092,7 +1114,7 @@
 .dl-text.pos-bottom {
   left: 0;
   right: 0;
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   justify-content: center;
 }
 .dl-text.pos-top-left {
@@ -1104,11 +1126,11 @@
   right: 28px;
 }
 .dl-text.pos-bottom-left {
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   left: 28px;
 }
 .dl-text.pos-bottom-right {
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   right: 28px;
 }
 .dl-text.pos-bottom span,
@@ -1152,11 +1174,11 @@
   right: 24px;
 }
 .dl-badge.pos-bottom-left {
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   left: 24px;
 }
 .dl-badge.pos-bottom-right {
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   right: 24px;
 }
 
@@ -1179,7 +1201,7 @@
 .dl-walls.strip {
   left: 0;
   right: 0;
-  bottom: 112px;
+  bottom: var(--demo-band-bottom);
   justify-content: center;
   align-items: stretch;
   gap: 16px;
@@ -1583,4 +1605,210 @@
 .end-wrap.close.last .end-url,
 .end-wrap.close.last .end-credits-block {
   opacity: 0;
+}
+
+/* 見えるカーソル（録画用。click / fill / tap の少し前に押す場所へ動く） */
+.dl-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 95;
+  pointer-events: none;
+  margin: -4px 0 0 -6px;
+  transition: transform 0.45s cubic-bezier(0.3, 0.7, 0.2, 1);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+.dl-cursor svg {
+  transition: transform 0.12s ease-out;
+  transform-origin: 3px 2px;
+}
+.dl-cursor.press svg {
+  transform: scale(0.86);
+}
+
+/* 冒頭の 4 秒（コールドオープン） */
+.demo-overlay.cold-open {
+  background: #000;
+  transition: opacity 0.3s ease-in;
+}
+.demo-overlay.cold-open.dark {
+  opacity: 0;
+}
+.co-stage {
+  width: min(1500px, 92vw);
+  opacity: 0;
+  transform: scale(1.04);
+  transition:
+    opacity 0.35s ease-out,
+    transform 1.6s ease-out,
+    filter 0.4s ease-out;
+}
+.co-stage.in {
+  opacity: 0.9;
+  transform: none;
+}
+.co-stage.sink {
+  opacity: 0.32;
+  filter: blur(2px) saturate(0.7);
+}
+.co-figures {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 120px;
+  margin: 0;
+}
+.co-figures > div {
+  text-align: center;
+  animation: co-slam 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.co-figures > div + div {
+  animation-delay: 0.12s;
+}
+.co-figures dt {
+  font-size: 40px;
+  color: #fff;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+.co-figures dd {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 150px;
+  line-height: 1.1;
+  font-weight: 700;
+  color: var(--red);
+  text-shadow: 0 0 48px color-mix(in srgb, var(--red) 60%, transparent);
+}
+@keyframes co-slam {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 「効かない」を大きく弾ませる（山場 2。行に寄せたあとに出る） */
+.chip-ng.slam {
+  font-size: 30px;
+  padding: 6px 22px;
+  animation: ng-slam 0.62s cubic-bezier(0.2, 1.5, 0.35, 1) both;
+}
+@keyframes ng-slam {
+  0% {
+    transform: scale(2.6) rotate(-4deg);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(0.92) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+.dcmp-row.ineffective.in {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
+/* AI の点検役：見つけた別の入口と検証を、要点だけの大きな札にする */
+.ai-callout {
+  position: fixed;
+  inset: 0 0 var(--demo-safe-bottom);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.ai-callout-card {
+  min-width: 920px;
+  padding: 34px 56px 30px;
+  border-radius: 20px;
+  border: 2px solid var(--red);
+  background: rgba(8, 12, 20, 0.95);
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.55),
+    0 0 60px color-mix(in srgb, var(--red) 45%, transparent);
+  text-align: center;
+  animation: co-slam 0.4s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.ai-callout-card p {
+  margin: 0;
+}
+.ai-callout-k {
+  font-size: 30px;
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+}
+.ai-callout-card p.ai-callout-v {
+  font-size: 76px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  margin: 6px 0 18px;
+}
+.ai-callout-card p.ai-callout-more {
+  font-size: 26px;
+  color: var(--ink-2);
+  margin: -8px 0 16px;
+}
+.ai-callout-checks {
+  font-size: 30px;
+  color: var(--green);
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+}
+.ai-callout-checks span {
+  color: #fff;
+}
+
+/* エンドカード前半の頭：Claude の使い道を 1 つずつ大きく */
+.end-focus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+.end-focus-k {
+  margin: 0;
+  font-size: 34px;
+  color: var(--amber);
+  letter-spacing: 0.1em;
+}
+.end-focus-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: co-slam 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.end-focus-item b {
+  font-family: var(--serif);
+  font-size: 170px;
+  line-height: 1.1;
+  color: var(--amber);
+}
+.end-focus-item span {
+  font-size: 44px;
+  color: #fff;
+}
+.end-focus-dots {
+  list-style: none;
+  display: flex;
+  gap: 28px;
+  margin: 18px 0 0;
+  padding: 0;
+  font-size: 28px;
+  color: var(--ink-3);
+}
+.end-focus-dots li.on {
+  color: var(--amber);
 }

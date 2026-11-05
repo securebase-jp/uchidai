@@ -1,0 +1,1259 @@
+{
+  "version": 1,
+  "note": "実際の出力の記録。デモ精工のカルテと事例 1 で、場面 5 のベンダー回答（管理者のパスワードは全 PC で共通）を入れた状態の一枚を、POST /api/onepager と同じ経路で Claude に言い換えさせたもの。リクエストヘッダは保存していない",
+  "recordedAt": "2026-11-05T03:54:12.055Z",
+  "model": "claude-sonnet-5-5",
+  "profileId": "demo-seiko",
+  "caseId": "ipa-case-1",
+  "measureIds": [],
+  "answers": [
+    {
+      "assetId": "admin",
+      "mitigation": "M1026",
+      "status": "absent",
+      "evidence": "vendor",
+      "answeredBy": "山田",
+      "answeredAt": "2026-11-05T03:54:12.055Z",
+      "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/5 12:54、入力：山田",
+      "attrs": {
+        "sharedPassword": true
+      }
+    }
+  ],
+  "entryUnknown": false,
+  "response": {
+    "onePager": {
+      "whatHappensJa": [
+        "VPN装置から入られたことと、バックアップが消されたことが確認されています。",
+        "中核システムが暗号化されたことも確認されています。",
+        "管理者権限を奪われ、業務サーバ区画へ広がったと考えられます。",
+        "御社の場合は、受注・生産管理が10日止まると見込まれます。",
+        "御社の場合は、3日目から取引先の納期に影響が出ると見込まれます。",
+        "御社の場合は、売上への影響は1億円と見込まれ、個人情報の報告が必要です。"
+      ],
+      "companyName": "デモ精工株式会社",
+      "fictional": true,
+      "caseTitle": "VPN装置の脆弱性を悪用されたランサムウェア感染（製造業）",
+      "result": "breached",
+      "headlineJa": "うちの会社は、大丈夫ではありませんでした",
+      "stopped": [
+        {
+          "name": "受注・生産管理",
+          "days": 10,
+          "manualDays": 2,
+          "partnerDay": 3,
+          "affectsJa": "取引先の納期"
+        }
+      ],
+      "downtimeDays": 10,
+      "partnerImpactDay": 3,
+      "partnerImpactJa": "3 日目から取引先の納期に影響が出ます（手作業で回せるのは 2 日まで）。",
+      "revenueImpactJpy": 100000000,
+      "revenueImpactJa": "売上影響の目安 約 1 億円（1 日の売上 約 1,000 万円 × 10 日）",
+      "deadlines": [
+        {
+          "day": 1,
+          "kind": "police",
+          "labelJa": "警察（サイバー犯罪相談窓口）への相談（目安）",
+          "sourceJa": "警察庁「サイバー事案に関する相談窓口」（全国統一のオンライン受付窓口と都道府県警察のサイバー犯罪相談窓口）",
+          "deadlineId": "police"
+        },
+        {
+          "day": 2,
+          "kind": "partner",
+          "labelJa": "取引先への契約上の通知",
+          "sourceJa": "会社カルテ（サイバー保険の契約、取引先との契約）",
+          "deadlineId": "partner-notice"
+        },
+        {
+          "day": 5,
+          "kind": "legal",
+          "labelJa": "個人情報保護委員会へ速報（3〜5 日以内）",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "deadlineId": "ppc-prompt"
+        },
+        {
+          "day": 5,
+          "kind": "legal",
+          "labelJa": "本人への通知（速やかに。速報と同じ時期が目安）",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "deadlineId": "ppc-notify"
+        },
+        {
+          "day": 30,
+          "kind": "insurance",
+          "labelJa": "サイバー保険の事故通知（30 日以内）",
+          "sourceJa": "会社カルテ（サイバー保険の契約、取引先との契約）",
+          "deadlineId": "insurance"
+        },
+        {
+          "day": 60,
+          "kind": "legal",
+          "labelJa": "個人情報保護委員会へ確報（60 日以内）",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "deadlineId": "ppc-final"
+        }
+      ],
+      "measures": [
+        {
+          "id": "vpn-update",
+          "labelJa": "VPN 装置の更新",
+          "stageJa": "入口から侵入",
+          "requestToJa": "保守ベンダー",
+          "basis": "quote",
+          "costJa": "ベンダーの見積もり待ち",
+          "costSourceJa": "IPA 事例集の明細に VPN 装置の更新・入れ替えの単価はない"
+        },
+        {
+          "id": "edr",
+          "labelJa": "EDR の導入と監視",
+          "stageJa": "管理者権限を奪う",
+          "requestToJa": "保守ベンダー",
+          "basis": "ipa",
+          "costJa": "約 158.4 万円／年（13,200 円 × 120 台。台数はカルテの従業員数で仮置き（PC 1 人 1 台と仮定。サーバは含めない））",
+          "costJpy": 1584000,
+          "costSourceJa": "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）別紙 想定被害額計算明細 PDF 45 ページ（紙面 44）想定被害額計算明細（被害事例1）「セキュリティサービス導入 EDR導入 13,200 円 ／ 台 ／ 1 年契約」"
+        },
+        {
+          "id": "admin-separate",
+          "labelJa": "管理者パスワードを PC ごとに個別化",
+          "stageJa": "管理者権限を奪う",
+          "requestToJa": "保守ベンダー",
+          "basis": "quote",
+          "costJa": "ベンダーの見積もり待ち",
+          "costSourceJa": "IPA 事例集の明細に管理者パスワードの個別化（LAPS など）の単価はない"
+        },
+        {
+          "id": "backup-isolated",
+          "labelJa": "切り離したバックアップ",
+          "stageJa": "バックアップを消す",
+          "requestToJa": "保守ベンダー",
+          "basis": "quote",
+          "costJa": "ベンダーの見積もり待ち",
+          "costSourceJa": "IPA 事例集の明細に切り離したバックアップの単価はない"
+        }
+      ],
+      "sources": [
+        "IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）別紙 想定被害額計算明細（https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf）",
+        "MITRE ATT&CK Enterprise v20.0（攻撃の段階の対応づけ。対象は Enterprise のみで、工場の制御システム（ICS）への攻撃は対象外）",
+        "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等（https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/、2026-11-02 確認）",
+        "警察庁「サイバー事案に関する相談窓口」（全国統一のオンライン受付窓口と都道府県警察のサイバー犯罪相談窓口）（https://www.npa.go.jp/bureau/cyber/soudan.html、2026-11-02 確認）"
+      ],
+      "notesJa": [
+        "この会社は架空の会社です。数値はデモ用の仮の値です。",
+        "停止日数・売上影響・期限は、会社カルテと公開資料の固定データからプログラムが計算しています。AI は計算していません。",
+        "売上影響の目安は「1 日あたりの売上 × 停止日数」で、外部統計からの損害額の推計ではありません。",
+        "費用の目安は出典で確認できた単価だけを載せ、確認できない対策は「ベンダーの見積もり待ち」としています。"
+      ]
+    },
+    "graph": {
+      "nodes": [
+        {
+          "id": "attacker",
+          "role": "attacker",
+          "label": "攻撃者",
+          "layer": "system",
+          "side": "external"
+        },
+        {
+          "id": "vpn",
+          "role": "entry.vpn",
+          "label": "VPN装置",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "vpn"
+        },
+        {
+          "id": "vendor-remote",
+          "role": "entry.vendor_remote",
+          "label": "保守用リモート接続",
+          "layer": "system",
+          "side": "external",
+          "assetId": "vendor-remote"
+        },
+        {
+          "id": "pc",
+          "role": "pc",
+          "label": "社員PC（約120台）",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "pc"
+        },
+        {
+          "id": "admin",
+          "role": "admin",
+          "label": "管理者アカウント",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "admin"
+        },
+        {
+          "id": "server",
+          "role": "server",
+          "label": "業務サーバ区画",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "server"
+        },
+        {
+          "id": "core",
+          "role": "core",
+          "label": "生産管理システム（社内サーバ）",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "core"
+        },
+        {
+          "id": "file-server",
+          "role": "file_server",
+          "label": "ファイルサーバ（設計データ）",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "file-server"
+        },
+        {
+          "id": "backup",
+          "role": "backup",
+          "label": "バックアップ（クラウド同期）",
+          "layer": "system",
+          "side": "internal",
+          "assetId": "backup"
+        },
+        {
+          "id": "cloud-mail",
+          "role": "cloud.mail",
+          "label": "クラウドメール",
+          "layer": "system",
+          "side": "external",
+          "assetId": "cloud-mail"
+        },
+        {
+          "id": "exec-mail-account",
+          "role": "cloud.mail_account.exec",
+          "label": "社長のメールアカウント",
+          "layer": "system",
+          "side": "external",
+          "assetId": "exec-mail-account"
+        },
+        {
+          "id": "cloud-accounting",
+          "role": "cloud.accounting",
+          "label": "会計（クラウド）",
+          "layer": "system",
+          "side": "external",
+          "assetId": "cloud-accounting"
+        },
+        {
+          "id": "cloud-storage",
+          "role": "cloud.storage",
+          "label": "クラウドストレージ（取引先とのデータ共有）",
+          "layer": "system",
+          "side": "external",
+          "assetId": "cloud-storage"
+        },
+        {
+          "id": "exec",
+          "role": "person.exec",
+          "label": "社長",
+          "layer": "system",
+          "side": "person",
+          "assetId": "exec"
+        },
+        {
+          "id": "accounting-staff",
+          "role": "person.accounting",
+          "label": "経理担当",
+          "layer": "system",
+          "side": "person",
+          "assetId": "accounting-staff"
+        },
+        {
+          "id": "campaign-site",
+          "role": "entry.web",
+          "label": "旧キャンペーンサイト（廃止済み）",
+          "layer": "system",
+          "side": "external",
+          "assetId": "campaign-site"
+        },
+        {
+          "id": "biz-order",
+          "role": "business",
+          "label": "受注・生産管理",
+          "layer": "business",
+          "side": "internal",
+          "businessId": "biz-order"
+        },
+        {
+          "id": "biz-design",
+          "role": "business",
+          "label": "設計",
+          "layer": "business",
+          "side": "internal",
+          "businessId": "biz-design"
+        },
+        {
+          "id": "biz-accounting",
+          "role": "business",
+          "label": "経理・支払",
+          "layer": "business",
+          "side": "internal",
+          "businessId": "biz-accounting"
+        },
+        {
+          "id": "biz-sharing",
+          "role": "business",
+          "label": "取引先とのデータ共有",
+          "layer": "business",
+          "side": "internal",
+          "businessId": "biz-sharing"
+        },
+        {
+          "id": "impact.partner",
+          "role": "impact.partner",
+          "label": "取引先への影響",
+          "layer": "management",
+          "side": "external"
+        },
+        {
+          "id": "impact.legal",
+          "role": "impact.legal",
+          "label": "個人情報保護委員会への報告",
+          "layer": "management",
+          "side": "external"
+        },
+        {
+          "id": "impact.money",
+          "role": "impact.money",
+          "label": "資金の流出",
+          "layer": "management",
+          "side": "internal"
+        },
+        {
+          "id": "impact.revenue",
+          "role": "impact.revenue",
+          "label": "売上影響",
+          "layer": "management",
+          "side": "internal"
+        }
+      ],
+      "edges": [
+        {
+          "id": "attacker->vpn",
+          "from": "attacker",
+          "to": "vpn",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->vendor-remote",
+          "from": "attacker",
+          "to": "vendor-remote",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->campaign-site",
+          "from": "attacker",
+          "to": "campaign-site",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->cloud-mail",
+          "from": "attacker",
+          "to": "cloud-mail",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->pc",
+          "from": "attacker",
+          "to": "pc",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->exec-mail-account",
+          "from": "attacker",
+          "to": "exec-mail-account",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->cloud-storage",
+          "from": "attacker",
+          "to": "cloud-storage",
+          "kind": "network"
+        },
+        {
+          "id": "attacker->accounting-staff",
+          "from": "attacker",
+          "to": "accounting-staff",
+          "kind": "network"
+        },
+        {
+          "id": "vpn->pc",
+          "from": "vpn",
+          "to": "pc",
+          "kind": "network"
+        },
+        {
+          "id": "vpn->admin",
+          "from": "vpn",
+          "to": "admin",
+          "kind": "network"
+        },
+        {
+          "id": "vpn->server",
+          "from": "vpn",
+          "to": "server",
+          "kind": "network"
+        },
+        {
+          "id": "pc->admin",
+          "from": "pc",
+          "to": "admin",
+          "kind": "network"
+        },
+        {
+          "id": "pc->server",
+          "from": "pc",
+          "to": "server",
+          "kind": "network"
+        },
+        {
+          "id": "pc->cloud-storage",
+          "from": "pc",
+          "to": "cloud-storage",
+          "kind": "network"
+        },
+        {
+          "id": "admin->server",
+          "from": "admin",
+          "to": "server",
+          "kind": "network"
+        },
+        {
+          "id": "server->core",
+          "from": "server",
+          "to": "core",
+          "kind": "network"
+        },
+        {
+          "id": "server->file-server",
+          "from": "server",
+          "to": "file-server",
+          "kind": "network"
+        },
+        {
+          "id": "server->backup",
+          "from": "server",
+          "to": "backup",
+          "kind": "network"
+        },
+        {
+          "id": "backup->core",
+          "from": "backup",
+          "to": "core",
+          "kind": "network"
+        },
+        {
+          "id": "cloud-mail->pc",
+          "from": "cloud-mail",
+          "to": "pc",
+          "kind": "network"
+        },
+        {
+          "id": "cloud-mail->exec-mail-account",
+          "from": "cloud-mail",
+          "to": "exec-mail-account",
+          "kind": "network"
+        },
+        {
+          "id": "exec-mail-account->accounting-staff",
+          "from": "exec-mail-account",
+          "to": "accounting-staff",
+          "kind": "network"
+        },
+        {
+          "id": "exec-mail-account->exec",
+          "from": "exec-mail-account",
+          "to": "exec",
+          "kind": "network"
+        },
+        {
+          "id": "accounting-staff->cloud-accounting",
+          "from": "accounting-staff",
+          "to": "cloud-accounting",
+          "kind": "network"
+        },
+        {
+          "id": "vendor-remote->core",
+          "from": "vendor-remote",
+          "to": "core",
+          "kind": "network",
+          "labelJa": "遠隔保守"
+        },
+        {
+          "id": "biz-order->core",
+          "from": "biz-order",
+          "to": "core",
+          "kind": "depends"
+        },
+        {
+          "id": "biz-design->file-server",
+          "from": "biz-design",
+          "to": "file-server",
+          "kind": "depends"
+        },
+        {
+          "id": "biz-accounting->cloud-accounting",
+          "from": "biz-accounting",
+          "to": "cloud-accounting",
+          "kind": "depends"
+        },
+        {
+          "id": "biz-accounting->cloud-mail",
+          "from": "biz-accounting",
+          "to": "cloud-mail",
+          "kind": "depends"
+        },
+        {
+          "id": "biz-sharing->cloud-storage",
+          "from": "biz-sharing",
+          "to": "cloud-storage",
+          "kind": "depends"
+        },
+        {
+          "id": "biz-order->impact.partner",
+          "from": "biz-order",
+          "to": "impact.partner",
+          "kind": "impacts",
+          "labelJa": "取引先の納期"
+        },
+        {
+          "id": "biz-design->impact.partner",
+          "from": "biz-design",
+          "to": "impact.partner",
+          "kind": "impacts",
+          "labelJa": "新規案件の見積・図面"
+        },
+        {
+          "id": "biz-accounting->impact.partner",
+          "from": "biz-accounting",
+          "to": "impact.partner",
+          "kind": "impacts",
+          "labelJa": "支払・請求"
+        },
+        {
+          "id": "biz-sharing->impact.partner",
+          "from": "biz-sharing",
+          "to": "impact.partner",
+          "kind": "impacts",
+          "labelJa": "取引先との信頼"
+        },
+        {
+          "id": "core->impact.legal",
+          "from": "core",
+          "to": "impact.legal",
+          "kind": "impacts",
+          "labelJa": "取引先担当者の連絡先"
+        },
+        {
+          "id": "cloud-mail->impact.legal",
+          "from": "cloud-mail",
+          "to": "impact.legal",
+          "kind": "impacts",
+          "labelJa": "従業員情報"
+        },
+        {
+          "id": "cloud-storage->impact.legal",
+          "from": "cloud-storage",
+          "to": "impact.legal",
+          "kind": "impacts",
+          "labelJa": "取引先リスト"
+        },
+        {
+          "id": "accounting-staff->impact.money",
+          "from": "accounting-staff",
+          "to": "impact.money",
+          "kind": "impacts",
+          "labelJa": "送金"
+        },
+        {
+          "id": "biz-order->impact.revenue",
+          "from": "biz-order",
+          "to": "impact.revenue",
+          "kind": "impacts"
+        },
+        {
+          "id": "biz-design->impact.revenue",
+          "from": "biz-design",
+          "to": "impact.revenue",
+          "kind": "impacts"
+        }
+      ]
+    },
+    "verdict": {
+      "result": "breached",
+      "headlineJa": "うちの会社は、大丈夫ではありませんでした",
+      "templateId": "ransomware",
+      "templateLabelJa": "業務停止（ランサムウェア）",
+      "paths": [
+        {
+          "id": "ransomware:vpn",
+          "templateId": "ransomware",
+          "source": "stated",
+          "steps": [
+            {
+              "stageId": "entry",
+              "nodeId": "vpn",
+              "role": "entry.vpn",
+              "tactic": "TA0001",
+              "technique": "T1190",
+              "source": "stated",
+              "labelJa": "入口から侵入",
+              "breachedLabelJa": "侵入される",
+              "breachedDoneJa": "侵入されました",
+              "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
+              "mitigations": ["M1042", "M1051"],
+              "ineffective": [
+                {
+                  "mitigation": "M1032",
+                  "reasonJa": "公開アプリの脆弱性を突く侵入は認証そのものを回避するため、多要素認証では止まりません"
+                }
+              ],
+              "state": "breached",
+              "evidence": "vendor",
+              "ruleId": "ransomware.entry.vpn",
+              "reasonJa": "製品・バージョンが悪用確認済みの脆弱性に該当する"
+            },
+            {
+              "stageId": "credentials",
+              "nodeId": "admin",
+              "role": "admin",
+              "tactic": "TA0006",
+              "technique": "T1003",
+              "source": "inferred",
+              "labelJa": "管理者権限を奪う",
+              "breachedLabelJa": "奪われる",
+              "breachedDoneJa": "奪われました",
+              "mitigations": ["M1040", "M1026"],
+              "ineffective": [],
+              "state": "breached",
+              "evidence": "vendor",
+              "ruleId": "ransomware.credentials",
+              "reasonJa": "管理者パスワードが全 PC で共通なので、1 台から奪った権限で全体に広がる"
+            },
+            {
+              "stageId": "lateral",
+              "nodeId": "server",
+              "role": "server",
+              "tactic": "TA0008",
+              "technique": "T1021.002",
+              "source": "inferred",
+              "labelJa": "サーバへ広がる",
+              "breachedLabelJa": "侵入される",
+              "breachedDoneJa": "侵入されました",
+              "mitigations": ["M1030", "M1035"],
+              "ineffective": [],
+              "state": "breached",
+              "evidence": "registered",
+              "ruleId": "ransomware.lateral",
+              "reasonJa": "業務サーバと PC が同じネットワークにある"
+            },
+            {
+              "stageId": "recovery",
+              "nodeId": "backup",
+              "role": "backup",
+              "tactic": "TA0040",
+              "technique": "T1490",
+              "source": "stated",
+              "labelJa": "バックアップを消す",
+              "breachedLabelJa": "暗号化される",
+              "breachedDoneJa": "暗号化されました",
+              "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
+              "mitigations": ["M1053"],
+              "ineffective": [],
+              "state": "breached",
+              "evidence": "registered",
+              "ruleId": "ransomware.recovery",
+              "reasonJa": "社内ネットワークやクラウド同期から切り離された保管先がなく、バックアップごと暗号化される"
+            },
+            {
+              "stageId": "encrypt",
+              "nodeId": "core",
+              "role": "core",
+              "tactic": "TA0040",
+              "technique": "T1486",
+              "source": "stated",
+              "labelJa": "暗号化・業務停止",
+              "breachedLabelJa": "暗号化される",
+              "breachedDoneJa": "暗号化されました",
+              "quote": "ランサムウェア感染により設\n計データ・経理データが暗\n号化し業務が停止した",
+              "mitigations": [],
+              "ineffective": [],
+              "state": "breached",
+              "evidence": "none",
+              "ruleId": "core.reached",
+              "reasonJa": "中核システムに到達。業務影響を計算する"
+            }
+          ],
+          "reachedCore": true,
+          "reachedAssetIds": ["vpn", "admin", "server", "backup", "core"]
+        }
+      ],
+      "contradictions": [],
+      "timeline": [
+        {
+          "day": 0,
+          "kind": "business_stop",
+          "labelJa": "侵入され、社内のシステムが暗号化される",
+          "sourceJa": "判定した攻撃経路"
+        },
+        {
+          "day": 0,
+          "kind": "business_stop",
+          "labelJa": "「受注・生産管理」が止まる",
+          "detailJa": "手作業で回せるのは 2 日まで。復旧まで 10 日",
+          "sourceJa": "会社カルテ（手作業で回せる日数、復旧にかかる日数）",
+          "businessId": "biz-order"
+        },
+        {
+          "kind": "police",
+          "deadlineId": "police",
+          "sourceJa": "警察庁「サイバー事案に関する相談窓口」（全国統一のオンライン受付窓口と都道府県警察のサイバー犯罪相談窓口）",
+          "day": 1,
+          "labelJa": "警察（サイバー犯罪相談窓口）への相談（目安）",
+          "detailJa": "警察庁の全国統一オンライン受付窓口、または都道府県警察のサイバー犯罪相談窓口。法令上の期限はなく、発覚後すみやかに（目安）"
+        },
+        {
+          "kind": "partner",
+          "deadlineId": "partner-notice",
+          "sourceJa": "会社カルテ（サイバー保険の契約、取引先との契約）",
+          "day": 2,
+          "labelJa": "取引先への契約上の通知",
+          "detailJa": "取引先との契約（基本契約の通知条項）。日数は契約ごとに異なる（要確認）",
+          "businessId": "biz-order"
+        },
+        {
+          "day": 3,
+          "kind": "partner",
+          "labelJa": "3 日目から取引先の納期に影響",
+          "detailJa": "「受注・生産管理」を手作業で回せる 2 日を超える",
+          "sourceJa": "会社カルテ（手作業で回せる日数、復旧にかかる日数）",
+          "businessId": "biz-order"
+        },
+        {
+          "kind": "legal",
+          "deadlineId": "ppc-prompt",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "day": 5,
+          "labelJa": "個人情報保護委員会へ速報（3〜5 日以内）",
+          "detailJa": "取引先担当者の連絡先 3,000 件。不正の目的をもって行われたおそれがある行為による漏えい等（不正アクセス由来は件数にかかわらず）。本人の数が 1,000 人を超える漏えい等",
+          "assetId": "core"
+        },
+        {
+          "kind": "legal",
+          "deadlineId": "ppc-notify",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "day": 5,
+          "labelJa": "本人への通知（速やかに。速報と同じ時期が目安）",
+          "detailJa": "取引先担当者の連絡先 3,000 件。不正の目的をもって行われたおそれがある行為による漏えい等（不正アクセス由来は件数にかかわらず）。本人の数が 1,000 人を超える漏えい等",
+          "assetId": "core"
+        },
+        {
+          "day": 10,
+          "kind": "recovery",
+          "labelJa": "「受注・生産管理」が復旧する",
+          "detailJa": "停止 10 日",
+          "sourceJa": "会社カルテ（手作業で回せる日数、復旧にかかる日数）",
+          "businessId": "biz-order"
+        },
+        {
+          "kind": "insurance",
+          "deadlineId": "insurance",
+          "sourceJa": "会社カルテ（サイバー保険の契約、取引先との契約）",
+          "day": 30,
+          "labelJa": "サイバー保険の事故通知（30 日以内）",
+          "detailJa": "保険契約の事故通知条項（カルテに登録した日数）"
+        },
+        {
+          "kind": "legal",
+          "deadlineId": "ppc-final",
+          "sourceJa": "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等",
+          "day": 60,
+          "labelJa": "個人情報保護委員会へ確報（60 日以内）",
+          "detailJa": "取引先担当者の連絡先 3,000 件。不正の目的をもって行われたおそれがある行為による漏えい等（不正アクセス由来は件数にかかわらず）。本人の数が 1,000 人を超える漏えい等。不正アクセス由来のため 60 日以内",
+          "assetId": "core"
+        }
+      ],
+      "impact": {
+        "stopped": [
+          {
+            "businessId": "biz-order",
+            "name": "受注・生産管理",
+            "days": 10,
+            "manualDays": 2,
+            "partnerDay": 3,
+            "affectsJa": "取引先の納期"
+          }
+        ],
+        "downtimeDays": 10,
+        "partnerImpactDay": 3,
+        "revenueImpactJpy": 100000000,
+        "personalDataReached": [
+          {
+            "assetId": "core",
+            "descriptionJa": "取引先担当者の連絡先",
+            "count": 3000,
+            "over1000": true,
+            "sensitive": false
+          }
+        ],
+        "reportRequired": true,
+        "reportReasonsJa": [
+          "不正の目的をもって行われたおそれがある行為による漏えい等（不正アクセス由来は件数にかかわらず）",
+          "本人の数が 1,000 人を超える漏えい等"
+        ]
+      },
+      "attackVersion": "20.0"
+    },
+    "measures": [],
+    "profile": {
+      "id": "demo-seiko",
+      "companyName": "デモ精工株式会社",
+      "fictional": true,
+      "domain": "demo-seiko.example",
+      "domainVerified": false,
+      "pattern": "manufacturing",
+      "answers": {
+        "industry": "manufacturing",
+        "site": "factory",
+        "hosting": {
+          "mail": "cloud",
+          "files": "onprem",
+          "core": "onprem",
+          "web": "provider"
+        },
+        "remoteAccess": ["vpn", "vendor_remote"],
+        "backup": "cloud_sync"
+      },
+      "employees": 120,
+      "assets": [
+        {
+          "id": "vpn",
+          "kind": "device",
+          "role": "entry.vpn",
+          "label": "VPN装置",
+          "product": "Fortinet FortiOS",
+          "version": "7.0.14",
+          "controls": [
+            {
+              "mitigation": "M1051",
+              "status": "absent",
+              "evidence": "vendor",
+              "noteJa": "ベンダー回答：ファームウェアは 7.0.14 のまま。悪用確認済みの脆弱性（CVE-2024-55591）に該当",
+              "answeredBy": "保守ベンダー",
+              "answeredAt": "2026-10-20T09:00:00+09:00"
+            },
+            {
+              "mitigation": "M1032",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "VPN 接続に多要素認証なし"
+            },
+            {
+              "mitigation": "M1042",
+              "status": "absent",
+              "evidence": "external",
+              "noteJa": "外部確認：VPN 用と推定されるホスト名が公開されている"
+            }
+          ],
+          "attrs": {
+            "exposed": true,
+            "knownExploited": true,
+            "authBypass": true,
+            "cve": "CVE-2024-55591",
+            "hostname": "vpn.demo-seiko.example"
+          },
+          "attrEvidence": {
+            "exposed": "external",
+            "knownExploited": "vendor",
+            "authBypass": "vendor",
+            "cve": "vendor",
+            "hostname": "external"
+          }
+        },
+        {
+          "id": "vendor-remote",
+          "kind": "device",
+          "role": "entry.vendor_remote",
+          "label": "保守用リモート接続",
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "保守ツールのログインはパスワードのみ（ベンダー共通）"
+            },
+            {
+              "mitigation": "UD-02",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "常時接続。作業時だけ有効にする運用はない"
+            },
+            {
+              "mitigation": "M1035",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "接続元の限定なし"
+            }
+          ],
+          "attrs": {
+            "alwaysOn": true,
+            "sharedPassword": true,
+            "connectsTo": "core"
+          },
+          "attrEvidence": {
+            "alwaysOn": "registered",
+            "sharedPassword": "registered",
+            "connectsTo": "registered"
+          }
+        },
+        {
+          "id": "pc",
+          "kind": "device",
+          "role": "pc",
+          "label": "社員PC（約120台）",
+          "controls": [
+            {
+              "mitigation": "M1049",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "ウイルス対策ソフトあり"
+            },
+            {
+              "mitigation": "M1040",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "EDR は未導入（ウイルス対策ソフトのみ）"
+            }
+          ],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "admin",
+          "kind": "account",
+          "role": "admin",
+          "label": "管理者アカウント",
+          "controls": [
+            {
+              "mitigation": "M1026",
+              "status": "absent",
+              "evidence": "vendor",
+              "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/5 12:54、入力：山田",
+              "answeredBy": "山田",
+              "answeredAt": "2026-11-05T03:54:12.055Z"
+            },
+            {
+              "mitigation": "M1040",
+              "status": "unknown",
+              "evidence": "none",
+              "noteJa": "EDR の有無と監視体制は未登録"
+            }
+          ],
+          "attrs": {
+            "sharedPassword": true
+          },
+          "attrEvidence": {
+            "sharedPassword": "vendor"
+          }
+        },
+        {
+          "id": "server",
+          "kind": "system",
+          "role": "server",
+          "label": "業務サーバ区画",
+          "controls": [
+            {
+              "mitigation": "M1030",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "業務サーバと社員 PC が同じネットワーク"
+            },
+            {
+              "mitigation": "M1035",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "管理用通信の制限なし"
+            }
+          ],
+          "attrs": {
+            "segmented": false
+          },
+          "attrEvidence": {
+            "segmented": "registered"
+          }
+        },
+        {
+          "id": "core",
+          "kind": "system",
+          "role": "core",
+          "label": "生産管理システム（社内サーバ）",
+          "controls": [],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "file-server",
+          "kind": "system",
+          "role": "file_server",
+          "label": "ファイルサーバ（設計データ）",
+          "controls": [],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "backup",
+          "kind": "system",
+          "role": "backup",
+          "label": "バックアップ（クラウド同期）",
+          "controls": [
+            {
+              "mitigation": "M1053",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "クラウド同期型のみ。切り離した保管先はなく、復旧テストは未実施"
+            }
+          ],
+          "attrs": {
+            "method": "cloud_sync",
+            "isolated": false,
+            "restoreTested": false
+          },
+          "attrEvidence": {
+            "method": "registered",
+            "isolated": "registered",
+            "restoreTested": "registered"
+          }
+        },
+        {
+          "id": "cloud-mail",
+          "kind": "system",
+          "role": "cloud.mail",
+          "label": "クラウドメール",
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "全社員に多要素認証を適用。ただし社長だけ「面倒だから」と例外"
+            }
+          ],
+          "attrs": {
+            "spf": true,
+            "dmarc": false,
+            "mfaMethod": "app"
+          },
+          "attrEvidence": {
+            "spf": "external",
+            "dmarc": "external",
+            "mfaMethod": "registered"
+          }
+        },
+        {
+          "id": "exec-mail-account",
+          "kind": "account",
+          "role": "cloud.mail_account.exec",
+          "label": "社長のメールアカウント",
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "社長のアカウントは多要素認証の例外"
+            },
+            {
+              "mitigation": "M1027",
+              "status": "unknown",
+              "evidence": "none",
+              "noteJa": "パスワードの使い回し防止策は未登録"
+            }
+          ],
+          "attrs": {
+            "mfaException": true
+          },
+          "attrEvidence": {
+            "mfaException": "registered"
+          }
+        },
+        {
+          "id": "cloud-accounting",
+          "kind": "system",
+          "role": "cloud.accounting",
+          "label": "会計（クラウド）",
+          "controls": [
+            {
+              "mitigation": "M1032",
+              "status": "present",
+              "evidence": "registered"
+            }
+          ],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "cloud-storage",
+          "kind": "system",
+          "role": "cloud.storage",
+          "label": "クラウドストレージ（取引先とのデータ共有）",
+          "controls": [
+            {
+              "mitigation": "M1022",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "「リンクを知っている全員」の公開共有を設定で禁止"
+            },
+            {
+              "mitigation": "M1047",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "四半期ごとに共有設定を棚卸し"
+            }
+          ],
+          "attrs": {
+            "publicLinksDisabled": true,
+            "reviewCadence": "quarterly"
+          },
+          "attrEvidence": {
+            "publicLinksDisabled": "registered",
+            "reviewCadence": "registered"
+          }
+        },
+        {
+          "id": "exec",
+          "kind": "person",
+          "role": "person.exec",
+          "label": "社長",
+          "controls": [],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "accounting-staff",
+          "kind": "person",
+          "role": "person.accounting",
+          "label": "経理担当",
+          "controls": [
+            {
+              "mitigation": "M1017",
+              "status": "present",
+              "evidence": "registered",
+              "noteJa": "年1回の情報セキュリティ研修のみ"
+            },
+            {
+              "mitigation": "UD-01",
+              "status": "absent",
+              "evidence": "registered",
+              "noteJa": "振込先変更や急な送金指示を折り返し確認するルールなし"
+            }
+          ],
+          "attrs": {},
+          "attrEvidence": {}
+        },
+        {
+          "id": "campaign-site",
+          "kind": "system",
+          "role": "entry.web",
+          "label": "旧キャンペーンサイト（廃止済み）",
+          "side": "external",
+          "controls": [
+            {
+              "mitigation": "M1051",
+              "status": "unknown",
+              "evidence": "none",
+              "noteJa": "廃止済みと登録されているが、ホスト名が DNS に残っていれば矛盾として表示する"
+            }
+          ],
+          "attrs": {
+            "decommissioned": true,
+            "hostname": "campaign2019.demo-seiko.example"
+          },
+          "attrEvidence": {
+            "decommissioned": "registered",
+            "hostname": "registered"
+          }
+        }
+      ],
+      "businesses": [
+        {
+          "id": "biz-order",
+          "name": "受注・生産管理",
+          "assetIds": ["core"],
+          "manualDays": 2,
+          "recoveryDays": 10,
+          "recoveryDaysWithBackup": 2,
+          "affectsJa": "取引先の納期"
+        },
+        {
+          "id": "biz-design",
+          "name": "設計",
+          "assetIds": ["file-server"],
+          "manualDays": 3,
+          "recoveryDays": 10,
+          "recoveryDaysWithBackup": 2,
+          "affectsJa": "新規案件の見積・図面"
+        },
+        {
+          "id": "biz-accounting",
+          "name": "経理・支払",
+          "assetIds": ["cloud-accounting", "cloud-mail"],
+          "manualDays": 5,
+          "recoveryDays": 0,
+          "affectsJa": "支払・請求"
+        },
+        {
+          "id": "biz-sharing",
+          "name": "取引先とのデータ共有",
+          "assetIds": ["cloud-storage"],
+          "manualDays": 0,
+          "recoveryDays": 0,
+          "affectsJa": "取引先との信頼"
+        }
+      ],
+      "dailyRevenue": 10000000,
+      "personalData": [
+        {
+          "assetId": "core",
+          "descriptionJa": "取引先担当者の連絡先",
+          "count": 3000,
+          "over1000": true,
+          "sensitive": false
+        },
+        {
+          "assetId": "cloud-mail",
+          "descriptionJa": "従業員情報",
+          "count": 120,
+          "over1000": false,
+          "sensitive": false
+        },
+        {
+          "assetId": "cloud-storage",
+          "descriptionJa": "取引先リスト",
+          "count": 400,
+          "over1000": false,
+          "sensitive": false
+        }
+      ],
+      "cyberInsurance": {
+        "enrolled": true,
+        "notifyWithinDays": 30
+      },
+      "typicalTransferJpy": 5000000,
+      "vendor": {
+        "name": "地域の保守ベンダー（架空）",
+        "email": "vendor@example.com"
+      }
+    },
+    "text": {
+      "source": "claude",
+      "model": "claude-sonnet-5-5"
+    }
+  }
+}

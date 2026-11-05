@@ -11,17 +11,22 @@
       "n": 1,
       "id": "boss-asks",
       "route": "#/",
-      "overlay": "chat-boss",
+      "overlay": "cold-open",
       "actions": [
         {
           "at": 0,
           "do": "reset"
+        },
+        {
+          "at": 4.0,
+          "do": "overlay",
+          "id": "chat-boss"
         }
       ],
       "layers": [
         {
           "kind": "text",
-          "from": 0.5,
+          "from": 4.5,
           "to": 15,
           "pos": "band",
           "size": "md",
@@ -95,6 +100,16 @@
           "at": 10.4,
           "do": "overlay",
           "id": "reading"
+        },
+        {
+          "at": 10.9,
+          "do": "tap",
+          "target": ".reading-input"
+        },
+        {
+          "at": 12.6,
+          "do": "tap",
+          "target": ".reading-row .btn"
         }
       ],
       "layers": [
@@ -110,7 +125,7 @@
         {
           "kind": "walls",
           "from": 14.0,
-          "to": 16.5,
+          "to": 15.9,
           "size": "strip",
           "standing": ["advisor", "time"],
           "crumble": [
@@ -119,8 +134,18 @@
               "at": 14.8
             }
           ]
+        },
+        {
+          "kind": "spot",
+          "from": 14.2,
+          "to": 16.5,
+          "container": ".reading-window",
+          "target": ".reading-steps li:first-child",
+          "scale": 1.45,
+          "y": 0.36
         }
-      ]
+      ],
+      "cursor": true
     },
     {
       "n": 4,
@@ -215,15 +240,14 @@
           "target": ".demo-slot.vendor .reply-form button[type=submit]"
         },
         {
-          "at": 22.9,
-          "do": "clock",
-          "cmd": "speed",
-          "speed": 3
-        },
-        {
           "at": 23.4,
           "do": "overlay",
           "id": "none"
+        },
+        {
+          "at": 24.0,
+          "do": "clock",
+          "cmd": "toEnd"
         }
       ],
       "layers": [
@@ -277,7 +301,8 @@
           "scale": 1.9
         }
       ],
-      "hide": ["#staff-verdict"]
+      "hide": ["#staff-verdict"],
+      "cursor": true
     },
     {
       "n": 6,
@@ -286,24 +311,24 @@
       "overlay": "slot:attacker",
       "actions": [
         {
-          "at": 8.0,
+          "at": 8.6,
           "do": "overlay",
           "id": "none"
         },
         {
-          "at": 8.0,
+          "at": 8.6,
           "do": "clock",
           "cmd": "speed",
           "speed": 3
         },
         {
-          "at": 8.1,
+          "at": 8.7,
           "do": "scroll",
           "to": ".meters",
           "block": "start"
         },
         {
-          "at": 9.4,
+          "at": 10.0,
           "do": "clock",
           "cmd": "toEnd"
         }
@@ -312,30 +337,30 @@
         {
           "kind": "badge",
           "from": 0.3,
-          "to": 8.0,
+          "to": 8.6,
           "pos": "top-right",
           "tone": "record",
           "text": "実際の出力の記録"
         },
         {
           "kind": "text",
-          "from": 8.0,
-          "to": 12,
+          "from": 8.6,
+          "to": 11.4,
           "pos": "bottom",
           "size": "md",
           "text": "AI は点検するだけ。見つけた入口には、止める対策もセットで示します"
         },
         {
           "kind": "text",
-          "from": 8.6,
-          "to": 12,
+          "from": 9.2,
+          "to": 11.4,
           "pos": "top-left",
           "size": "md",
           "text": "点線 ＝ AI が見つけた経路（ルールで検証済み）"
         },
         {
           "kind": "zoom",
-          "from": 9.6,
+          "from": 10.0,
           "to": 12,
           "target": "vendor-remote",
           "scale": 1.7
@@ -476,7 +501,7 @@
         {
           "kind": "walls",
           "from": 16.8,
-          "to": 20,
+          "to": 18.9,
           "size": "strip",
           "standing": ["advisor", "time"],
           "fallen": ["expert"],
@@ -494,6 +519,16 @@
           "pos": "band",
           "size": "md",
           "text": "多要素認証 ＝ ログインに、パスワード以外の確認をもう一段足すこと"
+        },
+        {
+          "kind": "spot",
+          "from": 12.7,
+          "to": 15.6,
+          "container": ".demo-slot.full .dcmp",
+          "target": ".dcmp-row.ineffective",
+          "scale": 1.6,
+          "y": 0.42,
+          "x": 0.3
         }
       ]
     },
@@ -509,19 +544,14 @@
           "ids": []
         },
         {
-          "at": 0.3,
+          "at": 0.1,
           "do": "scroll",
           "to": "top"
         },
         {
-          "at": 1.8,
-          "do": "scroll",
-          "to": ".op-stopped"
-        },
-        {
-          "at": 3.4,
-          "do": "scroll",
-          "to": ".op-measures"
+          "at": 0.6,
+          "do": "click",
+          "target": ".op-generate .btn.primary"
         },
         {
           "at": 5.1,
@@ -531,9 +561,44 @@
       ],
       "layers": [
         {
+          "kind": "spot",
+          "from": 0.75,
+          "to": 2.25,
+          "container": ".onepager",
+          "target": ".op-verdict",
+          "scale": 1.45,
+          "y": 0.4
+        },
+        {
+          "kind": "spot",
+          "from": 2.25,
+          "to": 3.75,
+          "container": ".onepager",
+          "target": ".op-stopped",
+          "scale": 1.45,
+          "y": 0.45
+        },
+        {
+          "kind": "spot",
+          "from": 3.75,
+          "to": 5.1,
+          "container": ".onepager",
+          "target": ".op-measures",
+          "scale": 1.25,
+          "y": 0.5
+        },
+        {
+          "kind": "badge",
+          "from": 0.8,
+          "to": 5.1,
+          "pos": "top-right",
+          "tone": "record",
+          "text": "Claude の言い換え（記録）"
+        },
+        {
           "kind": "walls",
           "from": 10.0,
-          "to": 13,
+          "to": 11.8,
           "size": "strip",
           "standing": ["time"],
           "fallen": ["expert", "advisor"],
@@ -562,7 +627,8 @@
           "fade": 0.5,
           "text": "数分で、根拠つきで"
         }
-      ]
+      ],
+      "cursor": true
     },
     {
       "n": 10,

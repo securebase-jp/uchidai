@@ -8,6 +8,8 @@ import { join } from "node:path";
 import { CompanyProfile, loadKnowledge, repoRoot } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { questionFor } from "../../server/requests/questions.ts";
+import { matchesOnePagerRecording, OnePagerRecording } from "../../shared/onepagerRecording.ts";
+import { findSecretLike } from "../../shared/vendorRequestRecording.ts";
 import { buildScenes, cueAt, endcardFacts, narration, storyboard } from "./data.ts";
 
 function sourcesUnder(dir: string): string {
@@ -128,9 +130,11 @@ describe("絵コンテと原稿の整合", () => {
     const sw = s4?.actions.find((x) => x.do === "overlay" && x.id === "build");
     expect(sw?.at).toBe(9);
   });
-  it("click / fill のセレクタは画面の部品に実在するクラス（場面 5 のベンダー確認）", () => {
+  it("click / fill / tap のセレクタは画面の部品に実在するクラス（場面 3・5・9）", () => {
     const ops = storyboard.scenes.flatMap((s) =>
-      s.actions.flatMap((a) => (a.do === "click" || a.do === "fill" ? [{ n: s.n, a }] : [])),
+      s.actions.flatMap((a) =>
+        a.do === "click" || a.do === "fill" || a.do === "tap" ? [{ n: s.n, a }] : [],
+      ),
     );
     expect(ops.length).toBeGreaterThanOrEqual(6);
     for (const { n, a } of ops)
@@ -196,3 +200,153 @@ describe("絵コンテと原稿の整合", () => {
     expect(cueAt(s4, s4.seconds + 1)).toBe(s4.script.subtitleJa[s4.script.subtitleJa.length - 1]);
   });
 });
+
+describe("磨き込み（docs/hackathon/demo-polish-plan.md の 0〜4・6）", () => {
+  const scene = (n: number) => {
+    const s = storyboard.scenes.find((x) => x.n === n);
+    if (!s) throw new Error(`場面 ${n} がありません`);
+    return s;
+  };
+  it("冒頭の 4 秒：場面 1 はコールドオープンで始まり、4 秒でチャットへ。読み上げは 4 秒の無音のあと", () => {
+    const s1 = scene(1);
+    expect(s1.overlay).toBe("cold-open");
+    expect(s1.actions.find((a) => a.do === "overlay")).toMatchObject({ at: 4, id: "chat-boss" });
+    const n1 = narration.scenes.find((x) => x.n === 1);
+    expect(n1?.leadSilenceSeconds).toBe(4);
+    expect(n1?.cueStarts?.[0]).toBeGreaterThanOrEqual(4);
+    // 帯もチャットが出てから
+    for (const l of s1.layers) expect(l.from).toBeGreaterThanOrEqual(4);
+    expect(narration.totalTargetSeconds).toBe(180);
+  });
+  it("下の段：帯・下の注記・壁の帯は、同じ場面の中で時間が重ならない（字幕はその下の段だけ）", () => {
+    for (const s of storyboard.scenes) {
+      const rows = s.layers.filter(
+        (l) =>
+          (l.kind === "text" &&
+            ["band", "bottom", "bottom-left", "bottom-right"].includes(l.pos)) ||
+          (l.kind === "walls" && l.size === "strip") ||
+          (l.kind === "badge" && l.pos.startsWith("bottom")),
+      );
+      for (let i = 0; i < rows.length; i++)
+        for (let j = i + 1; j < rows.length; j++) {
+          const a = rows[i];
+          const b = rows[j];
+          if (!a || !b || a.when || b.when) continue;
+          expect(
+            a.to <= b.from || b.to <= a.from,
+            `場面 ${s.n} の下の段 ${a.kind} と ${b.kind}`,
+          ).toBe(true);
+        }
+    }
+  });
+  it("壁の帯は、崩れたあと場面の終わりまで残さない（次の場面に前の札を持ち越さない）", () => {
+    for (const s of storyboard.scenes)
+      for (const l of s.layers)
+        if (l.kind === "walls" && l.size === "strip") {
+          const last = Math.max(...l.crumble.map((c) => c.at));
+          const len = narration.scenes.find((x) => x.n === s.n)?.targetSeconds ?? 0;
+          expect(l.to, `場面 ${s.n} の壁の帯`).toBeLessThanOrEqual(last + 1.4);
+          expect(l.to, `場面 ${s.n} の壁の帯`).toBeLessThan(len);
+        }
+  });
+  it("カーソルは場面 3（URL を貼る）・5（返事の番号を入れる）・9（一枚を開く）だけで、どれも押す操作がある", () => {
+    const withCursor = storyboard.scenes.filter((s) => s.cursor).map((s) => s.n);
+    expect(withCursor).toEqual([3, 5, 9]);
+    for (const n of withCursor)
+      expect(
+        scene(n).actions.some((a) => a.do === "click" || a.do === "fill" || a.do === "tap"),
+        `場面 ${n}`,
+      ).toBe(true);
+    const s3 = scene(3).actions.filter((a) => a.do === "tap");
+    expect(s3.map((a) => (a.do === "tap" ? a.target : ""))).toEqual([
+      ".reading-input",
+      ".reading-row .btn",
+    ]);
+  });
+  it("寄り（spot）は 5 か所：場面 3 の読解の表、8 の「効かない」の行、9 の一枚の結論・止まる業務・対策。どれもクラスが画面にある", () => {
+    const spots = storyboard.scenes.flatMap((s) =>
+      s.layers.flatMap((l) => (l.kind === "spot" ? [{ n: s.n, l }] : [])),
+    );
+    expect(spots.map((x) => x.n)).toEqual([3, 8, 9, 9, 9]);
+    for (const { n, l } of spots)
+      for (const cls of `${l.container} ${l.target}`.match(/\.[A-Za-z][\w-]*/g) ?? [])
+        expect(new RegExp(`\\b${cls.slice(1)}\\b`).test(clientSource), `場面 ${n} の ${cls}`).toBe(
+          true,
+        );
+    const s9 = spots.filter((x) => x.n === 9).map((x) => x.l);
+    expect(s9.map((l) => (l.kind === "spot" ? l.target : ""))).toEqual([
+      ".op-verdict",
+      ".op-stopped",
+      ".op-measures",
+    ]);
+    // 結論（上）を 1.5 秒見せてから、止まる業務 → 対策
+    const first = s9[0];
+    expect(first ? first.to - first.from : 0).toBeCloseTo(1.5, 5);
+  });
+  it("場面 9：一枚はカーソルで「AI で一枚を作る」を押してから出し、記録の札を出す", () => {
+    const s9 = scene(9);
+    const click = s9.actions.find((a) => a.do === "click");
+    expect(click).toMatchObject({ target: ".op-generate .btn.primary" });
+    const firstSpot = s9.layers.find((l) => l.kind === "spot");
+    expect(firstSpot?.from ?? 0).toBeGreaterThan(click?.at ?? 99);
+    expect(
+      s9.layers.some(
+        (l) => l.kind === "badge" && l.tone === "record" && l.text === "Claude の言い換え（記録）",
+      ),
+    ).toBe(true);
+  });
+});
+
+describe("場面 9 の一枚の記録（demo/recordings/onepager.demo-seiko.ipa-case-1.json）", () => {
+  const raw = readFileSync(
+    join(repoRoot, "demo", "recordings", "onepager.demo-seiko.ipa-case-1.json"),
+    "utf8",
+  );
+  const rec = OnePagerRecording.parse(JSON.parse(raw));
+  it("Claude の言い換えの実際の出力で、キーやヘッダを含まない", () => {
+    expect(rec.response.text.source).toBe("claude");
+    expect(rec.model).toMatch(/^claude-/);
+    expect(findSecretLike(raw)).toEqual([]);
+    for (const line of rec.response.onePager.whatHappensJa)
+      expect(line, "手法・緩和策の ID は出さない").not.toMatch(/\b(T\d{4}|M\d{4})/);
+  });
+  it("場面 9 の画面（会社・事例・対策）と、場面 5 のベンダー回答（番号 1）の状態に合う", () => {
+    const route = scene9Route();
+    const p = new URLSearchParams(route.split("?")[1] ?? "");
+    expect(
+      matchesOnePagerRecording(rec, {
+        profileId: p.get("profile") ?? undefined,
+        caseId: p.get("case") ?? undefined,
+        measureIds: (p.get("measures") ?? "").split(",").filter(Boolean),
+        answers: rec.answers.map((a) => ({
+          ...a,
+          answeredAt: "2026-11-07T00:00:00.000Z",
+          noteJa: "別の時刻",
+        })),
+      }),
+    ).toBe(true);
+    expect(rec.answers).toHaveLength(1);
+    expect(rec.answers[0]).toMatchObject({
+      assetId: "admin",
+      mitigation: "M1026",
+      status: "absent",
+    });
+    expect(questionFor("M1026", "admin")?.choices[0]?.status).toBe("absent");
+  });
+  it("条件が違えば記録を使わない（回答なし・対策あり・別の会社）", () => {
+    const base = {
+      profileId: rec.profileId,
+      caseId: rec.caseId,
+      measureIds: [],
+      answers: rec.answers,
+    };
+    expect(matchesOnePagerRecording(rec, base)).toBe(true);
+    expect(matchesOnePagerRecording(rec, { ...base, answers: [] })).toBe(false);
+    expect(matchesOnePagerRecording(rec, { ...base, measureIds: ["vpn-update"] })).toBe(false);
+    expect(matchesOnePagerRecording(rec, { ...base, profileId: "demo-other" })).toBe(false);
+  });
+});
+
+function scene9Route(): string {
+  return storyboard.scenes.find((s) => s.n === 9)?.route ?? "";
+}
