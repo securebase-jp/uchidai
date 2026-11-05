@@ -104,6 +104,21 @@ describe("一枚の言い換え：第三者の事故", () => {
       ),
     ).toMatch(/記事の委託先・取引先では/);
   });
+  it("確認の言い方を使う最初の文が「記事の〇〇では」なら、続く文は主語を引き継いでよい", () => {
+    expect(
+      checkWriterOutput(
+        {
+          whatHappensJa: [
+            ok[0] as string,
+            "記事の委託先・取引先では、VPN装置から侵入されたことが確認されています。",
+            "続けて、データが暗号化されたことも確認されています。",
+            ok[2] as string,
+          ],
+        },
+        input,
+      ),
+    ).toBeUndefined();
+  });
   it("「記事の〇〇では〜」と書き、試算を「御社が同じ立場なら〜と見込まれます」と書けば通る", () => {
     expect(checkWriterOutput({ whatHappensJa: ok }, input)).toBeUndefined();
   });

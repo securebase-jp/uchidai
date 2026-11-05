@@ -383,6 +383,12 @@ export function buildOnePager(
     ...knowledge.deadlines.sources
       .filter((s) => s.url && usedSourceIds.has(s.id))
       .map((s) => `${s.nameJa}（${s.url}、${s.checkedAt} 確認）`),
+    // 第三者の事故のとき、御社が確認することと委託先管理の助言の根拠
+    ...(verdict.thirdParty
+      ? [
+          "個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」3-4-4 委託先の監督（法第25条）（https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/、2026-11-05 確認）",
+        ]
+      : []),
   ];
   const notes = [
     ...(profile.fictional ? ["この会社は架空の会社です。数値はデモ用の仮の値です。"] : []),

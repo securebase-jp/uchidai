@@ -77,6 +77,11 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
       /委託元の御社にも、個人情報保護委員会への報告や本人への通知が必要になることがあります。確認が必要です/,
     );
     expect(joined).not.toMatch(/T\d{4}/);
+    // 出典：委託先の監督（自社の事故には載せない）
+    expect(buildOnePager(v, demo, k).sources.join("\n")).toContain("3-4-4 委託先の監督");
+    expect(
+      buildOnePager(evaluate(vpnCase(), demo, { knowledge: k }), demo, k).sources.join("\n"),
+    ).not.toContain("3-4-4");
   });
   it("対策の一覧に、委託先管理の助言（判定に使わない）が付く。ボタンには出ない対策（patches が空）", () => {
     const v = evaluate(vpnCase("vendor"), demo, { knowledge: k });
