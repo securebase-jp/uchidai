@@ -125,11 +125,11 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   const entryNode = first ? nodeLabel(first.nodeId, first.role, profile, knowledge) : "";
   const lead =
     first?.source === "candidate"
-      ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた場合、`
+      ? `入口はまだ分かっていません。たとえば「${entryNode}」から入られた${third ? "として、" : "場合、"}`
       : "";
   if (path.reachedCore) {
     lines.push(
-      `${lead}${third ? "御社が同じ立場だった場合、攻撃は次の順に進むと見込まれます：" : "攻撃は次の順に進みます："}${chain}。`,
+      `${lead}${third ? "御社が同じ立場なら、攻撃は次の順に進むと見込まれます：" : "攻撃は次の順に進みます："}${chain}。`,
     );
   } else {
     const stop = path.steps.find((s) => s.state === "blocked");
@@ -138,7 +138,7 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
       : "途中";
     const reason = stop?.reasonJa ? stripIds(stop.reasonJa) : "";
     lines.push(
-      `${third ? "御社が同じ立場だった場合、" : ""}この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`,
+      `${third ? "御社が同じ立場なら、" : ""}この攻撃は${where}で止まります。${reason ? `理由：${reason}。` : ""}`,
     );
     if (verdict.result === "pending")
       lines.push(

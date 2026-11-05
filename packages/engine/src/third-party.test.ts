@@ -70,7 +70,7 @@ describe("第三者の事故：御社の設備が入口になったとは書か�
     expect(text[0]).toBe(
       "これは委託先・取引先で起きた事故です。御社の設備が入口になったのではありません。",
     );
-    expect(joined).toContain("御社が同じ立場だった場合、攻撃は次の順に進むと見込まれます");
+    expect(joined).toContain("御社が同じ立場なら、攻撃は次の順に進むと見込まれます");
     expect(joined).not.toContain("攻撃は次の順に進みます：");
     expect(joined).toMatch(/御社が確認すること：委託先・取引先に、事故の範囲/);
     expect(joined).toMatch(
