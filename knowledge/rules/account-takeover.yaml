@@ -41,6 +41,25 @@ rules:
         reasonJa: 社員のメールの多要素認証の適用範囲が未確認
       - state: breached
         reasonJa: 入力させられたパスワードだけでログインできる
+  # 多要素認証を通り抜ける手口（TRIAL-B-009）：ログイン済みのセッションの窃取と利用、多要素認証の傍受、認証手段の改変。
+  # パスワードに加えて多要素認証を通った後の状態、または認証そのものを奪うため、多要素認証があっても止まらない
+  - id: account_takeover.login_bypass
+    role: cloud.mail_account.staff
+    techniques: [T1539, T1550.004, T1111, T1556.006]
+    materialsJa: カルテ：ログインの条件づけ（接続元・端末の制限、セッションの有効期間）
+    mitigations: [M1036]
+    ineffective:
+      - mitigation: M1032
+        reasonJa: 多要素認証を通ったあとのログイン済みの状態（セッション）や、認証そのものを奪う手口なので、多要素認証だけでは止められません
+    outcomes:
+      - state: recoverable
+        when: { control: { mitigation: M1036, status: present } }
+        reasonJa: 接続元・端末の条件づけとセッションの有効期間の短縮で、盗まれたセッションが使える範囲と時間を狭められる（完全には止められない）
+      - state: unknown
+        when: { control: { mitigation: M1036, status: unknown } }
+        reasonJa: ログインの条件づけが未確認
+      - state: breached
+        reasonJa: 多要素認証を通ったあとのセッションを盗まれると、そのまま別の場所からログインされる
   - id: account_takeover.forward
     role: cloud.mail_account.staff
     techniques: [T1114.003, T1114]

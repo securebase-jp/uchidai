@@ -47,6 +47,13 @@ export const StepCertainty = z.enum([
 ]);
 export type StepCertainty = z.infer<typeof StepCertainty>;
 
+/**
+ * なりすましの段階（T1684 など）で、記事が装った相手。partner = 取引先・仕入先・顧客など。
+ * 省略は社長・役員など経営層（なりすまし送金の既定の型紙の言い方）。verifyCase が記事の文から決める
+ */
+export const Impersonated = z.enum(["exec", "partner"]);
+export type Impersonated = z.infer<typeof Impersonated>;
+
 export const CaseStep = z.object({
   tactic: TacticId,
   techniques: z.array(TechniqueId),
@@ -63,6 +70,8 @@ export const CaseStep = z.object({
     .optional(),
   /** 持ち出された情報が、すでに公開された（リークサイトへの掲載など）と記事が書いている */
   published: z.boolean().optional(),
+  /** なりすましの段階で、記事が装った相手が社長以外（取引先）のとき。型紙の段階の variants で札を差し替える */
+  impersonates: Impersonated.optional(),
   /** 根拠となる記事中の文（原文に実在することを照合済み） */
   quote: z.string().optional(),
   /** 読解が付けた一行の説明（日本語） */

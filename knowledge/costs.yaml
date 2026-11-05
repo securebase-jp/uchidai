@@ -119,3 +119,6 @@ measures:
   - measureId: transfer-limit
     basis: quote
     noteJa: ネットバンキングの権限・限度額の設定は金融機関によって異なる。IPA 事例集の明細に単価はない
+  - measureId: session-conditions
+    basis: quote
+    noteJa: クラウドメールの条件づけ（接続元・端末の制限、セッションの有効期間）の設定変更。契約するプランによって使える機能が異なる。IPA 事例集の明細に単価はない

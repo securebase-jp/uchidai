@@ -31,6 +31,12 @@ stages:
     byRole:
       cloud.mail_account.exec: T1684.001
     accepts: [T1684.001, T1684.002]
+    # 記事が装った相手が取引先のとき（社長ではない）の言い方。判定は変えず、札だけ差し替える（TRIAL-B-005）
+    variants:
+      partner:
+        labelJa: 取引先になりすまして指示する
+        breachedJa: 悪用される
+        breachedDoneJa: 悪用されました
   - id: human
     labelJa: 経理担当が送金する
     breachedJa: だまされる

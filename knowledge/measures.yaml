@@ -99,6 +99,14 @@ measures:
         status: present
         attrs: { mfaException: false }
     requestToJa: 情シス担当者（設定変更）
+  - id: session-conditions
+    labelJa: メールのログインに接続元・端末の条件と、セッションの有効期間の短縮
+    mitigation: M1036
+    patches:
+      - role: cloud.mail_account.staff
+        mitigation: M1036
+        status: present
+    requestToJa: 情シス担当者（設定変更）
   - id: mail-forward-audit
     labelJa: メールの転送ルールの点検
     mitigation: M1047

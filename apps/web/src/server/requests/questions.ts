@@ -391,6 +391,17 @@ const defs: QuestionDef[] = [
     ],
   },
   {
+    mitigation: "M1036",
+    textJa:
+      "メールのログインに、接続元や端末の条件（会社の端末だけ、など）や、ログインの有効期間を短くする設定をしていますか",
+    hintJa: "ログイン済みの状態を盗まれても、別の場所から使えないようにする設定です",
+    choices: [
+      { id: "present", labelJa: "条件や有効期間の設定をしている", status: "present" },
+      { id: "absent", labelJa: "していない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
     mitigation: "UD-05",
     textJa:
       "社長や取引先を名乗る人から SNS やチャットで連絡があり、グループの作成や招待を頼まれたとき、応じない決まりはありますか",

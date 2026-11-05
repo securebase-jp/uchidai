@@ -95,6 +95,30 @@
               "type": "string",
               "pattern": "^T\\d{4}(\\.\\d{3})?$"
             }
+          },
+          "variants": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "labelJa": {
+                  "type": "string"
+                },
+                "breachedJa": {
+                  "type": "string"
+                },
+                "breachedDoneJa": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "labelJa"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
