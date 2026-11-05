@@ -31,6 +31,7 @@ describe("質問表", () => {
     // 判定ルールが同じ緩和策を別の意味で見る役割の組み合わせ：byRole に文言があること
     for (const [m, role] of [
       ["M1047", "entry.web"],
+      ["M1047", "admin"],
       ["M1047", "server"],
       ["M1047", "file_server"],
       ["M1022", "server"],

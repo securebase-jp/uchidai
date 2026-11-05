@@ -308,6 +308,16 @@ const defs: QuestionDef[] = [
           UNKNOWN,
         ],
       },
+      admin: {
+        textJa:
+          "管理者アカウントが勝手に作られたり、権限を変えられたりしていないか、監視や定期的な棚卸しをしていますか",
+        hintJa: "見覚えのない管理者アカウントがないかを確かめることです",
+        choices: [
+          { id: "present", labelJa: "監視や棚卸しをしている", status: "present" },
+          { id: "absent", labelJa: "していない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
       server: {
         textJa: "業務サーバのアクセスログを、定期的に確認していますか",
         choices: [
@@ -387,6 +397,26 @@ const defs: QuestionDef[] = [
     choices: [
       { id: "present", labelJa: "手順がある", status: "present" },
       { id: "absent", labelJa: "手順はない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1037",
+    textJa: "業務サーバから外への通信は、許可した宛先だけに限っていますか",
+    hintJa: "見覚えのない外部のサーバと通信できないようにする設定です",
+    choices: [
+      { id: "present", labelJa: "許可した宛先だけに限っている", status: "present" },
+      { id: "absent", labelJa: "限っていない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "M1029",
+    textJa: "業務サーバのログを、サーバの外の別の場所にも保管していますか",
+    hintJa: "サーバの中のログを消されても、記録が残るようにする設定です",
+    choices: [
+      { id: "present", labelJa: "別の場所にも保管している", status: "present" },
+      { id: "absent", labelJa: "サーバの中だけ", status: "absent" },
       UNKNOWN,
     ],
   },

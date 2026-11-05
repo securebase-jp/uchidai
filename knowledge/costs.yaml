@@ -122,3 +122,12 @@ measures:
   - measureId: session-conditions
     basis: quote
     noteJa: クラウドメールの条件づけ（接続元・端末の制限、セッションの有効期間）の設定変更。契約するプランによって使える機能が異なる。IPA 事例集の明細に単価はない
+  - measureId: admin-account-monitor
+    basis: quote
+    noteJa: 監視の仕組みと棚卸しの作業。EDR を入れている場合はその機能で足りることがある。IPA 事例集の明細に単価はない
+  - measureId: egress-restrict
+    basis: quote
+    noteJa: ファイアウォールの設定変更。IPA 事例集の明細に単価はない
+  - measureId: log-offsite
+    basis: quote
+    noteJa: ログの転送先の用意と設定。IPA 事例集の明細に単価はない
