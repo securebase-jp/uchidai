@@ -430,6 +430,44 @@ const defs: QuestionDef[] = [
       { id: "absent", labelJa: "していない", status: "absent" },
       UNKNOWN,
     ],
+    byRole: {
+      // 会員・顧客向けのログイン（判定ルール web_service.login）。メールのログインとは意味が違う
+      "entry.web": {
+        textJa:
+          "会員や顧客が使うログインに、短時間の大量の試行を止める仕組み（試行の回数や接続元の制限、ボットの判別など）はありますか",
+        hintJa: "外部で漏れた ID・パスワードを自動で次々に試す攻撃への対策です",
+        choices: [
+          { id: "present", labelJa: "試行を制限する仕組みがある", status: "present" },
+          { id: "absent", labelJa: "制限はない", status: "absent" },
+          UNKNOWN,
+        ],
+      },
+    },
+  },
+  {
+    mitigation: "UD-08",
+    textJa:
+      "会員や顧客が使うログインに、ID・パスワードに加えて、確認コードや端末の確認などの追加の認証を求めていますか",
+    hintJa: "ホームページの管理画面の多要素認証とは別です。会員がログインするときの設定を指します",
+    choices: [
+      { id: "present", labelJa: "全員に求めている", status: "present" },
+      { id: "absent", labelJa: "求めていない（または希望した人だけ）", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-09",
+    textJa:
+      "会員へパスワードを使い回さないよう案内し、外部で漏れたことが分かっているパスワードの登録を断る設定をしていますか",
+    choices: [
+      {
+        id: "present",
+        labelJa: "案内と、漏えい済みパスワードを断る設定をしている",
+        status: "present",
+      },
+      { id: "absent", labelJa: "していない", status: "absent" },
+      UNKNOWN,
+    ],
   },
   {
     mitigation: "UD-05",

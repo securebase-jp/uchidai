@@ -1,0 +1,61 @@
+# 判定ルール表：顧客向けサービス（entry.web）への不正ログイン
+# 型紙 account-takeover-service の各段階。役割は web.yaml と同じ公開ホームページ（entry.web）だが、判定の中身が違うので、
+# stages で段階を指定して分ける。web.yaml の web.entry.credentials は「ホームページの管理画面」へのログインの判定（M1032 は管理画面の
+# 多要素認証）。こちらは会員・顧客向けのログインの判定で、会員向けの対策は独自基準 UD-08・UD-09 と M1036 で持ち、管理画面の対策と混ぜない
+rules:
+  - id: web_service.login
+    role: entry.web
+    stages: [svc-login]
+    techniques: [T1110.004, T1110, T1078, T1078.004]
+    materialsJa: カルテ：会員・顧客向けログインの多要素認証（追加認証）、ログイン試行の回数・接続元の制限、パスワードの使い回しへの注意喚起
+    mitigations: [UD-08, M1036, UD-09]
+    ineffective:
+      - mitigation: M1051
+        reasonJa: 漏れた ID・パスワードで正規にログインされるため、ソフトウェアを更新していても止まりません
+      - mitigation: M1032
+        reasonJa: ホームページの管理画面の多要素認証は、会員向けのログインには効きません（会員向けのログインに別の追加認証が要ります）
+    outcomes:
+      - state: blocked
+        when: { control: { mitigation: UD-08, status: present } }
+        reasonJa: 会員のログインに多要素認証などの追加認証がある。漏れた ID・パスワードだけでは入れない
+      - state: recoverable
+        when: { control: { mitigation: M1036, status: present } }
+        reasonJa: ログイン試行の回数や接続元が制限され、短時間の大量の試行は抑えられる。ただし少しずつ試す攻撃は完全には止められない
+      - state: human
+        when: { control: { mitigation: UD-09, status: present } }
+        reasonJa: 使い回しの注意喚起と、漏えい済みパスワードの拒否だけ。会員が従うかどうかに左右され、使い回した会員のアカウントには入られる
+      - state: unknown
+        when:
+          any:
+            - control: { mitigation: UD-08, status: unknown }
+            - control: { mitigation: M1036, status: unknown }
+        reasonJa: 会員のログインの追加認証や、試行の制限が未確認
+      - state: breached
+        reasonJa: 会員のログインが ID・パスワードだけで、漏れた組を自動で試されれば、使い回している会員のアカウントに入られる
+  - id: web_service.browse
+    role: entry.web
+    stages: [svc-browse]
+    techniques: [T1213, T1005]
+    materialsJa: カルテ：会員ページで見られる情報（氏名・住所・連絡先・保存した決済情報など）の種類と件数
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: ログインできれば、その会員が見られる情報はすべて見られる（この段階で止める対策は会社側にない。止めるのはログインの段階）
+  - id: web_service.misuse
+    role: entry.web
+    stages: [svc-misuse]
+    techniques: [T1657, T1565.001, T1531]
+    materialsJa: カルテ：会員アカウントに結びついたポイント・決済手段・登録情報の変更の可否
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: ログインされた後のポイントの利用や登録情報の変更は、本人の操作と区別できない（この段階で止める対策は会社側にない）
+  - id: web_service.exfil
+    role: entry.web
+    stages: [svc-exfil]
+    techniques: [T1567, T1048, T1041]
+    materialsJa: ―
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 閲覧・取得した会員情報は、サービスの外へ持ち出される（この段階で止める対策は会社側にない）

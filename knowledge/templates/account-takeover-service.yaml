@@ -1,0 +1,72 @@
+# 型紙：情報漏えい（顧客向けサービスへの不正ログイン・認証情報の詰め込み）
+# 外部で漏れた ID・パスワードの組を自動で試し（リスト型攻撃、認証情報の詰め込み）、会員サイトや EC などの顧客向けサービスに
+# 利用者本人になりすましてログインし、会員情報を閲覧・取得する。ポイントや決済の不正利用、登録情報の書き換えに及ぶこともある。
+# 社内への侵入（data-breach-intrusion、VPN→管理者権限→サーバ）とは別。全段階が顧客向けサービス（会社カルテでは公開ホームページ
+# entry.web の役割）の上で完結するので、ホームページの資産が無い（または廃止済みだけの）カルテでは入口なしになる。
+# 社内システムの入口（VPN など）は候補に出さない。ATT&CK の手法の水準まで書く
+#
+# 被害の種類は data_breach（認証情報の悪用で顧客・会員の情報が外部に出た事故）。account_takeover は「メールアカウントの乗っ取りと
+# 取引先への二次被害」専用なので使わない。個人情報の報告・通知の期限は data_breach と同じ（damage-types.yaml）
+#
+# priority は -1：同じ被害の型の型紙と、記事の段階の対応づけも手法の一致数も同数のときは、他の型紙を優先する。
+# （記事の入口が社内システム側と読めるとき、この型紙が横取りしない）
+id: account-takeover-service
+damageType: data_breach
+labelJa: 情報漏えい（顧客向けサービスへの不正ログイン）
+descriptionJa: 外部で漏れた ID・パスワードの組を試して顧客向けサービスにログインし、会員情報を閲覧・取得する
+priority: -1
+# 記事の入口の種類が「正規の認証情報」「公開 Web サイト」と記載のとき、当てはまりが同数なら社内への侵入の型紙より先にする
+preferEntryKinds: [credential, web]
+stages:
+  - id: svc-login
+    labelJa: 会員になりすまして会員向けサービスにログイン
+    breachedJa: 不正にログインされる
+    breachedDoneJa: 不正にログインされました
+    sentenceJa: "{node}に、会員になりすまして不正にログインされる"
+    # 認証情報の詰め込み（T1110.004）は ATT&CK の戦術では認証情報へのアクセス（TA0006）。記事では初期アクセスとして読まれる
+    tactics: [TA0001, TA0006]
+    entry: true
+    byRole:
+      entry.web: T1110.004
+    # 認証情報の詰め込み（T1110.004）、総当たり（T1110）、正規アカウントの悪用（T1078、クラウドは T1078.004）
+    accepts: [T1110.004, T1110, T1078, T1078.004]
+  - id: svc-browse
+    labelJa: 会員のアカウントから会員情報を閲覧・取得
+    breachedJa: 閲覧される
+    breachedDoneJa: 閲覧されました
+    sentenceJa: "{node}の会員情報が閲覧される"
+    tactics: [TA0009]
+    byRole:
+      entry.web: T1213
+    # 情報置き場からの取得（T1213：会員管理システム、会員ページ）、ローカルからの収集（T1005）
+    accepts: [T1213, T1005]
+  - id: svc-misuse
+    labelJa: ポイント・決済の不正利用や登録情報の書き換え
+    breachedJa: 不正に利用される
+    breachedDoneJa: 不正に利用されました
+    sentenceJa: "{node}のポイントや決済が不正に利用される"
+    tactics: [TA0040]
+    # 不正利用まで進まない事故もある。本線ではなく枝にして、記事に出てきたときだけ経路に入れる
+    branch: true
+    byRole:
+      entry.web: T1657
+    # 金銭の窃取（T1657）、保存データの改ざん（T1565.001、登録情報の書き換え）、アカウントへのアクセスの奪取（T1531、パスワードの変更）
+    accepts: [T1657, T1565.001, T1531]
+  - id: svc-exfil
+    labelJa: 会員情報を外部へ持ち出す
+    breachedJa: 持ち出される
+    breachedDoneJa: 持ち出されました
+    sentenceJa: "{node}から会員情報が持ち出される"
+    tactics: [TA0010]
+    branch: true
+    byRole:
+      entry.web: T1567
+    accepts: [T1567, T1048, T1041]
+  - id: leak
+    labelJa: 個人情報が漏えいする
+    breachedJa: 漏えい元になる
+    breachedDoneJa: 漏えい元になりました
+    tactics: [TA0010]
+    byRole:
+      entry.web: null
+    terminal: true
