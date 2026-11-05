@@ -7,7 +7,7 @@ rules:
     role: entry.web
     # 脆弱性の悪用と、その足場として置かれる Web シェル
     techniques: [T1190, T1505.003]
-    materialsJa: カルテ：CMS・追加機能（プラグイン）の更新管理（レンタルサーバなら会社側で管理する範囲だけ）
+    materialsJa: カルテ：CMS・追加機能（プラグイン）と PHP の版の更新管理（レンタルサーバなら会社側で管理する範囲、たとえば管理画面で選ぶ PHP の版だけ）
     mitigations: [M1051]
     ineffective:
       - mitigation: M1032
@@ -15,10 +15,10 @@ rules:
     outcomes:
       - state: breached
         when: { attr: { key: knownExploited, equals: true } }
-        reasonJa: ホームページのソフトウェア（CMS など）の製品・版が悪用確認済みの脆弱性に該当する
+        reasonJa: ホームページのソフトウェア（CMS、PHP など）の製品・版が悪用確認済みの脆弱性に該当する
       - state: blocked
         when: { control: { mitigation: M1051, status: present } }
-        reasonJa: ホームページのソフトウェア（CMS・追加機能）が更新されている
+        reasonJa: ホームページのソフトウェア（CMS・追加機能・PHP）が更新されている
       - state: unknown
         when: { control: { mitigation: M1051, status: unknown } }
         reasonJa: ホームページの更新管理が未確認
