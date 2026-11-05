@@ -20,6 +20,7 @@ stages:
     labelJa: 改ざんして入力情報を窃取
     breachedJa: 盗まれる
     breachedDoneJa: 盗まれました
+    sentenceJa: "{node}で入力された情報が盗まれる"
     tactics: [TA0009, TA0040]
     byRole:
       entry.web: T1056.003
@@ -29,6 +30,7 @@ stages:
     labelJa: 外部へ持ち出す
     breachedJa: 持ち出される
     breachedDoneJa: 持ち出されました
+    sentenceJa: "{node}から情報が持ち出される"
     tactics: [TA0010]
     byRole:
       entry.web: T1567

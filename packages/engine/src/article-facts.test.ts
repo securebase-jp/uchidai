@@ -80,3 +80,33 @@ describe("B-013：記事の会社が被害を防げた（未遂）", () => {
     expect(third.headlineJa).toMatch(/^これは委託先・取引先で起きた事故です/);
   });
 });
+
+describe("TRIAL-011・D-010：一枚の文は、主語と動詞がつながる（型紙の sentenceJa）", () => {
+  it("なりすまし送金：「会社の口座が起きる」でなく「会社の口座から資金が流出する」", () => {
+    const v = evaluate(becCase(), demo, { knowledge: k });
+    const first = buildOnePager(v, demo, k).whatHappensJa[0] ?? "";
+    expect(first).toContain("会社の口座から資金が流出する");
+    expect(first).not.toContain("会社の口座が起きる");
+  });
+  it("sentenceJa を持たない段階は、これまでどおり「{資産}が{突破されたときの言葉}」", () => {
+    const v = evaluate(becCase(), demo, { knowledge: k });
+    expect(buildOnePager(v, demo, k).whatHappensJa[0]).toContain("経理担当がだまされる");
+  });
+  it("持ち出し：「業務サーバ区画から情報が持ち出される」", () => {
+    const ransom: Case = {
+      title: "t",
+      damageType: "ransomware",
+      clarity: "partial",
+      suspiciousInstructions: [],
+      steps: [
+        { tactic: "TA0001", techniques: ["T1190"], source: "stated", entryKind: "vpn" },
+        { tactic: "TA0010", techniques: ["T1041"], source: "stated" },
+        { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      ],
+    };
+    const text =
+      buildOnePager(evaluate(ransom, demo, { knowledge: k }), demo, k).whatHappensJa[0] ?? "";
+    expect(text).toMatch(/から情報が持ち出される/);
+    expect(text).not.toContain("業務サーバ区画が持ち出される");
+  });
+});

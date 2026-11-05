@@ -40,6 +40,7 @@ stages:
     labelJa: データを持ち出す（二重恐喝）
     breachedJa: 持ち出される
     breachedDoneJa: 持ち出されました
+    sentenceJa: "{node}から情報が持ち出される"
     tactics: [TA0010]
     byRole:
       server: T1048

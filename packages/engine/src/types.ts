@@ -288,6 +288,8 @@ export const PathStep = z.object({
   certainty: StepCertainty.optional(),
   /** 記事が書いた入口の種類（入口の段階だけ） */
   entryKind: z.string().optional(),
+  /** 一枚の文で、この段階を書く完全な文（{node} は資産の名前。型紙の sentenceJa） */
+  sentenceJa: z.string().optional(),
   /** 持ち出された情報がすでに公開されたと記事が書いている段階 */
   published: z.boolean().optional(),
   state: StepState,

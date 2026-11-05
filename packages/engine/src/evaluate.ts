@@ -192,6 +192,7 @@ function evaluateStageNode(
       : {}),
     ...(matched?.published ? { published: true } : {}),
     labelJa: stage.labelJa,
+    ...(stage.sentenceJa ? { sentenceJa: stage.sentenceJa } : {}),
     ...(stage.breachedJa ? { breachedLabelJa: stage.breachedJa } : {}),
     ...(stage.breachedDoneJa ? { breachedDoneJa: stage.breachedDoneJa } : {}),
     ...(stage.precondition ? { precondition: true } : {}),

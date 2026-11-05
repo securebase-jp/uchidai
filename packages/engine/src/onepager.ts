@@ -108,6 +108,8 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     .filter((s) => !s.precondition && happened(s))
     .map((s) => {
       const node = nodeLabel(s.nodeId, s.role, profile, knowledge);
+      // 型紙に完全な文があれば、それを使う（「会社の口座が起きる」「業務サーバ区画が持ち出される」を避ける）
+      if (s.sentenceJa && s.state !== "blocked") return s.sentenceJa.replaceAll("{node}", node);
       return s.breachedLabelJa && s.state !== "blocked"
         ? `${node}が${s.breachedLabelJa}`
         : `${s.labelJa ?? "次の段階へ進む"}（${node}）`;

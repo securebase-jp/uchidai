@@ -49,6 +49,7 @@ stages:
     labelJa: 外部へ持ち出す
     breachedJa: 持ち出される
     breachedDoneJa: 持ち出されました
+    sentenceJa: "{node}から情報が持ち出される"
     tactics: [TA0010]
     byRole:
       server: T1048

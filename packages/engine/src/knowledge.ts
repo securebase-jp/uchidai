@@ -138,6 +138,11 @@ export const TemplateStage = z.object({
   breachedJa: z.string().optional(),
   /** 再生中の帯の文（過去形。「バックアップが暗号化されました」の述語） */
   breachedDoneJa: z.string().optional(),
+  /**
+   * 一枚の文で、この段階を書く完全な文（{node} は資産の名前）。「{node}から資金が流出する」のように、
+   * 「{node}が{breachedJa}」では主語と動詞がつながらない段階に持たせる。無ければ「{node}が{breachedJa}」
+   */
+  sentenceJa: z.string().optional(),
   tactics: z.array(TacticId),
   entry: z.boolean().default(false),
   precondition: z.boolean().default(false),

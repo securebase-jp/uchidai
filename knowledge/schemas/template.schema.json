@@ -39,6 +39,9 @@
           "breachedDoneJa": {
             "type": "string"
           },
+          "sentenceJa": {
+            "type": "string"
+          },
           "tactics": {
             "type": "array",
             "items": {
