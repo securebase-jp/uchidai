@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "脚本 v2（docs/demo-script-v2.md）の「効果音」の表と各場面の演出から置いた cue を、実際の画面（storyboard.json と演出の部品の定数、台本 playback.ts の時刻）から数え直したもの。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。再生時計の入る cue（場面 5 の flip、場面 8 の盾と緑）は、判定 API・巻き戻し 0.7 秒・台本の時刻からの概算なので、録画の映像で ±0.3 秒を調整する。場面 10・11（エンドカード）に鳴らす音は、既存の音の使い道が sfx.test.ts で場面ごとに固定されているため足していない。調べ方と直し方は demo/sfx.md。",
+  "note": "脚本 v2（docs/hackathon/demo-script-v2.md）の「効果音」の表と各場面の演出から置いた cue を、実際の画面（storyboard.json と演出の部品の定数、台本 playback.ts の時刻）から数え直したもの。scene は脚本の場面の番号 n（narration.json の n）、at は場面の開始からの秒（anchor が end のときは場面の終わりの何秒前か）、gain は 0〜1。再生時計の入る cue（場面 5 の flip、場面 8 の盾と緑）は、判定 API・巻き戻し 0.7 秒・台本の時刻からの概算なので、録画の映像で ±0.3 秒を調整する。場面 10・11（エンドカード）に鳴らす音は、既存の音の使い道が sfx.test.ts で場面ごとに固定されているため足していない。調べ方と直し方は demo/sfx.md。",
   "cues": [
     {
       "scene": 1,

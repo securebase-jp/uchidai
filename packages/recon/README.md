@@ -98,7 +98,7 @@ if (check.ok) {
 - **キャッシュ**：crt.sh と Cert Spotter の応答は既定で `packages/recon/.cache/`（gitignore 済み。キーは `crtsh:<domain>`、`certspotter:<domain>`）に 24 時間保存し、同じドメインへの問い合わせを繰り返さない。0 件の応答は保存しない（発行したばかりの証明書が公開ログに載るまで数時間かかるため、やり直せば拾える）
 - **プロキシ**：`HTTPS_PROXY` が設定された環境では undici の `EnvHttpProxyAgent` を使う（`packages/llm/src/proxy.ts` と同じ方針）
 
-実ネットワークのテストは書かない（CI では fixture と偽の fetch だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。Cert Spotter は、開発者のデモ用ドメインに対して手元で確かめた（結果は `docs/claude-code-log.md`）。
+実ネットワークのテストは書かない（CI では fixture と偽の fetch だけ）。開発中に一度だけ、公開の例示用ドメイン `example.com` に対して DNS 参照と crt.sh の問い合わせ（1 回）が動くことを手元で確かめた。Cert Spotter は、開発者のデモ用ドメインに対して手元で確かめた（結果は `docs/hackathon/claude-code-log.md`）。
 
 ## crt.sh の利用条件（2026-11-02 確認）
 

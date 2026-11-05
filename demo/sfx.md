@@ -1,7 +1,7 @@
 # 効果音（自作の合成音）
 
 デモ動画の効果音は、**ffmpeg の合成だけ**で作る。外部の音素材、ダウンロード、録音、BGM は使わない（BGM は仕様で使えない）。権利の問題は出ない。
-いつ・どの音を鳴らすかは `demo/sfx.json`（cue の一覧）、音そのものは `demo/scripts/sfx-sounds.ts`（レシピ）、動画への合成は `demo/scripts/assemble.ts`。脚本は `docs/demo-script-v2.md` の「効果音」の表と各場面の演出。
+いつ・どの音を鳴らすかは `demo/sfx.json`（cue の一覧）、音そのものは `demo/scripts/sfx-sounds.ts`（レシピ）、動画への合成は `demo/scripts/assemble.ts`。脚本は `docs/hackathon/demo-script-v2.md` の「効果音」の表と各場面の演出。
 
 ## 音の一覧
 

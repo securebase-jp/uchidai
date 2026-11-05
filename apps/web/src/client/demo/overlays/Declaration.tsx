@@ -1,6 +1,6 @@
 /**
  * ウチダイの宣言（場面 3 の頭）：暗転から、タイトルと 3 行（誰の／どんな課題を／どう解決）を順に出す。
- * 文言は脚本（docs/demo-script-v2.md）のとおり。時刻は overlay が出てからの経過秒数
+ * 文言は脚本（docs/hackathon/demo-script-v2.md）のとおり。時刻は overlay が出てからの経過秒数
  */
 const T_TITLE = 0.7;
 const LINES: { at: number; labelJa: string; textJa: string }[] = [

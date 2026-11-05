@@ -1,7 +1,7 @@
 # デモ動画の作り方
 
 3 分のデモ動画は、アプリ自身にデモを上演させる「デモモード」を画面収録し、ナレーション音声・字幕・効果音を結合して作る。
-脚本は `docs/demo-script-v2.md`（11 場面）。原稿・操作・音声・映像は一つのタイムライン（`demo/out/timeline.json`）でつながる。
+脚本は `docs/hackathon/demo-script-v2.md`（11 場面）。原稿・操作・音声・映像は一つのタイムライン（`demo/out/timeline.json`）でつながる。
 
 ```
 demo/
@@ -98,7 +98,7 @@ demo/
 
 - **actions**（画面の状態を変える）：`route`、`overlay`、`clock`（再生時計：`play`/`pause`/`toEnd`/`restart`/`speed`）、`measures`、`answers`、`reset`、`scroll`（`block: "start"` で上端に寄せる）、`click`（セレクタの要素を実際に押し、押した場所に輪を出す。`nth`、`text` で絞る）、`fill`（入力欄に値を入れる）。場面 5 のベンダー確認は、`click`／`fill` で本物の送信箱の部品（「ベンダーに確認する」→ 本文を見る → 返信を入力する → 番号 1 → 名前 → 「この回答で判定を更新する」）を動かし、実際の返信 API で判定を更新する
 - **layers**（状態を持たない見た目）：`dim`（暗転・沈み）、`text`（帯 `band`、宣言、注記。位置と大きさを選べる）、`badge`（札：`fiction` は「架空」、`record` は「実際の記録」）、`walls`（3 枚の壁：`expert`・`advisor`・`time`。`big` は中央、`strip` は下の小さな帯。`rise` で立ち、`crumble` で崩れ、`fallen` は崩れた状態から始まる）、`zoom`（担当者画面の構成図をノードに寄せる。`target` は構成図のノード ID、`scale` は倍率）。層は `from`〜`to` 秒で表示され、一時停止すると止まり、場面を飛ばしても同じ絵になる
-- **options**：`policeStat`（場面 3 の警察庁の数字）。`layers` の `when: "policeStat"` が付いた層は、これが true のときだけ出る。警察庁サイト上の掲載場所を確認してから出す（`docs/demo-script-v2.md` の決めてほしいこと 1）
+- **options**：`policeStat`（場面 3 の警察庁の数字）。`layers` の `when: "policeStat"` が付いた層は、これが true のときだけ出る。警察庁サイト上の掲載場所を確認してから出す（`docs/hackathon/demo-script-v2.md` の決めてほしいこと 1）
 
 `storyboard.test.ts` が、原稿との場面の対応、時刻が場面の長さに収まること、`scroll`・`click`・`fill` のセレクタが画面の部品に実在すること、`zoom` の対象がデモ用カルテにあること、壁が 3 → 8 → 9 の順に 1 枚ずつ崩れること、返信の番号 1 が「全 PC で共通（ない）」に当たることを確かめる。
 

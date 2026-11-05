@@ -1,5 +1,5 @@
 {
-  "$comment": "デモモード（?demo=1）の絵コンテ（11 場面。脚本は docs/demo-script-v2.md）。場面ごとに、画面の操作（actions）と見た目だけの演出（layers）を時刻（秒）つきで並べる。各場面の長さは demo/narration.json の targetSeconds か、音声ファイル demo/audio/<n>.wav の長さ。overlay の部品の時刻は、その overlay が出た時刻（overlay 操作の at）を 0 とする。layers の when は options の入切（既定は出さない）",
+  "$comment": "デモモード（?demo=1）の絵コンテ（11 場面。脚本は docs/hackathon/demo-script-v2.md）。場面ごとに、画面の操作（actions）と見た目だけの演出（layers）を時刻（秒）つきで並べる。各場面の長さは demo/narration.json の targetSeconds か、音声ファイル demo/audio/<n>.wav の長さ。overlay の部品の時刻は、その overlay が出た時刻（overlay 操作の at）を 0 とする。layers の when は options の入切（既定は出さない）",
   "version": 2,
   "profile": "demo-seiko",
   "case": "ipa-case-1",

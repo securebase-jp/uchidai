@@ -1,5 +1,5 @@
 {
-  "$comment": "エンドカード後半（場面 10）に出す開発の跡の数字。画面はここから読んで数え上げる。数字は動画に出す直前に数え直す（verifyBeforeRecording を false にするのは数え直したあと）。実測の取り方：commits は `git rev-list --count main`、scoring.records は eval/RESULTS.md の日付つきの行数、scoring.series は同じ表の知見あり・知見なしの列、articles は eval/RESULTS.md の「実記事」の行（型の一致 12/12）と、正解データ 10 件を開発者が確認した記録（docs/claude-code-log.md の gold-review）、sessions は docs/claude-code-log.md と worktree の数。モデルの役割分担に Mythos の名は出さない",
+  "$comment": "エンドカード後半（場面 10）に出す開発の跡の数字。画面はここから読んで数え上げる。数字は動画に出す直前に数え直す（verifyBeforeRecording を false にするのは数え直したあと）。実測の取り方：commits は `git rev-list --count main`、scoring.records は eval/RESULTS.md の日付つきの行数、scoring.series は同じ表の知見あり・知見なしの列、articles は eval/RESULTS.md の「実記事」の行（型の一致 12/12）と、正解データ 10 件を開発者が確認した記録（docs/hackathon/claude-code-log.md の gold-review）、sessions は docs/hackathon/claude-code-log.md と worktree の数。モデルの役割分担に Mythos の名は出さない",
   "verifyBeforeRecording": true,
   "measuredAt": "2026-11-04",
   "sessions": {
