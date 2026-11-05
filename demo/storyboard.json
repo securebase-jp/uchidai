@@ -49,7 +49,7 @@
         {
           "kind": "dim",
           "from": 10.4,
-          "to": 17.5,
+          "to": 16.5,
           "opacity": 0.9,
           "fadeIn": 1.6,
           "fadeOut": 0
@@ -57,7 +57,7 @@
         {
           "kind": "walls",
           "from": 10.6,
-          "to": 17.5,
+          "to": 16.5,
           "size": "big",
           "rise": [
             {
@@ -77,7 +77,7 @@
         {
           "kind": "text",
           "from": 10.8,
-          "to": 17.5,
+          "to": 16.5,
           "pos": "bottom",
           "size": "lg",
           "fade": 0.5,
@@ -634,15 +634,39 @@
       "n": 10,
       "id": "how-built",
       "route": "#/",
-      "overlay": "endcard-roles",
+      "overlay": "none",
       "actions": [
         {
-          "at": 12,
+          "at": 1.5,
+          "do": "overlay",
+          "id": "endcard-roles"
+        },
+        {
+          "at": 13.5,
           "do": "overlay",
           "id": "endcard-trace"
         }
       ],
-      "layers": []
+      "layers": [
+        {
+          "kind": "dim",
+          "from": 0,
+          "to": 1.5,
+          "opacity": 0.92,
+          "fadeIn": 0,
+          "fadeOut": 0.4
+        },
+        {
+          "kind": "text",
+          "from": 0.2,
+          "to": 1.5,
+          "pos": "center",
+          "size": "xl",
+          "serif": true,
+          "fade": 0.3,
+          "text": "ここからは、作り方の話です"
+        }
+      ]
     },
     {
       "n": 11,
