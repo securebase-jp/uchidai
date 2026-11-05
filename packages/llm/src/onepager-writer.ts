@@ -9,6 +9,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import {
   type Knowledge,
   type OnePager,
+  StepCertainty,
   StepState,
   type Verdict,
   VerdictResult,
@@ -32,6 +33,8 @@ export const WriterStage = z.object({
   state: StepState,
   /** 出来事の確認状況。記載の段階を「確認が取れていない」と書かせないために渡す */
   source: WriterStageSource,
+  /** 記事が出来事をどう書いているか（可能性・痕跡なし・主張など）。省略は confirmed と同じ */
+  certainty: StepCertainty.optional(),
 });
 export const OnePagerWriterInput = z.object({
   result: VerdictResult,
@@ -53,7 +56,7 @@ export const OnePagerWriterInput = z.object({
   personalDataJa: z.array(z.string()),
 });
 export const OnePagerWriterOutput = z.object({
-  whatHappensJa: z.array(z.string().min(1).max(200)).min(1).max(5),
+  whatHappensJa: z.array(z.string().min(1).max(200)).min(1).max(8),
 });
 export type WriterStage = z.infer<typeof WriterStage>;
 export type OnePagerWriterInput = z.infer<typeof OnePagerWriterInput>;
@@ -64,7 +67,7 @@ export const onePagerWriterJsonSchema: Record<string, unknown> = {
   properties: {
     whatHappensJa: {
       type: "array",
-      description: "社長向けの短い文。2〜4 文。各要素が一文",
+      description: "社長向けの短い文。2〜6 文。各要素が一文",
       items: { type: "string" },
     },
   },
@@ -90,6 +93,7 @@ export function writerInputFrom(
       state: s.state,
       // AI が見つけた経路の段階は、記事の確認を伴わないので推定として扱う
       source: s.source === "ai" ? "inferred" : s.source,
+      ...(s.certainty && s.certainty !== "confirmed" ? { certainty: s.certainty } : {}),
     }));
   const { impact } = verdict;
   return OnePagerWriterInput.parse({
@@ -119,10 +123,16 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 - 攻撃の段階は入力の順番どおりに「どこから入り、どこへ進み、何が止まるか」として書く。state が blocked の段階があれば、そこで止まることを書く。human は「人の判断にかかっている」と書く
 - 各段階には二つの別の情報がある。混ぜないこと
   - source（出来事の確認状況）：stated は記事に書かれた出来事なので「確認されています」「起きています」と書き、「確認が取れていません」「不明」とは決して書かない。inferred は記事に無い推定なので「〜と考えられます」「〜おそれがあります」と書き、断定しない。candidate は入口が記事から分からないため仮に置いた候補で、最初の段階が candidate なら「入口はまだ分かっていません。たとえば〇〇から入られた場合は」と書き、その入口から入られたと断定しない
+  - certainty（記事がその出来事をどう書いているか。無いときは confirmed）：記事の書き方に合わせた言い方にする。「確認されています」を使えるのは source が stated で certainty が無い段階だけ
+    - possible：「記事では〜の可能性があるとされています」。起きたと断定しない
+    - exposed_only：「〜は閲覧できる状態でした。実際に取得されたかは確認されていません」と書く（この言い回しに固定）
+    - no_trace：「〜の痕跡は確認されていません」と書く（この言い回しに固定）。起きたと書かない
+    - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
+- 文の分け方：前半は記事に書かれた出来事だけを書く（確度に合う言い方で）。止まる業務・日数・売上・取引先への影響は、御社に当てはめた試算なので、別の文にして「御社の場合は〜と見込まれます」と書く。試算の文に「確認されています」「起きています」を使わない（試算は記事の事実ではない）。一つの文に、確認の言い方と日数・金額を混ぜない。例：「中核システムが暗号化されたことが確認されています。」（記事の事実）と「御社の場合は、受注・生産管理が10日止まると見込まれます。」（試算）は別の文にする。段階が多いときは、近い段階を 1 文にまとめ、全体で 6 文以内にする
   - state（その段階を止める対策の確認状況）：unknown のときだけ「この段階を止める対策が確認できていません」と書く（この言い回しに固定）。どの段階の話か分かるよう、その段階の説明と同じ文に続けて書き（例：「管理者権限を奪われるおそれがあり、この段階を止める対策が確認できていません」）、この言い回しだけの短い文にしない。攻撃が起きたかどうかの話には使わない
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
 - stopped が空（止まる業務が無い）ときは、止まる業務のことも復旧までの日数も書かない。downtimeDays が 0 でも「0日」「0 日」とは書かない。止まらなかったことと、個人情報の報告など入力にあることだけを書く
-- 一文は 70 字以内。2〜4 文。敬体（です・ます）。煽らず、断定は入力の範囲内で
+- 一文は 70 字以内。2〜6 文（多くても 8 文まで）。敬体（です・ます）。煽らず、断定は入力の範囲内で
 - 出力は JSON スキーマどおり。文章はすべて日本語`;
 
 /** state が unknown の段階の言い回し（固定）。攻撃が起きたかどうかではなく、止める対策の確認の話 */
@@ -130,6 +140,14 @@ export const UNKNOWN_CONTROL_PHRASE = "この段階を止める対策が確認�
 /** 入口が候補のときの言い回し（固定の前半） */
 export const CANDIDATE_ENTRY_PHRASE = "入口はまだ分かっていません";
 const UNKNOWN_CONTROL_SHORT = "止める対策が確認できていません";
+/** 確度ごとの固定の言い回し。これらの中の「確認されていません」は否定の誤用に数えない */
+export const NO_TRACE_PHRASE = "痕跡は確認されていません";
+export const EXPOSED_ONLY_PHRASE = "取得されたかは確認されていません";
+const CLAIMED_PHRASE_RE = /事実かどうかは確認されていません/;
+/** 試算の文に入ってはいけない「確認」の言い方、試算の語 */
+const CONFIRM_RE = /確認(され|が取れ)て(い)?(ま(す|した)|る)|確認されました/;
+const ESTIMATE_RE = /\d\s*日|\d[\d,.]*\s*(万|億)?円|止まり|止まる|止まって|停止/;
+const ESTIMATE_PHRASE = "御社の場合は";
 /** 出来事を否定する言い方（「確認が取れていません」など）。固定の言い回しは除いて調べる */
 const DENIAL =
   /確認が取れて(?:い|お)(?:ない|ません)|確認できて(?:い|お)(?:ない|ません)|確認されて(?:い|お)(?:ない|ません)/;
@@ -192,6 +210,16 @@ export function checkWriterOutput(
         return `入力にない数値が含まれています：${num}（${line}）`;
     }
   }
+  // 止まる業務・金額（御社に当てはめた試算）は、記事の事実と別の文で「御社の場合は〜と見込まれます」と書く
+  const hasEstimate =
+    input.stopped.length > 0 ||
+    input.revenueImpactJpy !== undefined ||
+    input.moneyLossJpy !== undefined;
+  if (
+    hasEstimate &&
+    !output.whatHappensJa.some((l) => l.includes(ESTIMATE_PHRASE) && l.includes("見込まれ"))
+  )
+    return `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`;
   return undefined;
 }
 
@@ -209,14 +237,40 @@ export function checkSourceWording(
 ): string | undefined {
   const hasStated = input.stages.some((s) => s.source === "stated");
   for (const line of output.whatHappensJa) {
-    const rest = line.replaceAll(UNKNOWN_CONTROL_SHORT, "");
+    const rest = line
+      .replaceAll(UNKNOWN_CONTROL_SHORT, "")
+      .replaceAll(NO_TRACE_PHRASE, "")
+      .replaceAll(EXPOSED_ONLY_PHRASE, "")
+      .replace(CLAIMED_PHRASE_RE, "");
     if (DENIAL.test(rest))
       return `「確認が取れていません」のような言い方は、「${UNKNOWN_CONTROL_PHRASE}」以外では使えません：${line}`;
     if (hasStated && UNKNOWN_WORD.test(rest))
       return `記事に書かれた段階があるのに「不明」と書かれています：${line}`;
   }
   const all = output.whatHappensJa.join("");
-  if (input.stages.some((s) => s.source === "inferred") && !HEDGE.test(all))
+  const uncertain = (c: StepCertainty) => input.stages.some((s) => s.certainty === c);
+  if (uncertain("no_trace") && !all.includes(NO_TRACE_PHRASE))
+    return `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`;
+  if (uncertain("exposed_only") && !all.includes(EXPOSED_ONLY_PHRASE))
+    return `閲覧できる状態だけの段階があるのに「${EXPOSED_ONLY_PHRASE}」と書かれていません`;
+  if (uncertain("claimed") && !all.includes("主張"))
+    return "攻撃者の主張の段階があるのに「主張」と書かれていません";
+  // 「確認されています」を使えるのは、記事が出来事として書いた段階（stated で確度の印が無い）があるときだけ
+  const hasConfirmed = input.stages.some((s) => s.source === "stated" && !s.certainty);
+  if (!hasConfirmed && CONFIRM_RE.test(all))
+    return "記事で確認された出来事が無いのに「確認されています」と書かれています";
+  for (const line of output.whatHappensJa) {
+    if (CONFIRM_RE.test(line) && ESTIMATE_RE.test(line))
+      return `御社に当てはめた試算の文に「確認されています」が使われています：${line}`;
+  }
+  // 推定を示す語が要るのは、推定の段階（確度の印が無い）と、可能性（possible）の段階だけ。
+  // 痕跡なし・主張・閲覧できる状態だけの段階は、それぞれ固定の言い回しで書く
+  if (
+    input.stages.some(
+      (s) => s.source === "inferred" && (s.certainty === undefined || s.certainty === "possible"),
+    ) &&
+    !HEDGE.test(all)
+  )
     return "推定の段階を断定しています（「〜と考えられます」などの言い方がありません）";
   if (input.stages[0]?.source === "candidate" && !all.includes(CANDIDATE_ENTRY_PHRASE))
     return `入口が候補なのに「${CANDIDATE_ENTRY_PHRASE}」と書かれていません`;

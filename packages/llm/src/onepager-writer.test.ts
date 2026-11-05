@@ -37,6 +37,7 @@ describe("checkWriterOutput", () => {
         "外から社内につなぐ装置から侵入され、生産管理のデータが暗号化されます。",
         "受注・生産管理が最長 10 日止まり、3 日目から取引先の納期に影響が出ます。",
         "売上への影響は約 1 億円です。",
+        "御社の場合は、以上の被害が見込まれます。",
       ],
     });
     expect(checkWriterOutput(out, input)).toBeUndefined();
@@ -50,12 +51,20 @@ describe("checkWriterOutput", () => {
     expect(checkWriterOutput(out, input)).toMatch(/入力にない数値/);
   });
   it("全角の数字も検査する", () => {
-    const out = { whatHappensJa: ["復旧まで１０日かかります。"] };
+    const est = "御社の場合は、被害が見込まれます。";
+    const out = { whatHappensJa: ["復旧まで１０日かかります。", est] };
     expect(checkWriterOutput(out, input)).toBeUndefined();
-    expect(checkWriterOutput({ whatHappensJa: ["復旧まで７日かかります。"] }, input)).toMatch(/7/);
+    expect(checkWriterOutput({ whatHappensJa: ["復旧まで７日かかります。", est] }, input)).toMatch(
+      /7/,
+    );
   });
   it("止まる業務が無いのに「0日」「0 日」と書いた文は捨てる（10日や0日目は対象外）", () => {
-    const none: OnePagerWriterInput = { ...input, stopped: [], downtimeDays: 0 };
+    const none: OnePagerWriterInput = {
+      ...input,
+      stopped: [],
+      downtimeDays: 0,
+      revenueImpactJpy: undefined,
+    };
     for (const line of [
       "復旧までの日数は0日です。",
       "復旧まで 0 日かかります。",
@@ -71,7 +80,10 @@ describe("checkWriterOutput", () => {
     // 止まる業務があるなら対象外（その日数は入力の値で検証する）。0日目という言い方も弾かない
     expect(checkWriterOutput({ whatHappensJa: ["0日目に連絡します。"] }, none)).toBeUndefined();
     expect(
-      checkWriterOutput({ whatHappensJa: ["復旧まで 10 日かかります。"] }, input),
+      checkWriterOutput(
+        { whatHappensJa: ["復旧まで 10 日かかります。", "御社の場合は、被害が見込まれます。"] },
+        input,
+      ),
     ).toBeUndefined();
   });
   it("金額は万・億の表記も許す", () => {
@@ -104,7 +116,13 @@ describe("段階の確認状況（source）に合わない言い方を捨てる�
     source: "stated" | "inferred" | "candidate",
     state: "breached" | "unknown" | "blocked" = "breached",
   ) => ({ labelJa: "段階", roleJa: "役割", state, source });
-  const base: OnePagerWriterInput = { ...input, stages: [], stopped: [], downtimeDays: 0 };
+  const base: OnePagerWriterInput = {
+    ...input,
+    stages: [],
+    stopped: [],
+    downtimeDays: 0,
+    revenueImpactJpy: undefined,
+  };
   const lines = (...l: string[]) => ({ whatHappensJa: l });
 
   it("記載（stated）の段階を「確認が取れていません」と書いた文は捨てる", () => {

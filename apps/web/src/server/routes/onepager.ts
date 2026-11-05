@@ -72,7 +72,11 @@ async function rewrite(
       onePager,
       text: {
         source: "template",
-        noteJa: `Claude を呼べなかったためテンプレート文です（${e instanceof Error ? e.message : String(e)}）`,
+        noteJa:
+          // 呼べなかったのか、呼んだが応答が決められた形に合わなかったのかを区別して書く
+          e instanceof Error && /スキーマ/.test(e.message)
+            ? "Claude の応答が決められた形に合わなかったため、テンプレート文です"
+            : `Claude を呼べなかったためテンプレート文です（${e instanceof Error ? e.message : String(e)}）`,
       },
     };
   }
