@@ -1,0 +1,353 @@
+# ランサムウェア記事の試験の一覧（実記事の試験・100 件計画のうちランサムウェア 24 件）
+#
+# 記事の本文は入れない（出典 URL、自分の言葉の要約、期待するラベルだけ）。本文は取得して
+# eval/.cache/trials/<id>/article.txt に置く（git 管理外）。取得は eval/trials/fetch-batch.ts。
+#
+# 項目
+#   kind         期待する被害の種類（damage type）。ここはすべて ransomware
+#   entry        記事に書かれた入口。vpn / rdp / network-device（VPN 以外のネットワーク機器・リモートアクセス機器）/
+#                vendor（委託先・再委託先経由）/ credential（正規の認証情報の悪用）/ internet（インターネット経由とだけ書かれる）/ none（書かれていない）
+#   extortion    double（データ持ち出し・公開・脅迫が記事にある）/ encrypt-only（暗号化のみ、持ち出しの痕跡なし）/ unclear
+#   size         規模の目安（従業員数）。sizeBasis が stated なら記事に書いてある値、rough なら記事の外の一般的な規模感の概算
+#   heldOut      true は「最後の測定用」。収集とラベル付けだけして、この試験では通さない
+#   publishedAt  記事の公開日（Security NEXT は本文末尾の日付、ScanNetSecurity は URL の日付）
+#   expectNote   期待の根拠（自分の言葉。記事の文は引用しない）
+#
+# 規模・業種・年・入口が偏らないよう選び、公開日の順に並べて 3〜4 件おきに heldOut にした
+# （公開日順の 3、6、10、13、17、20、24 番目）。heldOut は公開日の昇順のリストの位置で示す（order）。
+articles:
+  - id: ransom-suginami
+    order: 1
+    url: https://www.itmedia.co.jp/news/articles/2306/08/news086.html
+    title: 杉並区、委託先サーバにランサムウェア攻撃 学童利用者のデータなど暗号化される
+    publishedAt: 2023-06-08
+    kind: ransomware
+    entry: none
+    extortion: encrypt-only
+    industry: 福祉（社会福祉法人。自治体の委託先）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 区が学童クラブ運営を委託した福祉法人のサーバが全データ暗号化された。感染経路・流出の有無は調査中で、入口は書かれていない。被害会社から見ると委託先ではなく「自社サーバ」の事故。
+
+  - id: ransom-kyoto-hospital
+    order: 2
+    url: https://www.security-next.com/147179
+    title: 複数サーバがランサム被害、診療に影響なし - 京都府内の病院
+    publishedAt: 2023-06-27
+    kind: ransomware
+    entry: vpn
+    extortion: encrypt-only
+    industry: 医療（病院）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: VPN 機器の脆弱性から事務用ネットワークに入られ、ファイルサーバなど 3 台が暗号化。外部への通信ログはあるが持ち出しの痕跡はない。バックアップがあり診療は継続。入口は VPN、段階は暗号化中心。
+
+  - id: ransom-komai
+    order: 3
+    url: https://www.security-next.com/160390
+    title: RDP接続起点にサーバ4台がランサム被害 - 駒井ハルテック
+    publishedAt: 2024-07-31
+    kind: ransomware
+    entry: rdp
+    extortion: double
+    industry: 建設・鉄骨橋梁の設計製造
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: true
+    expectNote: リモートデスクトップ接続で 1 台にログオンされ、翌日そこを起点に 4 台でランサムウェアが実行された。一部データ流出の痕跡あり。入口は RDP、横展開と持ち出し、暗号化。
+
+  - id: ransom-tomoe
+    order: 4
+    url: https://www.security-next.com/160616
+    title: RDP接続で侵入、サーバがランサム被害 - 巴商会
+    publishedAt: 2024-08-07
+    kind: ransomware
+    entry: rdp
+    extortion: encrypt-only
+    industry: 製造・販売（インフラ関連設備、医療関連機器）
+    size: 約2,300（社員の個人情報の対象数）
+    sizeBasis: stated
+    heldOut: false
+    expectNote: ファイアウォール経由のリモートデスクトップ接続でサーバに侵入され、人事・給与システムのサーバでランサムウェアが実行された。持ち出しの痕跡はないが、従業員の個人情報が流出した可能性。入口は RDP。
+
+  - id: ransom-oiles
+    order: 5
+    url: https://www.security-next.com/160710
+    title: ランサム被害、侵入経路はVPNの脆弱性 - オイレス工業
+    publishedAt: 2024-08-09
+    kind: ransomware
+    entry: vpn
+    extortion: encrypt-only
+    industry: 製造（軸受、免震装置）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: false
+    expectNote: グループ内の VPN 機能の脆弱性が侵入に使われ、サーバのファイルが暗号化された。顧客データの流出はなく、生産と出荷は影響を受けなかった。入口は VPN。再発防止に EDR 導入と認証強化。
+
+  - id: ransom-japangas
+    order: 6
+    url: https://www.security-next.com/160986
+    title: RDP経由でサーバ侵入、従業員情報流出の可能性 - ジャパンガス
+    publishedAt: 2024-08-21
+    kind: ransomware
+    entry: rdp
+    extortion: encrypt-only
+    industry: 製造・サービス（滅菌関連）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: true
+    expectNote: インターネットに接続されたファイアウォール経由でリモートデスクトップ接続され、人事・給与サーバで実行された。持ち出しの明確な痕跡はない。入口は RDP。2 ページ構成。
+
+  - id: ransom-ikaruga
+    order: 7
+    url: https://www.security-next.com/162506
+    title: 図書館の新システム構築中にランサム被害、移行延期 - 斑鳩町
+    publishedAt: 2024-10-03
+    kind: ransomware
+    entry: none
+    extortion: encrypt-only
+    industry: 自治体（町立図書館のシステム。構築を委託）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 委託先が構築中のシステムサーバがランサムウェアに感染しデータが暗号化された。町の運用開始が延期。入口は書かれていない（委託先の環境）。被害は委託先と町の両方に関わる。2 ページ構成。
+
+  - id: ransom-ctc-subcontractor
+    order: 8
+    url: https://www.security-next.com/162697
+    title: ランサム被害、BF攻撃で乗っ取られた再委託先PC経由で - CTC
+    publishedAt: 2024-10-08
+    kind: ransomware
+    entry: vendor
+    extortion: encrypt-only
+    industry: IT（大手 SIer。再委託先の端末が起点）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 再委託先のパソコンが総当たり攻撃で管理者の ID とパスワードを特定されて乗っ取られ、その端末でランサムウェアが実行され、そこからアクセスできた CTC 管理の共有フォルダも被害。入口は委託先（認証情報の総当たり）。
+
+  - id: ransom-belldata
+    order: 9
+    url: https://www.security-next.com/168371
+    title: VPN経由でランサム攻撃、情報の外部公開を確認 - ベル・データ
+    publishedAt: 2025-03-19
+    kind: ransomware
+    entry: vpn
+    extortion: double
+    industry: IT（サーバ・ネットワーク機器の販売、保守）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: VPN 機器経由で社内サーバに入られ、個人情報 4 万 7 千件余が参照された可能性。一部の情報がリークサイトに掲載されたことを確認。二重恐喝で、持ち出しと公開が確認済み。
+
+  - id: ransom-tokiwa
+    order: 10
+    url: https://www.security-next.com/168834
+    title: 大分のスーパーがランサム被害 - 臨時休業するも翌日再開
+    publishedAt: 2025-04-04
+    kind: ransomware
+    entry: none
+    extortion: unclear
+    industry: 小売（スーパー）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: true
+    expectNote: 全店舗を臨時休業し翌日再開。クレジットカード決済とポイントは休止。入口・持ち出しは書かれていない。短い記事（約 360 字）。
+
+  - id: ransom-senko
+    order: 11
+    url: https://www.security-next.com/169699
+    title: ランサムでシステム障害、配送遅延など影響 - センコーグループ子会社
+    publishedAt: 2025-04-25
+    kind: ransomware
+    entry: vpn
+    extortion: encrypt-only
+    industry: 運輸（定温物流）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: VPN 機器への不正ログインからサーバに入られ、20 台以上のサーバのファイルが暗号化。検品システムが止まり紙で対応、集配が大幅に遅延。入口は VPN。止まる業務（検品、配送状況照会）が書かれている。
+
+  - id: ransom-jikko
+    order: 12
+    url: https://www.security-next.com/171444
+    title: ランサム被害サーバに個人情報、影響など調査継続 - 日本ジッコウ
+    publishedAt: 2025-06-17
+    kind: ransomware
+    entry: internet
+    extortion: encrypt-only
+    industry: 建設（コンクリートの防食工事）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: インターネット経由で内部ネットワークに入られ、複数のサーバと端末が暗号化された。具体的な入口の機器は書かれていない。見積書、契約書、図面などが保存されたサーバ。外部への漏えいは未確認。
+
+  - id: ransom-uniden
+    order: 13
+    url: https://www.security-next.com/172491
+    title: 約1年前にランサム被害、VPNで海外拠点から国内にも - ユニデンHD
+    publishedAt: 2025-07-22
+    kind: ransomware
+    entry: vpn
+    extortion: encrypt-only
+    industry: 製造（電子機器）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: true
+    expectNote: 海外拠点の端末が先に侵入され、日本拠点と接続していた VPN アカウントが侵害されて国内へ。ドメイン管理者アカウントでランサムウェアを実行、バックアップも暗号化。情報は暗号化済みで流出の可能性は低いと説明。3 ページ構成。入口は VPN（拠点間）。
+
+  - id: ransom-npo
+    order: 14
+    url: https://www.security-next.com/172669
+    title: NASがランサム被害、脅迫メッセージを確認 - 福祉サービスのNPO法人
+    publishedAt: 2025-07-25
+    kind: ransomware
+    entry: none
+    extortion: double
+    industry: 介護・福祉（NPO 法人）
+    size: 50人未満
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 職員がファイル保存に使う NAS が侵害されて暗号化。身代金を払わなければダウンロード済みのデータを漏洩・販売するとの脅迫があった。入口は書かれていない。個別支援計画など要配慮に近い情報。
+
+  - id: ransom-cbys
+    order: 15
+    url: https://www.security-next.com/173708
+    title: ランサム攻撃でサーバやPC30台が被害 - 清掃用品メーカー
+    publishedAt: 2025-08-26
+    kind: ransomware
+    entry: none
+    extortion: encrypt-only
+    industry: 製造（業務用洗剤、清掃機器）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 一部サーバに加え、業務用パソコン 30 台でもデータが暗号化。入口は書かれていない。外部での流通は未確認。個人情報保護委員会に報告済み。サーバだけでなく端末の暗号化も扱えるか。
+
+  - id: ransom-juntendo
+    order: 16
+    url: https://www.security-next.com/177544
+    title: NASがランサム被害、個人情報流出の可能性 - 順大
+    publishedAt: 2025-11-26
+    kind: ransomware
+    entry: none
+    extortion: encrypt-only
+    industry: 学校・大学（大学院の研究センターの NAS）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 大学院の研究センターが運用するファイル共有サーバが暗号化。約 850 人分の個人情報（一部はマイナンバー）。大学の基幹ネットワークや病院の診療系は影響なし。入口は書かれていない。被害は大組織の一部。
+
+  - id: ransom-tokai-itmedia
+    order: 17
+    url: https://www.itmedia.co.jp/news/articles/2602/18/news129.html
+    title: 東海大、ランサム被害で個人情報漏えい 最大19万人分 業務委託先がルール違反、データを持ち帰り
+    publishedAt: 2026-02-18
+    kind: ransomware
+    entry: vendor
+    extortion: double
+    industry: 学校・大学（保守委託先のサーバが被害）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: true
+    expectNote: 大学のネットワークの保守・管理を委託された会社の管理サーバが侵入され、ランサムグループの脅迫文が残っていた。委託先がルールに反してデータを自社に持ち帰っていた。被害は委託先のサーバで、大学のデータが最大 19 万人分漏えい。入口は委託先。
+
+  - id: ransom-shizuoka-hospital
+    order: 18
+    url: https://www.security-next.com/181750
+    title: 電子カルテシステムがランサム被害、個人情報が流出 - 静岡県の病院
+    publishedAt: 2026-03-11
+    kind: ransomware
+    entry: none
+    extortion: double
+    industry: 医療・介護（病院と併設のケアホーム）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 電子カルテを含む院内システムが閲覧できなくなり、国の初動対応チームの調査で利用者と家族の個人情報（病名を含む）が外部に流出したと判明。入口は書かれていない。持ち出しが確認済みの二重恐喝。
+
+  - id: ransom-tein
+    order: 19
+    url: https://www.security-next.com/183275
+    title: ランサム被害で株主や従業員情報が流出した可能性 - テイン
+    publishedAt: 2026-04-17
+    kind: ransomware
+    entry: none
+    extortion: unclear
+    industry: 製造（自動車用サスペンション）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 米子会社からの連絡で、サーバのファイルが暗号化され犯行声明文が置かれていると判明。攻撃者はファイルの作成・閲覧ができたが、持ち出しの痕跡はない。株主約 5,500 人分の情報が流出した可能性。入口は書かれていない。2 ページ構成。
+
+  - id: ransom-matsuyama
+    order: 20
+    url: https://www.security-next.com/183608
+    title: 松山市営住宅の入居者情報が流出 - 指定管理者がランサム被害
+    publishedAt: 2026-04-20
+    kind: ransomware
+    entry: none
+    extortion: double
+    industry: 自治体関連（市営住宅の指定管理者）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: true
+    expectNote: 指定管理者とグループ会社のサーバが被害を受け、攻撃者の公開情報に市営住宅入居者の情報（受給有無、障害者手帳の有無を含む）が載っていた。入口は書かれていない。公開が確認済み。
+
+  - id: ransom-loss-adjuster
+    order: 21
+    url: https://www.security-next.com/184283
+    title: 損害調査法人がランサム被害 - ファイル転送ツールの痕跡も
+    publishedAt: 2026-05-19
+    kind: ransomware
+    entry: network-device
+    extortion: double
+    industry: サービス（保険会社から委託される損害調査）
+    size: 300-1000
+    sizeBasis: rough
+    heldOut: false
+    expectNote: ネットワーク機器の脆弱性から侵入され、ドメイン管理者アカウントの悪用、構成情報の探索、アカウント情報の取得、遠隔操作の設定、ファイル転送ツールの実行の痕跡。約 3 万件の個人情報が流出した可能性が高い。段階が細かく書かれている。2 ページ構成。
+
+  - id: ransom-medica
+    order: 22
+    url: https://scan.netsecurity.ne.jp/article/2026/05/28/55368.html
+    title: 正規アカウント情報で社内ネットワークに侵入 ～ メディカ出版へのランサムウェア攻撃
+    publishedAt: 2026-05-28
+    kind: ransomware
+    entry: credential
+    extortion: unclear
+    industry: 出版（医療者向け）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: 見出しは正規の認証情報での侵入。ただし取得できる本文は冒頭 2 文ほど（約 190 字）で、入口の説明は本文に入らない。見出しにだけ入口が出る記事の扱い。
+
+  - id: ransom-marutaka
+    order: 23
+    url: https://www.security-next.com/188142
+    title: VPN機器経由でランサム被害、メアド変更など対策実施 - 丸高興業
+    publishedAt: 2026-08-13
+    kind: ransomware
+    entry: vpn
+    extortion: double
+    industry: 卸売（産業用ホース）
+    size: 50-300
+    sizeBasis: rough
+    heldOut: false
+    expectNote: VPN 機器経由で侵入され、攻撃者が不正な管理者アカウントを作成して複数サーバのデータを暗号化。ログも一部削除され、1.5GB 以上のデータが漏洩したおそれ。入口は VPN、管理者権限の奪取（作成）、持ち出し、暗号化、痕跡消し。2 ページ構成。
+
+  - id: ransom-rext
+    order: 24
+    url: https://www.security-next.com/188962
+    title: ランサム被害で店舗営業やサービスに影響 - REXT HD
+    publishedAt: 2026-09-03
+    kind: ransomware
+    entry: none
+    extortion: unclear
+    industry: 小売（書籍・ゲームの専門店）
+    size: 1000+
+    sizeBasis: rough
+    heldOut: true
+    expectNote: 一部店舗の臨時休業・営業時間の変更、キャッシュレス決済の制限、ポイント休止、ECの発送遅延。直営店 118 店舗が営業中。入口・持ち出しは書かれていない。止まる業務が具体的に書かれている。
