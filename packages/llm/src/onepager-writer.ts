@@ -279,13 +279,12 @@ export function checkWriterOutput(
     )
       return `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`;
     // 確認の言い方を使う最初の文は、主語を記事の第三者にする（御社の設備の事実にしない）。続く文は、その主語を引き継ぐ
-    const firstConfirm = output.whatHappensJa.find((l) => CONFIRM_RE.test(l));
+    const confirmAt = output.whatHappensJa.findIndex((l) => CONFIRM_RE.test(l));
     if (
-      firstConfirm !== undefined &&
-      !firstConfirm.includes("記事の") &&
-      !firstConfirm.includes(input.thirdPartyJa as string)
+      confirmAt >= 0 &&
+      !output.whatHappensJa.slice(0, confirmAt + 1).some((l) => l.includes("記事の"))
     )
-      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${firstConfirm}`;
+      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${output.whatHappensJa[confirmAt]}`;
   }
   return undefined;
 }
