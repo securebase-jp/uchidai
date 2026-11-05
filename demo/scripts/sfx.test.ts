@@ -9,10 +9,13 @@ import {
   buildSfxTrackArgs,
   DEFAULT_SFX_GAIN_DB,
   loadSfx,
+  muteFilter,
   parseSfx,
   type ResolvedCue,
   resolveCues,
+  resolveMutes,
   type SfxCue,
+  STRONG_EXTRA_DB,
 } from "./sfx-lib.ts";
 import {
   buildFilterComplex,
@@ -42,7 +45,7 @@ describe("sfx.json のスキーマ", () => {
     expect(bySound("message")).toEqual([1, 9]);
     expect(bySound("wall-up")).toEqual([2, 2, 2]);
     expect(new Set(bySound("tick"))).toEqual(new Set([4]));
-    expect(new Set(bySound("scan"))).toEqual(new Set([5]));
+    expect(new Set(bySound("scan"))).toEqual(new Set([1, 5])); // 1 は冒頭の 4 秒の赤い線
     expect(bySound("flip")).toEqual([5]);
     expect(new Set(bySound("verify"))).toEqual(new Set([6]));
     expect(bySound("count")).toEqual([7]);
@@ -50,8 +53,29 @@ describe("sfx.json のスキーマ", () => {
     expect(bySound("shield-bounce")).toEqual([8]);
     expect(bySound("green-spread")).toEqual([8]);
     expect(bySound("wall-down")).toContain(9);
+    // 山場の強い一打：冒頭の数字と「効かない」は stamp、「赤に変わる」は red-hit。結論の直前は riser を切る
+    expect(bySound("stamp")).toEqual([1, 8]);
+    expect(bySound("red-hit")).toEqual([5]);
+    expect(bySound("riser")).toEqual([7]);
+    for (const c of sfx.cues.filter(
+      (x) => x.sound === "red-hit" || (x.sound === "stamp" && x.scene === 8),
+    ))
+      expect(c.strong, `${c.sound}（場面 ${c.scene}）`).toBe(true);
     // 使っていない音が無い（作るだけで鳴らさない音を残さない）
     for (const name of SOUND_NAMES) expect(bySound(name).length).toBeGreaterThan(0);
+  });
+
+  it("音を切る区間：冒頭の 4 秒の最後の 0.5 秒と、結論の直前の 0.8 秒（結論の一打の時刻で終わる）", () => {
+    const sfx = loadSfx();
+    expect(sfx.mutes).toEqual([
+      expect.objectContaining({ scene: 1, at: 3.5, seconds: 0.5 }),
+      expect.objectContaining({ scene: 7, at: 1.2, seconds: 0.8 }),
+    ]);
+    const impact = sfx.cues.find((c) => c.sound === "impact");
+    const m7 = sfx.mutes.find((m) => m.scene === 7);
+    expect((m7?.at ?? 0) + (m7?.seconds ?? 0)).toBeCloseTo(impact?.at ?? -1, 5);
+    const riser = sfx.cues.find((c) => c.sound === "riser");
+    expect(riser?.at ?? 99).toBeLessThan(m7?.at ?? 0); // 高まってから切る
   });
 
   it("同じ場面の cue の at が負でなく、gain が 0〜1", () => {
@@ -171,6 +195,49 @@ describe("ミックスの ffmpeg 引数", () => {
     expect(g).toMatch(/\[sfxg\]\[key\]sidechaincompress/);
     expect(g).toContain("amix=inputs=2:normalize=0:duration=first");
     expect(DEFAULT_SFX_GAIN_DB).toBe(-14);
+  });
+
+  it("強い一打のトラックはダッキングせず大きく混ぜ、音を切る区間は全体にかける", () => {
+    const a = buildMixArgs({
+      narration: "/n.wav",
+      sfxTrack: "/t.wav",
+      strongTrack: "/s.wav",
+      sfxGainDb: -14,
+      mutes: [
+        { start: 3.5, end: 4 },
+        { start: 101.2, end: 102 },
+      ],
+      out: "/m.wav",
+    });
+    expect(a.slice(0, 6)).toEqual(["-i", "/n.wav", "-i", "/t.wav", "-i", "/s.wav"]);
+    const g = (a[a.indexOf("-filter_complex") + 1] ?? "").split(";");
+    // 先頭の 3 行（ダッキング）は強い一打が無いときと同じ
+    expect(g[2]).toMatch(/^\[sfxg\]\[key\]sidechaincompress/);
+    expect(g).toContain(`[2:a]volume=${-14 + STRONG_EXTRA_DB}dB[str]`);
+    expect(g.join(";")).toContain("[nar][duck][str]amix=inputs=3");
+    expect(g.join(";")).not.toMatch(/\[str\]\[key\]|sidechaincompress[^;]*\[str\]/);
+    expect(g.at(-1)).toContain("volume=0:enable='between(t,3.5,4)+between(t,101.2,102)'");
+    expect(muteFilter([])).toBe("");
+  });
+
+  it("音を切る区間を場面の時刻から絶対時刻に直す（場面が無ければ飛ばす）", () => {
+    const scenes = [
+      { n: 1, start: 0, end: 15 },
+      { n: 7, start: 100, end: 115 },
+    ];
+    expect(
+      resolveMutes(
+        [
+          { scene: 7, at: 1.2, seconds: 0.8 },
+          { scene: 1, at: 3.5, seconds: 0.5 },
+          { scene: 9, at: 1, seconds: 1 },
+        ],
+        scenes,
+      ),
+    ).toEqual([
+      { start: 3.5, end: 4 },
+      { start: 101.2, end: 102 },
+    ]);
   });
 
   it("ナレーションが無いときは効果音だけを同じ音量で出す", () => {

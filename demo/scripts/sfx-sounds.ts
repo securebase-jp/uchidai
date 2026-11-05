@@ -20,6 +20,9 @@ export const SOUND_NAMES = [
   "impact",
   "shield-bounce",
   "green-spread",
+  "stamp",
+  "red-hit",
+  "riser",
 ] as const;
 export type SoundName = (typeof SOUND_NAMES)[number];
 
@@ -205,6 +208,49 @@ export const RECIPES: Recipe[] = [
     echo: "0.8:0.5:160|320:0.35|0.2",
   },
 ];
+
+// 山場の強い音（demo-polish-plan の 6：「効かない」と「赤に変わる」に 1 つずつ強く、結論の直前は高まってから切る）
+RECIPES.push(
+  {
+    name: "stamp",
+    trimDb: -3,
+    desc: "判を押すような重い一打（「効かない」、冒頭の数字）",
+    dur: 0.9,
+    layers: [
+      sweep(160, 45, 0, 0.4, 0.9, { attack: 0.002 }),
+      noise("brown", 71, 0, 0.28, 0.9, { attack: 0.001, fx: "lowpass=f=420" }),
+      noise("white", 72, 0, 0.025, 0.45, { attack: 0.001, fx: "highpass=f=2500" }),
+      tone(880, 0.005, 0.18, 0.18, { attack: 0.002 }),
+      tone(62, 0, 0.8, 0.45, { attack: 0.003 }),
+    ],
+    echo: "0.85:0.4:70:0.3",
+  },
+  {
+    name: "red-hit",
+    trimDb: -1.5,
+    desc: "黄が赤に変わる強い打撃（不協和の 2 音と低い一打）",
+    dur: 1.0,
+    layers: [
+      tone(392, 0, 0.6, 0.32, { attack: 0.002 }),
+      tone(415.3, 0, 0.6, 0.28, { attack: 0.002 }),
+      sweep(260, 90, 0, 0.45, 0.6, { attack: 0.002 }),
+      noise("pink", 81, 0, 0.12, 0.5, { attack: 0.001, fx: "highpass=f=1500" }),
+      tone(55, 0, 0.9, 0.5, { attack: 0.003 }),
+    ],
+    echo: "0.85:0.45:110:0.3",
+  },
+  {
+    name: "riser",
+    trimDb: -1.5,
+    desc: "結論の直前に高まっていく音（途中で切って、無音の間をつくる）",
+    dur: 1.6,
+    layers: [
+      sweep(180, 760, 0, 1.6, 0.4, { attack: 1.3, release: 0.05 }),
+      noise("pink", 91, 0, 1.6, 0.35, { attack: 1.4, release: 0.05, fx: "highpass=f=700" }),
+      tone(73.4, 0, 1.6, 0.3, { attack: 1.2, release: 0.05 }),
+    ],
+  },
+);
 
 export function getRecipe(name: SoundName): Recipe {
   const r = RECIPES.find((x) => x.name === name);

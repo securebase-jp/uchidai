@@ -30,6 +30,7 @@ import {
   DEFAULT_SFX_GAIN_DB,
   loadSfx,
   resolveCues,
+  resolveMutes,
   sfxJsonPath,
 } from "./sfx-lib.ts";
 
@@ -169,13 +170,34 @@ if (withSfx && narrationWav) {
     console.warn(
       `注意：効果音の WAV がありません（${missing.join(", ")}）。node demo/scripts/synth-sfx.ts で作ってください。その cue は飛ばします`,
     );
+  // 強い一打（strong）は別のトラックにして、ダッキングせずに混ぜる。全部の音を切る区間（mutes）は最後にかける
+  const normal = playable.filter((r) => !r.cue.strong);
+  const strong = playable.filter((r) => r.cue.strong);
+  const mutes = resolveMutes(sfx.mutes, timeline);
   if (playable.length > 0) {
     const sfxTrack = join(workDir, "sfx-track.wav");
-    run(buildSfxTrackArgs({ cues: playable, sfxDir, totalSeconds: total, out: sfxTrack }));
+    // ふつうの cue が無いときは、無音のトラックを置く（ミックスの形を変えない）
+    if (normal.length > 0)
+      run(buildSfxTrackArgs({ cues: normal, sfxDir, totalSeconds: total, out: sfxTrack }));
+    else run(["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-t", String(total), sfxTrack]);
+    let strongTrack: string | undefined;
+    if (strong.length > 0) {
+      strongTrack = join(workDir, "sfx-strong.wav");
+      run(buildSfxTrackArgs({ cues: strong, sfxDir, totalSeconds: total, out: strongTrack }));
+    }
     audioWav = join(workDir, "audio-mix.wav");
-    run(buildMixArgs({ narration: narrationWav, sfxTrack, sfxGainDb, out: audioWav }));
+    run(
+      buildMixArgs({
+        narration: narrationWav,
+        sfxTrack,
+        strongTrack,
+        sfxGainDb,
+        mutes,
+        out: audioWav,
+      }),
+    );
     console.log(
-      `効果音：${playable.length} 件（${sfxGainDb} dB、ナレーションの発話中はさらに下げる）`,
+      `効果音：${playable.length} 件（${sfxGainDb} dB、ナレーションの発話中はさらに下げる。強い一打 ${strong.length} 件は下げない）、音を切る区間 ${mutes.length} か所`,
     );
   } else {
     console.warn("注意：鳴らす効果音がないので、ナレーションだけにします");
