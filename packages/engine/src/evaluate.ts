@@ -58,6 +58,20 @@ export const entryKindGapNote = (kind: Pick<EntryKindDef, "labelJa">): string =>
 export const NEEDS_PREVIOUS_LINE =
   "これは続報で、この文書だけでは種類が分かりません。第一報と合わせて読んでください。";
 
+/**
+ * 第三者の事故（委託先・提供元・グループ会社）で、記事の入口の種類に当たる設備が、御社のカルテのどの経路にも見つからないとき。
+ * 記事の入口は第三者の設備で、御社の登録漏れとは限らない。「登録が足りない可能性があります」とは書かず、
+ * 第三者の事故の見出しにして、同じ種類の入口が御社に無いかの確認を促す（TRIAL-I-007）
+ */
+export const thirdPartyEntryGapHeadline = (labelJa: string): string =>
+  `これは${labelJa}で起きた事故です。御社のカルテには、記事の入口に当たる設備が見つかりません`;
+export const thirdPartyEntryGapNote = (
+  labelJa: string,
+  kind: Pick<EntryKindDef, "labelJa">,
+  source: "stated" | "inferred",
+): string =>
+  `記事の入口は「${kind.labelJa}」（${source === "stated" ? "記載" : "推定"}）で、${labelJa}の設備です。御社に同じ種類の入口（${kind.labelJa}）がないか、カルテに登録されていない入口がないかを確かめてください。`;
+
 /** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
 export const UNMAPPED_HEADLINE =
   "この記事の攻撃は、ウチダイの型紙の手法に対応づけられないため、判定できません（対象外）";
@@ -785,10 +799,22 @@ function evaluateCore(
   }
   if (!hasEntry && missingEntryKind) {
     // 記事の入口の種類に当たる資産がカルテに無い。「入口は無い」と断定せず、登録の不足として答える
-    const note = entryKindGapNote(missingEntryKind);
+    // （第三者の事故では、記事の入口は第三者の設備なので、登録の不足とは書かず、第三者の事故の見出しで答える）
+    const third = knowledge.victims.find((x) => x.id === theCase.victim);
+    const entrySource =
+      theCase.steps.find((st) => st.tactic === "TA0001" && st.entryKind === missingEntryKind?.id)
+        ?.source === "stated"
+        ? "stated"
+        : "inferred";
+    const headline = third?.thirdParty
+      ? thirdPartyEntryGapHeadline(third.labelJa)
+      : entryKindGapHeadline(missingEntryKind);
+    const note = third?.thirdParty
+      ? thirdPartyEntryGapNote(third.labelJa, missingEntryKind, entrySource)
+      : entryKindGapNote(missingEntryKind);
     return isDefaultFrameProfile(profile, knowledge.patterns, knowledge.sites)
-      ? empty("pending", entryKindGapHeadline(missingEntryKind), note)
-      : empty("no_entry", entryKindGapHeadline(missingEntryKind), note);
+      ? empty("pending", headline, note)
+      : empty("no_entry", headline, note);
   }
   if (!hasEntry) {
     // 既定の枠だけのカルテは、クラウドの共有設定などを持たない。入口の資産が無いのは「登録が足りない」かもしれず、

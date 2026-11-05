@@ -217,6 +217,37 @@ describe("第三者の事故：記事の入口の資産がカルテに無くて�
       "記事の入口は「公開 Web サイト・Web アプリ」（推定）。",
     );
   });
+  it("Web 経由の型紙で、カルテのどの入口からも経路が作れないとき：結論は変えないが、「登録が足りない」でなく第三者の事故の見出しと確認", () => {
+    // ir-xebio の形：EC プラットフォーム事業者（提供元）の管理用認証情報から、Web の型紙。デモ精工の公開サイトは社内につながらない
+    const xebio: Case = {
+      title: "EC プラットフォームへの不正アクセス",
+      damageType: "data_breach",
+      clarity: "partial",
+      suspiciousInstructions: [],
+      victim: "provider",
+      steps: [
+        { tactic: "TA0001", techniques: ["T1078"], source: "stated", entryKind: "credential" },
+        { tactic: "TA0009", techniques: ["T1213"], source: "stated" },
+        { tactic: "TA0040", techniques: ["T1491.002"], source: "stated" },
+      ],
+    };
+    const v = evaluate(xebio, demo, { knowledge: k });
+    expect(v.headlineJa).toBe(
+      "これはクラウド・ソフトウェアの提供元で起きた事故です。御社のカルテには、記事の入口に当たる設備が見つかりません",
+    );
+    expect(v.thirdParty?.id).toBe("provider");
+    const text = buildOnePager(v, demo, k).whatHappensJa.join("\n");
+    expect(text).toContain(
+      "記事の入口は「正規の認証情報（ログイン先は不明）」（記載）で、クラウド・ソフトウェアの提供元の設備です。",
+    );
+    expect(text).not.toMatch(/登録が足りない可能性/);
+    expect(text).toContain("御社が確認すること：");
+    // 自社の事故なら、これまでどおり登録の不足として答える
+    const { victim: _v, ...own } = xebio;
+    expect(evaluate(own, demo, { knowledge: k }).headlineJa).toBe(
+      entryKindGapHeadline({ labelJa: "正規の認証情報（ログイン先は不明）" }),
+    );
+  });
   it("5 問のカルテ（既定の枠）でも、第三者の事故なら「登録されていません」にしない", () => {
     const v = evaluate(thirdCase("vendor", "web", "T1190"), frame(["vpn"]), { knowledge: k });
     expect(v.headlineJa).toMatch(/^これは委託先・取引先で起きた事故です/);

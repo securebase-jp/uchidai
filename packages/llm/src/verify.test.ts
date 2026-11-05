@@ -294,6 +294,10 @@ describe("続報で種類が分からない公表（needsPrevious。TRIAL-I-005�
     expect(isFollowUpWithoutKind(short, "システム障害（第1報）")).toBe(false);
     expect(isFollowUpWithoutKind(`${short}第一報でお知らせしました。`, "お知らせ")).toBe(false);
   });
+  it("「最終報告」は、原因まで書いた一つの報告書なので続報の印にしない（「最終報」は印）", () => {
+    expect(isFollowUpWithoutKind(short, "ウェブサイトの障害に関する最終報告")).toBe(false);
+    expect(isFollowUpWithoutKind(short, "ウェブサイトの障害に関する最終報")).toBe(true);
+  });
   it("これから出す予告（「続報を公表いたします」）は、この文書が続報だという意味ではない", () => {
     expect(isFollowUpWithoutKind(`${short}判明次第、続報をお知らせいたします。`, "お知らせ")).toBe(
       false,
