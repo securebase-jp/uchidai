@@ -18,6 +18,7 @@ import {
   canonicalTechnique,
   loadDamageTypes,
   OUT_OF_SCOPE,
+  type StepCertainty,
 } from "@uchidai/engine";
 import { RawCase } from "./schema.ts";
 
@@ -35,6 +36,8 @@ export type VerifyOptions = {
   /** 定義済みの被害の種類の id（既定は knowledge/damage-types.yaml）。これと out_of_scope 以外は拒否する */
   damageTypes?: Iterable<string>;
   url?: string;
+  /** 記事のタイトル。根拠文の照合に使う（本文に無くタイトルにだけある根拠文は、確認された事実としては扱わない） */
+  title?: string;
   /** これより短い根拠文（正規化後の文字数）は照合しない（既定 8） */
   minQuoteLength?: number;
   /** これより長い根拠文（正規化後の文字数）は捨てる（既定 400。「1〜2 文」の約束を守らせる） */
@@ -70,6 +73,12 @@ export type VerifyReport = {
   }[];
   /** stated なのに根拠文が無く inferred に落とした段階 */
   statedWithoutQuote: number[];
+  /** 記事の書き方（可能性・痕跡なし・主張など）から、stated を inferred / unknown に下げた段階と、その確度 */
+  downgraded: { index: number; certainty: StepCertainty }[];
+  /** 根拠文がタイトルにしか無く、stated を inferred に下げた段階 */
+  titleOnlyQuotes: number[];
+  /** 入口の手段に触れていない根拠文のために外した手法 */
+  unsupportedEntryTechniques: { index: number; id: string }[];
   /** 検知した指示らしき文（Claude の報告と、プログラムの検知の和） */
   suspiciousInstructions: string[];
   /** Claude が報告したが原文に無かった指示文（捏造の可能性。破棄） */
@@ -126,6 +135,59 @@ function clip(s: string, max: number): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
+// ---------------------------------------------------------------------------
+// 出来事の確度（certainty）。記事の書き方から、プログラムが決定的に補正する。
+// 読解（Claude）が stated を付けても、「可能性」「痕跡は確認されず」「主張」「記載なし」の語があれば stated にしない
+// ---------------------------------------------------------------------------
+/** 否定：「痕跡は確認されず」「確認されていない」 */
+const NO_TRACE =
+  /痕跡(は|も|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ|ませんでし)|(形跡|被害)(は|が)?(確認|見つか|認め)(され|でき)?(て(い|お)(ない|ません)|ず|なかっ)|確認(され|でき)て(い|お)(ない|ません)|確認(され|でき)(ず|なかっ)|見つかって(い|お)(ない|ません)|認められ(ない|ず)/;
+/** 可能性：「可能性がある」「おそれ」「とみられる」「考えられる」 */
+const POSSIBLE = /可能性|おそれ|恐れ|とみられ|と見られ|思われ|考えられ|疑われ|疑いが/;
+/** 攻撃者側の主張 */
+const CLAIMED = /主張|犯行声明|声明を|名乗|自称/;
+/** 閲覧できる状態だった（取得は別） */
+const EXPOSED = /閲覧(でき|可能)|アクセス(でき|可能)|公開(状態|されて)|状態(だった|となっ|が続|で)/;
+/** 記事に書かれていない：どの段階でも使う強い言い方 */
+const NOT_STATED =
+  /(記載|言及|記述)(が|は|も)?(な(い|し)|無(い|し))|書かれていない|記載されていない|触れられていない/;
+/** 入口の段階だけで使う弱い言い方 */
+const ENTRY_UNKNOWN =
+  /不明|明らか(に|で)(は|も)?(されて)?(い)?(な|おら)|特定(されて|できて)(い|お)(ない|らず|ません)|公表(されて|して)(い|お)(ない|らず|ません)|分かって(い|お)(ない|らず|ません)/;
+
+/** 入口の手段に当たる語（手法の系統ごと）。根拠文がこれに触れていなければ、その手法は根拠が無い */
+const ENTRY_MEANS: [prefix: string, re: RegExp][] = [
+  [
+    "T1190",
+    /脆弱性|VPN|ＶＰＮ|UTM|ファイアウォール|ルータ|ゲートウェイ|ネットワーク機器|機器|装置|公開|サイト|ウェブ|Web|サーバ|アプリ|ソフトウェア|セキュリティホール|ゼロデイ|CVE|インジェクション|システム/i,
+  ],
+  ["T1133", /VPN|ＶＰＮ|リモート|遠隔|RDP|テレワーク|外部から|保守用|ログイン|接続|経由/i],
+  ["T1078", /アカウント|認証情報|ID|ＩＤ|パスワード|ログイン|資格情報|クレデンシャル|ユーザー/i],
+  ["T1566", /メール|フィッシング|添付|リンク|URL|ＵＲＬ|SMS|メッセージ|詐欺/i],
+  [
+    "T1199",
+    /委託|取引先|保守|ベンダー|協力会社|グループ会社|関連会社|子会社|パートナー|業者|事業者/,
+  ],
+];
+
+/**
+ * 記事の書き方から、段階の確度を決める（優先順：記載なし → 否定 → 主張 → 可能性）。
+ * 判定の材料は、Claude の根拠文（quote）と一行の説明（summaryJa）。confirmed の段階だけが stated を保てる
+ */
+export function certaintyFromText(
+  quote: string | null,
+  summaryJa: string,
+  tactic: string,
+): StepCertainty {
+  const text = `${quote ?? ""}\n${summaryJa}`;
+  if (NOT_STATED.test(summaryJa) || (tactic === "TA0001" && ENTRY_UNKNOWN.test(summaryJa)))
+    return "not_stated";
+  if (NO_TRACE.test(text)) return EXPOSED.test(text) ? "exposed_only" : "no_trace";
+  if (CLAIMED.test(text)) return "claimed";
+  if (POSSIBLE.test(text)) return "possible";
+  return "confirmed";
+}
+
 export function verifyCase(
   raw: unknown,
   articleText: string,
@@ -137,6 +199,7 @@ export function verifyCase(
   if (parsed.damageType !== OUT_OF_SCOPE && !knownTypes.has(parsed.damageType))
     throw new Error(`未定義の被害の種類: ${parsed.damageType}`);
   const normalizedArticle = normalizeText(articleText);
+  const normalizedTitle = options.title ? normalizeText(options.title) : "";
   const minQuote = options.minQuoteLength ?? 8;
   const maxQuote = options.maxQuoteLength ?? 400;
   const allowed = options.allowedTechniques ? new Set(options.allowedTechniques) : undefined;
@@ -150,6 +213,9 @@ export function verifyCase(
     tacticMismatches: [],
     droppedQuotes: [],
     statedWithoutQuote: [],
+    downgraded: [],
+    titleOnlyQuotes: [],
+    unsupportedEntryTechniques: [],
     suspiciousInstructions: [],
     droppedSuspicious: [],
     warnings: [],
@@ -202,26 +268,73 @@ export function verifyCase(
       return;
     }
 
+    // 出来事の確度：Claude が付けた値と、記事の書き方の語から決めた値の、確度が低いほうを採る
+    let certainty: StepCertainty = s.certainty ?? "confirmed";
+    if (s.source !== "unknown") {
+      const fromText = certaintyFromText(s.quote, s.summaryJa, tactic);
+      if (certainty === "confirmed") certainty = fromText;
+    }
     let source: CaseStep["source"] = s.source;
+    let stepTechniques = techniques;
+    if (certainty === "not_stated") {
+      // 記事に書かれていない（入口の方法など）：手法を付けず、不明にそろえる
+      source = "unknown";
+      stepTechniques = [];
+      if (s.source !== "unknown") report.downgraded.push({ index, certainty });
+    } else if (certainty !== "confirmed" && source === "stated") {
+      // 可能性・痕跡なし・主張・閲覧できる状態だけ：記事が出来事として書いたものではないので、stated にしない
+      source = "inferred";
+      report.downgraded.push({ index, certainty });
+    }
+
+    // 根拠文があるのは stated か、確度が confirmed 以外の推定の段階だけ
+    const quoteAllowed =
+      certainty !== "not_stated" &&
+      (s.source === "stated" || (certainty !== "confirmed" && s.source !== "unknown"));
     let quote: string | undefined;
+    let quoteOnlyInTitle = false;
     if (s.quote !== null && s.quote.trim() !== "") {
       const q = normalizeText(s.quote);
-      if (s.source !== "stated")
+      if (!quoteAllowed)
         report.droppedQuotes.push({ index, quote: s.quote, reason: "source_not_stated" });
       else if (q.length < minQuote)
         report.droppedQuotes.push({ index, quote: s.quote, reason: "too_short" });
       else if (q.length > maxQuote)
         report.droppedQuotes.push({ index, quote: clip(s.quote, 200), reason: "too_long" });
-      else if (!normalizedArticle.includes(q))
-        report.droppedQuotes.push({ index, quote: s.quote, reason: "not_in_article" });
-      else quote = s.quote;
+      else if (normalizedArticle.includes(q)) quote = s.quote;
+      else if (normalizedTitle.includes(q)) {
+        quote = s.quote;
+        quoteOnlyInTitle = true;
+      } else report.droppedQuotes.push({ index, quote: s.quote, reason: "not_in_article" });
+    }
+    if (quoteOnlyInTitle && source === "stated") {
+      // 根拠がタイトルだけ（本文に出来事の記述が無い）：確認された事実としては扱わない
+      source = "inferred";
+      report.titleOnlyQuotes.push(index);
     }
     if (source === "stated" && quote === undefined) {
       if (s.quote === null || s.quote.trim() === "") report.statedWithoutQuote.push(index);
       source = "inferred";
     }
+    // 入口の段階：根拠文が入口の手段に触れていない手法は外す（記事にない手口が根拠つきの顔で残らないように）
+    if (source === "stated" && tactic === "TA0001" && quote !== undefined) {
+      const kept: string[] = [];
+      for (const id of stepTechniques) {
+        const means = ENTRY_MEANS.find(([prefix]) => id.startsWith(prefix));
+        if (means && !means[1].test(quote)) report.unsupportedEntryTechniques.push({ index, id });
+        else kept.push(id);
+      }
+      if (stepTechniques.length > 0 && kept.length === 0) {
+        source = "unknown";
+        certainty = "not_stated";
+        report.downgraded.push({ index, certainty });
+        quote = undefined;
+      }
+      stepTechniques = kept;
+    }
 
-    const step: CaseStep = { tactic, techniques, source };
+    const step: CaseStep = { tactic, techniques: stepTechniques, source };
+    if (certainty !== "confirmed") step.certainty = certainty;
     if (quote !== undefined) step.quote = quote;
     if (s.summaryJa.trim()) step.summaryJa = clip(s.summaryJa, MAX_SUMMARY);
     steps.push(step);
@@ -244,6 +357,10 @@ export function verifyCase(
   else if (allowed && report.counts.techniquesIn > 0 && report.counts.techniquesOut === 0)
     report.warnings.push(
       `読み取った手法がすべて被害の型（${parsed.damageType}）の型紙にありません。記事の型と型紙が合っていない可能性があります`,
+    );
+  if (report.tacticMismatches.length > 0)
+    report.warnings.push(
+      `手法が段階の戦術に合わない読み取りが ${report.tacticMismatches.length} 件あります（${[...new Set(report.tacticMismatches.map((m) => m.id))].join("、")}）。段階の対応づけを確認してください`,
     );
   if (report.suspiciousInstructions.length > 0)
     report.warnings.push(

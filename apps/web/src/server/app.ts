@@ -281,6 +281,7 @@ app.post("/api/case/read", async (c) => {
   const read = await readCase(article.text, { attack: k.attack, knowledge, ...meta });
   const verifyOpts: Parameters<typeof verifyCase>[3] = {};
   if (meta.url) verifyOpts.url = meta.url;
+  if (meta.title) verifyOpts.title = meta.title;
   const allowed = templateTechniques(k.templates, read.value.damageType);
   if (allowed.size > 0) verifyOpts.allowedTechniques = allowed;
   const verified = verifyCase(read.raw, article.text, k.attack, verifyOpts);

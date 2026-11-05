@@ -244,7 +244,7 @@ export function measure(
     typeof rawDamage === "string" && readKnowledge.templates
       ? templateTechniques(readKnowledge.templates, rawDamage)
       : new Set<string>();
-  const verifyOpts: Parameters<typeof verifyCase>[3] = { url: entry.url };
+  const verifyOpts: Parameters<typeof verifyCase>[3] = { url: entry.url, title: entry.title };
   if (allowed.size > 0) verifyOpts.allowedTechniques = allowed;
   const { case: c, report } = verifyCase(raw, text, knowledge.attack, verifyOpts);
   const verdict = evaluate(c, profile, { knowledge });

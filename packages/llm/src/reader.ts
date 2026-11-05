@@ -74,6 +74,7 @@ export async function readAndVerify(
   const verifyOpts: VerifyOptions = {};
   if (options.allowedTechniques) verifyOpts.allowedTechniques = options.allowedTechniques;
   if (options.url) verifyOpts.url = options.url;
+  if (options.title) verifyOpts.title = options.title;
   if (options.minQuoteLength !== undefined) verifyOpts.minQuoteLength = options.minQuoteLength;
   const v = verifyCase(r.value, text, options.attack, verifyOpts);
   return { ...v, raw: r.raw, model: r.model };
