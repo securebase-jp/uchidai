@@ -28,6 +28,7 @@ knowledge/
   costs.yaml              対策費用の目安（出典ページつきの単価だけ）
   deadlines.yaml          法令・実務上の期限と報告義務の条件（出典・確認日つき）
   entry-candidates.yaml   入口が不明なときの候補と並び順（警察庁統計）
+  entry-kinds.yaml        入口の種類（VPN、リモートデスクトップ、委託先、メール、Web …）と、当たる役割。記事の入口をカルテの入口の資産に種類で対応づける。1 件足せば読解の選択肢と判定に効く
   sources.yaml            ツール全体の出典の一覧（画面の「データの扱いと出典」の元。分類・名称・URL・発行元・利用条件・確認日）
   schemas/                JSON Schema（pnpm knowledge:check が zod から書き出す。手で編集しない）
 apps/web/src/server/requests/questions.ts   確認の質問表（緩和策 ID ごとの 1 問の選択式）

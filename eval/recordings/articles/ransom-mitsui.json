@@ -6,7 +6,7 @@
     "date": "2025-04-07"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:43:55.429Z",
+  "recordedAt": "2026-11-05T02:02:25.302Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "美容関連商社の基幹システムがリモートデスクトップ経由でランサム被害",
+    "title": "美容関連商社の基幹システムがリモートデスクトップ経由でランサムウェア被害",
     "damageType": "ransomware",
     "clarity": "partial",
     "steps": [
@@ -27,41 +27,33 @@
         ],
         "source": "inferred",
         "certainty": "possible",
+        "entryKind": "rdp",
         "quote": "リモートデスクトップが悪用され、侵害されたのが原因と見られている。",
-        "summaryJa": "リモートデスクトップが悪用されて侵入されたとみられている。"
+        "summaryJa": "リモートデスクトップが悪用されて侵入されたとみられている（断定はされていない）。"
       },
       {
         "tactic": "TA0006",
         "techniques": [
           "T1003",
-          "T1078"
+          "T1110"
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入後に管理者権限などの認証情報が奪われたと考えられる（記事に記載なし）。"
+        "summaryJa": "侵入後、管理者権限などの認証情報を奪ったと考えられる（記事には記載なし）。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
-          "T1021.001",
-          "T1021.002"
+          "T1021",
+          "T1021.001"
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "社内のネットワークを通じて基幹システムのサーバへ広がったと考えられる（記事に記載なし）。"
-      },
-      {
-        "tactic": "TA0040",
-        "techniques": [
-          "T1486",
-          "T1489"
-        ],
-        "source": "stated",
-        "certainty": "confirmed",
-        "quote": "1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
-        "summaryJa": "基幹システムのサーバがランサムウェアによる攻撃を受けた。"
+        "summaryJa": "基幹システムのサーバへ侵入範囲を広げたと考えられる（記事には記載なし）。"
       },
       {
         "tactic": "TA0010",
@@ -71,17 +63,30 @@
         ],
         "source": "inferred",
         "certainty": "possible",
+        "entryKind": null,
         "quote": "一方、情報が流出した可能性もあるとし、宛名ラベルに記載される顧客氏名、取引先スタッフに関する勤務先住所または自宅住所などが対象としている。",
-        "summaryJa": "顧客氏名や取引先スタッフの住所などの個人情報が流出した可能性がある。"
+        "summaryJa": "顧客氏名や住所などの個人情報が外部に流出した可能性があるが、流出の痕跡は見つかっていない。"
+      },
+      {
+        "tactic": "TA0040",
+        "techniques": [
+          "T1486",
+          "T1489"
+        ],
+        "source": "stated",
+        "certainty": "confirmed",
+        "entryKind": null,
+        "quote": "同社によれば、1月21日未明、基幹システムのサーバにおいてランサムウェアを用いたサイバー攻撃を受けたことを確認したもの。",
+        "summaryJa": "基幹システムのサーバがランサムウェアによる攻撃を受け、ネットワークを遮断して対応した。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 588,
-    "outputTokens": 669,
-    "cacheReadInputTokens": 22193,
+    "outputTokens": 746,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4732
+  "elapsedMs": 4652
 }

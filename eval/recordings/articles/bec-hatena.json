@@ -6,7 +6,7 @@
     "date": "2026-04-24"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:44:11.913Z",
+  "recordedAt": "2026-11-05T02:02:40.916Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,17 +15,18 @@
     "truncated": false
   },
   "raw": {
-    "title": "はてな、虚偽の送金指示で約11億円が流出",
+    "title": "はてな、不正な送金指示により約11億円が流出",
     "damageType": "bec",
-    "clarity": "partial",
+    "clarity": "unknown",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [],
         "source": "unknown",
         "certainty": "not_stated",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "第三者がどのように従業員に接触して虚偽の送金指示を出したか（入口の方法）は記事に書かれていない。"
+        "summaryJa": "悪意ある第三者がどのように従業員に接触・侵入したか、記事には書かれていない。"
       },
       {
         "tactic": "TA0005",
@@ -35,18 +36,20 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "その従業員に確認したところ、悪意ある第三者から虚偽の送金指示があったことが分かった。",
-        "summaryJa": "悪意ある第三者が従業員に対して虚偽の送金指示を出した。"
+        "summaryJa": "第三者が虚偽の送金指示を従業員に出した。"
       },
       {
         "tactic": "TA0002",
         "techniques": [
           "T1204"
         ],
-        "source": "inferred",
+        "source": "stated",
         "certainty": "confirmed",
-        "quote": null,
-        "summaryJa": "従業員が虚偽の指示を信じ、自身のアカウントから送金の操作を行ったと考えられる。"
+        "entryKind": null,
+        "quote": "確認すると4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
+        "summaryJa": "従業員のアカウントから、4月20日と21日に外部の口座へ送金された。"
       },
       {
         "tactic": "TA0040",
@@ -55,17 +58,18 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
-        "quote": "確認すると4月20日と21日にある従業員のアカウントから銀行預金を外部の口座へ送金していた。",
-        "summaryJa": "4月20日・21日に従業員のアカウントから銀行預金が外部口座へ送金され、約11億円が流出した。"
+        "entryKind": null,
+        "quote": "4月24日、不正な送金指示によって約11億円の資金が銀行口座から流出したと公表した。",
+        "summaryJa": "約11億円の資金が銀行口座から流出した。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 621,
-    "outputTokens": 514,
-    "cacheReadInputTokens": 22193,
+    "outputTokens": 528,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3758
+  "elapsedMs": 3634
 }
