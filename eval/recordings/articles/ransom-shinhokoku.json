@@ -6,7 +6,7 @@
     "date": "2025-11-07"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:43:50.517Z",
+  "recordedAt": "2026-11-05T02:02:20.475Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,7 +15,7 @@
     "truncated": false
   },
   "raw": {
-    "title": "新報国マテリアル、ネットワーク機器経由の侵入でランサム被害・バックアップ削除",
+    "title": "新報国マテリアル、ネットワーク機器経由の侵入でランサム被害とバックアップ削除",
     "damageType": "ransomware",
     "clarity": "clear",
     "steps": [
@@ -27,41 +27,33 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": "network-device",
         "quote": "同社によれば、2025年5月21日にネットワーク機器を経由して攻撃者に外部から侵入され、内部でランサムウェアが展開、実行された。",
-        "summaryJa": "ネットワーク機器を経由して外部から社内に侵入された。"
+        "summaryJa": "外部に公開されたネットワーク機器を経由して、攻撃者に社内へ侵入された。"
       },
       {
         "tactic": "TA0006",
         "techniques": [
           "T1003",
-          "T1078"
+          "T1110"
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "社内で管理者権限などの認証情報を奪ったとみられる、この型で通常起きる段階。"
+        "summaryJa": "社内で管理者権限などの認証情報が奪われたと考えられる（通常起きる段階）。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021",
-          "T1570"
+          "T1210"
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "社内の複数のサーバへ攻撃が広がった。"
-      },
-      {
-        "tactic": "TA0010",
-        "techniques": [
-          "T1041",
-          "T1048"
-        ],
-        "source": "inferred",
-        "certainty": "no_trace",
-        "quote": "取引先に関する機密情報や個人情報の流出は確認されていないとしている。",
-        "summaryJa": "情報の持ち出しは確認されていない。"
+        "summaryJa": "侵入後、社内の各サーバへ攻撃が広がった（通常起きる段階）。"
       },
       {
         "tactic": "TA0040",
@@ -71,6 +63,7 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "社内サーバに保存されていた一部ファイルが暗号化されたほか、一部バックアップデータも削除されるなど被害を受けたという。",
         "summaryJa": "一部のバックアップデータが削除された。"
       },
@@ -81,17 +74,30 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "社内サーバに保存されていた一部ファイルが暗号化されたほか、一部バックアップデータも削除されるなど被害を受けたという。",
-        "summaryJa": "社内サーバの一部ファイルが暗号化された。"
+        "summaryJa": "社内サーバの一部ファイルがランサムウェアで暗号化された。"
+      },
+      {
+        "tactic": "TA0010",
+        "techniques": [
+          "T1048",
+          "T1041"
+        ],
+        "source": "inferred",
+        "certainty": "no_trace",
+        "entryKind": null,
+        "quote": "取引先に関する機密情報や個人情報の流出は確認されていないとしている。",
+        "summaryJa": "情報の持ち出しは確認されていない。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 716,
-    "outputTokens": 735,
-    "cacheReadInputTokens": 22193,
+    "outputTokens": 814,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 5231
+  "elapsedMs": 4830
 }

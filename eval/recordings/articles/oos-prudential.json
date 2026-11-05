@@ -6,7 +6,7 @@
     "date": "2025-06-04"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:44:33.430Z",
+  "recordedAt": "2026-11-05T02:03:08.072Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -24,8 +24,8 @@
   "usage": {
     "inputTokens": 626,
     "outputTokens": 79,
-    "cacheReadInputTokens": 22193,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 1501
+  "elapsedMs": 1743
 }

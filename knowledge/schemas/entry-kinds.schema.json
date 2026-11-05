@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "kinds": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "labelJa": {
+            "type": "string"
+          },
+          "roles": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$"
+            }
+          },
+          "pinsAsset": {
+            "default": true,
+            "type": "boolean"
+          },
+          "readingHintJa": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "labelJa",
+          "roles",
+          "pinsAsset",
+          "readingHintJa"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "kinds"
+  ],
+  "additionalProperties": false
+}

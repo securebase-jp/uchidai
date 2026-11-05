@@ -71,3 +71,27 @@ measures:
   - measureId: partner-warning-procedure
     basis: internal
     noteJa: 取引先への連絡手順と連絡先を決める社内ルール。外部費用は見込まない
+  - measureId: rdp-close
+    basis: quote
+    noteJa: 公開をやめる設定変更と、VPN 経由にする構成変更。IPA 事例集の明細に単価はない
+  - measureId: rdp-mfa
+    basis: quote
+    noteJa: IPA 事例集の明細にリモートデスクトップの多要素認証の単価はない
+  - measureId: rdp-restrict-source
+    basis: quote
+    noteJa: 接続元の限定（ファイアウォールの設定変更）。IPA 事例集の明細に単価はない
+  - measureId: rdp-disable-unused
+    basis: internal
+    noteJa: 使っていない端末の遠隔接続の設定を社内で止める作業。外部費用は見込まない
+  - measureId: web-update
+    basis: quote
+    noteJa: 制作・保守会社への依頼。IPA 事例集の明細にホームページの更新作業の単価はない（診断の単価とは別）
+  - measureId: web-admin-mfa
+    basis: quote
+    noteJa: IPA 事例集の明細にホームページの管理画面の多要素認証の単価はない
+  - measureId: web-tamper-detect
+    basis: quote
+    noteJa: IPA 事例集の明細に改ざん検知サービスの単価はない
+  - measureId: storage-sharing-review
+    basis: internal
+    noteJa: 設定画面で公開共有を禁止し、定期的に棚卸しする社内作業。外部費用は見込まない

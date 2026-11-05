@@ -11,6 +11,7 @@ import {
 import { computeImpact } from "./impact.ts";
 import {
   canonicalTechnique,
+  type EntryKindDef,
   type Knowledge,
   loadKnowledge,
   type Template,
@@ -46,6 +47,12 @@ export const HEADLINES: Record<VerdictResult, string> = {
 export const COVERAGE_GAP_HEADLINE = "カルテの範囲では、この攻撃の入口はありません";
 export const COVERAGE_GAP_NOTE =
   "カルテに、この入口になる資産がありません。登録が足りない可能性があります。クラウドの共有設定などを確認してください。";
+
+/** 記事の入口の種類に当たる資産がカルテに登録されていないとき：「入口は無い」とは言わない */
+export const entryKindGapHeadline = (kind: Pick<EntryKindDef, "labelJa">): string =>
+  `記事の入口（${kind.labelJa}）に当たる資産が、カルテに登録されていません`;
+export const entryKindGapNote = (kind: Pick<EntryKindDef, "labelJa">): string =>
+  `記事の入口は「${kind.labelJa}」です。御社のカルテには、この入口になる資産が登録されていません。登録が足りない可能性があります。この入口を使っていないか、使っているなら登録して、判定をやり直してください。`;
 
 /** 記事の攻撃が型紙の手法に対応づけられず、判定できないときの文言 */
 export const UNMAPPED_HEADLINE =
@@ -179,6 +186,7 @@ function evaluateStageNode(
     tactic: stage.tactics[0] ?? "TA0001",
     ...(technique ? { technique } : {}),
     source,
+    ...(matched?.entryKind ? { entryKind: matched.entryKind } : {}),
     ...(matched?.certainty && matched.certainty !== "confirmed"
       ? { certainty: matched.certainty }
       : {}),
@@ -411,7 +419,7 @@ function pathsForTemplate(
   graph: Graph,
   knowledge: Knowledge,
   contradictions: Contradiction[],
-): { paths: AttackPath[]; hasEntry: boolean } {
+): { paths: AttackPath[]; hasEntry: boolean; missingEntryKind?: EntryKindDef } {
   const entryStage = template.stages.find((s) => s.entry);
   if (!entryStage) return { paths: [], hasEntry: false };
 
@@ -431,11 +439,20 @@ function pathsForTemplate(
     .sort((a, b) => entryOrder(a.role, knowledge) - entryOrder(b.role, knowledge));
   // 構成上、終点まで線がつながらない入口（事業者側のホームページなど）は、この攻撃の入口にならない
   const walkable = entryNodes.filter((n) => walkStages(template, graph, n, { skip }).length > 0);
-  if (walkable.length === 0) return { paths: [], hasEntry: false };
 
   const entryStep = matched.get(entryStage.id);
   const entryKnown =
     entryStep !== undefined && entryStep.source !== "unknown" && theCase.clarity !== "unknown";
+  // 記事の入口の種類（VPN・リモートデスクトップ・保守接続など）。手法 ID だけでは見分けられないので、
+  // 種類が分かるときは、その種類の資産だけを入口にする。型紙の入口にその種類の役割が無いときは、種類を使わない
+  const kindDef = entryKnown
+    ? knowledge.entryKinds.find((k) => k.id === entryStep.entryKind)
+    : undefined;
+  const kind = kindDef && kindDef.roles.some((r) => r in entryStage.byRole) ? kindDef : undefined;
+  const kindNodes = kind ? walkable.filter((n) => kind.roles.includes(n.role)) : [];
+  // 一致する種類の資産がカルテに無い：別の入口の候補（VPN、フィッシングなど）に切り替えず、「未登録」と答える
+  if (kind && kindNodes.length === 0) return { paths: [], hasEntry: false, missingEntryKind: kind };
+  if (walkable.length === 0) return { paths: [], hasEntry: false };
   const canon = entryKnown
     ? entryStep.techniques
         .map((t) => canonicalTechnique(t, knowledge.attack))
@@ -447,7 +464,23 @@ function pathsForTemplate(
       ? walkable.map((node) => ({ node }))
       : fitEntries(walkable, entryStage, canon, knowledge);
   let chosen: { node: GraphNode; source: PathSource; technique?: string }[];
-  if (entryKnown && fits.length > 0) {
+  if (kind) {
+    // 種類が一致する資産だけを入口にする。手法は、記事の手法のうちその資産に当たるもの（無ければ型紙の典型手法）
+    chosen = kindNodes.map((node, i) => {
+      const technique = canon.find((t) => entryFits(node, entryStage, t, knowledge));
+      return {
+        node,
+        // 入口が絞れない種類（正規の認証情報だけ）は、どの資産も「記載」とは言わず、候補として並べる
+        source:
+          kind.pinsAsset && i === 0
+            ? entryStep?.source === "stated"
+              ? "stated"
+              : "inferred"
+            : "candidate",
+        ...(technique ? { technique } : {}),
+      };
+    });
+  } else if (entryKnown && fits.length > 0) {
     chosen = fits.map(({ node, technique }, i) => ({
       node,
       source: i === 0 ? (entryStep.source === "stated" ? "stated" : "inferred") : "candidate",
@@ -564,10 +597,19 @@ export function evaluate(
 
   const paths: AttackPath[] = [];
   let hasEntry = false;
+  let missingEntryKind: EntryKindDef | undefined;
   for (const m of selected) {
     const r = pathsForTemplate(m, theCase, profile, graph, knowledge, contradictions);
     paths.push(...r.paths);
     hasEntry ||= r.hasEntry;
+    missingEntryKind ??= r.missingEntryKind;
+  }
+  if (!hasEntry && missingEntryKind) {
+    // 記事の入口の種類に当たる資産がカルテに無い。「入口は無い」と断定せず、登録の不足として答える
+    const note = entryKindGapNote(missingEntryKind);
+    return isDefaultFrameProfile(profile, knowledge.patterns, knowledge.sites)
+      ? empty("pending", entryKindGapHeadline(missingEntryKind), note)
+      : empty("no_entry", entryKindGapHeadline(missingEntryKind), note);
   }
   if (!hasEntry) {
     // 既定の枠だけのカルテは、クラウドの共有設定などを持たない。入口の資産が無いのは「登録が足りない」かもしれず、

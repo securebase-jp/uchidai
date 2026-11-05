@@ -6,7 +6,7 @@
     "date": "2025-01-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:43:45.023Z",
+  "recordedAt": "2026-11-05T02:02:15.352Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,18 +15,19 @@
     "truncated": false
   },
   "raw": {
-    "title": "VPN経由で侵入されランサム被害、取引情報がリークサイトに公開（日本海建設電気）",
+    "title": "VPN経由でランサムウェア被害、取引情報がリークサイトに公開（日本海建設電気）",
     "damageType": "ransomware",
     "clarity": "partial",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1133",
-          "T1190"
+          "T1190",
+          "T1133"
         ],
         "source": "inferred",
         "certainty": "possible",
+        "entryKind": "vpn",
         "quote": "同社が導入しているUTMアプライアンスが最新版に更新されておらず、VPN経由で侵害されたものと見られている。",
         "summaryJa": "最新版に更新されていないUTM機器のVPN経由で侵入された可能性がある。"
       },
@@ -38,19 +39,21 @@
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入後、サーバを操作できる管理者権限などの認証情報が奪われたと考えられる。"
+        "summaryJa": "サーバを暗号化するため、管理者権限に必要な認証情報が奪われたと通常考えられる。"
       },
       {
         "tactic": "TA0008",
         "techniques": [
           "T1021",
-          "T1021.002"
+          "T1210"
         ],
         "source": "inferred",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": null,
-        "summaryJa": "ネットワーク内で他のサーバへ感染・侵害が広がったと考えられる。"
+        "summaryJa": "侵入口から社内のサーバへ攻撃が広がったと通常考えられる。"
       },
       {
         "tactic": "TA0010",
@@ -60,8 +63,9 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "外部事業者が調査を行ったところ、攻撃者が運営するいわゆるリークサイト上で、個人情報を含む取引情報が公開されていることが明らかとなった。",
-        "summaryJa": "個人情報を含む取引情報が持ち出され、攻撃者のリークサイトで公開された。"
+        "summaryJa": "個人情報を含む取引情報が外部に持ち出され、攻撃者のリークサイトに公開された。"
       },
       {
         "tactic": "TA0040",
@@ -70,6 +74,7 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "2024年9月27日朝にサーバ内部の一部データがランサムウェアにより暗号化されたことが判明した。",
         "summaryJa": "サーバ内の一部データがランサムウェアで暗号化された。"
       }
@@ -78,9 +83,9 @@
   },
   "usage": {
     "inputTokens": 721,
-    "outputTokens": 671,
-    "cacheReadInputTokens": 22193,
+    "outputTokens": 713,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 5497
+  "elapsedMs": 4662
 }

@@ -6,7 +6,7 @@
     "date": "2026-02-06"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T00:44:07.726Z",
+  "recordedAt": "2026-11-05T02:02:36.741Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,21 @@
     "truncated": false
   },
   "raw": {
-    "title": "代表者を装うメールとSNSで経理担当者が約5000万円を送金（ベルトラ子会社）",
+    "title": "子会社が代表者を装うメールとSNSでの偽の送金指示にだまされ約5000万円を送金",
     "damageType": "bec",
     "clarity": "clear",
     "steps": [
+      {
+        "tactic": "TA0043",
+        "techniques": [
+          "T1591"
+        ],
+        "source": "inferred",
+        "certainty": "confirmed",
+        "entryKind": null,
+        "quote": null,
+        "summaryJa": "攻撃者が代表者や経理担当者など社内の役割や取引の情報を事前に調べたとみられる。"
+      },
       {
         "tactic": "TA0001",
         "techniques": [
@@ -27,8 +38,20 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
-        "quote": "1月上旬ごろ、リンクティビティの従業員に対し、同社の代表者を装った悪意ある第三者からメールが届いた。内容は、社外の連絡先（SNSアカウント）へ誘導するもので、誘導先のSNSでは経理担当者に対して虚偽の送金指示が行われた。",
-        "summaryJa": "代表者を装ったメールが従業員に届き、SNSへ誘導されて経理担当者に偽の送金指示が出された。"
+        "entryKind": "mail",
+        "quote": "1月上旬ごろ、リンクティビティの従業員に対し、同社の代表者を装った悪意ある第三者からメールが届いた。",
+        "summaryJa": "代表者を装ったメールが従業員に届き、社外のSNSアカウントへ誘導された。"
+      },
+      {
+        "tactic": "TA0005",
+        "techniques": [
+          "T1684.001"
+        ],
+        "source": "stated",
+        "certainty": "confirmed",
+        "entryKind": null,
+        "quote": "内容は、社外の連絡先（SNSアカウント）へ誘導するもので、誘導先のSNSでは経理担当者に対して虚偽の送金指示が行われた。",
+        "summaryJa": "誘導先のSNSで、代表者になりすまして経理担当者に偽の送金指示を出した。"
       },
       {
         "tactic": "TA0002",
@@ -37,8 +60,9 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
+        "entryKind": null,
         "quote": "従業員はこれに従い、社内の銀行届出印を持ち出して、銀行窓口にて約5000万円を指定の口座に送金した。",
-        "summaryJa": "従業員が偽の指示に従い、届出印を持ち出して銀行窓口で送金した。"
+        "summaryJa": "経理担当者が指示に従い、銀行窓口で約5000万円を指定口座へ送金した。"
       },
       {
         "tactic": "TA0040",
@@ -47,17 +71,18 @@
         ],
         "source": "stated",
         "certainty": "confirmed",
-        "quote": "被害額は約5000万円。代表者を名乗る第三者からのメールを信じ、資金を送金してしまった。",
-        "summaryJa": "約5000万円が攻撃者の指定口座へ流出した。"
+        "entryKind": null,
+        "quote": "被害にあったのは、子会社のリンクティビティ（東京都千代田区）で、被害額は約5000万円。",
+        "summaryJa": "約5000万円の資金が詐欺師の口座へ流出した。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 1263,
-    "outputTokens": 545,
-    "cacheReadInputTokens": 22193,
+    "outputTokens": 763,
+    "cacheReadInputTokens": 23508,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 3811
+  "elapsedMs": 6248
 }
