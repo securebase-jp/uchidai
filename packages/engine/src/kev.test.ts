@@ -402,10 +402,12 @@ describe("PHP 本体（PHP2Shell。CVE-2026-109618・CVE-2026-109619）", () => 
     );
   });
 
-  it("修正版が出ていない 8.1 以前は「該当しない」にしない（未確認）。KEV の他の項目は範囲未確認として残す", () => {
-    const old = matchKev(asset("PHP 本体", "8.1.31"), phpCatalog, table);
+  it("修正版が出ていない 7.4〜8.1（php.net が移植だけを出した版）は該当。7.3 以前は「該当しない」にせず未確認。KEV の他の項目は範囲未確認として残す", () => {
+    for (const v of ["8.1.31", "8.0.30", "7.4.33"])
+      expect(matchKev(asset("PHP 本体", v), phpCatalog, table).versionStatus, v).toBe("affected");
+    const old = matchKev(asset("PHP 本体", "7.3.33"), phpCatalog, table);
     expect(old.versionStatus).toBe("unknown");
-    expect(old.reasonJa).toContain("8.2.0");
+    expect(old.reasonJa).toContain("7.4.0");
     const fixed = matchKev(asset("PHP 本体", "8.4.27"), phpCatalog, table);
     expect(fixed.unverified.map((u) => u.cve)).toEqual([
       "CVE-2024-4577",
@@ -413,5 +415,40 @@ describe("PHP 本体（PHP2Shell。CVE-2026-109618・CVE-2026-109619）", () => 
       "CVE-2012-1823",
     ]);
     expect(fixed.cleared).toEqual(["CVE-2026-109618", "CVE-2026-109619"]);
+  });
+});
+
+describe("表の確認日より後に KEV へ追加された項目（TRIAL-P-007）", () => {
+  const withNew = (dateAdded: string): KevCatalog => ({
+    ...catalog,
+    vulnerabilities: [
+      ...catalog.vulnerabilities,
+      entry("CVE-2026-90001", "Fortinet", "FortiOS", dateAdded, "Unknown"),
+    ],
+  });
+  const forti = (v: string, c: KevCatalog) =>
+    matchKev({ product: "Fortinet FortiOS", version: v }, c, table);
+  it("範囲を確認した日より後に追加され、範囲が無い項目があるときは、「該当しない」と言わず未確認にする", () => {
+    const m = forti("7.0.17", withNew("2026-11-04"));
+    expect(m.versionStatus).toBe("unknown");
+    expect(m.reasonJa).toContain("CVE-2026-90001");
+    expect(m.reasonJa).toContain("2026-11-03");
+    expect(m.unverified.map((u) => u.cve)).toContain("CVE-2026-90001");
+  });
+  it("確認日以前に追加された項目なら、従来どおり「該当しない」（範囲未確認の件数は注記に残る）", () => {
+    expect(forti("7.0.17", withNew("2026-11-03")).versionStatus).toBe("not_affected");
+    expect(forti("7.0.17", catalog).versionStatus).toBe("not_affected");
+  });
+  it("範囲の表にある版（該当）は、新しい項目があっても該当のまま", () => {
+    expect(forti("7.0.14", withNew("2026-11-04")).versionStatus).toBe("affected");
+  });
+  it("PHP：表の確認日（2026-11-05）より後の PHP 本体の項目があれば、修正版の版でも未確認", () => {
+    const c: KevCatalog = {
+      ...catalog,
+      vulnerabilities: [entry("CVE-2026-90002", "PHP Group", "PHP", "2026-11-06")],
+    };
+    expect(matchKev({ product: "PHP 本体", version: "8.4.27" }, c, table).versionStatus).toBe(
+      "unknown",
+    );
   });
 });

@@ -278,6 +278,7 @@ export function kevEntriesFor(product: KevProduct, catalog: KevCatalog): KevEntr
  * - 版が範囲表のどれかに入る → affected
  * - 範囲表で確認した CVE のどれにも入らない → not_affected（範囲未確認の CVE は unverified に残す）
  * - ただし、版が範囲表のどの下限よりも古いときは unknown（表に無い古い脆弱性に当たっている可能性が高いため）
+ * - また、範囲を確認した日より後に KEV へ追加された、範囲の無い項目があるときも unknown（新しい項目は誰も範囲を確認していない）
  */
 export function matchKev(
   asset: Pick<Asset, "product" | "version">,
@@ -392,6 +393,22 @@ export function matchKev(
       matched,
       cleared,
       reasonJa: `${version} は範囲表で確認した最も古い版（${oldest}）より古く、表に無い脆弱性に該当する可能性が高いため、該当の有無を決められません`,
+    };
+  }
+  // 範囲を確認した日より後に KEV へ追加され、範囲が無い項目があるときは、「該当しない」と言えない（TRIAL-P-007）。
+  // 新しい項目の版の範囲は、表に書かれるまで誰も確認していない
+  const checkedUntil = product.ranges.map((r) => r.checkedAt).sort((a, b) => (a < b ? 1 : -1))[0];
+  const newer = checkedUntil
+    ? entries.filter((e) => !rangeCves.has(e.cveID) && e.dateAdded > checkedUntil)
+    : [];
+  if (newer.length > 0) {
+    return {
+      ...common,
+      version,
+      versionStatus: "unknown",
+      matched,
+      cleared,
+      reasonJa: `範囲表の確認日（${checkedUntil}）より後に KEV へ追加された項目（${newer.map((e) => e.cveID).join("、")}）があり、版の範囲が未確認のため、該当の有無を決められません`,
     };
   }
   return {
