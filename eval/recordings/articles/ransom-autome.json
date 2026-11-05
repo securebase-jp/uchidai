@@ -6,30 +6,30 @@
     "date": "2025-02-18"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:02:10.397Z",
+  "recordedAt": "2026-11-05T02:36:43.876Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】VPN経由でランサム被害 - 産業機械開発設計会社（1ページ目",
-    "chars": 443,
+    "title": "【セキュリティ ニュース】VPN経由でランサム被害 - 産業機械開発設計会社",
+    "chars": 412,
     "truncated": false
   },
   "raw": {
-    "title": "VPN機器経由でランサムウェア被害を受けた産業機械設計会社",
+    "title": "VPN機器経由でランサムウェア被害（産業機械設計会社）",
     "damageType": "ransomware",
-    "clarity": "partial",
+    "clarity": "clear",
+    "victim": "self",
     "steps": [
       {
         "tactic": "TA0001",
         "techniques": [
-          "T1133",
-          "T1078"
+          "T1133"
         ],
         "source": "inferred",
         "certainty": "possible",
         "entryKind": "vpn",
         "quote": "VPN機器経由で侵害されたと見ており、VPN機器のパスワードを見直すとともに、2段階認証を導入。",
-        "summaryJa": "VPN機器を経由して社内に侵入されたと見られている。"
+        "summaryJa": "VPN機器を経由して社内に侵入されたとみられる（断定はされていない）。"
       },
       {
         "tactic": "TA0006",
@@ -41,7 +41,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入後、サーバを操作できる管理者権限の情報が奪われたと通常考えられる。"
+        "summaryJa": "侵入後に管理者権限などの認証情報が奪われたと通常考えられる。"
       },
       {
         "tactic": "TA0008",
@@ -53,19 +53,19 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "侵入した端末から社内のサーバへ攻撃が広がったと通常考えられる。"
+        "summaryJa": "社内のサーバへ攻撃が広がったと通常考えられる。"
       },
       {
         "tactic": "TA0010",
         "techniques": [
           "T1048",
-          "T1041"
+          "T1567"
         ],
         "source": "inferred",
-        "certainty": "no_trace",
+        "certainty": "possible",
         "entryKind": null,
         "quote": "情報流出の痕跡は見つかっておらず、外部流通、二次被害なども確認されていないが、個人情報が流出した可能性がある。",
-        "summaryJa": "情報流出の痕跡は見つかっていないが、イベント参加者の個人情報が流出した可能性は残る。"
+        "summaryJa": "情報流出の痕跡は見つかっていないが、個人情報が流出した可能性は残る。"
       },
       {
         "tactic": "TA0040",
@@ -75,17 +75,17 @@
         "source": "stated",
         "certainty": "confirmed",
         "entryKind": null,
-        "quote": "同社によれば、2024年12月24日にサーバ内のデータが暗号化されていることが判明。",
-        "summaryJa": "サーバ内のデータが暗号化され、ランサムウェアによる攻撃と確認された。"
+        "quote": "同社によれば、2024年12月24日にサーバ内のデータが暗号化されていることが判明。翌25日にランサムウェアを用いた攻撃であることを確認したという。",
+        "summaryJa": "サーバ内のデータが暗号化され、ランサムウェア攻撃と確認された。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 509,
-    "outputTokens": 1395,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 484,
+    "outputTokens": 703,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 9951
+  "elapsedMs": 5841
 }

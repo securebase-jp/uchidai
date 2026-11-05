@@ -302,6 +302,26 @@ export const EntryKindDef = z.object({
 export const EntryKindsFile = z.object({ kinds: z.array(EntryKindDef).min(1) });
 export type EntryKindDef = z.infer<typeof EntryKindDef>;
 
+// ---------------------------------------------------------------------------
+// 被害を受けた側（knowledge/victims.yaml）。記事の被害が記事の会社そのものか、第三者（委託先・提供元など）か
+// ---------------------------------------------------------------------------
+export const VictimDef = z.object({
+  id: z.string().regex(/^[a-z][a-z0-9-]*$/, "被害を受けた側は英小文字・数字・- で書く"),
+  labelJa: z.string(),
+  /** true なら第三者の事故として書く（御社の設備が入口になったとは書かない） */
+  thirdParty: z.boolean().default(false),
+  /** Claude が記事を読むときの分類基準 */
+  readingHintJa: z.string(),
+  /** 第三者の事故のとき、御社が確認すること（{label} は labelJa に置き換える） */
+  checksJa: z.array(z.string()).default([]),
+  /** 個人情報の報告について（断定せず「確認が必要」） */
+  reportNoteJa: z.string().optional(),
+  /** 一枚の対策の一覧に出す助言（measures.yaml の id。判定には使わない） */
+  measureIds: z.array(z.string()).default([]),
+});
+export const VictimsFile = z.object({ victims: z.array(VictimDef).min(1) });
+export type VictimDef = z.infer<typeof VictimDef>;
+
 export const EntryCandidates = z.object({
   sourceJa: z.string(),
   sourceUrl: z.string(),
@@ -488,6 +508,9 @@ export function loadIndustries(): IndustryOption[] {
 export function loadDamageTypes(): DamageTypeDef[] {
   return DamageTypesFile.parse(readYaml("damage-types.yaml")).damageTypes;
 }
+export function loadVictims(): VictimDef[] {
+  return VictimsFile.parse(readYaml("victims.yaml")).victims;
+}
 export function loadEntryKinds(): EntryKindDef[] {
   return EntryKindsFile.parse(readYaml("entry-kinds.yaml")).kinds;
 }
@@ -545,6 +568,8 @@ export type Knowledge = {
   entryCandidates: EntryCandidates;
   /** 入口の種類（entry-kinds.yaml） */
   entryKinds: EntryKindDef[];
+  /** 被害を受けた側（victims.yaml） */
+  victims: VictimDef[];
   deadlines: DeadlinesFile;
   costs: CostsFile;
 };
@@ -562,6 +587,7 @@ export function loadKnowledge(): Knowledge {
     sites: loadSites(),
     entryCandidates: loadEntryCandidates(),
     entryKinds: loadEntryKinds(),
+    victims: loadVictims(),
     deadlines: loadDeadlines(),
     costs: loadCosts(),
   };
@@ -654,6 +680,17 @@ export function checkKnowledge(profilePaths: string[]): string[] {
     for (const role of kind.roles)
       if (!isKnownRole(role, roles))
         problems.push(`entry-kinds/${kind.id}: 役割 ${role} が roles.yaml にない`);
+
+  const victims = collect("victims", loadVictims) ?? [];
+  for (const id of victims.map((v) => v.id).filter((id, i, a) => a.indexOf(id) !== i))
+    problems.push(`victims: ${id} が重複`);
+  {
+    const measureIds = new Set((collect("measures", loadMeasures) ?? []).map((m) => m.id));
+    for (const v of victims)
+      for (const id of v.measureIds)
+        if (!measureIds.has(id))
+          problems.push(`victims/${v.id}: 対策 ${id} が measures.yaml にない`);
+  }
 
   const templates = collect("templates", loadTemplates) ?? [];
   const templateIds = templates.map((t) => t.id);
@@ -978,6 +1015,7 @@ export const schemaExports = {
   "damage-types.schema.json": DamageTypesFile,
   "entry-candidates.schema.json": EntryCandidates,
   "entry-kinds.schema.json": EntryKindsFile,
+  "victims.schema.json": VictimsFile,
   "deadlines.schema.json": DeadlinesFile,
   "costs.schema.json": CostsFile,
   "sources.schema.json": SourcesFile,

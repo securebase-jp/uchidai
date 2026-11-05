@@ -74,6 +74,14 @@ export const Case = z.object({
   damageType: DamageType,
   clarity: Clarity,
   steps: z.array(CaseStep),
+  /**
+   * 被害を受けた側（knowledge/victims.yaml の id）。記事の会社そのものか、その委託先・取引先・提供元など第三者か。
+   * 省略は記事の会社そのもの（従来どおり）
+   */
+  victim: z
+    .string()
+    .regex(/^[a-z][a-z0-9-]*$/)
+    .optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -367,6 +375,22 @@ export const Verdict = z.object({
   /** 判定に選んだ型紙（knowledge/templates の id と labelJa）。複数の型紙を展開したときは各経路の templateId を見る */
   templateId: z.string().optional(),
   templateLabelJa: z.string().optional(),
+  /**
+   * 被害が第三者（委託先・取引先・提供元）に起きた事故のとき。結論は「御社が同じ立場なら」の見立てで、
+   * 見出し・一枚・画面を第三者の事故として書き、御社が確認することを添える
+   */
+  thirdParty: z
+    .object({
+      id: z.string(),
+      labelJa: z.string(),
+      checksJa: z.array(z.string()),
+      reportNoteJa: z.string().optional(),
+      /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */
+      measureIds: z.array(z.string()).default([]),
+    })
+    .optional(),
+  /** 判定の対象外だが、利用者が確認できることがあるとき（ソフトウェアの供給網の事故など）の案内 */
+  guidanceJa: z.array(z.string()).optional(),
   /**
    * カルテの範囲では入口が見つからないが、5 問から作った既定の枠のカルテなので「入口は無い」とは言えないとき、
    * その案内（result は pending）。登録が足りない可能性があることと、確認してほしいことを書く

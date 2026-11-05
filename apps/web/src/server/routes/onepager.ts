@@ -13,6 +13,7 @@ import {
   evaluate,
   loadKnowledge,
   type OnePager,
+  thirdPartyLines,
 } from "@uchidai/engine";
 import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/llm";
 import { Hono } from "hono";
@@ -44,7 +45,7 @@ async function rewrite(
   const hit = cache.get(key);
   if (hit)
     return {
-      onePager: { ...onePager, whatHappensJa: hit.text },
+      onePager: { ...onePager, whatHappensJa: [...hit.text, ...thirdPartyLines(verdict)] },
       text: { source: "claude", model: hit.model },
     };
   try {
@@ -63,8 +64,13 @@ async function rewrite(
         },
       };
     cache.set(key, { text: result.value.whatHappensJa, model: result.model });
+    // 第三者の事故のとき、御社が確認することと報告の案内は、言い換えに任せず、プログラムの文を後ろに付ける
+    const applied = applyWriterOutput(onePager, result);
     return {
-      onePager: applyWriterOutput(onePager, result),
+      onePager: {
+        ...applied,
+        whatHappensJa: [...applied.whatHappensJa, ...thirdPartyLines(verdict)],
+      },
       text: { source: "claude", model: result.model },
     };
   } catch (e) {

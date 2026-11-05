@@ -8,10 +8,12 @@ import {
   type EntryKindDef,
   loadDamageTypes,
   loadEntryKinds,
+  loadVictims,
   OUT_OF_SCOPE,
   type TacticId,
   type Template,
   type TemplateStage,
+  type VictimDef,
 } from "@uchidai/engine";
 
 /** 知見ファイル。labels は knowledge/labels.ja.yaml（loadLabels）、templates は knowledge/templates（loadTemplates） */
@@ -68,9 +70,11 @@ export const TACTIC_ORDER: TacticId[] = [
 export function buildRulesJa(
   damageTypes: DamageTypeDef[] = loadDamageTypes(),
   entryKinds: EntryKindDef[] = loadEntryKinds(),
+  victims: VictimDef[] = loadVictims(),
 ): string {
   const typeLines = damageTypes.map((d) => `  - ${d.id}：${d.readingHintJa}`).join("\n");
   const kindLines = entryKinds.map((k) => `    - ${k.id}：${k.readingHintJa}`).join("\n");
+  const victimLines = victims.map((v) => `  - ${v.id}：${v.readingHintJa}`).join("\n");
   return `あなたは中小企業向けのセキュリティ事例の読解係です。与えられた記事（報道や公的機関の事例集）を読み、攻撃がどの段階をどう進んだかを MITRE ATT&CK Enterprise の戦術と手法に対応づけます。
 
 ## 絶対に守ること
@@ -84,6 +88,8 @@ export function buildRulesJa(
 ${typeLines}
   - ${OUT_OF_SCOPE}：上記以外。例：従業員・元従業員による持ち出し（内部不正）、紛失・置き忘れ、誤送信・誤公開・誤廃棄（人為ミスで外部の攻撃者がいない）、DDoS や改ざんだけで漏えい・停止・送金のないもの、注意喚起・統計・解説の記事、攻撃事例でない記事
 - clarity：clear（入口と主要な被害の段階の両方が記事に明記されている。途中の段階が推定でもよい）、partial（入口は分かるが、主要な被害の段階が推定）、unknown（入口が記事から分からない）
+- victim：被害を受けた組織が、記事を公表した会社・機関から見てどの立場か。次から選ぶ（迷えば self）
+${victimLines}
 - steps：攻撃の進行順。1 段階 = 1 戦術。同じ戦術でも別の出来事なら別の段階にする（例：バックアップの破壊と業務データの暗号化はどちらも「影響」だが別の段階）
   - source=stated：記事が出来事として書いている（起きたと書いてある）もの。quote に記事の該当部分を 1〜2 文、一字一句そのまま写す（要約・言い換え・つなぎ合わせをしない。改行や空白はそのままでよい）。記事の文があっても、次のものは stated にしない
     - 「可能性がある」「おそれがある」「とみられる」「思われる」「考えられる」「疑われる」で書かれた出来事 → source=inferred、certainty=possible（根拠の文があれば quote に写してよい）

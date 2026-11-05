@@ -472,3 +472,43 @@ describe("カルテの範囲で入口が見つからないとき（TRIAL-002）"
     expect(res.onePager.whatHappensJa.length).toBeGreaterThan(0);
   });
 });
+
+describe("第三者の事故（victim）の一枚と次の一手（C4）", () => {
+  it("委託先の事故：結論の見出し・一枚に第三者の事故と書き、助言の対策はボタン（次の一手）にしない", async () => {
+    const { profile } = await loose(app.request("/api/examples/demo-seiko"));
+    const theCase = {
+      title: "再委託先の VPN 機器から侵入された",
+      damageType: "ransomware",
+      clarity: "partial",
+      victim: "vendor",
+      suspiciousInstructions: [],
+      steps: [
+        { tactic: "TA0001", techniques: ["T1190"], source: "stated", entryKind: "vpn" },
+        { tactic: "TA0040", techniques: ["T1486"], source: "stated" },
+      ],
+    };
+    const ev = await loose(json("/api/evaluate", { case: theCase, profile }));
+    expect(ev.verdict.headlineJa).toMatch(
+      /^これは委託先・取引先で起きた事故です。御社が同じ立場なら、/,
+    );
+    expect(ev.verdict.thirdParty.labelJa).toBe("委託先・取引先");
+    for (const m of ev.nextMoves)
+      expect(m.measureId).not.toMatch(/^vendor-(contract|data|return|incident|audit)/);
+    const op = await loose(
+      json("/api/onepager", {
+        case: theCase,
+        profile,
+        measureIds: [],
+        answers: [],
+        rewrite: false,
+      }),
+    );
+    expect(op.onePager.whatHappensJa[0]).toBe(
+      "これは委託先・取引先で起きた事故です。御社の設備が入口になったのではありません。",
+    );
+    expect(op.onePager.whatHappensJa.join("")).toMatch(/確認が必要です/);
+    expect(op.onePager.measures.map((m: { id: string }) => m.id)).toContain(
+      "vendor-contract-review",
+    );
+  });
+});

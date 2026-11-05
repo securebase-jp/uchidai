@@ -560,12 +560,74 @@ export function profileContradictions(profile: CompanyProfile): Contradiction[] 
   return out;
 }
 
+/** ソフトウェアの供給網の事故（配布元・更新の悪用）か。対象外の事故のうち、利用者が確認できることがあるもの */
+function isSupplyChain(theCase: Case): boolean {
+  return theCase.steps.some((s) => s.techniques.some((t) => /^T1195|^T1608/.test(t)));
+}
+export const SUPPLY_CHAIN_HEADLINE =
+  "ソフトウェアの供給網の事故です。御社の設備が入口かどうかは、この判定では扱いません（対象外）";
+function supplyChainGuidance(theCase: Case): string[] {
+  return [
+    "これは、ソフトウェアの配布元や更新の仕組みが悪用された事故（供給網の攻撃）です。御社の設備に入口があるかどうかは、この判定では扱いません。",
+    "記事に書かれた、影響を受けた版・入手元・期間を確認し、その期間に取得・更新・利用した端末が御社にないかを確かめてください。",
+    "該当する端末があれば、配布元の案内に従って更新を止め、署名やハッシュの確認と、感染を疑う場合の端末の隔離を検討してください。",
+    ...(theCase.url ? [`出典：${theCase.url}`] : []),
+  ];
+}
+
+/** 第三者（委託先・取引先・提供元）の事故の見出し：御社の設備が入口になったとは言わず、「御社が同じ立場なら」の見立てとして書く */
+const THIRD_PARTY_TAIL: Partial<Record<VerdictResult, string>> = {
+  blocked: "止められます",
+  mitigated: "侵入は防げませんが、被害は抑えられます",
+  breached: "大丈夫ではありません",
+  pending: "確認中です（未確認の項目が残っています）",
+};
+export const thirdPartyHeadline = (labelJa: string, result: VerdictResult): string | undefined =>
+  THIRD_PARTY_TAIL[result] === undefined
+    ? undefined
+    : `これは${labelJa}で起きた事故です。御社が同じ立場なら、${THIRD_PARTY_TAIL[result]}`;
+
+/**
+ * 被害が第三者（委託先・取引先・提供元）に起きた事故のとき、結論に印と、御社が確認することを添える。
+ * 判定そのものは変えない（御社が同じ立場だったらどうなるか）。経路があるときは、見出しも第三者の事故として書き直す
+ */
+function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdict {
+  const def = knowledge.victims.find((x) => x.id === theCase.victim);
+  if (!def?.thirdParty || v.result === "out_of_scope") return v;
+  const sub = (s: string) => s.replaceAll("{label}", def.labelJa);
+  const headline = v.paths.length > 0 ? thirdPartyHeadline(def.labelJa, v.result) : undefined;
+  return {
+    ...v,
+    ...(headline ? { headlineJa: headline } : {}),
+    thirdParty: {
+      id: def.id,
+      labelJa: def.labelJa,
+      checksJa: def.checksJa.map(sub),
+      ...(def.reportNoteJa ? { reportNoteJa: sub(def.reportNoteJa) } : {}),
+      measureIds: def.measureIds,
+    },
+  };
+}
+
 export function evaluate(
   theCase: Case,
   profile: CompanyProfile,
   options: EvaluateOptions = {},
 ): Verdict {
   const knowledge = options.knowledge ?? loadKnowledge();
+  return applyThirdParty(
+    evaluateCore(theCase, profile, { ...options, knowledge }),
+    theCase,
+    knowledge,
+  );
+}
+
+function evaluateCore(
+  theCase: Case,
+  profile: CompanyProfile,
+  options: EvaluateOptions & { knowledge: Knowledge },
+): Verdict {
+  const knowledge = options.knowledge;
   const graph = options.graph ?? buildGraph(profile, knowledge.roles);
   // 経路の判定で見つかる矛盾（resolveControl）の前に、カルテの属性だけから分かる矛盾を積む
   const contradictions: Contradiction[] = profileContradictions(profile);
@@ -586,7 +648,15 @@ export function evaluate(
   });
 
   const top = selected[0];
-  if (!top) return empty("out_of_scope");
+  if (!top) {
+    // 対象外でも、ソフトウェアの供給網の事故なら、利用者が確認できることを案内する（判定は出さない）
+    if (theCase.damageType === "out_of_scope" && isSupplyChain(theCase))
+      return {
+        ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
+        guidanceJa: supplyChainGuidance(theCase),
+      };
+    return empty("out_of_scope");
+  }
 
   // 記事の段階のどれも型紙の手法に対応づけられないなら、どの型紙もこの記事の攻撃を表していない。
   // 手法の無い段階を戦術だけで当てはめて「止められます」と答えると、誤って安心を与えるので判定しない。

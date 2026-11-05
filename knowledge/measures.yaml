@@ -185,3 +185,29 @@ measures:
         status: present
         attrs: { reviewCadence: quarterly }
     requestToJa: 情シス担当者（設定変更と棚卸し）
+  # --- 委託先管理（助言）。会社カルテの資産には書き込まず、判定には使わない。第三者の事故のときに一枚へ出す（victims.yaml の measureIds） ---
+  - id: vendor-contract-review
+    labelJa: 委託先との契約を見直す（安全管理措置、再委託の事前承認、事故時の連絡義務）
+    mitigation: UD-04
+    patches: []
+    requestToJa: 総務・法務
+  - id: vendor-data-inventory
+    labelJa: 委託先に預けている個人データ・重要データを洗い出し、最小限にする
+    mitigation: UD-04
+    patches: []
+    requestToJa: 総務・各部門の責任者
+  - id: vendor-return-delete
+    labelJa: 不要になったデータの返却・削除を委託先に確認する
+    mitigation: UD-04
+    patches: []
+    requestToJa: 総務・法務
+  - id: vendor-incident-contact
+    labelJa: 委託先の事故連絡窓口と連絡手順を決める
+    mitigation: UD-04
+    patches: []
+    requestToJa: 総務・情シス担当者
+  - id: vendor-audit
+    labelJa: 委託先の個人データの取扱状況を、定期的に確認する（チェックリスト・報告）
+    mitigation: UD-04
+    patches: []
+    requestToJa: 総務・法務

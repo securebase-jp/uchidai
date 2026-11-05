@@ -56,6 +56,8 @@ export const OnePagerWriterInput = z.object({
   reportRequired: z.boolean(),
   /** 到達した個人情報の説明（例：取引先担当者の連絡先） */
   personalDataJa: z.array(z.string()),
+  /** 被害が第三者（委託先・取引先・提供元）に起きた事故のとき。その呼び名（例：委託先・取引先） */
+  thirdPartyJa: z.string().optional(),
 });
 export const OnePagerWriterOutput = z.object({
   whatHappensJa: z.array(z.string().min(1).max(200)).min(1).max(8),
@@ -115,6 +117,7 @@ export function writerInputFrom(
     ...(impact.moneyLossJpy !== undefined ? { moneyLossJpy: impact.moneyLossJpy } : {}),
     reportRequired: impact.reportRequired,
     personalDataJa: impact.personalDataReached.map((p) => p.descriptionJa),
+    ...(verdict.thirdParty ? { thirdPartyJa: verdict.thirdParty.labelJa } : {}),
   });
 }
 
@@ -133,6 +136,7 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - no_trace：「〜の痕跡は確認されていません」と書く（この言い回しに固定）。起きたと書かない
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
+- 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
 - 文の分け方：前半は記事に書かれた出来事だけを書く（確度に合う言い方で）。止まる業務・日数・売上・取引先への影響は、御社に当てはめた試算なので、別の文にして「御社の場合は〜と見込まれます」と書く。試算の文に「確認されています」「起きています」を使わない（試算は記事の事実ではない）。記事の事実の文に、業務が止まったことを書かない（業務が止まることは、御社の試算の文にだけ書く。記事の会社の業務が止まったかどうかは入力にない）。一つの文に、確認の言い方と日数・金額を混ぜない。例：「中核システムが暗号化されたことが確認されています。」（記事の事実）と「御社の場合は、受注・生産管理が10日止まると見込まれます。」（試算）は別の文にする。段階が多いときは、近い段階を 1 文にまとめ、全体で 6 文以内にする
   - state（その段階を止める対策の確認状況）：unknown のときだけ「この段階を止める対策が確認できていません」と書く（この言い回しに固定）。どの段階の話か分かるよう、その段階の説明と同じ文に続けて書き（例：「管理者権限を奪われるおそれがあり、この段階を止める対策が確認できていません」）、この言い回しだけの短い文にしない。攻撃が起きたかどうかの話には使わない
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
@@ -220,11 +224,29 @@ export function checkWriterOutput(
     input.stopped.length > 0 ||
     input.revenueImpactJpy !== undefined ||
     input.moneyLossJpy !== undefined;
-  if (
-    hasEstimate &&
-    !output.whatHappensJa.some((l) => l.includes(ESTIMATE_PHRASE) && l.includes("見込まれ"))
-  )
+  const isEstimateLine = (l: string) =>
+    (l.includes(ESTIMATE_PHRASE) ||
+      (input.thirdPartyJa !== undefined && l.includes("御社が同じ立場"))) &&
+    l.includes("見込まれ");
+  if (hasEstimate && !output.whatHappensJa.some(isEstimateLine))
     return `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`;
+  // 第三者の事故：「これは〇〇で起きた事故です」と書き、確認の言い方は「記事の〇〇では」で始める（御社の設備の事実にしない）
+  if (input.thirdPartyJa !== undefined) {
+    if (
+      !output.whatHappensJa.some(
+        (l) => l.includes("で起きた") && l.includes(input.thirdPartyJa as string),
+      )
+    )
+      return `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`;
+    // 確認の言い方を使う最初の文は、主語を記事の第三者にする（御社の設備の事実にしない）。続く文は、その主語を引き継ぐ
+    const firstConfirm = output.whatHappensJa.find((l) => CONFIRM_RE.test(l));
+    if (
+      firstConfirm !== undefined &&
+      !firstConfirm.includes("記事の") &&
+      !firstConfirm.includes(input.thirdPartyJa as string)
+    )
+      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${firstConfirm}`;
+  }
   return undefined;
 }
 

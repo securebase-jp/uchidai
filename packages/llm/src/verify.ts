@@ -18,6 +18,7 @@ import {
   canonicalTechnique,
   loadDamageTypes,
   loadEntryKinds,
+  loadVictims,
   OUT_OF_SCOPE,
   type StepCertainty,
 } from "@uchidai/engine";
@@ -45,6 +46,8 @@ export type VerifyOptions = {
   title?: string;
   /** 定義済みの入口の種類の id（既定は knowledge/entry-kinds.yaml）。これ以外は捨てる */
   entryKinds?: Iterable<string>;
+  /** 定義済みの被害を受けた側の id（既定は knowledge/victims.yaml）。これ以外は捨てる */
+  victims?: Iterable<string>;
   /** これより短い根拠文（正規化後の文字数）は照合しない（既定 8） */
   minQuoteLength?: number;
   /** これより長い根拠文（正規化後の文字数）は捨てる（既定 400。「1〜2 文」の約束を守らせる） */
@@ -84,6 +87,8 @@ export type VerifyReport = {
   downgraded: { index: number; certainty: StepCertainty }[];
   /** 根拠文がタイトルにしか無く、stated を inferred に下げた段階 */
   titleOnlyQuotes: number[];
+  /** 捨てた被害を受けた側（定義にない値） */
+  droppedVictim?: string;
   /** 捨てた入口の種類：定義にない種類、入口以外の段階、入口が不明の段階に付いていたもの */
   droppedEntryKinds: { index: number; kind: string }[];
   /** 入口の手段に触れていない根拠文のために外した手法 */
@@ -185,6 +190,7 @@ export function verifyCase(
   const normalizedTitle = options.title ? normalizeText(options.title) : "";
   const minQuote = options.minQuoteLength ?? 8;
   const maxQuote = options.maxQuoteLength ?? 400;
+  const knownVictims = new Set(options.victims ?? loadVictims().map((v) => v.id));
   const knownKinds = new Set(options.entryKinds ?? loadEntryKinds().map((k) => k.id));
   const allowed = options.allowedTechniques ? new Set(options.allowedTechniques) : undefined;
   const tacticIds = new Set(attack.tactics.map((t) => t.id));
@@ -339,6 +345,13 @@ export function verifyCase(
     steps.push(step);
   });
 
+  // 被害を受けた側：定義済みの値だけ残す。self は省略と同じなので持たせない（従来の Case と同じ形）
+  let victim: string | undefined;
+  if (parsed.victim) {
+    if (!knownVictims.has(parsed.victim)) report.droppedVictim = parsed.victim;
+    else if (parsed.victim !== "self") victim = parsed.victim;
+  }
+
   const detected = detectInstructions(articleText);
   const reported: string[] = [];
   for (const line of parsed.suspiciousInstructions) {
@@ -380,6 +393,7 @@ export function verifyCase(
     clarity: parsed.clarity,
     steps,
     suspiciousInstructions: report.suspiciousInstructions,
+    ...(victim ? { victim } : {}),
   });
   return { case: c, report };
 }

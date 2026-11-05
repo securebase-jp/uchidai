@@ -6,18 +6,19 @@
     "date": "2025-11-19"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:03:00.488Z",
+  "recordedAt": "2026-11-05T02:37:25.464Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
-    "title": "【セキュリティ ニュース】クラウドサービスが侵害、顧客従業員情報が流出か - ITサービス事業者（1ページ目",
-    "chars": 325,
+    "title": "【セキュリティ ニュース】クラウドサービスが侵害、顧客従業員情報が流出か - ITサービス事業者",
+    "chars": 294,
     "truncated": false
   },
   "raw": {
-    "title": "ITサービス事業者のクラウドサービスが外部から侵害され、顧客従業員の情報が流出した可能性",
+    "title": "宮崎通信の管理するクラウドサービスが侵害され、顧客従業員の個人情報が流出した可能性",
     "damageType": "data_breach",
     "clarity": "unknown",
+    "victim": "self",
     "steps": [
       {
         "tactic": "TA0001",
@@ -26,18 +27,19 @@
         "certainty": "not_stated",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "顧客向けの情報管理クラウドサービスが外部から侵害されたが、侵入の方法は記事に書かれていない。"
+        "summaryJa": "クラウドサービスへの侵入方法は記事に書かれていない。"
       },
       {
         "tactic": "TA0009",
         "techniques": [
-          "T1213"
+          "T1213",
+          "T1530"
         ],
         "source": "inferred",
-        "certainty": "confirmed",
+        "certainty": "possible",
         "entryKind": null,
-        "quote": null,
-        "summaryJa": "侵入した攻撃者が、クラウドサービス上の顧客従業員の情報を集めたとみられる。"
+        "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
+        "summaryJa": "侵害されたクラウドサービス上の顧客従業員の情報が取得された可能性がある。"
       },
       {
         "tactic": "TA0010",
@@ -49,16 +51,16 @@
         "certainty": "possible",
         "entryKind": null,
         "quote": "外部における情報の流通などは確認されていないが、個人情報が外部に流出した可能性があるという。",
-        "summaryJa": "氏名や会社メールアドレスなどの個人情報が外部に流出した可能性があるが、流出は確認されていない。"
+        "summaryJa": "顧客従業員の氏名やメールアドレスなどが外部に流出した可能性がある。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
-    "inputTokens": 399,
-    "outputTokens": 1118,
-    "cacheReadInputTokens": 23508,
+    "inputTokens": 374,
+    "outputTokens": 439,
+    "cacheReadInputTokens": 24174,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 8477
+  "elapsedMs": 3410
 }

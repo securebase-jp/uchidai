@@ -139,7 +139,7 @@ pnpm attack:import                          # ATT&CK の再取り込み
 
 - MITRE ATT&CK® Enterprise v20.0: https://attack.mitre.org/ （利用規約と帰属表示は [NOTICE](NOTICE)。日本語ラベルは本プロジェクト独自の訳）
 - IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」（2026年3月）: https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf — 本文は含めず、出典つきの短い抜粋と開発者自身の言葉での要約だけを置く。対策費用の目安は別紙「想定被害額計算明細」の単価（`knowledge/costs.yaml`）
-- 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」「漏えい等の対応とお役立ち資料」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）
+- 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」「漏えい等の対応とお役立ち資料」：漏えい等報告の期限と対象（`knowledge/deadlines.yaml` に確認日と URL）。通則編 3-4-4「委託先の監督」は、委託先・提供元の事故のときに御社が確認することと、委託先管理の助言の根拠（`knowledge/victims.yaml`、`knowledge/measures.yaml`）
 - 警察庁サイバー警察局「令和7年におけるサイバー空間をめぐる脅威の情勢等について」：入口候補の並び順の根拠（`knowledge/entry-candidates.yaml`）。警察庁「サイバー事案に関する相談窓口」：被害にあったときの相談先。警視庁「ビジネスメール詐欺（BEC）対策」：送金後の実務上の期限（相談窓口と BEC 対策は `knowledge/deadlines.yaml`）
 - crt.sh（Sectigo Limited）：証明書の公開ログ（CT）の検索。1 ドメイン 1 回の取得と結果のキャッシュに限る（[packages/recon/README.md](packages/recon/README.md)）
 - Cert Spotter（SSLMate, Inc.）: https://sslmate.com/ct_search_api — 証明書の公開ログ（CT）の検索。crt.sh が空か失敗のときだけ使う予備。認証なし（個人・評価向けの枠）で、1 ドメイン 1 回の取得と 24 時間のキャッシュに限る。帰属表示の要求は規約にない（確認：[packages/recon/README.md](packages/recon/README.md)、[NOTICE](NOTICE)）

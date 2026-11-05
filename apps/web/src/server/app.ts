@@ -295,6 +295,8 @@ app.post("/api/evaluate", async (c) => {
   );
   // 次の一手：いまの経路で効く対策を早い段階から 3 つ（engine の規則。既に講じた対策は除く）
   const nextMoves = effectiveMeasures(verdict, k.measures, profile)
+    // 助言だけの対策（委託先管理など。patches が空）は、押しても判定が変わらないのでボタンにしない
+    .filter(({ measure }) => measure.patches.length > 0)
     .slice(0, 3)
     .map(({ measure, stageJa }) => ({ measureId: measure.id, ...(stageJa ? { stageJa } : {}) }));
   return c.json({ graph, verdict, measures, profile, measureCosts, nextMoves });
