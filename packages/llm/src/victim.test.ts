@@ -40,6 +40,14 @@ describe("読解のスキーマと指示文は victims.yaml から組み立て�
       { type: "null" },
     ]);
   });
+  it("group（グループ会社＝子会社・孫会社）は選択肢にあり、vendor の基準にはグループ会社を含めない", () => {
+    expect(victims.map((v) => v.id)).toContain("group");
+    const text = buildRulesJa();
+    expect(text).toMatch(
+      /group：被害を受けたのは、記事を公表した会社（親会社）自身ではなく、その子会社・孫会社/,
+    );
+    expect(victims.find((v) => v.id === "vendor")?.readingHintJa).not.toMatch(/グループ会社/);
+  });
   it("指示文に分類基準が入り、種類を足せば増える", () => {
     const text = buildRulesJa();
     for (const v of victims) expect(text).toContain(`${v.id}：`);
@@ -61,6 +69,7 @@ describe("verifyCase は定義済みの被害を受けた側だけを残す", ()
   it("第三者の値は残り、self と省略は持たせない（従来の Case と同じ形）", () => {
     expect(verifyCase(raw("vendor"), article, attack).case.victim).toBe("vendor");
     expect(verifyCase(raw("provider"), article, attack).case.victim).toBe("provider");
+    expect(verifyCase(raw("group"), article, attack).case.victim).toBe("group");
     expect(verifyCase(raw("self"), article, attack).case.victim).toBeUndefined();
     expect(verifyCase(raw(null), article, attack).case.victim).toBeUndefined();
     expect(verifyCase(raw(), article, attack).case.victim).toBeUndefined();

@@ -400,6 +400,8 @@ export const Verdict = z.object({
     .object({
       id: z.string(),
       labelJa: z.string(),
+      /** 「これは〇〇で起きた事故です。」に続ける文（省略は「御社の設備が入口になったのではありません。」） */
+      leadNoteJa: z.string().optional(),
       checksJa: z.array(z.string()),
       reportNoteJa: z.string().optional(),
       /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */

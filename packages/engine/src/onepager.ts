@@ -125,7 +125,7 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
   const third = verdict.thirdParty;
   if (third)
     lines.push(
-      `これは${third.labelJa}で起きた事故です。御社の設備が入口になったのではありません。`,
+      `これは${third.labelJa}で起きた事故です。${third.leadNoteJa ?? "御社の設備が入口になったのではありません。"}`,
     );
   // 入口が記事から分からず仮に置いた候補のときは、その入口から入られたと断定しない
   const first = path.steps.find((s) => !s.precondition);

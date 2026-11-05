@@ -634,6 +634,7 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
     thirdParty: {
       id: def.id,
       labelJa: def.labelJa,
+      ...(def.leadNoteJa ? { leadNoteJa: def.leadNoteJa } : {}),
       checksJa: def.checksJa.map(sub),
       ...(def.reportNoteJa ? { reportNoteJa: sub(def.reportNoteJa) } : {}),
       measureIds: def.measureIds,

@@ -166,7 +166,11 @@ export function summary(v: Verdict, plain: boolean, graph?: Graph): string {
   const parts: string[] = [];
   // 第三者（委託先・取引先・提供元）の事故：御社の設備が入口になったのではない、と先に書く
   if (v.thirdParty)
-    parts.push(`御社の設備が入口になったのではなく、${v.thirdParty.labelJa}で起きた事故です`);
+    parts.push(
+      v.thirdParty.leadNoteJa
+        ? `${v.thirdParty.labelJa}で起きた事故です。${v.thirdParty.leadNoteJa.replace(/。$/, "")}`
+        : `御社の設備が入口になったのではなく、${v.thirdParty.labelJa}で起きた事故です`,
+    );
   // 対象外でも利用者が確認できること（ソフトウェアの供給網の事故）
   if (v.guidanceJa?.[1]) parts.push(v.guidanceJa[1].replace(/。$/, ""));
   const i = v.impact;

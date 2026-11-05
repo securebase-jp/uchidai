@@ -30,15 +30,47 @@ const vpnCase = (victim?: string, extra: Partial<Case> = {}): Case => ({
 });
 
 describe("victims.yaml の宣言", () => {
-  it("self（記事の会社そのもの）と、第三者（vendor、provider）がある", () => {
+  it("self（記事の会社そのもの）と、第三者（vendor、provider、group）がある", () => {
     const ids = k.victims.map((v) => v.id);
-    expect(ids).toEqual(expect.arrayContaining(["self", "vendor", "provider"]));
+    expect(ids).toEqual(expect.arrayContaining(["self", "vendor", "provider", "group"]));
     expect(k.victims.find((v) => v.id === "self")?.thirdParty).toBe(false);
     for (const v of k.victims.filter((x) => x.thirdParty)) {
       expect(v.checksJa.length).toBeGreaterThan(0);
       expect(v.reportNoteJa).toMatch(/確認が必要/);
       for (const id of v.measureIds) expect(k.measures.some((m) => m.id === id)).toBe(true);
     }
+  });
+});
+
+describe("グループ会社（group。TRIAL-I-004）：子会社・孫会社の事故", () => {
+  it("vendor の分類基準から「グループ会社」を外し、group の側に置く", () => {
+    expect(k.victims.find((v) => v.id === "vendor")?.readingHintJa).not.toMatch(/グループ会社/);
+    expect(k.victims.find((v) => v.id === "group")?.readingHintJa).toMatch(/子会社・孫会社/);
+  });
+  it("見出しは第三者の事故として書き、確認することは子会社への確認・親会社の報告と開示・接続の有無の 3 点", () => {
+    const v = evaluate(vpnCase("group"), demo, { knowledge: k });
+    expect(v.headlineJa).toMatch(
+      /^これはグループ会社（子会社・孫会社）で起きた事故です。御社が同じ立場なら、/,
+    );
+    expect(v.thirdParty?.id).toBe("group");
+    expect(v.thirdParty?.checksJa).toHaveLength(3);
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(
+      /グループ会社（子会社・孫会社）に、事故の範囲/,
+    );
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(/報告・開示（個人情報保護委員会、適時開示）/);
+    expect(v.thirdParty?.checksJa.join("\n")).toMatch(/ネットワーク・認証基盤の接続の有無/);
+  });
+  it("一枚の先頭は、「御社の設備が入口になったのではありません」でなく「子会社と御社の接続の有無は、この公表からは分かりません」", () => {
+    const g = buildOnePager(evaluate(vpnCase("group"), demo, { knowledge: k }), demo, k);
+    expect(g.whatHappensJa[0]).toBe(
+      "これはグループ会社（子会社・孫会社）で起きた事故です。子会社と御社の接続の有無は、この公表からは分かりません。",
+    );
+    expect(g.whatHappensJa.join("")).not.toContain("御社の設備が入口になったのではありません");
+    // 委託先は従来どおり
+    const v = buildOnePager(evaluate(vpnCase("vendor"), demo, { knowledge: k }), demo, k);
+    expect(v.whatHappensJa[0]).toBe(
+      "これは委託先・取引先で起きた事故です。御社の設備が入口になったのではありません。",
+    );
   });
 });
 

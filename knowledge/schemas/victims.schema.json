@@ -22,6 +22,9 @@
           "readingHintJa": {
             "type": "string"
           },
+          "leadNoteJa": {
+            "type": "string"
+          },
           "checksJa": {
             "default": [],
             "type": "array",
