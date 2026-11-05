@@ -129,3 +129,61 @@ describe("乗っ取りの型紙：多要素認証を通り抜ける手口", () =
     expect(k.costs.measures.find((c) => c.measureId === "session-conditions")?.basis).toBe("quote");
   });
 });
+
+describe("なりすまし送金（bec）の乗っ取りの段階でも、多要素認証を通り抜ける手口は止まらない", () => {
+  const becSession: Case = {
+    title: "財務担当のメールのセッションが盗まれ、取引先になりすまして支払いを指示された",
+    damageType: "bec",
+    clarity: "clear",
+    suspiciousInstructions: [],
+    steps: [
+      { tactic: "TA0006", techniques: ["T1539"], source: "stated" },
+      { tactic: "TA0005", techniques: ["T1684.001"], source: "stated", impersonates: "partner" },
+      { tactic: "TA0040", techniques: ["T1657"], source: "stated" },
+    ],
+  };
+  const withExec = (s: { mfa: Status; conditions: Status }) =>
+    applyMeasures(frame, [
+      {
+        id: "exec",
+        labelJa: "exec",
+        patches: [
+          { role: "cloud.mail_account.exec", mitigation: "M1032", status: s.mfa },
+          { role: "cloud.mail_account.exec", mitigation: "M1036", status: s.conditions },
+          { role: "person.accounting", mitigation: "UD-01", status: "absent" },
+        ],
+      },
+    ]);
+  it("役員のメールに多要素認証が強制されていても、セッションの窃取では乗っ取られる", () => {
+    const v = evaluate(becSession, withExec({ mfa: "present", conditions: "absent" }), {
+      knowledge: k,
+    });
+    expect(v.templateId).toBe("bec");
+    const takeover = v.paths[0]?.steps.find((s) => s.stageId === "takeover");
+    expect(takeover?.technique).toBe("T1539");
+    expect(takeover?.ruleId).toBe("bec.takeover_bypass");
+    expect(takeover?.state).toBe("breached");
+    expect(v.result).toBe("breached");
+    // 取引先を装った事案：札が取引先の言い方
+    expect(v.paths[0]?.steps.find((s) => s.stageId === "impersonate")?.labelJa).toBe(
+      "取引先になりすまして指示する",
+    );
+  });
+  it("条件づけがあれば被害を抑える。パスワードだけの乗っ取りは従来どおり多要素認証で止まる", () => {
+    const v = evaluate(becSession, withExec({ mfa: "present", conditions: "present" }), {
+      knowledge: k,
+    });
+    expect(v.paths[0]?.steps.find((s) => s.stageId === "takeover")?.state).toBe("recoverable");
+    const pw: Case = {
+      ...becSession,
+      steps: [
+        { tactic: "TA0001", techniques: ["T1078.004"], source: "stated" },
+        ...becSession.steps.slice(1),
+      ],
+    };
+    const blocked = evaluate(pw, withExec({ mfa: "present", conditions: "absent" }), {
+      knowledge: k,
+    });
+    expect(blocked.result).toBe("blocked");
+  });
+});

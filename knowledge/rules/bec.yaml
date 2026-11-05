@@ -31,6 +31,24 @@ rules:
         reasonJa: 多要素認証の適用範囲が未確認
       - state: breached
         reasonJa: 流出したパスワードだけでログインできる
+  # 多要素認証を通り抜ける手口（TRIAL-B-009）。account_takeover.login_bypass と同じ考え方で、役員のメールアカウントに対して書く
+  - id: bec.takeover_bypass
+    role: cloud.mail_account.exec
+    techniques: [T1539, T1550.004, T1111, T1556.006]
+    materialsJa: カルテ：ログインの条件づけ（接続元・端末の制限、セッションの有効期間）
+    mitigations: [M1036]
+    ineffective:
+      - mitigation: M1032
+        reasonJa: 多要素認証を通ったあとのログイン済みの状態（セッション）や、認証そのものを奪う手口なので、多要素認証だけでは止められません
+    outcomes:
+      - state: recoverable
+        when: { control: { mitigation: M1036, status: present } }
+        reasonJa: 接続元・端末の条件づけとセッションの有効期間の短縮で、盗まれたセッションが使える範囲と時間を狭められる（完全には止められない）
+      - state: unknown
+        when: { control: { mitigation: M1036, status: unknown } }
+        reasonJa: ログインの条件づけが未確認
+      - state: breached
+        reasonJa: 多要素認証を通ったあとのセッションを盗まれると、そのまま別の場所からログインされる
   - id: bec.impersonate
     role: cloud.mail_account.exec
     techniques: [T1684.001, T1684.002]

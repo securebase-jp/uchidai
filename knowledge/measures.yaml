@@ -106,6 +106,9 @@ measures:
       - role: cloud.mail_account.staff
         mitigation: M1036
         status: present
+      - role: cloud.mail_account.exec
+        mitigation: M1036
+        status: present
     requestToJa: 情シス担当者（設定変更）
   - id: mail-forward-audit
     labelJa: メールの転送ルールの点検
