@@ -116,6 +116,8 @@ if (readFrom) {
   summary.fetchMs = Math.round(performance.now() - tFetch);
   writeFileSync(join(outDir, "article.txt"), article.text);
   summary.article = { title: article.title, chars: article.text.length, kind: article.kind };
+  // 次の読解の呼び出しが同じ記事をもう一度取るので、同じホストへの間隔を 1 秒以上空ける
+  await new Promise((r) => setTimeout(r, 1100));
 
   // 2. 読解（API 経由）
   read = await call("POST", "/api/case/read", { input: { kind: "url", url } });
