@@ -18,9 +18,11 @@ import {
   canonicalTechnique,
   loadDamageTypes,
   loadEntryKinds,
+  loadLeakKinds,
   loadVictims,
   OUT_OF_SCOPE,
   type StepCertainty,
+  yenAppearsIn,
 } from "@uchidai/engine";
 import { dedupeInstructions, detectInstructions } from "./injection.ts";
 import { RawCase } from "./schema.ts";
@@ -48,6 +50,8 @@ export type VerifyOptions = {
   entryKinds?: Iterable<string>;
   /** 定義済みの被害を受けた側の id（既定は knowledge/victims.yaml）。これ以外は捨てる */
   victims?: Iterable<string>;
+  /** 定義済みの漏えいした情報の種類の id（既定は knowledge/leak-kinds.yaml）。これ以外は捨てる */
+  leakKinds?: Iterable<string>;
   /** これより短い根拠文（正規化後の文字数）は照合しない（既定 8） */
   minQuoteLength?: number;
   /** これより長い根拠文（正規化後の文字数）は捨てる（既定 400。「1〜2 文」の約束を守らせる） */
@@ -87,6 +91,10 @@ export type VerifyReport = {
   downgraded: { index: number; certainty: StepCertainty }[];
   /** 根拠文がタイトルにしか無く、stated を inferred に下げた段階 */
   titleOnlyQuotes: number[];
+  /** 記事に見当たらないので捨てた被害額（円。読解が写した値が、記事の円の金額のどれにも一致しなかった） */
+  droppedReportedLoss?: number;
+  /** 捨てた漏えいした情報の種類（定義にない値） */
+  droppedLeakedData?: string[];
   /** 捨てた被害を受けた側（定義にない値） */
   droppedVictim?: string;
   /** 捨てた入口の種類：定義にない種類、入口以外の段階、入口が不明の段階に付いていたもの */
@@ -198,6 +206,7 @@ export function verifyCase(
   const normalizedTitle = options.title ? normalizeText(options.title) : "";
   const minQuote = options.minQuoteLength ?? 8;
   const maxQuote = options.maxQuoteLength ?? 400;
+  const knownLeakKinds = new Set(options.leakKinds ?? loadLeakKinds().map((l) => l.id));
   const knownVictims = new Set(options.victims ?? loadVictims().map((v) => v.id));
   const knownKinds = new Set(options.entryKinds ?? loadEntryKinds().map((k) => k.id));
   const allowed = options.allowedTechniques ? new Set(options.allowedTechniques) : undefined;
@@ -365,6 +374,27 @@ export function verifyCase(
     else if (parsed.victim !== "self") victim = parsed.victim;
   }
 
+  // 漏えいした情報の種類：定義済みの値だけ残す（重複は 1 つに）
+  const leakedData: string[] = [];
+  for (const id of parsed.leakedData ?? []) {
+    if (!knownLeakKinds.has(id)) {
+      report.droppedLeakedData = [...(report.droppedLeakedData ?? []), id];
+    } else if (!leakedData.includes(id)) leakedData.push(id);
+  }
+
+  // 記事が書く被害額：記事の円の金額のどれかと一致するときだけ残す（Claude は金額を読んで写すだけ。作った値は捨てる）
+  let reportedLossJpy: number | undefined;
+  const claimed = parsed.reportedLossJpy;
+  if (claimed !== null && claimed !== undefined) {
+    if (
+      Number.isInteger(claimed) &&
+      claimed > 0 &&
+      yenAppearsIn(claimed, `${articleText}\n${options.title ?? ""}`)
+    )
+      reportedLossJpy = claimed;
+    else report.droppedReportedLoss = claimed;
+  }
+
   const detected = detectInstructions(articleText);
   const reported: string[] = [];
   for (const line of parsed.suspiciousInstructions) {
@@ -407,6 +437,9 @@ export function verifyCase(
     steps,
     suspiciousInstructions: report.suspiciousInstructions,
     ...(victim ? { victim } : {}),
+    ...(leakedData.length > 0 ? { leakedData } : {}),
+    ...(reportedLossJpy !== undefined ? { reportedLossJpy } : {}),
+    ...(parsed.averted ? { averted: true } : {}),
   });
   return { case: c, report };
 }

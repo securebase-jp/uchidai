@@ -13,6 +13,7 @@ import {
   StepState,
   type Verdict,
   VerdictResult,
+  yenAppearsIn,
 } from "@uchidai/engine";
 import { z } from "zod";
 import { callStructured, type LlmOptions, type StructuredResult } from "./client.ts";
@@ -58,6 +59,10 @@ export const OnePagerWriterInput = z.object({
   personalDataJa: z.array(z.string()),
   /** 被害が第三者（委託先・取引先・提供元）に起きた事故のとき。その呼び名（例：委託先・取引先） */
   thirdPartyJa: z.string().optional(),
+  /** 記事が書く被害額（円）。御社の想定額（moneyLossJpy）とは別 */
+  reportedLossJpy: z.number().optional(),
+  /** 記事の会社は被害を防げた（未遂） */
+  avertedInArticle: z.boolean().optional(),
 });
 export const OnePagerWriterOutput = z.object({
   whatHappensJa: z.array(z.string().min(1).max(200)).min(1).max(8),
@@ -118,6 +123,10 @@ export function writerInputFrom(
     reportRequired: impact.reportRequired,
     personalDataJa: impact.personalDataReached.map((p) => p.descriptionJa),
     ...(verdict.thirdParty ? { thirdPartyJa: verdict.thirdParty.labelJa } : {}),
+    ...(verdict.article?.reportedLossJpy !== undefined
+      ? { reportedLossJpy: verdict.article.reportedLossJpy }
+      : {}),
+    ...(verdict.article?.averted ? { avertedInArticle: true } : {}),
   });
 }
 
@@ -137,6 +146,10 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
 - 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
+- 金額：moneyLossJpy は御社の想定額（会社カルテの値）で、「御社の想定では約〇〇円」と書く。なりすましの送金は直接の損失で、売上への影響とは書かない。reportedLossJpy は記事が書く被害額で、「記事の事例では約〇〇円」と書き、御社の想定額と並べて別の文にする。想定額を記事の事実のように、「確認されています」と同じ文に書かない
+- avertedInArticle が true のとき：最初の文で「記事の会社は被害を防げた事例です」と書き、以降は「同じ手口が御社に来たら」の見立てとして書く（記事の会社が被害を受けたとは書かない）
+- 個人情報の報告について「必要ありません」「不要」と書かない（reportRequired が false でも、報告が要らないと言い切れないため。書けるのは、reportRequired が true のときの「必要になります」だけ。false のときは報告のことを書かない）
+- result が blocked または mitigated のときは、止まる・抑えられるという文を「この経路では」と範囲を限って書く（御社が安全だと言い切らない）
 - 文の分け方：前半は記事に書かれた出来事だけを書く（確度に合う言い方で）。止まる業務・日数・売上・取引先への影響は、御社に当てはめた試算なので、別の文にして「御社の場合は〜と見込まれます」と書く。試算の文に「確認されています」「起きています」を使わない（試算は記事の事実ではない）。記事の事実の文に、業務が止まったことを書かない（業務が止まることは、御社の試算の文にだけ書く。記事の会社の業務が止まったかどうかは入力にない）。一つの文に、確認の言い方と日数・金額を混ぜない。例：「中核システムが暗号化されたことが確認されています。」（記事の事実）と「御社の場合は、受注・生産管理が10日止まると見込まれます。」（試算）は別の文にする。段階が多いときは、近い段階を 1 文にまとめ、全体で 6 文以内にする
   - state（その段階を止める対策の確認状況）：unknown のときだけ「この段階を止める対策が確認できていません」と書く（この言い回しに固定）。どの段階の話か分かるよう、その段階の説明と同じ文に続けて書き（例：「管理者権限を奪われるおそれがあり、この段階を止める対策が確認できていません」）、この言い回しだけの短い文にしない。攻撃が起きたかどうかの話には使わない
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
@@ -163,6 +176,8 @@ const DENIAL =
 const UNKNOWN_WORD = /不明/;
 /** 推定を示す語（inferred の段階があるのに、一つも無ければ断定している疑いがある） */
 const HEDGE = /考えられ|おそれ|恐れ|可能性|見込み|とみられ|思われ|かもしれ/;
+/** 報告は要らない、という言い切り（報告義務の安心側。D-007） */
+const REPORT_NEGATION = /報告(も|は|が)?(必要(あり|な)(ません|い)|不要|いりません)/;
 const ID_PATTERN = /\bT\d{4}(?:\.\d{3})?\b|\bM\d{4}\b|UD-\d{2}|TA\d{4}/;
 /** 「0日」「0 日」（10日や0日目は除く）。止まる業務が無いのに復旧日数を 0 日と書く癖を弾く */
 const ZERO_DAYS = /(?<![\d.,])0\s*日(?!目)/;
@@ -182,7 +197,9 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
     if (v >= 100_000_000) {
       const oku = v / 100_000_000;
       add(Math.round(oku));
+      add(Math.floor(oku));
       add(Math.round(oku * 10) / 10);
+      add(Math.round(oku * 100) / 100);
       const rest = Math.round((v % 100_000_000) / 10_000);
       if (rest > 0) add(rest);
     }
@@ -195,6 +212,7 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
   }
   yen(input.revenueImpactJpy);
   yen(input.moneyLossJpy);
+  yen(input.reportedLossJpy);
   return out;
 }
 
@@ -220,14 +238,36 @@ export function checkWriterOutput(
     }
   }
   // 止まる業務・金額（御社に当てはめた試算）は、記事の事実と別の文で「御社の場合は〜と見込まれます」と書く
+  // 金額：御社の想定額（moneyLossJpy）は「想定」と書き、売上への影響とは書かない（直接の損失）。記事の被害額は「記事の事例では」
+  if (input.moneyLossJpy !== undefined) {
+    const moneyLine = output.whatHappensJa.find((l) =>
+      yenAppearsIn(input.moneyLossJpy as number, l),
+    );
+    if (moneyLine !== undefined) {
+      if (!moneyLine.includes("想定"))
+        return `御社の金額は「想定では」と書いてください（記事の事実と区別するため）：${moneyLine}`;
+      if (moneyLine.includes("売上"))
+        return `送金額は売上への影響ではなく、直接の損失です：${moneyLine}`;
+    }
+  }
+  if (
+    input.reportedLossJpy !== undefined &&
+    !output.whatHappensJa.some(
+      (l) => l.includes("記事の事例では") && yenAppearsIn(input.reportedLossJpy as number, l),
+    )
+  )
+    return "記事が書く被害額は「記事の事例では約〇〇円」と書いてください";
+  if (input.avertedInArticle && !output.whatHappensJa.some((l) => l.includes("防げ")))
+    return "記事の会社が被害を防げた事例なら、「記事の会社は被害を防げた事例です」と書いてください";
   const hasEstimate =
     input.stopped.length > 0 ||
     input.revenueImpactJpy !== undefined ||
     input.moneyLossJpy !== undefined;
   const isEstimateLine = (l: string) =>
-    (l.includes(ESTIMATE_PHRASE) ||
+    l.includes("御社の想定では") ||
+    ((l.includes(ESTIMATE_PHRASE) ||
       (input.thirdPartyJa !== undefined && l.includes("御社が同じ立場"))) &&
-    l.includes("見込まれ");
+      l.includes("見込まれ"));
   if (hasEstimate && !output.whatHappensJa.some(isEstimateLine))
     return `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`;
   // 第三者の事故：「これは〇〇で起きた事故です」と書き、確認の言い方は「記事の〇〇では」で始める（御社の設備の事実にしない）
@@ -239,13 +279,12 @@ export function checkWriterOutput(
     )
       return `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`;
     // 確認の言い方を使う最初の文は、主語を記事の第三者にする（御社の設備の事実にしない）。続く文は、その主語を引き継ぐ
-    const firstConfirm = output.whatHappensJa.find((l) => CONFIRM_RE.test(l));
+    const confirmAt = output.whatHappensJa.findIndex((l) => CONFIRM_RE.test(l));
     if (
-      firstConfirm !== undefined &&
-      !firstConfirm.includes("記事の") &&
-      !firstConfirm.includes(input.thirdPartyJa as string)
+      confirmAt >= 0 &&
+      !output.whatHappensJa.slice(0, confirmAt + 1).some((l) => l.includes("記事の"))
     )
-      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${firstConfirm}`;
+      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${output.whatHappensJa[confirmAt]}`;
   }
   return undefined;
 }
@@ -265,7 +304,8 @@ export function checkSourceWording(
   const hasStated = input.stages.some((s) => s.source === "stated");
   for (const line of output.whatHappensJa) {
     const rest = line
-      .replaceAll(UNKNOWN_CONTROL_SHORT, "")
+      // 「止める対策が確認できていません」「止める対策も確認できていません」は、固定の言い回し（出来事の否定ではない）
+      .replace(/止める対策(が|も)確認できていません/g, "")
       .replaceAll(NO_TRACE_PHRASE, "")
       .replaceAll(EXPOSED_ONLY_PHRASE, "")
       .replace(CLAIMED_PHRASE_RE, "");
@@ -275,6 +315,10 @@ export function checkSourceWording(
       return `記事に書かれた段階があるのに「不明」と書かれています：${line}`;
   }
   const all = output.whatHappensJa.join("");
+  const negation = output.whatHappensJa.find((l) => REPORT_NEGATION.test(l));
+  if (negation) return `個人情報の報告が「必要ない」とは書けません：${negation}`;
+  if ((input.result === "blocked" || input.result === "mitigated") && !all.includes("この経路では"))
+    return "止まる結論は「この経路では」と範囲を限って書いてください";
   const uncertain = (c: StepCertainty) => input.stages.some((s) => s.certainty === c);
   if (uncertain("no_trace") && !all.includes(NO_TRACE_PHRASE))
     return `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`;
@@ -303,7 +347,10 @@ export function checkSourceWording(
     return "推定の段階を断定しています（「〜と考えられます」などの言い方がありません）";
   if (input.stages[0]?.source === "candidate" && !all.includes(CANDIDATE_ENTRY_PHRASE))
     return `入口が候補なのに「${CANDIDATE_ENTRY_PHRASE}」と書かれていません`;
-  if (input.stages.some((s) => s.state === "unknown") && !all.includes(UNKNOWN_CONTROL_SHORT))
+  if (
+    input.stages.some((s) => s.state === "unknown") &&
+    !/止める対策(が|も)確認できていません/.test(all)
+  )
     return `対策が未確認の段階があるのに「${UNKNOWN_CONTROL_PHRASE}」と書かれていません`;
   return undefined;
 }
@@ -320,7 +367,7 @@ export async function writeOnePagerText(
 ): Promise<WriteResult> {
   const system: Anthropic.TextBlockParam[] = [{ type: "text", text: WRITER_RULES_JA }];
   const r = await callStructured<OnePagerWriterOutput>(
-    { maxTokens: 1500, effort: "low", ...options },
+    { maxTokens: 3000, effort: "low", ...options },
     {
       system,
       user: `<verdict>\n${JSON.stringify(OnePagerWriterInput.parse(input), null, 1)}\n</verdict>\n\n上の判定結果を、社長向けの文にしてください。`,

@@ -65,7 +65,15 @@ export function reportReasons(
       : when === "over1000"
         ? reached.some((p) => p.over1000)
         : unauthorizedAccess;
-  return deadlines.reportTriggers.filter((t) => matches(t.when)).map((t) => t.labelJa);
+  // 1,000 人超の根拠は、件数が分かっているときだけ「超える」と書く。件数が未入力（既定の over1000 のまま）なら、超えるおそれと書く
+  const countUnknown = reached.filter((p) => p.over1000).every((p) => p.count === undefined);
+  return deadlines.reportTriggers
+    .filter((t) => matches(t.when))
+    .map((t) =>
+      t.when === "over1000" && countUnknown && t.labelUnknownCountJa
+        ? t.labelUnknownCountJa
+        : t.labelJa,
+    );
 }
 
 /**

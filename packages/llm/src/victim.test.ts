@@ -1,5 +1,5 @@
 /** 被害を受けた側（victim。victims.yaml）：読解のスキーマ・指示文・検証、一枚の言い換えの規則 */
-import { loadAttack, loadVictims, VictimDef } from "@uchidai/engine";
+import { loadAttack, loadLeakKinds, loadVictims, VictimDef } from "@uchidai/engine";
 import { describe, expect, it } from "vitest";
 import { checkWriterOutput, type OnePagerWriterInput } from "./onepager-writer.ts";
 import { buildRulesJa } from "./prompts.ts";
@@ -133,6 +133,140 @@ describe("一枚の言い換え：第三者の事故", () => {
           ],
         },
         own,
+      ),
+    ).toBeUndefined();
+  });
+});
+
+describe("D-007：報告は「必要ない」と書かない。止まる結論は「この経路では」と限る", () => {
+  const base: OnePagerWriterInput = {
+    result: "blocked",
+    stages: [{ labelJa: "入口から侵入", roleJa: "VPN装置", state: "blocked", source: "stated" }],
+    stopped: [],
+    downtimeDays: 0,
+    reportRequired: false,
+    personalDataJa: [],
+  };
+  it("「個人情報の報告も必要ありません」「不要」を含む文は捨てる", () => {
+    for (const line of [
+      "個人情報の報告も必要ありません。",
+      "報告は不要です。",
+      "個人情報の報告が必要ない見込みです。",
+    ]) {
+      expect(
+        checkWriterOutput({ whatHappensJa: ["この経路では入口で止まります。", line] }, base),
+      ).toMatch(/報告/);
+    }
+  });
+  it("blocked の結論に「この経路では」が無ければ捨てる", () => {
+    expect(checkWriterOutput({ whatHappensJa: ["入口で止まります。"] }, base)).toMatch(
+      /この経路では/,
+    );
+    expect(
+      checkWriterOutput({ whatHappensJa: ["この経路では、VPN装置の入口で止まります。"] }, base),
+    ).toBeUndefined();
+  });
+});
+
+describe("D-011：読解の leakedData は leak-kinds.yaml から組み立て、定義済みの値だけ残す", () => {
+  it("スキーマの選択肢と指示文は YAML から。必須の欄", () => {
+    const kinds = loadLeakKinds();
+    const schema = buildRawCaseJsonSchema() as {
+      required: string[];
+      properties: { leakedData: { items: { enum: string[] } } };
+    };
+    expect(schema.required).toContain("leakedData");
+    expect(schema.properties.leakedData.items.enum).toEqual(kinds.map((l) => l.id));
+    const text = buildRulesJa();
+    for (const l of kinds) expect(text).toContain(`${l.id}：`);
+  });
+  it("定義済みの値は残り（重複は 1 つ）、定義にない値は捨てて報告する。無ければ持たせない", () => {
+    const withData = (leakedData?: string[]) => ({
+      ...raw(null),
+      ...(leakedData ? { leakedData } : {}),
+    });
+    const r = verifyCase(withData(["payment", "payment", "sensitive", "alien"]), article, attack);
+    expect(r.case.leakedData).toEqual(["payment", "sensitive"]);
+    expect(r.report.droppedLeakedData).toEqual(["alien"]);
+    expect(verifyCase(withData([]), article, attack).case.leakedData).toBeUndefined();
+    expect(verifyCase(withData(), article, attack).case.leakedData).toBeUndefined();
+  });
+});
+
+describe("B-003・B-013：読解の被害額と未遂", () => {
+  const body = "取引先を装った詐欺で、約2.56億円が送金された。被害額は他に300円。";
+  const withFacts = (reportedLossJpy: number | null, averted?: boolean) => ({
+    ...raw(null),
+    reportedLossJpy,
+    ...(averted === undefined ? {} : { averted }),
+  });
+  it("記事の円の金額に一致する被害額は残す。作った値・外貨は捨てて報告する", () => {
+    expect(verifyCase(withFacts(256_000_000), body, attack).case.reportedLossJpy).toBe(256_000_000);
+    const bad = verifyCase(withFacts(300_000_000), body, attack);
+    expect(bad.case.reportedLossJpy).toBeUndefined();
+    expect(bad.report.droppedReportedLoss).toBe(300_000_000);
+    expect(verifyCase(withFacts(null), body, attack).case.reportedLossJpy).toBeUndefined();
+    expect(verifyCase(withFacts(-5), body, attack).case.reportedLossJpy).toBeUndefined();
+  });
+  it("averted は true のときだけ持たせる", () => {
+    expect(verifyCase(withFacts(null, true), body, attack).case.averted).toBe(true);
+    expect(verifyCase(withFacts(null, false), body, attack).case.averted).toBeUndefined();
+  });
+  it("スキーマと指示文に入る", () => {
+    const schema = buildRawCaseJsonSchema() as { required: string[] };
+    expect(schema.required).toEqual(expect.arrayContaining(["reportedLossJpy", "averted"]));
+    expect(buildRulesJa()).toMatch(/reportedLossJpy：記事が書く被害額/);
+  });
+});
+
+describe("B-003・TRIAL-016・B-013：言い換えの金額と未遂の規則", () => {
+  const input: OnePagerWriterInput = {
+    result: "breached",
+    stages: [{ labelJa: "段階", roleJa: "役割", state: "breached", source: "stated" }],
+    stopped: [],
+    downtimeDays: 0,
+    reportRequired: false,
+    personalDataJa: [],
+    moneyLossJpy: 5_000_000,
+    reportedLossJpy: 256_000_000,
+  };
+  const lines = (...l: string[]) => ({ whatHappensJa: l });
+  const ok = [
+    "社長を装った送金指示が確認されています。",
+    "記事の事例では、被害額は約2.56億円です。",
+    "御社の想定では、約500万円の資金が流出すると見込まれます。",
+  ];
+  it("御社の金額に「想定」が無い文、売上と並べた文は捨てる（TRIAL-016）", () => {
+    expect(
+      checkWriterOutput(
+        lines(ok[0] as string, ok[1] as string, "資金が約500万円流出します。"),
+        input,
+      ),
+    ).toMatch(/想定/);
+    expect(
+      checkWriterOutput(
+        lines(
+          ok[0] as string,
+          ok[1] as string,
+          "御社の想定では、売上への影響として約500万円が見込まれます。",
+        ),
+        input,
+      ),
+    ).toMatch(/直接の損失/);
+  });
+  it("記事の被害額は「記事の事例では」と書かないと捨てる。並べて書けば通る", () => {
+    expect(checkWriterOutput(lines(ok[0] as string, ok[2] as string), input)).toMatch(
+      /記事の事例では/,
+    );
+    expect(checkWriterOutput({ whatHappensJa: ok }, input)).toBeUndefined();
+  });
+  it("未遂の記事は「防げ」と書く", () => {
+    const averted = { ...input, avertedInArticle: true };
+    expect(checkWriterOutput({ whatHappensJa: ok }, averted)).toMatch(/防げた事例/);
+    expect(
+      checkWriterOutput(
+        { whatHappensJa: ["記事の会社は被害を防げた事例です。", ...ok.slice(1)] },
+        averted,
       ),
     ).toBeUndefined();
   });

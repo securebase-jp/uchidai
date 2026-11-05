@@ -13,7 +13,7 @@ import {
   evaluate,
   loadKnowledge,
   type OnePager,
-  thirdPartyLines,
+  onePagerExtraLines,
 } from "@uchidai/engine";
 import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/llm";
 import { Hono } from "hono";
@@ -45,7 +45,7 @@ async function rewrite(
   const hit = cache.get(key);
   if (hit)
     return {
-      onePager: { ...onePager, whatHappensJa: [...hit.text, ...thirdPartyLines(verdict)] },
+      onePager: { ...onePager, whatHappensJa: [...hit.text, ...onePagerExtraLines(verdict)] },
       text: { source: "claude", model: hit.model },
     };
   try {
@@ -69,7 +69,7 @@ async function rewrite(
     return {
       onePager: {
         ...applied,
-        whatHappensJa: [...applied.whatHappensJa, ...thirdPartyLines(verdict)],
+        whatHappensJa: [...applied.whatHappensJa, ...onePagerExtraLines(verdict)],
       },
       text: { source: "claude", model: result.model },
     };

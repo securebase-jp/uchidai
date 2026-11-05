@@ -8,6 +8,7 @@ stages:
     labelJa: クラウド上のファイル置き場（ストレージ）の公開設定の誤りで取得される
     breachedJa: 持ち出される
     breachedDoneJa: 持ち出されました
+    sentenceJa: "{node}から情報が持ち出される"
     tactics: [TA0009, TA0001]
     entry: true
     byRole:

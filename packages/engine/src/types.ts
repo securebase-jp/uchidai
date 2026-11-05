@@ -91,6 +91,12 @@ export const Case = z.object({
     .string()
     .regex(/^[a-z][a-z0-9-]*$/)
     .optional(),
+  /** 記事が書く、漏えいした（可能性がある）情報の種類（knowledge/leak-kinds.yaml の id）。省略は書かれていない */
+  leakedData: z.array(z.string().regex(/^[a-z][a-z0-9-]*$/)).optional(),
+  /** 記事が書く被害額（円）。記事が円で書いているときだけ。御社の想定額（会社カルテ）とは別で、計算には使わない */
+  reportedLossJpy: z.number().int().positive().optional(),
+  /** 記事の会社は被害を防げた（未遂・送金前に気づいた・被害が出なかった）。省略は被害が出た */
+  averted: z.boolean().optional(),
   /** 記事中に指示らしき文があったか（担当者画面に注意を出す） */
   suspiciousInstructions: z.array(z.string()).default([]),
 });
@@ -291,6 +297,8 @@ export const PathStep = z.object({
   certainty: StepCertainty.optional(),
   /** 記事が書いた入口の種類（入口の段階だけ） */
   entryKind: z.string().optional(),
+  /** 一枚の文で、この段階を書く完全な文（{node} は資産の名前。型紙の sentenceJa） */
+  sentenceJa: z.string().optional(),
   /** 持ち出された情報がすでに公開されたと記事が書いている段階 */
   published: z.boolean().optional(),
   state: StepState,
@@ -397,6 +405,17 @@ export const Verdict = z.object({
       /** 一枚の対策の一覧に出す助言（委託先管理など。判定には使わない） */
       measureIds: z.array(z.string()).default([]),
     })
+    .optional(),
+  /** 記事が書く事実（被害額、未遂）。御社の想定とは別に、一枚で並べて書く */
+  article: z
+    .object({
+      reportedLossJpy: z.number().optional(),
+      averted: z.boolean().optional(),
+    })
+    .optional(),
+  /** 記事が書く、漏えいした情報の種類と、その案内（leak-kinds.yaml から解いたもの） */
+  leakedData: z
+    .array(z.object({ id: z.string(), labelJa: z.string(), noteJa: z.string() }))
     .optional(),
   /** 判定の対象外だが、利用者が確認できることがあるとき（ソフトウェアの供給網の事故など）の案内 */
   guidanceJa: z.array(z.string()).optional(),

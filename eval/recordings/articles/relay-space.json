@@ -6,7 +6,7 @@
     "date": "2026-07-27"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:05.332Z",
+  "recordedAt": "2026-11-05T03:29:33.723Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,10 +15,13 @@
     "truncated": false
   },
   "raw": {
-    "title": "スペース：従業員のフィッシング被害後、メールアカウントが取引先2329件への攻撃の踏み台に",
+    "title": "スペース、従業員のメールアカウントが乗っ取られ取引先2329件へフィッシングメールの踏み台に",
     "damageType": "account_takeover",
     "clarity": "clear",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": null,
+    "averted": false,
     "steps": [
       {
         "tactic": "TA0001",
@@ -29,19 +32,18 @@
         "certainty": "confirmed",
         "entryKind": "mail",
         "quote": "2026年6月9日に従業員1人が取引先を装ったフィッシングメールを受信。メールに記載されたリンク先のフィッシングサイトにアクセスし、メールアカウントの認証情報を入力したことで詐取され、不正アクセスを受けた。",
-        "summaryJa": "取引先を装ったフィッシングメールのリンク先で従業員がメールアカウントの認証情報を入力し、詐取された"
+        "summaryJa": "取引先を装ったフィッシングメールのリンク先で、従業員がメールアカウントの認証情報を入力し、盗まれた。"
       },
       {
         "tactic": "TA0003",
         "techniques": [
-          "T1078.004",
-          "T1078"
+          "T1078.004"
         ],
         "source": "inferred",
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "盗まれた認証情報で攻撃者が従業員のメールアカウントに正規のログインをした"
+        "summaryJa": "盗んだ認証情報で、攻撃者が従業員のメールアカウントに正規のログインをした。"
       },
       {
         "tactic": "TA0008",
@@ -52,7 +54,7 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": "同社によれば、従業員のアカウントから取引先など2329件の宛先に対し、フィッシングメールが送信されたもの。",
-        "summaryJa": "乗っ取られたアカウントから取引先など2329件にフィッシングメールが送信された"
+        "summaryJa": "乗っ取られたアカウントから、取引先など2329件にフィッシングメールが送られた。"
       },
       {
         "tactic": "TA0040",
@@ -61,16 +63,16 @@
         "certainty": "confirmed",
         "entryKind": null,
         "quote": null,
-        "summaryJa": "取引先などの送信先に不審なメールが届き、二次被害のおそれが生じた"
+        "summaryJa": "取引先など送信先に不審なメールが届き、二次被害のおそれが及んだ。"
       }
     ],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 454,
-    "outputTokens": 622,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 653,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 4279
+  "elapsedMs": 4353
 }

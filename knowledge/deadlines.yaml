@@ -42,6 +42,7 @@ reportTriggers:
   - id: over1000
     ruleJa: 規則第7条第4号
     labelJa: 本人の数が 1,000 人を超える漏えい等
+    labelUnknownCountJa: 本人の数が 1,000 人を超えるおそれ（件数が未入力のため、超えるとみなしています）
     when: over1000
     sourceId: ppc-guidelines
   # 規則第7条第2号（財産的被害が生じるおそれがある個人データ：クレジットカード番号など）は、カルテに項目がないため判定しない（要確認：項目を足すか）
@@ -120,3 +121,13 @@ deadlines:
     sourceId: profile
     status: unverified
     noteJa: 要確認：日数の定めは法令にない。発覚後すみやかに（目安）。取引先との契約の通知条項を確認すること
+  - id: card-contact
+    kind: money
+    labelJa: カード会社・決済代行会社へ連絡（決済情報が漏えいした場合）
+    days: 0
+    appliesTo: leak_kind
+    leakKinds: [payment]
+    basisJa: 決済情報（クレジットカード番号など）が漏えいした場合は、不正利用を防ぐため、カード会社・決済代行会社に速やかに連絡する（目安）。警察への相談は別に出る
+    sourceId: npa-soudan
+    status: unverified
+    noteJa: 要確認：カード会社・決済代行会社との契約の連絡条項。日数の定めは法令にない。発覚当日を目安に置く

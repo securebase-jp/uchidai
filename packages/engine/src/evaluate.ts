@@ -208,6 +208,7 @@ function evaluateStageNode(
     ...(matched?.published ? { published: true } : {}),
     // 記事が装った相手が社長以外（取引先など）のとき、型紙の variants で札を差し替える。判定は変えない
     ...stageLabels(stage, matched?.impersonates),
+    ...(stage.sentenceJa ? { sentenceJa: stage.sentenceJa } : {}),
     ...(stage.precondition ? { precondition: true } : {}),
     ...(stage.branch ? { branch: true } : {}),
     ...(matched?.quote ? { quote: matched.quote } : {}),
@@ -589,6 +590,23 @@ function supplyChainGuidance(theCase: Case): string[] {
   ];
 }
 
+/**
+ * 判定の対象外の事故のとき、判定は出さず、固定の文を出す（D-006、B-002）：
+ * 個人情報が外部の人に見られた可能性があれば報告が必要になることがある、と共通の初動（knowledge/first-actions.yaml）
+ */
+export function outOfScopeGuidance(theCase: Case, knowledge: Knowledge): string[] {
+  const techniques = theCase.steps.flatMap((s) => s.techniques);
+  const matched = knowledge.firstActions.byTechnique.filter((a) =>
+    a.techniques.some((prefix) => techniques.some((t) => t.startsWith(prefix))),
+  );
+  return [
+    "この事故は攻撃経路で判定できないため、被害の見込みは出していません。",
+    "攻撃経路は判定できませんが、個人情報が外部の人に見られた可能性がある場合は、個人情報保護委員会への報告が必要になることがあります。",
+    ...knowledge.firstActions.common,
+    ...matched.flatMap((a) => a.actionsJa),
+  ];
+}
+
 /** 第三者（委託先・取引先・提供元）の事故の見出し：御社の設備が入口になったとは言わず、「御社が同じ立場なら」の見立てとして書く */
 const THIRD_PARTY_TAIL: Partial<Record<VerdictResult, string>> = {
   blocked: "止められます",
@@ -623,16 +641,59 @@ function applyThirdParty(v: Verdict, theCase: Case, knowledge: Knowledge): Verdi
   };
 }
 
+/**
+ * 記事が書く事実（被害額、未遂）を結論に載せる（B-003、B-013）。未遂のときは、見出しも
+ * 「記事の会社は被害を防げた事例です。同じ手口が御社に来たら、…」にする（第三者の事故の見出しを優先する）
+ */
+function applyArticleFacts(v: Verdict, theCase: Case): Verdict {
+  if (theCase.reportedLossJpy === undefined && !theCase.averted) return v;
+  const headline =
+    theCase.averted && !v.thirdParty && v.paths.length > 0 ? avertedHeadline(v.result) : undefined;
+  return {
+    ...v,
+    ...(headline ? { headlineJa: headline } : {}),
+    article: {
+      ...(theCase.reportedLossJpy !== undefined
+        ? { reportedLossJpy: theCase.reportedLossJpy }
+        : {}),
+      ...(theCase.averted ? { averted: true } : {}),
+    },
+  };
+}
+export const avertedHeadline = (result: VerdictResult): string | undefined =>
+  THIRD_PARTY_TAIL[result] === undefined
+    ? undefined
+    : `記事の会社は被害を防げた事例です。同じ手口が御社に来たら、${THIRD_PARTY_TAIL[result]}`;
+
+/** 記事が書く漏えいした情報の種類（定義済みのもの）を、案内つきで結論に載せる（D-011） */
+function applyLeakedData(v: Verdict, theCase: Case, knowledge: Knowledge): Verdict {
+  const kinds = (theCase.leakedData ?? [])
+    .map((id) => knowledge.leakKinds.find((k) => k.id === id))
+    .filter((k): k is NonNullable<typeof k> => k !== undefined);
+  if (kinds.length === 0) return v;
+  return {
+    ...v,
+    leakedData: kinds.map((k) => ({ id: k.id, labelJa: k.labelJa, noteJa: k.noteJa })),
+  };
+}
+
 export function evaluate(
   theCase: Case,
   profile: CompanyProfile,
   options: EvaluateOptions = {},
 ): Verdict {
   const knowledge = options.knowledge ?? loadKnowledge();
-  return applyThirdParty(
-    evaluateCore(theCase, profile, { ...options, knowledge }),
+  return applyArticleFacts(
+    applyLeakedData(
+      applyThirdParty(
+        evaluateCore(theCase, profile, { ...options, knowledge }),
+        theCase,
+        knowledge,
+      ),
+      theCase,
+      knowledge,
+    ),
     theCase,
-    knowledge,
   );
 }
 
@@ -669,14 +730,17 @@ function evaluateCore(
         ...empty("out_of_scope", SUPPLY_CHAIN_HEADLINE),
         guidanceJa: supplyChainGuidance(theCase),
       };
-    return empty("out_of_scope");
+    return { ...empty("out_of_scope"), guidanceJa: outOfScopeGuidance(theCase, knowledge) };
   }
 
   // 記事の段階のどれも型紙の手法に対応づけられないなら、どの型紙もこの記事の攻撃を表していない。
   // 手法の無い段階を戦術だけで当てはめて「止められます」と答えると、誤って安心を与えるので判定しない。
   // 入口が分からない記事（clarity: unknown）は、仕様どおり入口の候補をすべて展開する
   if (theCase.clarity !== "unknown" && theCase.steps.length > 0 && top.stageMatches === 0) {
-    return empty("out_of_scope", UNMAPPED_HEADLINE);
+    return {
+      ...empty("out_of_scope", UNMAPPED_HEADLINE),
+      guidanceJa: outOfScopeGuidance(theCase, knowledge),
+    };
   }
 
   const paths: AttackPath[] = [];
@@ -712,6 +776,7 @@ function evaluateCore(
     {
       knowledge,
       damageType: theCase.damageType,
+      ...(theCase.leakedData ? { leakedKinds: theCase.leakedData } : {}),
     },
   );
   return {

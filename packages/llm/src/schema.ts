@@ -7,8 +7,10 @@ import {
   DamageType,
   type DamageTypeDef,
   type EntryKindDef,
+  type LeakKindDef,
   loadDamageTypes,
   loadEntryKinds,
+  loadLeakKinds,
   loadVictims,
   OUT_OF_SCOPE,
   StepCertainty,
@@ -33,6 +35,12 @@ export const RawCase = z.object({
   clarity: Clarity,
   /** 被害を受けた側（knowledge/victims.yaml の id）。古い記録には無い（省略は記事の会社そのもの） */
   victim: z.string().nullable().optional(),
+  /** 記事が書く漏えいした情報の種類（knowledge/leak-kinds.yaml の id）。古い記録には無い */
+  leakedData: z.array(z.string()).optional(),
+  /** 記事が書く被害額（円）。古い記録には無い */
+  reportedLossJpy: z.number().nullable().optional(),
+  /** 記事の会社が被害を防げた（未遂）。古い記録には無い */
+  averted: z.boolean().optional(),
   steps: z.array(RawStep),
   suspiciousInstructions: z.array(z.string()),
 });
@@ -47,11 +55,22 @@ export function buildRawCaseJsonSchema(
   damageTypes: DamageTypeDef[] = loadDamageTypes(),
   entryKinds: EntryKindDef[] = loadEntryKinds(),
   victims: VictimDef[] = loadVictims(),
+  leakKinds: LeakKindDef[] = loadLeakKinds(),
 ): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["title", "damageType", "clarity", "victim", "steps", "suspiciousInstructions"],
+    required: [
+      "title",
+      "damageType",
+      "clarity",
+      "victim",
+      "leakedData",
+      "reportedLossJpy",
+      "averted",
+      "steps",
+      "suspiciousInstructions",
+    ],
     properties: {
       title: { type: "string", description: "記事の見出し。無ければ内容を表す短い題（日本語）" },
       damageType: {
@@ -67,6 +86,21 @@ export function buildRawCaseJsonSchema(
       victim: {
         anyOf: [{ type: "string", enum: victims.map((v) => v.id) }, { type: "null" }],
         description: `被害を受けた組織が、記事を公表した会社・機関から見てどの立場か（${victims.map((v) => `${v.id}=${v.labelJa}`).join("、")}）。迷えば self`,
+      },
+      leakedData: {
+        type: "array",
+        items: { type: "string", enum: leakKinds.map((l) => l.id) },
+        description: `記事が書く、漏えいした（可能性がある）情報の種類（${leakKinds.map((l) => `${l.id}=${l.labelJa}`).join("、")}）。無ければ空`,
+      },
+      reportedLossJpy: {
+        type: ["number", "null"],
+        description:
+          "記事が書く被害額（円の整数。例 256000000）。外貨・不明・記載なしは null。記事にない金額を作らない",
+      },
+      averted: {
+        type: "boolean",
+        description:
+          "記事の会社が被害を防げた（未遂・送金前に気づいた・被害が出なかった）なら true",
       },
       steps: {
         type: "array",

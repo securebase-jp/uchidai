@@ -54,6 +54,7 @@ stages:
     labelJa: 資金が流出する
     breachedJa: 起きる
     breachedDoneJa: 起きました
+    sentenceJa: "{node}から資金が流出する"
     tactics: [TA0040]
     byRole:
       impact.money: null

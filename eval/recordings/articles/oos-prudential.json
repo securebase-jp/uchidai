@@ -6,7 +6,7 @@
     "date": "2025-06-04"
   },
   "model": "claude-sonnet-5-5",
-  "recordedAt": "2026-11-05T02:37:33.207Z",
+  "recordedAt": "2026-11-05T03:29:59.624Z",
   "attackVersion": "20.0",
   "note": "実際の報道記事を知見あり（手法一覧・日本語ラベル・型紙）で読解した検証前の出力。根拠文は記事からの短い抜粋（出典は source）。計測は --replay で現在の verifyCase と evaluate をかけ直す",
   "article": {
@@ -15,18 +15,21 @@
     "truncated": false
   },
   "raw": {
-    "title": "元従業員が顧客情報を持ち出し、在職者も漏えいに関与（プルデンシャル生命）",
+    "title": "元従業員による顧客情報の持ち出しと在職者の関与（プルデンシャル生命）",
     "damageType": "out_of_scope",
     "clarity": "unknown",
     "victim": "self",
+    "leakedData": [],
+    "reportedLossJpy": null,
+    "averted": false,
     "steps": [],
     "suspiciousInstructions": []
   },
   "usage": {
     "inputTokens": 601,
-    "outputTokens": 93,
-    "cacheReadInputTokens": 24174,
+    "outputTokens": 114,
+    "cacheReadInputTokens": 25654,
     "cacheCreationInputTokens": 0
   },
-  "elapsedMs": 2028
+  "elapsedMs": 1645
 }

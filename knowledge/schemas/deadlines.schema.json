@@ -50,6 +50,9 @@
           "labelJa": {
             "type": "string"
           },
+          "labelUnknownCountJa": {
+            "type": "string"
+          },
           "when": {
             "type": "string",
             "enum": [
@@ -128,6 +131,7 @@
               "partner",
               "police",
               "damage_type",
+              "leak_kind",
               "all"
             ]
           },
@@ -136,6 +140,12 @@
             "items": {
               "type": "string",
               "pattern": "^[a-z][a-z0-9_]*$"
+            }
+          },
+          "leakKinds": {
+            "type": "array",
+            "items": {
+              "type": "string"
             }
           },
           "basisJa": {

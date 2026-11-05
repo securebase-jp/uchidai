@@ -108,12 +108,19 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     .filter((s) => !s.precondition && happened(s))
     .map((s) => {
       const node = nodeLabel(s.nodeId, s.role, profile, knowledge);
+      // 型紙に完全な文があれば、それを使う（「会社の口座が起きる」「業務サーバ区画が持ち出される」を避ける）
+      if (s.sentenceJa && s.state !== "blocked") return s.sentenceJa.replaceAll("{node}", node);
       return s.breachedLabelJa && s.state !== "blocked"
         ? `${node}が${s.breachedLabelJa}`
         : `${s.labelJa ?? "次の段階へ進む"}（${node}）`;
     })
     .join(" → ");
   const lines: string[] = [];
+  // 記事の会社が被害を防げた事例（未遂・回避）：被害が出た記事と取り違えないよう、最初に書く
+  if (verdict.article?.averted)
+    lines.push(
+      "記事の会社は、被害を防げた事例です。以下は、同じ手口が御社に来たら、という見立てです。",
+    );
   // 第三者（委託先・取引先・提供元）で起きた事故：御社の設備が入口になったとは書かず、「御社が同じ立場なら」の見立てにする
   const third = verdict.thirdParty;
   if (third)
@@ -189,6 +196,39 @@ export function thirdPartyLines(verdict: Verdict): string[] {
     ...t.checksJa.map((c) => `御社が確認すること：${c}。`),
     ...(t.reportNoteJa ? [t.reportNoteJa] : []),
   ];
+}
+
+/**
+ * 報告義務の安心側に倒さないための注意（B-004）：メールアカウントに入られる経路では、メールの中身を見られた可能性がある。
+ * カルテに個人情報として登録されていなくても、「報告は不要」とは書かず、内容の確認を求める
+ */
+export function reportCautionLines(verdict: Verdict): string[] {
+  const mailboxReached = verdict.paths.some(
+    (p) =>
+      p.reachedCore &&
+      p.steps.some((s) => s.role.startsWith("cloud.mail_account") && s.state !== "blocked"),
+  );
+  if (!mailboxReached || verdict.impact.reportRequired) return [];
+  return [
+    "メールの中身を見られた可能性があり、個人情報が含まれていれば、個人情報保護委員会への報告の対象です。メールの内容の確認が必要です。",
+  ];
+}
+
+/**
+ * 記事が書く漏えいした情報の種類ごとの案内（D-011）。件数・種類は会社カルテの計算とは別で、
+ * 「御社が同じ種類の情報を預かっているなら」（第三者の事故のときは「預けている情報に含まれるなら」）と、御社の話として書く
+ */
+export function leakedDataLines(verdict: Verdict): string[] {
+  const third = verdict.thirdParty;
+  return (verdict.leakedData ?? []).map(
+    (k) =>
+      `記事で漏えいしたとされる情報に「${k.labelJa}」が含まれます。${third ? `${third.labelJa}に預けている情報に、同じ種類が含まれる場合：` : "御社が同じ種類の情報を預かっている場合："}${k.noteJa}`,
+  );
+}
+
+/** 言い換えの文のあとに、プログラムの文として付ける行（第三者の事故の確認事項、報告義務の注意） */
+export function onePagerExtraLines(verdict: Verdict): string[] {
+  return [...thirdPartyLines(verdict), ...leakedDataLines(verdict), ...reportCautionLines(verdict)];
 }
 
 /** 対策の patches がカルテで既に満たされているか（緩和策あり、属性も一致）。満たしていれば勧めない */
@@ -338,15 +378,21 @@ export function buildOnePager(
         ? "復旧が手作業で回せる期間に収まるため、取引先への影響は見込みません。"
         : undefined;
   if (partnerImpactJa) whatHappens.push(partnerImpactJa);
+  const reported = verdict.article?.reportedLossJpy;
+  // 記事の被害額は記事の事実として別の文にし、御社の額は必ず「想定では」を付けて並べる（計算には記事の額を使わない）
+  if (reported !== undefined)
+    whatHappens.push(`記事の事例では、被害額は${formatJpy(reported)}です。`);
   if (impact.moneyLossJpy !== undefined)
     whatHappens.push(
-      `なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出します（会社カルテの想定額）。`,
+      reported !== undefined
+        ? `御社の想定では、なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出すると見込まれます（会社カルテの想定額）。`
+        : `なりすましの指示で送金すると、${formatJpy(impact.moneyLossJpy)}の資金が流出します（会社カルテの想定額）。`,
     );
   if (impact.reportRequired)
     whatHappens.push(
       `${impact.personalDataReached.map((p) => p.descriptionJa).join("、")}が漏えいしたおそれがあり、個人情報保護委員会への報告と本人への通知が必要になります。`,
     );
-  whatHappens.push(...thirdPartyLines(verdict));
+  whatHappens.push(...onePagerExtraLines(verdict));
 
   const deadlines: OnePagerDeadline[] = verdict.timeline
     .filter(
@@ -377,6 +423,10 @@ export function buildOnePager(
       .map((d) => knowledge.deadlines.deadlines.find((x) => x.id === d.deadlineId)?.sourceId)
       .filter((id): id is string => id !== undefined),
   );
+  // 記事が書く漏えいした情報の種類の案内を出したときは、その根拠（leak-kinds.yaml の sourceIds）も載せる
+  for (const l of verdict.leakedData ?? [])
+    for (const id of knowledge.leakKinds.find((x) => x.id === l.id)?.sourceIds ?? [])
+      usedSourceIds.add(id);
   const sources = [
     `${knowledge.costs.sourceJa}（${knowledge.costs.sourceUrl}）`,
     `MITRE ATT&CK Enterprise v${verdict.attackVersion}（攻撃の段階の対応づけ。対象は Enterprise のみで、工場の制御システム（ICS）への攻撃は対象外）`,
