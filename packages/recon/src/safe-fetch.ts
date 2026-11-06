@@ -69,6 +69,50 @@ export function assertAllowedUrl(input: string | URL): URL {
   return url;
 }
 
+/** 応答の本文の大きさの上限（既定 10MB）。content-length と受信量の両方で打ち切る（SEC-009） */
+export const MAX_RESPONSE_BYTES = 10 * 1024 * 1024;
+
+export class ResponseTooLargeError extends Error {
+  constructor(max: number) {
+    super(`応答が大きすぎる（上限 ${max} バイト）`);
+    this.name = "ResponseTooLargeError";
+  }
+}
+
+/** 本文を上限まで読んで文字列にする。上限を超えたら途中で止めて ResponseTooLargeError */
+export async function readLimitedText(res: Response, max = MAX_RESPONSE_BYTES): Promise<string> {
+  const declared = Number(res.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new ResponseTooLargeError(max);
+  }
+  if (!res.body) {
+    const text = await res.text();
+    if (text.length > max) throw new ResponseTooLargeError(max);
+    return text;
+  }
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => undefined);
+      throw new ResponseTooLargeError(max);
+    }
+    chunks.push(value);
+  }
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return new TextDecoder("utf-8").decode(out);
+}
+
 export interface RestrictedFetchOptions {
   /** 差し替え用（テストではここに偽の fetch を渡す）。検査を通った URL でしか呼ばれない */
   fetch?: FetchLike;

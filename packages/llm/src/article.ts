@@ -6,13 +6,14 @@
  * - http / https 以外、認証情報つき URL、localhost・内部用の名前、私設・ループバック・リンクローカル・
  *   メタデータ（169.254.169.254）などの IP に向く URL は拒否する（ホスト名は解決した先の IP でも確認する）
  * - リダイレクトは 1 回ごとに同じ検査をして辿る（最大 5 回）
- * - 受信は上限バイト数（既定 20MB）で打ち切り、全体にタイムアウト（既定 30 秒）をかける
+ * - 受信は上限バイト数（既定 5MB。SEC-009）で打ち切り、全体にタイムアウト（既定 30 秒）をかける。同時の取得は 3 件まで（超えた分は待つ）
  */
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { extractText, getDocumentProxy } from "unpdf";
+import { fetchSemaphore } from "./limits.ts";
 import { type FetchLike, resolveFetch } from "./proxy.ts";
 
 /** 取得に失敗したときの案内（どの失敗にも付ける。本文を貼れば、取得を介さずに読める） */
@@ -157,7 +158,7 @@ const INCIDENT_WORDS = /不正アクセス|ランサム|サイバー攻撃|漏�
 
 export type FetchOptions = {
   fetch?: FetchLike;
-  /** 取得する最大バイト数（既定 20MB） */
+  /** 取得する最大バイト数（既定 5MB） */
   maxBytes?: number;
   /** タイムアウト（ms、既定 30 秒。リダイレクトと本文の受信を含む全体） */
   timeoutMs?: number;
@@ -169,7 +170,7 @@ export type FetchOptions = {
   blockedHosts?: string[];
 };
 
-export const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
+export const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 /** Claude に渡す本文の上限（文字数）。これを超える分は切る（根拠文の照合も切った後の本文で行う） */
 export const MAX_TEXT_CHARS = 100_000;
 /** PDF のページ数の上限 */
@@ -279,7 +280,9 @@ export function isPrivateIpv6(ip: string): boolean {
   // ::ffff:a.b.c.d（IPv4 射影）、64:ff9b::/96（NAT64）は埋め込まれた IPv4 で判定
   const mapped = b.slice(0, 10).every((x) => x === 0) && b[10] === 0xff && b[11] === 0xff;
   const nat64 = b[0] === 0 && b[1] === 0x64 && b[2] === 0xff && b[3] === 0x9b;
-  if (mapped || nat64) return isPrivateIpv4(`${b[12]}.${b[13]}.${b[14]}.${b[15]}`);
+  // ::a.b.c.d（IPv4 互換。廃止された表記）も埋め込まれた IPv4 で判定する（SEC-008）
+  const compat = b.slice(0, 12).every((x) => x === 0);
+  if (mapped || nat64 || compat) return isPrivateIpv4(`${b[12]}.${b[13]}.${b[14]}.${b[15]}`);
   return false;
 }
 
@@ -449,10 +452,37 @@ async function readBody(res: Response, max: number, signal: AbortSignal): Promis
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
+/** 応答の本文を上限まで読んで文字列にする（content-length と受信量の両方で打ち切る）。超えたら message の Error */
+export async function readLimitedText(
+  res: Response,
+  max: number,
+  message: string,
+): Promise<string> {
+  const declared = Number(res.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new Error(message);
+  }
+  try {
+    return new TextDecoder("utf-8").decode(await readBody(res, max, new AbortController().signal));
+  } catch (e) {
+    if (e instanceof ArticleFetchError && e.kind === "too_large") throw new Error(message);
+    throw e;
+  }
+}
+
 /** URL からバイト列を取得する（記事サイト・公的機関の PDF 向け。自社ホストの調査には使わない） */
 export async function downloadBytes(
   url: string,
   opts: FetchOptions = {},
+): Promise<{ data: Uint8Array; contentType: string; finalUrl: string }> {
+  // 同時の取得を抑える（SEC-006）。枠が空くまで待ってから、タイムアウトを数え始める
+  return fetchSemaphore.run(() => downloadBytesNow(url, opts));
+}
+
+async function downloadBytesNow(
+  url: string,
+  opts: FetchOptions,
 ): Promise<{ data: Uint8Array; contentType: string; finalUrl: string }> {
   const doFetch = resolveFetch(opts.fetch);
   const max = opts.maxBytes ?? DEFAULT_MAX_BYTES;

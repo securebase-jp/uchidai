@@ -33,6 +33,7 @@ import {
 import { Hono } from "hono";
 import { z } from "zod";
 import { Answers, MeasureIds } from "../../shared/api.ts";
+import { takeClaudeSlot } from "../limits.ts";
 import { patchProfile } from "../profile-patch.ts";
 
 /** AI攻撃者の目標の役割。到達の判定（validateAiPath）もこの役割だけを終点とする（ホームページで終わる経路を到達にしない） */
@@ -96,6 +97,7 @@ attackerRoutes.post("/recon", async (c) => {
   const techniqueLabel = (id: string) => k.labels.techniques[id];
 
   if (process.env.ANTHROPIC_API_KEY && !body.replay) {
+    takeClaudeSlot("write"); // SEC-006。記録の再生は数えない
     const r = await reconnoiter(abs, {
       attack: k.attack,
       labels: k.labels,
@@ -233,6 +235,7 @@ attackerRoutes.post("/compare", async (c) => {
       503,
     );
   }
+  takeClaudeSlot("write"); // SEC-006。記録があるときは上で返っている
   const r = await listGenericMitigations(caseAsArticle(body.case), {
     attack: k.attack,
     title: body.case.title,

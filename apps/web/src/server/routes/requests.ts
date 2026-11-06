@@ -22,6 +22,7 @@ import {
   ReplyRequest,
 } from "../../shared/requests.ts";
 import { dataDir } from "../data-dir.ts";
+import { takeClaudeSlot } from "../limits.ts";
 import { type Mailer, mailerFromEnv, mailtoUrl } from "../mail/mailer.ts";
 import { backgroundFor, questionFor } from "../requests/questions.ts";
 import {
@@ -73,6 +74,12 @@ export function defaultDeadline(now: Date, days = 7): string {
 
 export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   const { store, mailer } = deps;
+  /** 依頼文を Claude が書くか（writer.ts の判定と同じ：指定があればそれ、無ければ client かキーがあれば Claude） */
+  const usesClaude = (writer: "claude" | "template" | undefined): boolean => {
+    const w = writer ?? deps.writer?.writer;
+    if (w) return w === "claude";
+    return Boolean(deps.writer?.client || process.env.ANTHROPIC_API_KEY);
+  };
   const now = deps.now ?? (() => new Date());
   const keepAliveMs = deps.keepAliveMs ?? 15_000;
   const maxSubscribers = deps.maxSubscribers ?? DEFAULT_MAX_SUBSCRIBERS;
@@ -125,6 +132,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     const bg = backgroundFor(body.mitigation, asset.role, k);
     const roleLabel = k.roles.find((x) => x.id === asset.role)?.labelJa ?? asset.role;
     const deadline = body.deadline ?? defaultDeadline(now());
+    if (usesClaude(body.writer)) takeClaudeSlot("write"); // SEC-006。テンプレートの書き手は数えない
     const mail = await writeVendorRequest(
       {
         companyLabel: body.profile.companyName,
@@ -194,6 +202,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     if (!asset) return c.json({ error: "対策の対象となる資産がカルテにありません" }, 404);
     const bg = backgroundFor(measure.mitigation, asset.role, k);
     const roleLabel = k.roles.find((x) => x.id === asset.role)?.labelJa ?? asset.role;
+    if (usesClaude(body.writer)) takeClaudeSlot("write");
     const mail = await writeMeasureRequest(
       {
         companyLabel: body.profile.companyName,

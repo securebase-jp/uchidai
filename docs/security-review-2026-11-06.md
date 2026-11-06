@@ -15,7 +15,20 @@
 | SEC-004（中）                | remote-guard が接続元のアドレスも見る。Docker は `UCHIDAI_TRUST_PRIVATE_PEER=1` を既定で設定       | `aaa4364` |
 | SEC-007（中）                | 宛先 `to` を 1 件のメールアドレスの形だけにした。SMTP の自動送信は文書に明記（挙動は変えない）     | `efb4b47` |
 
-**公開後の課題（未対応）**：SEC-003（中。Host ヘッダの検査）、SEC-005（中。記事取得の名前解決と接続の窓、検査の fail-open）、SEC-006（中。Claude を呼ぶ API の回数・同時実行の上限）、SEC-008（低。IPv6 の端の表記）、SEC-009（低。解析ライブラリへの大きな入力）、SEC-010（低。CI の権限とアクションの固定）、SEC-011（低・推定。Docker の読み取り専用と recon のキャッシュ）、SEC-013〜016（情報）。SEC-002 の修正により、SEC-003・005・006 の「悪意あるページから誘発される」経路は閉じましたが、手元の利用者自身や DNS の付け替えによる経路は残ります。
+**残りの対応（2026-11-06、枝 `claude/security-audit-2`）**：利用者の指示で、残りも直しました。
+
+| ID                             | 対応                                                                                                               | コミット  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------- |
+| SEC-003（中）                  | Host が手元の名前（localhost・127.0.0.1・[::1]・`UCHIDAI_ALLOWED_HOSTS`）でなければ 421                            | `01e0902` |
+| SEC-006（中）                  | Claude の同時呼び出し 3・記事の取得 3（待つ）、読解 10 回／分・言い換え等 20 回／分（超えたら 429 と Retry-After） | `efb235d` |
+| SEC-005（中）・SEC-008（低）   | 名前解決の失敗は拒否。解決した IP に接続を固定（プロキシ無しのとき）。NAT64・IPv4 互換を両方の検査で断る           | `2cb0972` |
+| SEC-009（低）                  | 記事・PDF の既定の上限 5MB、CT と KEV の応答は 10MB で打ち切り                                                     | `8bd28de` |
+| SEC-010（低）                  | CI の `permissions: contents: read`、gitleaks の配布物のチェックサム                                               | `3736030` |
+| SEC-011（低）・SEC-013（情報） | `UCHIDAI_DATA_DIR` を Dockerfile の既定に。全面開放の設定なら起動時に警告                                          | `3a5328a` |
+| SEC-014（情報）                | 所有確認のトークンに 7 日の期限                                                                                    | `14550b0` |
+| SEC-015・016（情報）           | 対応しない（各節に理由）                                                                                           | —         |
+
+**公開後の課題（未対応）**：無し。ただし SEC-005 の「接続先の固定」は、プロキシ（`HTTPS_PROXY`）経由のときは効かず（プロキシ側が名前を引く）、従来どおり「解決して内部なら拒否」だけです。プロキシを使う環境では、プロキシ側で内部アドレスへの接続を禁じてください。
 
 修正の前後で、`eval/trials/demo-snapshot.ts` の出力は同一、`pnpm eval` は 98%／92%（基準どおり）、`pnpm typecheck`・`pnpm lint`・`pnpm test` は通っています。開発サーバで、カルテ画面・担当者画面（確認依頼の作成と送信箱）・デモ（`?demo=1&profile=demo-seiko`）の API の呼び出しがすべて 200 のままであることを内蔵ブラウザで確かめました。
 
@@ -69,6 +82,7 @@
 - 原因：Host の許可リストが無い。
 - 直し方の案：`/api/*` で `Host` が `localhost`、`127.0.0.1`、`[::1]`（任意のポート）と、環境変数で足した名前以外なら 421 か 403 を返す。公開 URL（トンネル）の場合は転送ヘッダつきなので、`isForwarded` のときは Host の確認を飛ばして remote-guard に任せる。
 - 規模：小。
+- **対応済み（`01e0902`）**：`apps/web/src/server/host-guard.ts`。Host が無い要求は通し、`isRemote`（転送ヘッダ、または接続元がループバックでない。Docker の `UCHIDAI_TRUST_PRIVATE_PEER=1` も同じ設定）のときは remote-guard に任せる。Vite のプロキシは `changeOrigin: true` で Host を `127.0.0.1:<API_PORT>` に書き換える（`vite.config.ts` で確認）ので画面は影響しない。確認：試験（421・200・追加の許可）、開発サーバで画面・担当者画面・デモの API が 200、Docker で `Host: localhost:8787` と `127.0.0.1:8798` が 200、`Host: evil.example:8787` が 421。
 
 ### SEC-004（中）remote-guard は転送ヘッダが無ければ外からでも手元扱い（fail-open）
 
@@ -90,6 +104,7 @@
 - 確かめ方（確認済み、`safe-url.security.test.ts` の guardedFetch の節）：名前解決の差し替えを 1 回目公開 IP、2 回目 127.0.0.1 にしても、`base` には `http://rebind.example/` がホスト名のまま渡り、名前解決は 1 回しか呼ばれない。解決が例外・空のときに `assertPublicUrl` が URL を返す。llm 側は例外・空で拒む。
 - 直し方の案：undici の `Agent({ connect: { lookup } })` で、検査で解決した IP を接続に使う（`Host` ヘッダと TLS の SNI はホスト名のまま）。または `guardedFetch` が解決した IP に置き換えた URL で取得し `Host` ヘッダを付ける（TLS の証明書検証に `servername` が要る）。`assertPublicUrl` は解決失敗を拒む（llm 側と同じ）。
 - 規模：中（プロキシ経由 `EnvHttpProxyAgent` との両立に注意。プロキシがあるときはプロキシ側が解決するので、この窓は無い代わりに検査の解決と食い違う）。
+- **対応済み（`2cb0972`）**：(a) `assertPublicUrl`（`resolvePublicUrl`）は解決の失敗・空を 400 で拒む。(b) `guardedFetch` が各段で解決したアドレスを `pinAddresses` で固定し、プロキシが無いときは `@uchidai/llm` の `lookupFetch`（undici の `Agent({ connect: { lookup } })`）で、そのアドレスだけに接続する（`pinnedLookup`。検査していないホストは ENOTFOUND）。TLS の SNI と Host はホスト名のまま。プロキシがあるときは `pinningFetch().pinned` が false で、従来の検査だけ（理由：プロキシ側が名前を引くため、こちらでは固定できない。上の「公開後の課題」）。確認：`safe-url.security.test.ts`（名前解決を 1 回目公開 IP・2 回目 127.0.0.1 に差し替えても、取得側の解決は 1 回目の値を返す）、`safe-url.test.ts`。実際の DNS の付け替えでは試していません。
 
 ### SEC-006（中）Claude を呼ぶ API と記事の取得に、回数・同時実行の上限が無い
 
@@ -99,6 +114,7 @@
 - 確かめ方：コードの読解。`bodyLimit` 以外の制限 middleware が無いことを `app.ts` で確認。
 - 直し方の案：プロセス内の簡単なセマフォ（同時 2 件）と、1 分あたりの回数（例：読解 10 回、言い換え 20 回）を超えたら 429。
 - 規模：小。
+- **対応済み（`efb235d`）**：同時実行は `@uchidai/llm` の `limits.ts`（Claude は `callStructured` の中で 3、記事の取得は `downloadBytes` で 3。環境変数 `UCHIDAI_CLAUDE_CONCURRENCY`・`UCHIDAI_FETCH_CONCURRENCY`。超えた分は待つだけで断らない）。回数は `apps/web/src/server/limits.ts`（読解 10 回／分 `UCHIDAI_READ_PER_MINUTE`、言い換え・依頼文・AI攻撃者・知見なし比較 20 回／分 `UCHIDAI_WRITE_PER_MINUTE`。超えたら 429 と `Retry-After`、「しばらく待ってからもう一度」の案内）。数えるのは Claude を呼ぶ直前だけで、`urls` の複数の読解も 1 回。記録の再生（キー無し、`replay`、記録済みの事例、テンプレートの書き手、`rewrite: false`、言い換えの使い回し）は数えない。デモは記録の再生なので当たらない。確認：`app.security.test.ts`（429 と Retry-After、再生は数えない、窓の動き）、`packages/llm/src/limits.test.ts`（セマフォ）、開発サーバで判定 3 回・一枚・再生・確認依頼が 200。
 
 ### SEC-007（中）依頼メールの宛先 `to` を検証していない。SMTP は依頼を作った時点で自動送信
 
@@ -118,6 +134,7 @@
 - 確かめ方（確認済み、`safe-url.security.test.ts`）。
 - 直し方の案：`safe-url.ts` の `ipv6Blocked` に NAT64（`64:ff9b::/96`）と `::/96`（IPv4 互換）を足す。二重の検査は、どちらか一方（llm 側）に寄せると齟齬が減ります。
 - 規模：小。
+- **対応済み（`2cb0972`）**：サーバ側の `isBlockedAddress` を llm の `isPrivateIp` に寄せ、llm 側に `::/96`（IPv4 互換）を足した（NAT64 は llm 側に既にあった）。確認：`safe-url.security.test.ts`（両方の検査が同じ答え）、`packages/llm/src/limits.test.ts`。
 
 ### SEC-009（低）解析ライブラリへの大きな入力と、応答の全読み
 
@@ -127,6 +144,7 @@
 - 確かめ方：コードの読解。細工した PDF での実測はしていません。
 - 直し方の案：PDF と HTML の既定の上限を 20MB から 5MB 程度に下げる、`pdf.js` を `maxImageSize` などで絞る、CT と KEV の応答を `content-length` と受信量で打ち切る（`readBody` と同じ形）。
 - 規模：小。
+- **対応済み（`8bd28de`）**：`DEFAULT_MAX_BYTES` を 5MB に、貼り付け PDF の base64 上限を 7,000,000 字（5MB × 4/3）に。crt.sh・Cert Spotter（`packages/recon/src/safe-fetch.ts` の `readLimitedText`）と KEV（`@uchidai/llm` の `readLimitedText`）は `content-length` と受信量の両方で 10MB を超えたら途中で止める。main 側の `eval/.cache`（HTML 12 件、本文 44 件、合計 3.0MB）に 500KB を超えるファイルは無く、上限には当たりません。raw の PDF はキャッシュに無いので、PDF の実物の大きさは確かめていません（IPA 事例集と IR の PDF は一般に数 MB 以内）。`pdf.js` の `maxImageSize` は入れていません（規模と影響の確認に時間が要るため）。
 
 ### SEC-010（低）CI の権限とアクションの固定
 
@@ -136,6 +154,7 @@
 - 確かめ方：workflow の読解。`pull_request_target` は使っていない、`workflow_dispatch` の入力は環境変数で受けて形を検査している（`release-zip.yml:36-50`）、`run:` の中に `${{ }}` を直接書いていないことを確認。
 - 直し方の案：`ci.yml` に `permissions: contents: read` を足す。アクションを SHA で固定する（Dependabot の `github-actions` を有効にする）。gitleaks は `--retry` の後に `sha256sum -c` を足す。
 - 規模：小。
+- **対応済み（`3736030`）**：`permissions: contents: read` と、公式の `gitleaks_8.30.1_checksums.txt` の値での `sha256sum -c` を足した。アクションの SHA 固定はせず、既にある `.github/dependabot.yml` の `github-actions` に任せる（PM の指示）。
 
 ### SEC-011（低・推定）Docker の `read_only: true` と、外部確認のキャッシュの既定の置き場
 
@@ -145,6 +164,7 @@
 - 確かめ方：`docker compose up` で架空ではない自分のドメインを外部確認し、応答の `notesJa` を見る。この診断では Docker を動かしていません。
 - 直し方の案：`Dockerfile` に `ENV UCHIDAI_DATA_DIR=/app/apps/web/.data` を足す（recon のキャッシュも `.data/recon-cache` に入る）。
 - 規模：小。
+- **対応済み（`3a5328a`）**：確認：イメージを build し、`--read-only --tmpfs /tmp -v <volume>:/app/apps/web/.data` で起動して、コンテナの中で `FileCache` の `set`／`get` が `/app/apps/web/.data/recon-cache` で通ることを確かめた（推定が当たっていたかの検証ではなく、修正後に書けることの確認）。
 
 ### SEC-012（低）SSE の接続数の上限を、他サイトのページが使い切れる
 
@@ -158,21 +178,25 @@
 
 - 該当：`remote-guard.ts:27`、`docs/install.md:99`
 - 設定すると認証無しで全 API が公開 URL から使えます。文書は「デモ以外では設定しない」と書いています。起動時の標準出力に警告を出すと、設定の残り忘れに気づけます。
+- **対応済み（`3a5328a`）**：`index.ts` が起動時に警告を出す。Docker で `-e UCHIDAI_ALLOW_REMOTE_API=1` にして `docker logs` に出ることを確認。
 
 ### SEC-014（情報）所有確認の手順で、任意のドメインの TXT を照会できる。トークンに期限が無い
 
 - 該当：`routes/recon.ts:210-278`、`packages/recon/src/ownership.ts:38-40, 111-126`
 - 手元の利用者は、どのドメインでもトークンを発行し `verify` を呼べるので、サーバはそのドメインの TXT を DNS に照会し、失敗応答に全 TXT レコードを返します。公開の DNS 情報で、対象ホストにはつながないので、設計の範囲内です。トークンは `randomBytes(16)` の 16 進 32 文字で、期限はありません（`renew` で作り直せる。所有確認の結果は 24 時間で失効）。DNS に置く値なので期限が無くても実害はありません。
+- **対応済み（`14550b0`）**：トークンに 7 日の期限を付けた。期限切れのトークンでは所有確認できず（400 と案内）、次の発行で作り直す。`recon-tokens.json` の形は変えず `createdAt` から期限を計算するので、以前の版の記録もそのまま読める（`createdAt` の無い記録は、以前から読み込みで捨てている）。7 日より前に発行したものは安全側に倒して失効扱い（DNS に残っていても、発行し直して TXT を置き直してもらう。古い TXT が残っていても害は無い）。任意のドメインの TXT を照会できる点は、公開の DNS 情報であり設計の範囲内なので変えていません。
 
 ### SEC-015（情報）サーバのログに、記事の URL と失敗の詳細が出る
 
 - 該当：`app.ts:87`（`console.error` に例外オブジェクト）、`store/requests.ts:131-133`
 - 500 のときに例外をそのまま標準エラーに出します。記事の URL、Anthropic SDK の `APIError`（状態コード、応答ヘッダの `request-id`）が含まれますが、API キーと要求ヘッダは含まれません。利用者に返す文は `publicMessage` がキー・環境変数・絶対パスを伏せます（試験で確認）。
+- **対応しない**：ログは手元の標準エラーにしか出ず、キーと要求ヘッダは含まれない。原因の調査に記事の URL が要るので、伏せると困る。
 
 ### SEC-016（情報）デモ用の音声 API は本番でも有効
 
 - 該当：`routes/demo.ts`
 - `demo/audio/<n>.wav` を配るだけで、番号は 1〜50 の整数に限定（試験で確認）。Docker イメージには `demo/audio` を入れていないので、404 になるだけです。
+- **対応しない**：配るのは git 管理外の音声ファイルだけで、番号以外の入力が無く、公開 URL からは remote-guard が断る。
 
 ## 確かめて問題なかったもの
 
@@ -224,4 +248,4 @@
 
 ## 試験の実行
 
-`pnpm typecheck`、`pnpm lint`、`pnpm test` を、この報告書と 3 つの `*.security.test.ts` を加えた状態で通しています。SEC-002・SEC-004・SEC-007 の試験は、修正後の振る舞い（403・415・拒否）に反転済みです。「通ってしまう」ことを記録したまま残している試験は SEC-003（Host）、SEC-005（名前解決の窓と fail-open）、SEC-008（IPv6 の端の表記）で、直したときに期待値を反転させてください。
+`pnpm typecheck`、`pnpm lint`、`pnpm test` を通しています。security.test はすべて修正後の振る舞い（403・415・421・429・拒否・固定）に反転済みで、「通ってしまう」ことを記録したまま残している試験はありません。残りの修正（枝 `claude/security-audit-2`）でも、`demo-snapshot` の出力は前後で同一、`pnpm eval` は 98%／92%、開発サーバでカルテ画面・担当者画面（確認依頼の作成と送信箱）・デモの API が 200 のままであることを確かめました。Docker は build して、read_only での起動、`/api/health`・`/api/examples` の 200、転送ヘッダつきの 403、`Host: evil.example` の 421、recon のキャッシュの書き込み、全面開放の警告を確かめました。

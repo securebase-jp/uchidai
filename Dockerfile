@@ -18,7 +18,9 @@ FROM node:22-slim
 ENV NODE_ENV=production \
     API_HOST=0.0.0.0 \
     API_PORT=8787 \
-    UCHIDAI_TRUST_PRIVATE_PEER=1
+    UCHIDAI_TRUST_PRIVATE_PEER=1 \
+    UCHIDAI_DATA_DIR=/app/apps/web/.data
+# UCHIDAI_DATA_DIR：外部確認のキャッシュ（recon-cache）も書き込めるボリュームの下に置く（read_only のコンテナで書けるように。SEC-011）
 WORKDIR /app
 # 本番に要るものだけを入れる（テスト、評価の結果、デモの素材、ドキュメントは入れない）。
 # 実行時に読むのは knowledge/（判定の知識）、examples/（例のカルテ）、eval/recordings/（記録済みの読解と AI攻撃者）、各パッケージの src/

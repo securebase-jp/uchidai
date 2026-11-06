@@ -5,6 +5,7 @@ export * from "./attacker-recording.ts";
 export * from "./attacker-safety.ts";
 export * from "./client.ts";
 export * from "./compare.ts";
+export * from "./limits.ts";
 export * from "./onepager-writer.ts";
 export * from "./prompts.ts";
 export * from "./proxy.ts";

@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { FileCache } from "./cache.ts";
 import type { FetchLike } from "./proxy.ts";
-import { crtshUrl, restrictedFetch } from "./safe-fetch.ts";
+import { crtshUrl, readLimitedText, restrictedFetch } from "./safe-fetch.ts";
 import type { CtLogSource, CtRunInfo, ReconCache } from "./sources.ts";
 import { CtCertificate, normalizeDomain } from "./types.ts";
 
@@ -95,7 +95,14 @@ export class CrtShSource implements CtLogSource {
     if (!response.ok) {
       throw new CtUnavailableError(`crt.sh が ${response.status} を返した（${normalized}）`);
     }
-    const text = await response.text();
+    let text: string;
+    try {
+      text = await readLimitedText(response);
+    } catch (error) {
+      throw new CtUnavailableError(
+        `crt.sh の応答が大きすぎる（${normalized}）: ${(error as Error).message}`,
+      );
+    }
     let parsed: unknown;
     try {
       parsed = text.trim() === "" ? [] : JSON.parse(text);

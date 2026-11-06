@@ -30,7 +30,9 @@ import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
 import { isThinReading, loadArticle, thinBodyError } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
+import { hostGuard } from "./host-guard.ts";
 import { loadQuestions } from "./knowledge-view.ts";
+import { RateLimitError, takeClaudeSlot } from "./limits.ts";
 import { patchProfile } from "./profile-patch.ts";
 import { remoteGuard } from "./remote-guard.ts";
 import { allQuestions } from "./requests/questions.ts";
@@ -63,6 +65,8 @@ export function corsOrigin(origin: string): string | null {
 export const app = new Hono();
 app.use("/api/*", cors({ origin: (o) => corsOrigin(o) }));
 app.use("/api/*", remoteGuard());
+// Host が手元の名前でなければ 421（DNS の付け替え対策。SEC-003）
+app.use("/api/*", hostGuard());
 // 他サイトのページからの要求を断る（SEC-002）。SSE は開きっぱなしの接続を他サイトから作れないよう GET でも見る（SEC-012）
 app.use(
   "/api/*",
@@ -80,6 +84,8 @@ app.onError((err, c) => {
   if (err instanceof HTTPException) return err.getResponse();
   if (err instanceof SeriesFetchError)
     return c.json({ error: err.message, failures: err.failures }, err.status);
+  if (err instanceof RateLimitError)
+    return c.json({ error: err.message }, 429, { "retry-after": String(err.retryAfterSec) });
   if (err instanceof ClientError) return c.json({ error: err.message }, err.status);
   if (err instanceof z.ZodError) {
     const details = err.issues.slice(0, 20).map((i) => ({ path: i.path, message: i.message }));
@@ -277,6 +283,8 @@ app.post("/api/case/read", async (c) => {
       503,
     );
   }
+  // 1 分あたりの読解の回数（SEC-006）。urls の複数の読解も 1 回と数える
+  takeClaudeSlot("read");
   if (input.kind === "urls") return c.json(await readSeriesResponse(input.urls, input.onError));
   const article = await loadArticle(input);
   const k = loadKnowledge();

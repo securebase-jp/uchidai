@@ -3,11 +3,16 @@
  * localhost・プライベートアドレス・リンクローカル・file: などへは向けない（SSRF の防止）。
  * リダイレクトも 1 段ごとに同じ確認を通す。
  *
- * 制限：名前解決は取得の直前に一度だけ行う（DNS の付け替えには追随しない）。
+ * - アドレスの判定は @uchidai/llm の isPrivateIp に寄せる（二重の検査が食い違わないように。SEC-008）
+ * - 名前解決に失敗した・空だったホストは拒む（fail-open にしない。SEC-005）
+ * - 検査で解決した IP に接続を固定する（SEC-005）：プロキシが無いときは undici の Agent の connect.lookup で、
+ *   検査の結果の IP だけを返す。TLS の SNI と Host はホスト名のまま。プロキシ（HTTPS_PROXY）があるときは
+ *   プロキシ側が名前を引くので固定できず、従来どおり「解決して内部なら拒否」だけになる
  * 外部確認（recon）とは別物で、ここは記事サイト・公的機関の資料の取得にだけ使う。
  */
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { isPrivateIp, lookupFetch, proxyFetch } from "@uchidai/llm";
 import { ClientError } from "./errors.ts";
 
 export type Lookup = (hostname: string) => Promise<string[]>;
@@ -30,54 +35,9 @@ const BLOCKED_HOSTS = new Set([
   "broadcasthost",
 ]);
 
-function ipv4Blocked(ip: string): boolean {
-  const p = ip.split(".").map(Number);
-  if (p.length !== 4 || p.some((n) => Number.isNaN(n))) return true;
-  const [a = 0, b = 0] = p;
-  return (
-    a === 0 || // 0.0.0.0/8
-    a === 10 || // 10/8
-    a === 127 || // loopback
-    (a === 100 && b >= 64 && b <= 127) || // 100.64/10（共有アドレス）
-    (a === 169 && b === 254) || // リンクローカル・クラウドのメタデータ
-    (a === 172 && b >= 16 && b <= 31) || // 172.16/12
-    (a === 192 && b === 168) || // 192.168/16
-    (a === 192 && b === 0) || // 192.0.0/24、192.0.2/24（文書用）
-    (a === 198 && (b === 18 || b === 19)) || // ベンチマーク
-    (a === 198 && b === 51) || // 198.51.100/24（文書用）
-    (a === 203 && b === 0) || // 203.0.113/24（文書用）
-    a >= 224 // マルチキャスト・予約・ブロードキャスト
-  );
-}
-
-function ipv6Blocked(ip: string): boolean {
-  const v = ip.toLowerCase().replace(/^\[|\]$/g, "");
-  if (v === "::" || v === "::1") return true;
-  // IPv4 射影（::ffff:a.b.c.d）
-  const mapped = /^(?:0*:)*ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(v);
-  if (mapped?.[1]) return ipv4Blocked(mapped[1]);
-  const mappedHex = /^(?:0*:)*ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v);
-  if (mappedHex?.[1] && mappedHex[2]) {
-    const hi = Number.parseInt(mappedHex[1], 16);
-    const lo = Number.parseInt(mappedHex[2], 16);
-    return ipv4Blocked(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`);
-  }
-  const head = v.split(":")[0] ?? "";
-  const first = Number.parseInt(head || "0", 16);
-  if (Number.isNaN(first)) return true;
-  if ((first & 0xfe00) === 0xfc00) return true; // fc00::/7 ユニークローカル
-  if ((first & 0xffc0) === 0xfe80) return true; // fe80::/10 リンクローカル
-  if ((first & 0xff00) === 0xff00) return true; // ff00::/8 マルチキャスト
-  if (first === 0x2001 && (v.split(":")[1] ?? "") === "db8") return true; // 文書用
-  return false;
-}
-
-/** IP アドレス（文字列）が公開アドレスでなければ true */
+/** IP アドレス（文字列）が公開アドレスでなければ true（判定は llm 側の isPrivateIp と同じ） */
 export function isBlockedAddress(ip: string): boolean {
-  const kind = isIP(ip.replace(/^\[|\]$/g, ""));
-  if (kind === 4) return ipv4Blocked(ip);
-  if (kind === 6) return ipv6Blocked(ip);
-  return true;
+  return isPrivateIp(ip.replace(/^\[|\]$/g, ""));
 }
 
 /**
@@ -106,41 +66,117 @@ export function checkPublicUrl(raw: string): string | undefined {
   return undefined;
 }
 
-/** 形の確認に加えて名前解決の結果も確かめる。問題があれば ClientError(400) */
-export async function assertPublicUrl(raw: string, lookup: Lookup = defaultLookup): Promise<URL> {
+export type ResolvedPublicUrl = { url: URL; addresses: string[] };
+
+/**
+ * 形の確認に加えて名前解決の結果も確かめ、解決したアドレスを返す。
+ * 問題があれば ClientError(400)。解決できない・空のときも拒む（取得側に判断を委ねない）
+ */
+export async function resolvePublicUrl(
+  raw: string,
+  lookup: Lookup = defaultLookup,
+): Promise<ResolvedPublicUrl> {
   const reason = checkPublicUrl(raw);
   if (reason) throw new ClientError(400, reason);
   const u = new URL(raw);
   const host = u.hostname.replace(/^\[|\]$/g, "");
-  if (isIP(host)) return u;
+  if (isIP(host)) return { url: u, addresses: [host] };
   let addrs: string[];
   try {
     addrs = await lookup(host);
   } catch {
-    // 解決できないホストは、取得側が同じ理由で失敗する。ここでは止めない
-    return u;
+    throw new ClientError(
+      400,
+      "記事の URL のホスト名を解決できませんでした。URL を確かめるか、本文を貼ってください",
+    );
   }
+  if (addrs.length === 0)
+    throw new ClientError(
+      400,
+      "記事の URL のホスト名を解決できませんでした。URL を確かめるか、本文を貼ってください",
+    );
   if (addrs.some(isBlockedAddress))
     throw new ClientError(
       400,
       "この URL は手元のネットワークや社内のアドレスを指しているため、記事として取得できません",
     );
-  return u;
+  return { url: u, addresses: addrs };
+}
+
+/** 形の確認に加えて名前解決の結果も確かめる。問題があれば ClientError(400) */
+export async function assertPublicUrl(raw: string, lookup: Lookup = defaultLookup): Promise<URL> {
+  return (await resolvePublicUrl(raw, lookup)).url;
 }
 
 export type FetchLike = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 const MAX_REDIRECTS = 5;
 
+// ---------------------------------------------------------------------------
+// 接続先の固定：検査で解決したアドレスだけを、取得時の名前解決として返す
+// ---------------------------------------------------------------------------
+
+/** 検査を通ったホスト名 → アドレス。guardedFetch が取得の直前に入れ、pinnedLookup が読む */
+const pinned = new Map<string, string[]>();
+
+export function pinAddresses(hostname: string, addresses: string[]): void {
+  pinned.set(hostname.toLowerCase().replace(/\.$/, ""), addresses);
+}
+
+type LookupCallback = (
+  err: NodeJS.ErrnoException | null,
+  address: string | { address: string; family: number }[],
+  family?: number,
+) => void;
+
 /**
- * リダイレクトを 1 段ずつ自分で追い、各段の URL を assertPublicUrl に通す fetch。
+ * undici の connect.lookup に渡す関数。検査を通ったアドレスだけを返し、検査していないホストは拒む
+ * （取得の途中で名前を引き直すことが無いので、DNS の付け替えの窓が閉じる）
+ */
+export function pinnedLookup(
+  hostname: string,
+  options: { all?: boolean } | number | undefined,
+  callback: LookupCallback,
+): void {
+  const addrs = pinned.get(hostname.toLowerCase().replace(/\.$/, ""));
+  const first = addrs?.[0];
+  if (!first) {
+    const err: NodeJS.ErrnoException = new Error(`検査を通っていないホスト: ${hostname}`);
+    err.code = "ENOTFOUND";
+    callback(err, "", undefined);
+    return;
+  }
+  const family = (a: string) => (isIP(a) === 6 ? 6 : 4);
+  if (typeof options === "object" && options?.all) {
+    callback(
+      null,
+      addrs.map((address) => ({ address, family: family(address) })),
+    );
+    return;
+  }
+  callback(null, first, family(first));
+}
+
+let pinnedFetch: FetchLike | undefined;
+/** 取得に使う fetch と、接続先を固定できるか。プロキシがあるときは固定できない（プロキシ側が名前を引く） */
+export function pinningFetch(): { fetch: FetchLike; pinned: boolean } {
+  const viaProxy = proxyFetch();
+  if (viaProxy) return { fetch: viaProxy, pinned: false };
+  pinnedFetch ??= lookupFetch(pinnedLookup as Parameters<typeof lookupFetch>[0]);
+  return { fetch: pinnedFetch, pinned: true };
+}
+
+/**
+ * リダイレクトを 1 段ずつ自分で追い、各段の URL を resolvePublicUrl に通す fetch。
+ * 各段で解決したアドレスを pinAddresses で固定してから base を呼ぶ（base が pinningFetch の fetch なら接続先が固定される）。
  * llm の fetchArticle に渡す（redirect: "follow" は無視して manual で扱う）
  */
 export function guardedFetch(base: FetchLike, lookup: Lookup = defaultLookup): FetchLike {
   return async (input, init) => {
     let url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     for (let hop = 0; ; hop++) {
-      await assertPublicUrl(url, lookup);
+      const { url: checked, addresses } = await resolvePublicUrl(url, lookup);
+      pinAddresses(checked.hostname.replace(/^\[|\]$/g, ""), addresses);
       const res = await base(url, { ...init, redirect: "manual" });
       const location = res.headers.get("location");
       if (res.status < 300 || res.status >= 400 || !location) {

@@ -20,7 +20,7 @@ import {
   loadKevProducts,
   matchKev,
 } from "@uchidai/engine";
-import { resolveFetch } from "@uchidai/llm";
+import { readLimitedText, resolveFetch } from "@uchidai/llm";
 import { Hono } from "hono";
 import { z } from "zod";
 import {
@@ -35,8 +35,8 @@ import { ClientError, publicMessage } from "../errors.ts";
 
 export const defaultKevFile = join(dataDir, "kev.json");
 export const KEV_TTL_MS = 24 * 60 * 60 * 1000;
-/** JSON の大きさの上限（2026 年時点で約 2MB。桁違いに大きければ壊れているか別物） */
-const MAX_BYTES = 32 * 1024 * 1024;
+/** JSON の大きさの上限（2026 年時点で約 2MB。桁違いに大きければ壊れているか別物）。content-length と受信量で打ち切る（SEC-009） */
+const MAX_BYTES = 10 * 1024 * 1024;
 
 const Stored = z.object({ fetchedAt: z.string(), catalog: KevCatalog });
 export type StoredCatalog = z.infer<typeof Stored>;
@@ -64,8 +64,7 @@ export async function fetchKevCatalog(
     signal: AbortSignal.timeout(options.timeoutMs ?? 60_000),
   });
   if (!res.ok) throw new Error(`CISA から ${res.status} が返りました`);
-  const text = await res.text();
-  if (text.length > MAX_BYTES) throw new Error("KEV カタログが想定より大きすぎます");
+  const text = await readLimitedText(res, MAX_BYTES, "KEV カタログが想定より大きすぎます");
   return KevCatalog.parse(JSON.parse(text));
 }
 
