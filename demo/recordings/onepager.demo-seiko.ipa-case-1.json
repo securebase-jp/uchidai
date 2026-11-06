@@ -1,7 +1,7 @@
 {
   "version": 1,
   "note": "実際の出力の記録。デモ精工のカルテと事例 1 で、場面 5 のベンダー回答（管理者のパスワードは全 PC で共通）を入れた状態の一枚を、POST /api/onepager と同じ経路で Claude に言い換えさせたもの。リクエストヘッダは保存していない",
-  "recordedAt": "2026-11-05T03:54:12.055Z",
+  "recordedAt": "2026-11-06T02:50:02.785Z",
   "model": "claude-sonnet-5-5",
   "profileId": "demo-seiko",
   "caseId": "ipa-case-1",
@@ -13,8 +13,8 @@
       "status": "absent",
       "evidence": "vendor",
       "answeredBy": "山田",
-      "answeredAt": "2026-11-05T03:54:12.055Z",
-      "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/5 12:54、入力：山田",
+      "answeredAt": "2026-11-06T02:50:02.785Z",
+      "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/6 11:50、入力：山田",
       "attrs": {
         "sharedPassword": true
       }
@@ -24,12 +24,12 @@
   "response": {
     "onePager": {
       "whatHappensJa": [
-        "VPN装置から入られたことと、バックアップが消されたことが確認されています。",
-        "中核システムが暗号化されたことも確認されています。",
+        "VPN装置から侵入されたことが確認されています。",
         "管理者権限を奪われ、業務サーバ区画へ広がったと考えられます。",
+        "バックアップが消され、中核システムが暗号化されたことが確認されています。",
         "御社の場合は、受注・生産管理が10日止まると見込まれます。",
-        "御社の場合は、3日目から取引先の納期に影響が出ると見込まれます。",
-        "御社の場合は、売上への影響は1億円と見込まれ、個人情報の報告が必要です。"
+        "取引先の納期への影響は3日目から出て、売上への影響は1億円と見込まれます。",
+        "取引先担当者の連絡先が含まれるため、個人情報の報告が必要になります。"
       ],
       "companyName": "デモ精工株式会社",
       "fictional": true,
@@ -610,7 +610,10 @@
               "breachedLabelJa": "侵入される",
               "breachedDoneJa": "侵入されました",
               "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
-              "mitigations": ["M1042", "M1051"],
+              "mitigations": [
+                "M1042",
+                "M1051"
+              ],
               "ineffective": [
                 {
                   "mitigation": "M1032",
@@ -632,7 +635,10 @@
               "labelJa": "管理者権限を奪う",
               "breachedLabelJa": "奪われる",
               "breachedDoneJa": "奪われました",
-              "mitigations": ["M1040", "M1026"],
+              "mitigations": [
+                "M1040",
+                "M1026"
+              ],
               "ineffective": [],
               "state": "breached",
               "evidence": "vendor",
@@ -649,7 +655,10 @@
               "labelJa": "サーバへ広がる",
               "breachedLabelJa": "侵入される",
               "breachedDoneJa": "侵入されました",
-              "mitigations": ["M1030", "M1035"],
+              "mitigations": [
+                "M1030",
+                "M1035"
+              ],
               "ineffective": [],
               "state": "breached",
               "evidence": "registered",
@@ -667,7 +676,9 @@
               "breachedLabelJa": "暗号化される",
               "breachedDoneJa": "暗号化されました",
               "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-              "mitigations": ["M1053"],
+              "mitigations": [
+                "M1053"
+              ],
               "ineffective": [],
               "state": "breached",
               "evidence": "registered",
@@ -694,7 +705,13 @@
             }
           ],
           "reachedCore": true,
-          "reachedAssetIds": ["vpn", "admin", "server", "backup", "core"]
+          "reachedAssetIds": [
+            "vpn",
+            "admin",
+            "server",
+            "backup",
+            "core"
+          ]
         }
       ],
       "contradictions": [],
@@ -830,7 +847,10 @@
           "core": "onprem",
           "web": "provider"
         },
-        "remoteAccess": ["vpn", "vendor_remote"],
+        "remoteAccess": [
+          "vpn",
+          "vendor_remote"
+        ],
         "backup": "cloud_sync"
       },
       "employees": 120,
@@ -947,9 +967,9 @@
               "mitigation": "M1026",
               "status": "absent",
               "evidence": "vendor",
-              "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/5 12:54、入力：山田",
+              "noteJa": "ベンダー回答：全 PC で共通（質問：管理者のパスワードは、全 PC で共通ですか）。返信メールの受領 11/6 11:50、入力：山田",
               "answeredBy": "山田",
-              "answeredAt": "2026-11-05T03:54:12.055Z"
+              "answeredAt": "2026-11-06T02:50:02.785Z"
             },
             {
               "mitigation": "M1040",
@@ -1185,7 +1205,9 @@
         {
           "id": "biz-order",
           "name": "受注・生産管理",
-          "assetIds": ["core"],
+          "assetIds": [
+            "core"
+          ],
           "manualDays": 2,
           "recoveryDays": 10,
           "recoveryDaysWithBackup": 2,
@@ -1194,7 +1216,9 @@
         {
           "id": "biz-design",
           "name": "設計",
-          "assetIds": ["file-server"],
+          "assetIds": [
+            "file-server"
+          ],
           "manualDays": 3,
           "recoveryDays": 10,
           "recoveryDaysWithBackup": 2,
@@ -1203,7 +1227,10 @@
         {
           "id": "biz-accounting",
           "name": "経理・支払",
-          "assetIds": ["cloud-accounting", "cloud-mail"],
+          "assetIds": [
+            "cloud-accounting",
+            "cloud-mail"
+          ],
           "manualDays": 5,
           "recoveryDays": 0,
           "affectsJa": "支払・請求"
@@ -1211,7 +1238,9 @@
         {
           "id": "biz-sharing",
           "name": "取引先とのデータ共有",
-          "assetIds": ["cloud-storage"],
+          "assetIds": [
+            "cloud-storage"
+          ],
           "manualDays": 0,
           "recoveryDays": 0,
           "affectsJa": "取引先との信頼"
