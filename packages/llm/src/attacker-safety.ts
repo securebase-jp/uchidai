@@ -252,8 +252,38 @@ export const BANNED_TERMS: readonly string[] = [
   "fortigate",
 ];
 
+/** 禁止の形。正規表現か、同じ形（source と exec）の検査 */
+export type BannedPattern = { readonly source: string; exec(text: string): { 0: string } | null };
+
+const SCHEME_CHAR = /[a-z0-9+.-]/i;
+const LETTER = /[a-z]/i;
+const WORD_CHAR = /\w/;
+
+/**
+ * URL のスキーム（`https://` など）の検出。`\b[a-z][a-z0-9+.-]*:\/\/` と同じ一致を返す。
+ * 正規表現だと、`a.a.a.…` のような長い連なりの途中から何度も試して遅くなるため、
+ * 「://」を探し、手前の連なりの中の最初の始まり（語の頭の英字）から切り出す
+ */
+export const SCHEME_PATTERN: BannedPattern = {
+  source: "\\b[a-z][a-z0-9+.-]*:\\/\\/ (scheme)",
+  exec(text) {
+    let from = 0;
+    for (;;) {
+      const end = text.indexOf("://", from);
+      if (end < 0) return null;
+      let start = end;
+      while (start > 0 && SCHEME_CHAR.test(text.charAt(start - 1))) start--;
+      for (let p = start; p < end; p++) {
+        if (!LETTER.test(text.charAt(p))) continue;
+        if (p === 0 || !WORD_CHAR.test(text.charAt(p - 1))) return { 0: text.slice(p, end + 3) };
+      }
+      from = end + 3;
+    }
+  },
+};
+
 /** 形で分かる禁止：CVE 番号、IP アドレス、URL、ホスト名らしき語、コマンドの引数、コードの記号 */
-export const BANNED_PATTERNS: readonly RegExp[] = [
+export const BANNED_PATTERNS: readonly BannedPattern[] = [
   // 脆弱性番号
   /CVE-\d{4}-\d+/i,
   /\bJVN(DB)?[-#]?\d{2,}/i,
@@ -262,7 +292,7 @@ export const BANNED_PATTERNS: readonly RegExp[] = [
   /\b(?:[0-9a-f]{1,4}:){2,7}[0-9a-f]{1,4}\b/i,
   /::1\b|\blocalhost\b/i,
   // URL、スキーム、メールアドレス
-  /\b[a-z][a-z0-9+.-]*:\/\//i,
+  SCHEME_PATTERN,
   /(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.-]+/,
   // ホスト名らしき語（よくある TLD・内部用の名前）
   /\b[a-z0-9-]+\.(com|jp|net|org|io|dev|app|cloud|info|biz|xyz|onion|local|localdomain|internal|intranet|corp|lan|home|test|example|invalid|co\.jp|ne\.jp|or\.jp|go\.jp|ac\.jp|lg\.jp)\b/i,
