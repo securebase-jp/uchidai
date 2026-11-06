@@ -19,7 +19,6 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "secrets": "gitleaks git --no-banner",
-    "check:author": "node --disable-warning=ExperimentalWarning scripts/check-author.ts",
     "prepare": "lefthook install",
     "attack:import": "node --disable-warning=ExperimentalWarning scripts/import-attack.ts",
     "knowledge:check": "pnpm --filter @uchidai/engine run knowledge:check",

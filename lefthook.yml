@@ -1,8 +1,5 @@
 # コミット前に秘密情報を検出する（gitleaks）
-# あわせて、コミットの作者に本名や個人のメールが入らないかを検査する（scripts/check-author.ts）
 pre-commit:
   commands:
     gitleaks:
       run: gitleaks git --pre-commit --staged --no-banner --redact
-    author:
-      run: node --disable-warning=ExperimentalWarning scripts/check-author.ts

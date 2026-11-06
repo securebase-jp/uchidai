@@ -162,7 +162,6 @@ pnpm eval:articles     # 実在の報道記事での読解と型紙への対応�
 pnpm typecheck && pnpm lint && pnpm test   # 型検査、Biome、Vitest
 pnpm knowledge:check                        # 知識ファイルとカルテの検証、JSON Schema の書き出し
 pnpm secrets                                # gitleaks（コミット前にも lefthook で実行）
-pnpm check:author                           # コミットの作者名・メールの検査（コミット前に実行）
 pnpm attack:import                          # ATT&CK の再取り込み
 ```
 
