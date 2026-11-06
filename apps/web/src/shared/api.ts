@@ -8,8 +8,8 @@ import { z } from "zod";
 
 /** 記事本文の上限（文字）。IPA 事例集 1 事例や長文の報道記事が十分に入る大きさ */
 export const MAX_ARTICLE_CHARS = 300_000;
-/** PDF（base64）の上限（文字）。llm 側の取得上限 20MB に合わせる */
-export const MAX_PDF_BASE64_CHARS = 28_000_000;
+/** PDF（base64）の上限（文字）。llm 側の取得上限 5MB（DEFAULT_MAX_BYTES）に合わせる（5MB × 4/3 ≒ 7,000,000） */
+export const MAX_PDF_BASE64_CHARS = 7_000_000;
 
 /** 同じ事故の複数の公表として一度に読める URL の数 */
 export const MAX_SERIES_URLS = 5;

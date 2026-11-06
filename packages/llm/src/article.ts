@@ -6,7 +6,7 @@
  * - http / https 以外、認証情報つき URL、localhost・内部用の名前、私設・ループバック・リンクローカル・
  *   メタデータ（169.254.169.254）などの IP に向く URL は拒否する（ホスト名は解決した先の IP でも確認する）
  * - リダイレクトは 1 回ごとに同じ検査をして辿る（最大 5 回）
- * - 受信は上限バイト数（既定 20MB）で打ち切り、全体にタイムアウト（既定 30 秒）をかける。同時の取得は 3 件まで（超えた分は待つ）
+ * - 受信は上限バイト数（既定 5MB。SEC-009）で打ち切り、全体にタイムアウト（既定 30 秒）をかける。同時の取得は 3 件まで（超えた分は待つ）
  */
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
@@ -158,7 +158,7 @@ const INCIDENT_WORDS = /不正アクセス|ランサム|サイバー攻撃|漏�
 
 export type FetchOptions = {
   fetch?: FetchLike;
-  /** 取得する最大バイト数（既定 20MB） */
+  /** 取得する最大バイト数（既定 5MB） */
   maxBytes?: number;
   /** タイムアウト（ms、既定 30 秒。リダイレクトと本文の受信を含む全体） */
   timeoutMs?: number;
@@ -170,7 +170,7 @@ export type FetchOptions = {
   blockedHosts?: string[];
 };
 
-export const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
+export const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 /** Claude に渡す本文の上限（文字数）。これを超える分は切る（根拠文の照合も切った後の本文で行う） */
 export const MAX_TEXT_CHARS = 100_000;
 /** PDF のページ数の上限 */
@@ -451,6 +451,25 @@ async function readBody(res: Response, max: number, signal: AbortSignal): Promis
 }
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/** 応答の本文を上限まで読んで文字列にする（content-length と受信量の両方で打ち切る）。超えたら message の Error */
+export async function readLimitedText(
+  res: Response,
+  max: number,
+  message: string,
+): Promise<string> {
+  const declared = Number(res.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > max) {
+    await res.body?.cancel().catch(() => undefined);
+    throw new Error(message);
+  }
+  try {
+    return new TextDecoder("utf-8").decode(await readBody(res, max, new AbortController().signal));
+  } catch (e) {
+    if (e instanceof ArticleFetchError && e.kind === "too_large") throw new Error(message);
+    throw e;
+  }
+}
 
 /** URL からバイト列を取得する（記事サイト・公的機関の PDF 向け。自社ホストの調査には使わない） */
 export async function downloadBytes(

@@ -12,7 +12,12 @@ import { z } from "zod";
 import { FileCache } from "./cache.ts";
 import { CtUnavailableError, toIsoUtc } from "./crtsh.ts";
 import type { FetchLike } from "./proxy.ts";
-import { certspotterUrl, ForbiddenDestinationError, restrictedFetch } from "./safe-fetch.ts";
+import {
+  certspotterUrl,
+  ForbiddenDestinationError,
+  readLimitedText,
+  restrictedFetch,
+} from "./safe-fetch.ts";
 import type { CtLogSource, CtRunInfo, ReconCache } from "./sources.ts";
 import { CtCertificate, normalizeDomain } from "./types.ts";
 
@@ -118,7 +123,14 @@ export class CertSpotterSource implements CtLogSource {
     if (!response.ok) {
       throw new CtUnavailableError(`Cert Spotter が ${response.status} を返した（${normalized}）`);
     }
-    const text = await response.text();
+    let text: string;
+    try {
+      text = await readLimitedText(response);
+    } catch (error) {
+      throw new CtUnavailableError(
+        `Cert Spotter の応答が大きすぎる（${normalized}）: ${(error as Error).message}`,
+      );
+    }
     let parsed: unknown;
     try {
       parsed = JSON.parse(text);
