@@ -15,6 +15,7 @@
 #
 # 規模・業種・年・入口が偏らないよう選び、公開日の順に並べて 3〜4 件おきに heldOut にした
 # （公開日順の 3、6、10、13、17、20、24 番目）。heldOut は公開日の昇順のリストの位置で示す（order）。
+# 2026-11-06 の最終の再実行で、heldOut: true の記事も通した（heldOut の値は変えていない）。結果は docs/article-trials/final-rerun-2026-11-06.md。
 articles:
   - id: ransom-suginami
     order: 1

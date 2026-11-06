@@ -12,6 +12,7 @@
 # size：事業者の規模の目安（小：個人・小規模、中：中小〜中堅、大：大企業・全国規模）
 # heldOut：true は「最後の測定用」。期待ラベルまでで、この取り組みでは通さない（チューニングに使わない）。
 #   時系列に並べて 3 件おきに決めた（原因と年が偏らないことを確認済み）
+# 2026-11-06 の最終の再実行で、heldOut: true の記事も通した（heldOut の値は変えていない）。結果は docs/article-trials/final-rerun-2026-11-06.md。
 articles:
   - id: breach-nagasaki-manabie
     url: https://scan.netsecurity.ne.jp/article/2023/09/05/49903.html

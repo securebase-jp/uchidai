@@ -10,6 +10,7 @@
 #   決め方：BEC と乗っ取りをそれぞれ公開日の順に並べ、3 件おき（BEC は 3・6・9 番目、乗っ取りは 3・6・9 番目）
 #   BEC の並び：ipa-2023, 3dmatrix, ipa-2024*, survey-2024, sanshin, fin-6oku*, npa-nise, kyoto-boeki, oita*, odawara（* が heldOut。odawara は 10 番目）
 #   乗っ取りの並び：nmr, kawai, sakura*, jems, toho, proofpoint-rules*, kodansha, m365-mfa, hotel*
+# 2026-11-06 の最終の再実行で、heldOut: true の記事も通した（heldOut の値は変えていない）。結果は docs/article-trials/final-rerun-2026-11-06.md。
 articles:
   # ===== なりすまし送金（BEC）10 件 =====
   - id: bec-ipa-2023

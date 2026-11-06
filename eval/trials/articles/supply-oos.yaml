@@ -9,6 +9,7 @@
 #   vendor_outage＝取引先（物流委託先）の被害の波及（自社は侵入されていない）、software_distribution＝ソフトウェアの配布サイトの改ざん、
 #   software_update＝ソフトウェアの更新機構の乗っ取り、cloud_vendor＝外部クラウドサービスの侵害
 # heldOut：true の記事は「最後の測定用」。収集と期待ラベル付けだけ行い、このセッションでは通さない
+# 2026-11-06 の最終の再実行で、heldOut: true の記事も通した（heldOut の値は変えていない）。結果は docs/article-trials/final-rerun-2026-11-06.md。
 articles:
   # ===== 取引先・委託先・サプライチェーン経由（10 件） =====
   - id: supply-sekisui-yamaguchi
