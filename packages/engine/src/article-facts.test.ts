@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { avertedHeadline, evaluate } from "./evaluate.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
-import { buildOnePager } from "./onepager.ts";
+import { buildOnePager, thirdPartyLeadLine } from "./onepager.ts";
 import type { Case, CompanyProfile } from "./types.ts";
 import { parseYenAmounts, yenAppearsIn } from "./yen.ts";
 
@@ -85,6 +85,16 @@ describe("B-013：記事の会社が被害を防げた（未遂）", () => {
     const text = buildOnePager(third, demo, k).whatHappensJa.join("\n");
     expect(text).toContain("これは委託先・取引先で起きた事故です");
     expect(text).not.toContain("防げた事例");
+  });
+});
+
+describe("TRIAL-F-003：第三者の事故の書き出しの一文は、プログラムが決める", () => {
+  it("第三者の事故なら、テンプレートの一枚の先頭の文と同じ。そうでなければ undefined", () => {
+    const third = evaluate(becCase({ victim: "vendor" }), demo, { knowledge: k });
+    const lead = thirdPartyLeadLine(third);
+    expect(lead).toMatch(/^これは委託先・取引先で起きた事故です。/);
+    expect(buildOnePager(third, demo, k).whatHappensJa[0]).toBe(lead);
+    expect(thirdPartyLeadLine(evaluate(becCase(), demo, { knowledge: k }))).toBeUndefined();
   });
 });
 

@@ -60,8 +60,6 @@ export const OnePagerWriterInput = z.object({
   personalDataJa: z.array(z.string()),
   /** 被害が第三者（委託先・取引先・提供元）に起きた事故のとき。その呼び名（例：委託先・取引先） */
   thirdPartyJa: z.string().optional(),
-  /** 第三者の事故のとき、「これは〇〇で起きた事故です。」の次にそのまま書く文（例：グループ会社は、子会社と御社の接続の有無は公表から分からない） */
-  thirdPartyNoteJa: z.string().optional(),
   /** 記事が書く被害額（円）。御社の想定額（moneyLossJpy）とは別 */
   reportedLossJpy: z.number().optional(),
   /** 記事の会社は被害を防げた（未遂） */
@@ -133,7 +131,6 @@ export function writerInputFrom(
     reportRequired: impact.reportRequired,
     personalDataJa: impact.personalDataReached.map((p) => p.descriptionJa),
     ...(verdict.thirdParty ? { thirdPartyJa: verdict.thirdParty.labelJa } : {}),
-    ...(verdict.thirdParty?.leadNoteJa ? { thirdPartyNoteJa: verdict.thirdParty.leadNoteJa } : {}),
     ...(verdict.article?.reportedLossJpy !== undefined
       ? { reportedLossJpy: verdict.article.reportedLossJpy }
       : {}),
@@ -157,7 +154,7 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
     - claimed：「攻撃者は〜と主張しています」と書く。事実とは書かない
   - published（持ち出された情報が、すでに公開されたと記事が書いている）：「持ち出された情報は、すでに公開されています」と書く
 - 最初の段階の役割名が入口の種類（例：正規の認証情報（ログイン先は不明）、公開 Web サイト・Web アプリ）のときは、その種類のとおりに書き、特定の機器名（VPN装置など）から入られたとは書かない
-- 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。最初の文で「これは〇〇で起きた事故です」と書き、thirdPartyNoteJa があるときは、次の文にその文を一字一句そのまま書き、御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
+- 被害が第三者の事故のとき（thirdPartyJa がある）：段階は、記事の第三者（thirdPartyJa）で起きたこととして書く。確認の言い方を使う最初の文の主語は「記事の〇〇では」とし、続く文はその主語のまま書き（「続けて」「さらに」でつなぐ）、御社の設備（VPN装置など）から侵入されたと書かない。「これは〇〇で起きた事故です。…」の書き出しの文はプログラムが先頭に付けるので、書かない（重ねて書くと捨てられる）。御社の試算は「御社が同じ立場なら、〜と見込まれます」と書く。御社が確認することと個人情報の報告の案内は、別にプログラムが付けるので書かない
 - 金額：moneyLossJpy は御社の想定額（会社カルテの値）で、「御社の想定では約〇〇円」と書く。なりすましの送金は直接の損失で、売上への影響とは書かない。reportedLossJpy は記事が書く被害額で、「記事の事例では約〇〇円」と書き、御社の想定額と並べて別の文にする。想定額を記事の事実のように、「確認されています」と同じ文に書かない
 - avertedInArticle が true のとき：最初の文で「記事の会社は被害を防げた事例です」と書き、以降は「同じ手口が御社に来たら」の見立てとして書く（記事の会社が被害を受けたとは書かない）
 - 個人情報の報告について「必要ありません」「不要」と書かない（reportRequired が false でも、報告が要らないと言い切れないため。書けるのは、reportRequired が true のときの「必要になります」だけ。false のときは報告のことを書かない）
@@ -172,7 +169,6 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 ## 書き終えたら見直すこと（この点で出力が捨てられやすい。書き方の例）
 - 御社の金額（moneyLossJpy）の文には、必ず「御社の想定では」を入れる。「御社が同じ立場なら」「御社の場合は」だけでは足りない。記事の被害額（reportedLossJpy）とは同じ文に並べず、別の文にする
   - 例：「記事の事例では約〇〇円の被害が出ています。」「御社の想定では、送金による損失は約〇〇円です。」（〇〇は入力の値）
-- thirdPartyJa があるときの「これは〇〇で起きた事故です。」の〇〇は、thirdPartyJa の文字列を括弧書きも含めて一字一句そのまま写す。括弧の中を省いたり、言い換えたりしない
 - certainty が claimed の段階があるときは、その文に必ず「主張」の語を入れる（例：「攻撃者は〜と主張しています」）。事実性に触れるときは「事実かどうかは確認されていません」の形に固定し、「事実とは確認されていません」「確認が取れていません」とは書かない
 - 最初の段階が candidate のときは、先頭近くの文に「入口はまだ分かっていません」をそのまま入れる
 - stated で certainty の印が無い段階が一つも無いときは、「確認されています」「確認されました」を文のどこにも使わない（推定の段階は「〜と考えられます」と書く）
@@ -262,8 +258,7 @@ export const WriterRejectionKind = z.enum([
   "reported_loss_missing",
   "averted_missing",
   "estimate_sentence_missing",
-  "third_party_lead_missing",
-  "third_party_note_missing",
+  "third_party_lead_duplicated",
   "third_party_subject",
   "denial_wording",
   "unknown_word",
@@ -362,24 +357,14 @@ export function checkWriterOutputDetailed(
     );
   // 第三者の事故：「これは〇〇で起きた事故です」と書き、確認の言い方は「記事の〇〇では」で始める（御社の設備の事実にしない）
   if (input.thirdPartyJa !== undefined) {
-    if (
-      !output.whatHappensJa.some(
-        (l) => l.includes("で起きた") && l.includes(input.thirdPartyJa as string),
-      )
-    )
+    // 「これは〇〇で起きた事故です。…」の書き出しはプログラムが付ける（thirdPartyLeadLine）。Claude が書くと重なるので弾く
+    const dup = output.whatHappensJa.find((l) =>
+      /で起きた事故です|御社の設備が入口になったのではありません/.test(l),
+    );
+    if (dup)
       return reject(
-        "third_party_lead_missing",
-        `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`,
-      );
-    if (
-      input.thirdPartyNoteJa !== undefined &&
-      !output.whatHappensJa.some((l) =>
-        l.includes(input.thirdPartyNoteJa?.replace(/。$/, "") ?? ""),
-      )
-    )
-      return reject(
-        "third_party_note_missing",
-        `第三者の事故の注意の文が書かれていません：${input.thirdPartyNoteJa}`,
+        "third_party_lead_duplicated",
+        `第三者の事故の書き出し（「これは〇〇で起きた事故です。」）はプログラムが付けるので、書かないでください：${dup}`,
       );
     // 確認の言い方を使う最初の文は、主語を記事の第三者にする（御社の設備の事実にしない）。続く文は、その主語を引き継ぐ
     const confirmAt = output.whatHappensJa.findIndex((l) => CONFIRM_RE.test(l));

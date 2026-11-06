@@ -91,23 +91,25 @@ describe("一枚の言い換え：第三者の事故", () => {
     personalDataJa: [],
     thirdPartyJa: "委託先・取引先",
   };
+  // 「これは〇〇で起きた事故です。」の書き出しはプログラムが付ける（thirdPartyLeadLine）ので、Claude の文には無い
   const ok = [
-    "これは委託先・取引先で起きた事故です。",
     "記事の委託先・取引先では、VPN装置から侵入されたことが確認されています。",
     "御社が同じ立場なら、受注が10日止まると見込まれます。",
   ];
-  it("「これは〇〇で起きた事故です」が無い文は捨てる", () => {
-    expect(checkWriterOutput({ whatHappensJa: ok.slice(1) }, input)).toMatch(/で起きた事故です/);
+  it("書き出し（「これは〇〇で起きた事故です」）はプログラムが付けるので、Claude が書いたら捨てる", () => {
+    expect(
+      checkWriterOutput(
+        { whatHappensJa: ["これは委託先・取引先で起きた事故です。", ...ok] },
+        input,
+      ),
+    ).toMatch(/プログラムが付ける/);
+    expect(checkWriterOutput({ whatHappensJa: ok }, input)).toBeUndefined();
   });
   it("御社の設備の事実のように「VPN装置から侵入されたことが確認されています」と書くと捨てる", () => {
     expect(
       checkWriterOutput(
         {
-          whatHappensJa: [
-            ok[0] as string,
-            "VPN装置から侵入されたことが確認されています。",
-            ok[2] as string,
-          ],
+          whatHappensJa: ["VPN装置から侵入されたことが確認されています。", ok[1] as string],
         },
         input,
       ),
@@ -118,10 +120,9 @@ describe("一枚の言い換え：第三者の事故", () => {
       checkWriterOutput(
         {
           whatHappensJa: [
-            ok[0] as string,
             "記事の委託先・取引先では、VPN装置から侵入されたことが確認されています。",
             "続けて、データが暗号化されたことも確認されています。",
-            ok[2] as string,
+            ok[1] as string,
           ],
         },
         input,
@@ -131,30 +132,13 @@ describe("一枚の言い換え：第三者の事故", () => {
   it("「記事の〇〇では〜」と書き、試算を「御社が同じ立場なら〜と見込まれます」と書けば通る", () => {
     expect(checkWriterOutput({ whatHappensJa: ok }, input)).toBeUndefined();
   });
-  it("グループ会社など、固定の注意の文（thirdPartyNoteJa）があるときは、その文を書かないと捨てる", () => {
-    const g: OnePagerWriterInput = {
-      ...input,
-      thirdPartyJa: "グループ会社（子会社・孫会社）",
-      thirdPartyNoteJa: "子会社と御社の接続の有無は、この公表からは分かりません。",
-    };
+  it("グループ会社の事故でも、書き出しと注意の文はプログラムが付ける（Claude の文には要らない）", () => {
+    const g: OnePagerWriterInput = { ...input, thirdPartyJa: "グループ会社（子会社・孫会社）" };
     const lines = [
-      "これはグループ会社（子会社・孫会社）で起きた事故です。",
       "記事のグループ会社（子会社・孫会社）では、VPN装置から侵入されたことが確認されています。",
       "御社が同じ立場なら、受注が10日止まると見込まれます。",
     ];
-    expect(checkWriterOutput({ whatHappensJa: lines }, g)).toMatch(/注意の文/);
-    expect(
-      checkWriterOutput(
-        {
-          whatHappensJa: [
-            lines[0] as string,
-            "子会社と御社の接続の有無は、この公表からは分かりません。",
-            ...lines.slice(1),
-          ],
-        },
-        g,
-      ),
-    ).toBeUndefined();
+    expect(checkWriterOutput({ whatHappensJa: lines }, g)).toBeUndefined();
   });
   it("第三者の事故でなければ、これまでどおり（「御社の場合は」で足りる）", () => {
     const { thirdPartyJa: _t, ...own } = input;
