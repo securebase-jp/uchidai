@@ -43,34 +43,34 @@
 
 登録 146 件のうち **136 件を通した**（ScanNetSecurity の 13 件は貼り付けで読解）。
 
-| 区分 | 登録 | 通した | 種類（厳密） | 種類（許容込み） | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致 | 入口の一致 | 入口が無い記事で入口を作らず | 根拠文の照合 | 対象外を断れた | 注入の誤検知 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| **全体** | 146 | 136 | 117/136（86%） | **126/136（92.6%）** | 112/122（91.8%）／112/122（91.8%） | 90/122（73.8%） | 25/48（52.1%） | 40/43（93%） | **269/270（99.6%）** | **14/14（100%）** | 0/136 |
-| 記事（81 件） | 81 | 81 | 69/81（85.2%） | 74/81（91.4%） | 67/74（90.5%）／67/74（90.5%） | 55/74（74.3%） | 19/26（73.1%） | 14/14（100%） | 173/173（100%） | 7/7（100%） | 0/81 |
+| 区分          | 登録 | 通した | 種類（厳密）   | 種類（許容込み）     | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致      | 入口の一致     | 入口が無い記事で入口を作らず | 根拠文の照合         | 対象外を断れた    | 注入の誤検知 |
+| ------------- | ---- | ------ | -------------- | -------------------- | ------------------------------------------ | --------------- | -------------- | ---------------------------- | -------------------- | ----------------- | ------------ |
+| **全体**      | 146  | 136    | 117/136（86%） | **126/136（92.6%）** | 112/122（91.8%）／112/122（91.8%）         | 90/122（73.8%） | 25/48（52.1%） | 40/43（93%）                 | **269/270（99.6%）** | **14/14（100%）** | 0/136        |
+| 記事（81 件） | 81   | 81     | 69/81（85.2%） | 74/81（91.4%）       | 67/74（90.5%）／67/74（90.5%）             | 55/74（74.3%）  | 19/26（73.1%） | 14/14（100%）                | 173/173（100%）      | 7/7（100%）       | 0/81         |
 
 **URL だけで数える場合**（ScanNetSecurity の 13 件を通せずに数える）：通した 123 件。種類（許容込み）113/123（91.9%）、厳密 104/123（84.6%）、判定できた 99/109（90.8%）、型紙 82/109（75.2%）、入口 21/43（48.8%）、根拠文 248/249（99.6%）、対象外 14/14、注入の誤検知 0/123。記事だけでは 68 件を通し、許容込み 61/68（89.7%）。
 
 ### 判定の内訳（デモ精工）
 
-| 判定 | 件数（通した 136 件） |
-|---|---|
-| 侵入される（breached） | 66 |
-| 入口なし（no_entry） | 45 |
-| 止まる（blocked） | 1 |
-| 対象外（out_of_scope） | 24 |
+| 判定                   | 件数（通した 136 件） |
+| ---------------------- | --------------------- |
+| 侵入される（breached） | 66                    |
+| 入口なし（no_entry）   | 45                    |
+| 止まる（blocked）      | 1                     |
+| 対象外（out_of_scope） | 24                    |
 
 対象外 24 件のうち 14 件は期待どおり（期待が対象外）。残る 10 件は、期待が対象外でないのに対象外と答えたもの：個別の事案でない BEC・乗っ取りの記事 5 件、IR の 3 件（`ir-japanpost-html`、`ir-yamaichi-html`、`ir-zuken`）、ソフトウェアの供給網の 2 件（`supply-emeditor-site`、`supply-notepadpp-update`）。このうち `ir-zuken` と供給網の 2 件は、ラベルが対象外も許容している。5 問のカルテでも、判定できた件数はデモ精工と同じ（112/122）。評価と一枚は、どちらも 272 回（136 件 × 2 カルテ）すべて応答 200 で、エラーは 0。
 
 ## 種類別の表
 
-| 区分 | 登録 | 通した | 種類（厳密） | 種類（許容込み） | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致 | 入口の一致 | 入口が無い記事で入口を作らず | 根拠文の照合 | 対象外を断れた | 注入の誤検知 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| ランサム | 24 | 24 | 23/24（95.8%） | 23/24（95.8%） | 24/24（100%）／24/24（100%） | 23/24（95.8%） | 11/13（84.6%） | 11/11（100%） | 69/69（100%） | — | 0/24 |
-| 情報漏えい | 21 | 21 | 20/21（95.2%） | 20/21（95.2%） | 21/21（100%）／21/21（100%） | 11/21（52.4%） | 6/8（75%） | 3/3（100%） | 37/37（100%） | — | 0/21 |
-| BEC・乗っ取り | 19 | 19 | 11/19（57.9%） | 14/19（73.7%） | 14/19（73.7%）／14/19（73.7%） | 14/19（73.7%） | — | — | 38/38（100%） | — | 0/19 |
-| 取引先・対象外 | 17 | 17 | 15/17（88.2%） | 17/17（100%） | 8/10（80%）／8/10（80%） | 7/10（70%） | 2/5（40%） | — | 29/29（100%） | 7/7（100%） | 0/17 |
-| IR | 59 | 49 | 42/49（85.7%） | 46/49（93.9%） | 43/46（93.5%）／43/46（93.5%） | 33/46（71.7%） | 4/20（20%） | 26/29（89.7%） | 90/91（98.9%） | 3/3（100%） | 0/49 |
-| PHP2Shell | 6 | 6 | 6/6（100%） | 6/6（100%） | 2/2（100%）／2/2（100%） | 2/2（100%） | 2/2（100%） | — | 6/6（100%） | 4/4（100%） | 0/6 |
+| 区分           | 登録 | 通した | 種類（厳密）   | 種類（許容込み） | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致     | 入口の一致     | 入口が無い記事で入口を作らず | 根拠文の照合   | 対象外を断れた | 注入の誤検知 |
+| -------------- | ---- | ------ | -------------- | ---------------- | ------------------------------------------ | -------------- | -------------- | ---------------------------- | -------------- | -------------- | ------------ |
+| ランサム       | 24   | 24     | 23/24（95.8%） | 23/24（95.8%）   | 24/24（100%）／24/24（100%）               | 23/24（95.8%） | 11/13（84.6%） | 11/11（100%）                | 69/69（100%）  | —              | 0/24         |
+| 情報漏えい     | 21   | 21     | 20/21（95.2%） | 20/21（95.2%）   | 21/21（100%）／21/21（100%）               | 11/21（52.4%） | 6/8（75%）     | 3/3（100%）                  | 37/37（100%）  | —              | 0/21         |
+| BEC・乗っ取り  | 19   | 19     | 11/19（57.9%） | 14/19（73.7%）   | 14/19（73.7%）／14/19（73.7%）             | 14/19（73.7%） | —              | —                            | 38/38（100%）  | —              | 0/19         |
+| 取引先・対象外 | 17   | 17     | 15/17（88.2%） | 17/17（100%）    | 8/10（80%）／8/10（80%）                   | 7/10（70%）    | 2/5（40%）     | —                            | 29/29（100%）  | 7/7（100%）    | 0/17         |
+| IR             | 59   | 49     | 42/49（85.7%） | 46/49（93.9%）   | 43/46（93.5%）／43/46（93.5%）             | 33/46（71.7%） | 4/20（20%）    | 26/29（89.7%）               | 90/91（98.9%） | 3/3（100%）    | 0/49         |
+| PHP2Shell      | 6    | 6      | 6/6（100%）    | 6/6（100%）      | 2/2（100%）／2/2（100%）                   | 2/2（100%）    | 2/2（100%）    | —                            | 6/6（100%）    | 4/4（100%）    | 0/6          |
 
 読み方：
 
@@ -83,10 +83,10 @@
 
 保留 25 件は、前回までの試験では一度も通しておらず、課題の修正にも使っていない。**ここが、初見の記事に対する成績である。**
 
-| 区分 | 登録 | 通した | 種類（厳密） | 種類（許容込み） | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致 | 入口の一致 | 入口が無い記事で入口を作らず | 根拠文の照合 | 対象外を断れた | 注入の誤検知 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| **保留 25 件** | 25 | 25 | **21/25（84%）** | 21/25（84%） | 20/23（87%）／20/23（87%） | 14/23（60.9%） | 6/7（85.7%） | 4/4（100%） | **53/53（100%）** | **2/2（100%）** | 0/25 |
-| 保留でない記事（56 件） | 56 | 56 | 48/56（85.7%） | 53/56（94.6%） | 47/51（92.2%）／47/51（92.2%） | 41/51（80.4%） | 13/19（68.4%） | 10/10（100%） | 120/120（100%） | 5/5（100%） | 0/56 |
+| 区分                    | 登録 | 通した | 種類（厳密）     | 種類（許容込み） | 判定できた（想定内の記事。デモ精工／5 問） | 型紙の一致     | 入口の一致     | 入口が無い記事で入口を作らず | 根拠文の照合      | 対象外を断れた  | 注入の誤検知 |
+| ----------------------- | ---- | ------ | ---------------- | ---------------- | ------------------------------------------ | -------------- | -------------- | ---------------------------- | ----------------- | --------------- | ------------ |
+| **保留 25 件**          | 25   | 25     | **21/25（84%）** | 21/25（84%）     | 20/23（87%）／20/23（87%）                 | 14/23（60.9%） | 6/7（85.7%）   | 4/4（100%）                  | **53/53（100%）** | **2/2（100%）** | 0/25         |
+| 保留でない記事（56 件） | 56   | 56     | 48/56（85.7%）   | 53/56（94.6%）   | 47/51（92.2%）／47/51（92.2%）             | 41/51（80.4%） | 13/19（68.4%） | 10/10（100%）                | 120/120（100%）   | 5/5（100%）     | 0/56         |
 
 URL だけで数える場合（保留のうち ScanNetSecurity の 5 件を通せずに数える）：通した 20 件、種類 16/20（80%）、根拠文 41/41、対象外 2/2。
 
@@ -99,18 +99,18 @@ URL だけで数える場合（保留のうち ScanNetSecurity の 5 件を通�
 
 通した 136 件のうち、許容込みでも期待と合わなかった 10 件。
 
-| ID | 期待 → 読解 | 判定 | 区分 |
-|---|---|---|---|
-| ransom-tokai-itmedia ★ | ransomware → data_breach | 侵入される（data-breach-intrusion） | **新規**（TRIAL-F-002） |
-| breach-sophia | data_breach → account_takeover | 入口なし | 既知（TRIAL-D-009。メール以外のアカウントの乗っ取り） |
-| bec-ipa-2024 ★ | bec → out_of_scope | 対象外 | ラベル側。個別の事案でない記事（IPA の事例集の紹介） |
-| bec-survey-2024 | bec → out_of_scope | 対象外 | ラベル側。調査の記事。ラベル自身が「out_of_scope も妥当」 |
-| bec-fin-6oku ★ | bec → out_of_scope | 対象外 | ラベル側。ニセ社長詐欺の解説 |
-| bec-npa-nise | bec → out_of_scope | 対象外 | ラベル側。警察庁の注意喚起 |
-| ato-proofpoint-rules ★ | account_takeover → out_of_scope | 対象外 | ラベル側。セキュリティ企業のブログ（個別の被害ではない） |
-| ir-mitsui-park | account_takeover → data_breach | 入口なし | 既知（`ir-disclosures.md`） |
-| ir-japanpost-html | account_takeover（許容 data_breach）→ out_of_scope | 対象外 | 既知（`ir-disclosures.md`） |
-| ir-yamaichi-html | ransomware → out_of_scope | 対象外 | 既知（`ir-disclosures.md`） |
+| ID                     | 期待 → 読解                                        | 判定                                | 区分                                                      |
+| ---------------------- | -------------------------------------------------- | ----------------------------------- | --------------------------------------------------------- |
+| ransom-tokai-itmedia ★ | ransomware → data_breach                           | 侵入される（data-breach-intrusion） | **新規**（TRIAL-F-002）                                   |
+| breach-sophia          | data_breach → account_takeover                     | 入口なし                            | 既知（TRIAL-D-009。メール以外のアカウントの乗っ取り）     |
+| bec-ipa-2024 ★         | bec → out_of_scope                                 | 対象外                              | ラベル側。個別の事案でない記事（IPA の事例集の紹介）      |
+| bec-survey-2024        | bec → out_of_scope                                 | 対象外                              | ラベル側。調査の記事。ラベル自身が「out_of_scope も妥当」 |
+| bec-fin-6oku ★         | bec → out_of_scope                                 | 対象外                              | ラベル側。ニセ社長詐欺の解説                              |
+| bec-npa-nise           | bec → out_of_scope                                 | 対象外                              | ラベル側。警察庁の注意喚起                                |
+| ato-proofpoint-rules ★ | account_takeover → out_of_scope                    | 対象外                              | ラベル側。セキュリティ企業のブログ（個別の被害ではない）  |
+| ir-mitsui-park         | account_takeover → data_breach                     | 入口なし                            | 既知（`ir-disclosures.md`）                               |
+| ir-japanpost-html      | account_takeover（許容 data_breach）→ out_of_scope | 対象外                              | 既知（`ir-disclosures.md`）                               |
+| ir-yamaichi-html       | ransomware → out_of_scope                          | 対象外                              | 既知（`ir-disclosures.md`）                               |
 
 ## 取れなかった件
 
@@ -118,18 +118,18 @@ URL だけで数える場合（保留のうち ScanNetSecurity の 5 件を通�
 
 前回取得できなかった 10 件を、もう一度試した（各 URL につき 1 回だけ）。**10 件とも、前回と同じ理由で取れなかった。** 読解・判定は通していない。
 
-| ID | 会社 | 理由 |
-|---|---|---|
-| ir-nec-vendor | 日本電気 | サイトが自動での取得を断った（403） |
-| ir-nomura-vendor | 野村ホールディングス | 403 |
-| ir-jal-cargo | 日本航空 | 403 |
-| ir-jal-pay | 日本航空 | 403 |
-| ir-oug-1 | オープンアップグループ | 記事が見つからない（404） |
-| ir-oug-2 | オープンアップグループ | 404 |
-| ir-jrc-idcf-1 | 東海旅客鉄道 | 404 |
-| ir-sagawa-2 | SG ホールディングス（佐川急便名義） | 本文を取り出せない（本文が空） |
-| ir-sagawa-5 | SG ホールディングス（佐川急便名義） | 本文を取り出せない（本文が空） |
-| ir-takeuchi | 竹内製作所 | PDF のはずが HTML が返った（同意の画面かもしれない） |
+| ID               | 会社                                | 理由                                                 |
+| ---------------- | ----------------------------------- | ---------------------------------------------------- |
+| ir-nec-vendor    | 日本電気                            | サイトが自動での取得を断った（403）                  |
+| ir-nomura-vendor | 野村ホールディングス                | 403                                                  |
+| ir-jal-cargo     | 日本航空                            | 403                                                  |
+| ir-jal-pay       | 日本航空                            | 403                                                  |
+| ir-oug-1         | オープンアップグループ              | 記事が見つからない（404）                            |
+| ir-oug-2         | オープンアップグループ              | 404                                                  |
+| ir-jrc-idcf-1    | 東海旅客鉄道                        | 404                                                  |
+| ir-sagawa-2      | SG ホールディングス（佐川急便名義） | 本文を取り出せない（本文が空）                       |
+| ir-sagawa-5      | SG ホールディングス（佐川急便名義） | 本文を取り出せない（本文が空）                       |
+| ir-takeuchi      | 竹内製作所                          | PDF のはずが HTML が返った（同意の画面かもしれない） |
 
 403 の 4 件は、サイト側が自動取得を断っている。PDF の版か本文の貼り付けなら読める可能性があるが、取得は登録済みの URL の 1 回に限るという約束なので、別の経路は試していない。
 
@@ -141,11 +141,11 @@ URL だけで数える場合（保留のうち ScanNetSecurity の 5 件を通�
 
 重大度の基準は前回までと同じ。高：誤った安心や誤判定・安全面、中：使えない場面が出る・誤解を招く、低：見た目・まれな場面。今回は **高 0、中 1、低 2**。
 
-| ID | 対象 | 区分 | 重大度 | 再現 | 原因 | 案 |
-|---|---|---|---|---|---|---|
-| TRIAL-F-001 | `breach-keds` ほか ScanNetSecurity の 13 件（同媒体の 21 件中） | 取り込み（短い本文の拒否） | 中 | `node --disable-warning=ExperimentalWarning --env-file=<.env> eval/trials/run-trial.ts --id breach-keds --url https://scan.netsecurity.ne.jp/article/2024/01/25/50501.html` → `read failed 422`「本文がほとんど取れませんでした（185 字）」。他の 12 件も 131〜199 字で同じ。同じ本文を text で渡す（`run-ir.ts --id breach-keds --file breach.yaml`）と読める | ScanNetSecurity は、会員でない閲覧者には記事の冒頭（無料の範囲、130〜200 字ほど）だけを返す。TRIAL-I-002 の修正（本文が 200 字未満の HTML は 422 で取り直しの案内にする）より前は、この短い本文でも読めていた。修正後は、短いだけで本文として足りている記事も、同意の画面などと同じ案内で断られる。案内の文は「PDF の版か本文の貼り付け」を勧めるが、ScanNetSecurity には PDF が無い | 本文が 200 字未満でも、同意文・著作権表示だけでなく記事の文（日付・主語・出来事）が含まれる場合は断らない判定にする。または、ScanNetSecurity の無料の範囲だと分かる場合は、「この媒体は無料の範囲が短く、全文は会員向けです。読める範囲を貼り付けてください」と案内する |
-| TRIAL-F-002 | `ransom-tokai-itmedia`（保留。ITmedia、東海大の委託先） | 読解（種類） | 低 | `run-trial.ts --id ransom-tokai-itmedia --url https://www.itmedia.co.jp/news/articles/2602/18/news129.html`→ `read.json` の `damageType` が `data_breach`（明確さ partial）。ランサムウェアで暗号化された段階（TA0040）は stated | 記事の表題は「東海大、ランサム被害で個人情報漏えい 最大19万人分 業務委託先がルール違反、データを持ち帰り」で、暗号化と脅迫文、持ち出しが同時にある。読解は被害の中心を個人情報の漏えいと取り、情報漏えいの型紙（data-breach-intrusion）で判定する。ランサムの型紙の「暗号化・業務停止」の観点は一枚に出ない。ラベルは `ransomware`（許容の `data_breach` なし）で、境目の記事 | 種類の選び方に、「暗号化と持ち出しが両方ある」場合の方針を足す。または、境目の記事として許容に `data_breach` を足す（ラベル側） |
-| TRIAL-F-003 | 一枚の言い換え（デモ精工）。`breach-tabiq`、`bec-sanshin`、`ir-nidec1`、`ir-nidec2`、`ir-kadokawa-0911` と、`ransom-ctc-subcontractor`（timeout） | 経営（一枚の言い換え） | 低 | 該当 id を `run-trial.ts`／`run-ir.ts` で実行 → `demo-seiko.onepager.json` の `text.source` が `template`、`noteJa` に「Claude の文を検証で捨てました：…」 | 言い換えが、事実の無い出来事を「確認されています」と書く（tabiq）、御社の金額に「想定では」を付けない（sanshin）、第三者の事故を子会社と書く（nidec1）、攻撃者の主張を「主張」と書かない（nidec2）など。検証が捨ててテンプレート文に戻したので、**誤った文は出ていない**（ガードが働いた）。1 件は Claude の timeout。言い換えを試みた 67 件（成功 61、検証で捨てた 5、timeout 1）のうち、検証で捨てられたのは 5 件（約 7%） | 言い換えの指示に、捨てられた理由を例として足す（捨てた理由を再入力して 1 回だけ言い直す、など）。優先度は低い |
+| ID          | 対象                                                                                                                                              | 区分                       | 重大度 | 再現                                                                                                                                                                                                                                                                                                                                                           | 原因                                                                                                                                                                                                                                                                                                                                                                                                                         | 案                                                                                                                                                                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TRIAL-F-001 | `breach-keds` ほか ScanNetSecurity の 13 件（同媒体の 21 件中）                                                                                   | 取り込み（短い本文の拒否） | 中     | `node --disable-warning=ExperimentalWarning --env-file=<.env> eval/trials/run-trial.ts --id breach-keds --url https://scan.netsecurity.ne.jp/article/2024/01/25/50501.html` → `read failed 422`「本文がほとんど取れませんでした（185 字）」。他の 12 件も 131〜199 字で同じ。同じ本文を text で渡す（`run-ir.ts --id breach-keds --file breach.yaml`）と読める | ScanNetSecurity は、会員でない閲覧者には記事の冒頭（無料の範囲、130〜200 字ほど）だけを返す。TRIAL-I-002 の修正（本文が 200 字未満の HTML は 422 で取り直しの案内にする）より前は、この短い本文でも読めていた。修正後は、短いだけで本文として足りている記事も、同意の画面などと同じ案内で断られる。案内の文は「PDF の版か本文の貼り付け」を勧めるが、ScanNetSecurity には PDF が無い                                         | 本文が 200 字未満でも、同意文・著作権表示だけでなく記事の文（日付・主語・出来事）が含まれる場合は断らない判定にする。または、ScanNetSecurity の無料の範囲だと分かる場合は、「この媒体は無料の範囲が短く、全文は会員向けです。読める範囲を貼り付けてください」と案内する |
+| TRIAL-F-002 | `ransom-tokai-itmedia`（保留。ITmedia、東海大の委託先）                                                                                           | 読解（種類）               | 低     | `run-trial.ts --id ransom-tokai-itmedia --url https://www.itmedia.co.jp/news/articles/2602/18/news129.html`→ `read.json` の `damageType` が `data_breach`（明確さ partial）。ランサムウェアで暗号化された段階（TA0040）は stated                                                                                                                               | 記事の表題は「東海大、ランサム被害で個人情報漏えい 最大19万人分 業務委託先がルール違反、データを持ち帰り」で、暗号化と脅迫文、持ち出しが同時にある。読解は被害の中心を個人情報の漏えいと取り、情報漏えいの型紙（data-breach-intrusion）で判定する。ランサムの型紙の「暗号化・業務停止」の観点は一枚に出ない。ラベルは `ransomware`（許容の `data_breach` なし）で、境目の記事                                                | 種類の選び方に、「暗号化と持ち出しが両方ある」場合の方針を足す。または、境目の記事として許容に `data_breach` を足す（ラベル側）                                                                                                                                         |
+| TRIAL-F-003 | 一枚の言い換え（デモ精工）。`breach-tabiq`、`bec-sanshin`、`ir-nidec1`、`ir-nidec2`、`ir-kadokawa-0911` と、`ransom-ctc-subcontractor`（timeout） | 経営（一枚の言い換え）     | 低     | 該当 id を `run-trial.ts`／`run-ir.ts` で実行 → `demo-seiko.onepager.json` の `text.source` が `template`、`noteJa` に「Claude の文を検証で捨てました：…」                                                                                                                                                                                                     | 言い換えが、事実の無い出来事を「確認されています」と書く（tabiq）、御社の金額に「想定では」を付けない（sanshin）、第三者の事故を子会社と書く（nidec1）、攻撃者の主張を「主張」と書かない（nidec2）など。検証が捨ててテンプレート文に戻したので、**誤った文は出ていない**（ガードが働いた）。1 件は Claude の timeout。言い換えを試みた 67 件（成功 61、検証で捨てた 5、timeout 1）のうち、検証で捨てられたのは 5 件（約 7%） | 言い換えの指示に、捨てられた理由を例として足す（捨てた理由を再入力して 1 回だけ言い直す、など）。優先度は低い                                                                                                                                                           |
 
 ### 前回までの課題との関係
 
@@ -171,15 +171,15 @@ URL だけで数える場合（保留のうち ScanNetSecurity の 5 件を通�
 
 読解・判定・一枚の応答まで（`summary.json`）。記事の取得時間を含む。並列で動かしたので、壁時計の時間は合計より短い。
 
-| 区分 | 件数 | API 呼び出し | 入力 | 出力 | キャッシュ読み | キャッシュ書き | 処理時間の合計 | 読解の中央値／最大 |
-|---|---|---|---|---|---|---|---|---|
-| 全体 | 136 | 202 | 369,435 | 118,998 | 3,653,108 | 54,524 | 1,031 秒 | 4.8 秒／19.8 秒 |
-| ランサム | 24 | 44 | 80,235 | 23,310 | 654,288 | 0 | 221 秒 | 5.2 秒／11.9 秒 |
-| 情報漏えい | 21 | 23 | 17,497 | 17,660 | 572,502 | 0 | 148 秒 | 4.8 秒／14.1 秒 |
-| BEC・乗っ取り | 19 | 26 | 48,089 | 13,861 | 517,978 | 0 | 135 秒 | 4.9 秒／13.3 秒 |
-| 取引先・対象外 | 17 | 24 | 41,833 | 16,107 | 463,454 | 0 | 136 秒 | 4.5 秒／12.7 秒 |
-| IR | 49 | 79 | 174,477 | 46,269 | 1,281,314 | 54,524 | 372 秒 | 4.7 秒／19.8 秒 |
-| PHP2Shell | 6 | 6 | 7,304 | 1,791 | 163,572 | 0 | 19 秒 | 3.0 秒／5.3 秒 |
+| 区分           | 件数 | API 呼び出し | 入力    | 出力    | キャッシュ読み | キャッシュ書き | 処理時間の合計 | 読解の中央値／最大 |
+| -------------- | ---- | ------------ | ------- | ------- | -------------- | -------------- | -------------- | ------------------ |
+| 全体           | 136  | 202          | 369,435 | 118,998 | 3,653,108      | 54,524         | 1,031 秒       | 4.8 秒／19.8 秒    |
+| ランサム       | 24   | 44           | 80,235  | 23,310  | 654,288        | 0              | 221 秒         | 5.2 秒／11.9 秒    |
+| 情報漏えい     | 21   | 23           | 17,497  | 17,660  | 572,502        | 0              | 148 秒         | 4.8 秒／14.1 秒    |
+| BEC・乗っ取り  | 19   | 26           | 48,089  | 13,861  | 517,978        | 0              | 135 秒         | 4.9 秒／13.3 秒    |
+| 取引先・対象外 | 17   | 24           | 41,833  | 16,107  | 463,454        | 0              | 136 秒         | 4.5 秒／12.7 秒    |
+| IR             | 49   | 79           | 174,477 | 46,269  | 1,281,314      | 54,524         | 372 秒         | 4.7 秒／19.8 秒    |
+| PHP2Shell      | 6    | 6            | 7,304   | 1,791   | 163,572        | 0              | 19 秒          | 3.0 秒／5.3 秒     |
 
 - 1 件あたり（136 件の平均）：API 呼び出し 約 1.5 回、処理時間 約 7.6 秒。
 - 壁時計：記事 81 件と IR・PHP2Shell 55 件を並列で動かして約 8 分（11:51〜11:59）。取得（IR・PHP2Shell の 65 件、3 並列）は別に数分。
@@ -209,185 +209,184 @@ node --disable-warning=ExperimentalWarning eval/trials/report-wording-report.ts 
 
 ★は保留の記事。「貼り付け」は ScanNetSecurity の 13 件のうち保留の 5 件。
 
-| ID | 区分 | 期待の種類 | 読解の種類 | 種類 | デモ精工の判定 | 入口（期待／読解） | 根拠文 | 備考 |
-|---|---|---|---|---|---|---|---|---|
-| ransom-komai ★ | ランサム | ransomware | ransomware | 厳密 | 入口なし | rdp／rdp | 3/3 |  |
-| ransom-japangas ★ | ランサム | ransomware | ransomware | 厳密 | 入口なし | rdp／rdp | 4/4 |  |
-| ransom-tokiwa ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-uniden ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 4/4 |  |
-| ransom-tokai-itmedia ★ | ランサム | ransomware | data_breach | **不一致** | 侵入される | vendor／vendor | 3/3 |  |
-| ransom-matsuyama ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-rext ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| breach-proself ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vuln-exploit／web | 4/4 |  |
-| breach-keds ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | credential-abuse／credential | 2/2 | 貼り付け |
-| breach-pia ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 2/2 |  |
-| breach-mitsubishi-mdm ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vuln-exploit／web | 2/2 | 貼り付け |
-| breach-denso-sp ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 2/2 | 貼り付け |
-| breach-campfire ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | credential-abuse／credential | 3/3 | 貼り付け |
-| breach-timescar ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | none／— | 1/1 |  |
-| bec-ipa-2024 ★ | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-fin-6oku ★ | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-oita ★ | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | （自由記述）／mail | 4/4 |  |
-| ato-sakura ★ | BEC・乗っ取り | account_takeover（許容 data_breach） | account_takeover | 厳密 | 入口なし | （自由記述）／mail | 3/3 | 貼り付け |
-| ato-proofpoint-rules ★ | BEC・乗っ取り | account_takeover | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| ato-hotel ★ | BEC・乗っ取り | account_takeover（許容 data_breach） | account_takeover | 厳密 | 入口なし | （自由記述）／— | 3/3 |  |
-| supply-murata-subsidiary ★ | 取引先・対象外 | data_breach（許容 ransomware） | data_breach | 厳密 | 侵入される | subsidiary_remote／vpn | 3/3 |  |
-| supply-fujikura-maintenance-vpn ★ | 取引先・対象外 | data_breach | data_breach | 厳密 | 侵入される | maintenance_vpn／vpn | 3/3 |  |
-| supply-corona-cloud ★ | 取引先・対象外 | data_breach | data_breach | 厳密 | 入口なし | cloud_vendor／— | 1/1 |  |
-| oos-ntt-insider ★ | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-toyota-usb ★ | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
+| ID                                | 区分           | 期待の種類                           | 読解の種類       | 種類       | デモ精工の判定 | 入口（期待／読解）           | 根拠文 | 備考     |
+| --------------------------------- | -------------- | ------------------------------------ | ---------------- | ---------- | -------------- | ---------------------------- | ------ | -------- |
+| ransom-komai ★                    | ランサム       | ransomware                           | ransomware       | 厳密       | 入口なし       | rdp／rdp                     | 3/3    |          |
+| ransom-japangas ★                 | ランサム       | ransomware                           | ransomware       | 厳密       | 入口なし       | rdp／rdp                     | 4/4    |          |
+| ransom-tokiwa ★                   | ランサム       | ransomware                           | ransomware       | 厳密       | 侵入される     | none／—                      | 2/2    |          |
+| ransom-uniden ★                   | ランサム       | ransomware                           | ransomware       | 厳密       | 侵入される     | vpn／vpn                     | 4/4    |          |
+| ransom-tokai-itmedia ★            | ランサム       | ransomware                           | data_breach      | **不一致** | 侵入される     | vendor／vendor               | 3/3    |          |
+| ransom-matsuyama ★                | ランサム       | ransomware                           | ransomware       | 厳密       | 侵入される     | none／—                      | 2/2    |          |
+| ransom-rext ★                     | ランサム       | ransomware                           | ransomware       | 厳密       | 侵入される     | none／—                      | 2/2    |          |
+| breach-proself ★                  | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | vuln-exploit／web            | 4/4    |          |
+| breach-keds ★                     | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | credential-abuse／credential | 2/2    | 貼り付け |
+| breach-pia ★                      | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—           | 2/2    |          |
+| breach-mitsubishi-mdm ★           | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | vuln-exploit／web            | 2/2    | 貼り付け |
+| breach-denso-sp ★                 | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—           | 2/2    | 貼り付け |
+| breach-campfire ★                 | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | credential-abuse／credential | 3/3    | 貼り付け |
+| breach-timescar ★                 | 情報漏えい     | data_breach                          | data_breach      | 厳密       | 入口なし       | none／—                      | 1/1    |          |
+| bec-ipa-2024 ★                    | BEC・乗っ取り  | bec                                  | out_of_scope     | **不一致** | 対象外         | （自由記述）／—              | 0/0    |          |
+| bec-fin-6oku ★                    | BEC・乗っ取り  | bec                                  | out_of_scope     | **不一致** | 対象外         | （自由記述）／—              | 0/0    |          |
+| bec-oita ★                        | BEC・乗っ取り  | bec                                  | bec              | 厳密       | 侵入される     | （自由記述）／mail           | 4/4    |          |
+| ato-sakura ★                      | BEC・乗っ取り  | account_takeover（許容 data_breach） | account_takeover | 厳密       | 入口なし       | （自由記述）／mail           | 3/3    | 貼り付け |
+| ato-proofpoint-rules ★            | BEC・乗っ取り  | account_takeover                     | out_of_scope     | **不一致** | 対象外         | （自由記述）／—              | 0/0    |          |
+| ato-hotel ★                       | BEC・乗っ取り  | account_takeover（許容 data_breach） | account_takeover | 厳密       | 入口なし       | （自由記述）／—              | 3/3    |          |
+| supply-murata-subsidiary ★        | 取引先・対象外 | data_breach（許容 ransomware）       | data_breach      | 厳密       | 侵入される     | subsidiary_remote／vpn       | 3/3    |          |
+| supply-fujikura-maintenance-vpn ★ | 取引先・対象外 | data_breach                          | data_breach      | 厳密       | 侵入される     | maintenance_vpn／vpn         | 3/3    |          |
+| supply-corona-cloud ★             | 取引先・対象外 | data_breach                          | data_breach      | 厳密       | 入口なし       | cloud_vendor／—              | 1/1    |          |
+| oos-ntt-insider ★                 | 取引先・対象外 | out_of_scope                         | out_of_scope     | 厳密       | 対象外         | none／—                      | 0/0    |          |
+| oos-toyota-usb ★                  | 取引先・対象外 | out_of_scope                         | out_of_scope     | 厳密       | 対象外         | none／—                      | 0/0    |          |
 
 
 ## 全 146 件の一件ごとの結果
 
 判定はデモ精工。「入口」は期待（`yaml` の値）と、読解が付けた入口の種類。IR の「通せず」は取得できなかった件。
 
-| ID | 区分 | 期待の種類 | 読解の種類 | 種類 | デモ精工の判定 | 入口（期待／読解） | 根拠文 | 備考 |
-|---|---|---|---|---|---|---|---|---|
-| ransom-suginami | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-kyoto-hospital | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 3/3 |  |
-| ransom-komai ★ | ランサム | ransomware | ransomware | 厳密 | 入口なし | rdp／rdp | 3/3 |  |
-| ransom-tomoe | ランサム | ransomware | ransomware | 厳密 | 入口なし | rdp／rdp | 3/3 |  |
-| ransom-oiles | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 2/2 |  |
-| ransom-japangas ★ | ランサム | ransomware | ransomware | 厳密 | 入口なし | rdp／rdp | 4/4 |  |
-| ransom-ikaruga | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-ctc-subcontractor | ランサム | ransomware | ransomware | 厳密 | 侵入される | vendor／credential | 4/4 |  |
-| ransom-belldata | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 4/4 |  |
-| ransom-tokiwa ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-senko | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 3/3 |  |
-| ransom-jikko | ランサム | ransomware | ransomware | 厳密 | 侵入される | internet／— | 2/2 |  |
-| ransom-uniden ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 4/4 |  |
-| ransom-npo | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-cbys | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-juntendo | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-tokai-itmedia ★ | ランサム | ransomware | data_breach | **不一致** | 侵入される | vendor／vendor | 3/3 |  |
-| ransom-shizuoka-hospital | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-tein | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-matsuyama ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ransom-loss-adjuster | ランサム | ransomware | ransomware | 厳密 | 侵入される | network-device／network-device | 7/7 |  |
-| ransom-medica | ランサム | ransomware | ransomware | 厳密 | 侵入される | credential／— | 1/1 | 貼り付け |
-| ransom-marutaka | ランサム | ransomware | ransomware | 厳密 | 侵入される | vpn／vpn | 6/6 |  |
-| ransom-rext ★ | ランサム | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| breach-nagasaki-manabie | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | none／— | 0/0 | 貼り付け |
-| breach-tokio-agency | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 1/1 |  |
-| breach-proself ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vuln-exploit／web | 4/4 |  |
-| breach-lineyahoo-vendor | 情報漏えい | data_breach | data_breach | 厳密 | 侵入される | vendor／vendor | 2/2 |  |
-| breach-sophia | 情報漏えい | data_breach | account_takeover | **不一致** | 入口なし | credential-abuse／— | 1/1 |  |
-| breach-keds ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | credential-abuse／credential | 2/2 | 貼り付け |
-| breach-shopchannel | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | credential-abuse／credential | 2/2 | 貼り付け |
-| breach-nishitetsu | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | web-app-flaw／web | 2/2 | 貼り付け |
-| breach-pia ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 2/2 |  |
-| breach-tege | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 1/1 |  |
-| breach-agc | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vendor／— | 1/1 |  |
-| breach-mitsubishi-mdm ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vuln-exploit／web | 2/2 | 貼り付け |
-| breach-sasadango | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | web-app-flaw／web | 4/4 |  |
-| breach-tokushima-hosp | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | none／— | 1/1 | 貼り付け |
-| breach-denso-sp ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 2/2 | 貼り付け |
-| breach-form-2026 | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 1/1 |  |
-| breach-fukuoka-edu | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | cloud-misconfig／— | 1/1 | 貼り付け |
-| breach-campfire ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | credential-abuse／credential | 3/3 | 貼り付け |
-| breach-tabiq | 情報漏えい | data_breach | data_breach | 厳密 | 止まる | cloud-misconfig／— | 1/1 | 貼り付け |
-| breach-montbell | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | vuln-exploit／web | 3/3 |  |
-| breach-timescar ★ | 情報漏えい | data_breach | data_breach | 厳密 | 入口なし | none／— | 1/1 |  |
-| bec-ipa-2023 | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | （自由記述）／mail | 3/3 |  |
-| bec-3dmatrix | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | 取引先を装うメール（支払口座の変更依頼）／mail | 3/3 |  |
-| bec-ipa-2024 ★ | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-survey-2024 | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-sanshin | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | （自由記述）／— | 1/1 | 貼り付け |
-| bec-fin-6oku ★ | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-npa-nise | BEC・乗っ取り | bec | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| bec-kyoto-boeki | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | （自由記述）／— | 4/4 |  |
-| bec-oita ★ | BEC・乗っ取り | bec | bec | 厳密 | 侵入される | （自由記述）／mail | 4/4 |  |
-| bec-odawara | BEC・乗っ取り | bec（許容 account_takeover） | account_takeover | 許容 | 入口なし | （自由記述）／— | 2/2 |  |
-| ato-nmr | BEC・乗っ取り | account_takeover（許容 data_breach） | account_takeover | 厳密 | 入口なし | （自由記述）／mail | 4/4 |  |
-| ato-kawai | BEC・乗っ取り | account_takeover | account_takeover | 厳密 | 入口なし | （自由記述）／— | 1/1 |  |
-| ato-sakura ★ | BEC・乗っ取り | account_takeover（許容 data_breach） | account_takeover | 厳密 | 入口なし | （自由記述）／mail | 3/3 | 貼り付け |
-| ato-jems | BEC・乗っ取り | account_takeover | account_takeover | 厳密 | 入口なし | （自由記述）／— | 2/2 |  |
-| ato-toho | BEC・乗っ取り | account_takeover | account_takeover | 厳密 | 入口なし | （自由記述）／— | 1/1 |  |
-| ato-proofpoint-rules ★ | BEC・乗っ取り | account_takeover | out_of_scope | **不一致** | 対象外 | （自由記述）／— | 0/0 |  |
-| ato-kodansha | BEC・乗っ取り | account_takeover（許容 data_breach） | data_breach | 許容 | 侵入される | （自由記述）／mail | 5/5 |  |
-| ato-m365-mfa | BEC・乗っ取り | account_takeover（許容 bec） | bec | 許容 | 侵入される | （自由記述）／— | 2/2 |  |
-| ato-hotel ★ | BEC・乗っ取り | account_takeover（許容 data_breach） | account_takeover | 厳密 | 入口なし | （自由記述）／— | 3/3 |  |
-| supply-sekisui-yamaguchi | 取引先・対象外 | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | contractor_system／vendor | 3/3 |  |
-| supply-murata-subsidiary ★ | 取引先・対象外 | data_breach（許容 ransomware） | data_breach | 厳密 | 侵入される | subsidiary_remote／vpn | 3/3 |  |
-| supply-mlit-subcontractor | 取引先・対象外 | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | contractor_system／vpn | 4/4 |  |
-| supply-fujikura-maintenance-vpn ★ | 取引先・対象外 | data_breach | data_breach | 厳密 | 侵入される | maintenance_vpn／vpn | 3/3 |  |
-| supply-itoki-subcontractor | 取引先・対象外 | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | contractor_system／— | 2/2 |  |
-| supply-askul-muji | 取引先・対象外 | ransomware | ransomware | 厳密 | 侵入される | vendor_outage／— | 2/2 |  |
-| supply-emeditor-site | 取引先・対象外 | data_breach（許容 out_of_scope） | out_of_scope | 許容 | 対象外 | software_distribution／web | 3/3 |  |
-| supply-notepadpp-update | 取引先・対象外 | data_breach（許容 out_of_scope） | out_of_scope | 許容 | 対象外 | software_update／— | 3/3 |  |
-| supply-corona-cloud ★ | 取引先・対象外 | data_breach | data_breach | 厳密 | 入口なし | cloud_vendor／— | 1/1 |  |
-| supply-nec-contractor | 取引先・対象外 | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | contractor_account／vendor | 4/4 |  |
-| oos-sangyoeisei-ddos | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 1/1 |  |
-| oos-ntt-insider ★ | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-kanagawa-misprint | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-toyota-usb ★ | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-jpcert-php | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-jpcert-advisory | 取引先・対象外 | out_of_scope（許容 data_breach） | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| oos-ipa-sme-survey | 取引先・対象外 | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| ir-nidec1 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-nidec2 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-yodoko1 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-yodoko2 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-daiwabo | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-askul-1020 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-askul-news | IR | ransomware（許容 out_of_scope） | ransomware | 厳密 | 侵入される | none／— | 1/1 |  |
-| ir-xebio | IR | data_breach | data_breach | 厳密 | 入口なし | vendor／— | 3/3 |  |
-| ir-san-hd | IR | data_breach | data_breach | 厳密 | 入口なし | web／— | 2/2 |  |
-| ir-treasure | IR | data_breach | data_breach | 厳密 | 入口なし | none／— | 2/2 |  |
-| ir-zuken | IR | ransomware（許容 out_of_scope） | out_of_scope | 許容 | 対象外 | none／— | 1/1 |  |
-| ir-ibiden | IR | out_of_scope | out_of_scope | 厳密 | 対象外 | web／— | 1/1 |  |
-| ir-iseki1 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-iseki2 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 1/2 |  |
-| ir-sakata2 | IR | data_breach | data_breach | 厳密 | 侵入される | none／network-device | 4/4 |  |
-| ir-sakata-final | IR | data_breach | data_breach | 厳密 | 侵入される | none／network-device | 1/1 |  |
-| ir-oug-final | IR | out_of_scope | out_of_scope | 厳密 | 対象外 | web／— | 1/1 |  |
-| ir-kadokawa-0627 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-kadokawa-0628 | IR | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-kadokawa-0702 | IR | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-kadokawa-0729 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-kadokawa-0911 | IR | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-panasonic-alrac | IR | data_breach | data_breach | 厳密 | 入口なし | web／— | 2/2 |  |
-| ir-yac-garter | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-asahi-2 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-asahi-result | IR | ransomware（許容 data_breach） | ransomware | 厳密 | 侵入される | network-device／network-device | 4/4 |  |
-| ir-asahi-prevent | IR | ransomware | ransomware | 厳密 | 侵入される | network-device／network-device | 7/7 |  |
-| ir-asahi-pii | IR | data_breach（許容 ransomware） | data_breach | 厳密 | 侵入される | none／network-device | 3/3 |  |
-| ir-nichirei-1 | IR | ransomware（許容 data_breach・out_of_scope） | data_breach | 許容 | 侵入される | none／— | 2/2 |  |
-| ir-nichirei-2 | IR | ransomware（許容 data_breach・out_of_scope） | ransomware | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-nichirei-0716 | IR | ransomware（許容 data_breach・out_of_scope） | data_breach | 許容 | 侵入される | none／— | 2/2 |  |
-| ir-nichirei-7 | IR | data_breach（許容 ransomware） | data_breach | 厳密 | 侵入される | none／— | 2/2 |  |
-| ir-jrc-idcf-2 | IR | data_breach | data_breach | 厳密 | 入口なし | vendor／— | 1/1 |  |
-| ir-jrc-ymir | IR | data_breach | data_breach | 厳密 | 入口なし | vendor／— | 2/2 |  |
-| ir-mitsui-park | IR | account_takeover | data_breach | **不一致** | 入口なし | credential／— | 2/2 |  |
-| ir-japanpost-pdf | IR | account_takeover（許容 data_breach） | data_breach | 許容 | 入口なし | credential／— | 2/2 |  |
-| ir-japanpost-html | IR | account_takeover（許容 data_breach） | out_of_scope | **不一致** | 対象外 | credential／— | 0/0 |  |
-| ir-yamaichi-pdf | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 1/1 |  |
-| ir-yamaichi-html | IR | ransomware | out_of_scope | **不一致** | 対象外 | none／— | 0/0 |  |
-| ir-taikisha-us1 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 1/1 |  |
-| ir-taikisha-us2 | IR | ransomware | ransomware | 厳密 | 侵入される | none／— | 1/1 |  |
-| ir-taikisha-id | IR | account_takeover | account_takeover | 厳密 | 入口なし | mail／— | 2/2 |  |
-| ir-taikisha-my | IR | account_takeover | account_takeover | 厳密 | 入口なし | mail／— | 2/2 |  |
-| ir-futaba | IR | out_of_scope（許容 bec） | out_of_scope | 厳密 | 対象外 | mail／mail | 1/1 |  |
-| ir-daj-faq | IR | data_breach（許容 account_takeover） | data_breach | 厳密 | 侵入される | credential／credential | 3/3 |  |
-| ir-kddi-lifenet | IR | data_breach | data_breach | 厳密 | 侵入される | vendor／web | 1/1 |  |
-| ir-daiwa | IR | data_breach | data_breach | 厳密 | 入口なし | vendor／— | 1/1 |  |
-| ir-monogatari-1 | IR | data_breach | data_breach | 厳密 | 入口なし | web／— | 1/1 |  |
-| ir-monogatari-2 | IR | data_breach | data_breach | 厳密 | 入口なし | web／— | 0/0 |  |
-| ir-takeuchi | IR | ransomware | — | 通せず | — | — | — | 取得できず |
-| ir-oug-1 | IR | out_of_scope | — | 通せず | — | — | — | 取得できず |
-| ir-oug-2 | IR | out_of_scope | — | 通せず | — | — | — | 取得できず |
-| ir-nec-vendor | IR | ransomware（許容 data_breach） | — | 通せず | — | — | — | 取得できず |
-| ir-nomura-vendor | IR | data_breach | — | 通せず | — | — | — | 取得できず |
-| ir-jrc-idcf-1 | IR | data_breach | — | 通せず | — | — | — | 取得できず |
-| ir-jal-cargo | IR | out_of_scope | — | 通せず | — | — | — | 取得できず |
-| ir-jal-pay | IR | out_of_scope | — | 通せず | — | — | — | 取得できず |
-| ir-sagawa-2 | IR | data_breach | — | 通せず | — | — | — | 取得できず |
-| ir-sagawa-5 | IR | data_breach | — | 通せず | — | — | — | 取得できず |
-| php-valtec1 | PHP2Shell | data_breach | data_breach | 厳密 | 入口なし | web／web | 3/3 |  |
-| php-valtec3 | PHP2Shell | data_breach | data_breach | 厳密 | 入口なし | web／web | 3/3 |  |
-| php-xserver | PHP2Shell | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| php-sakura | PHP2Shell | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| php-lineworks | PHP2Shell | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-| php-osaka | PHP2Shell | out_of_scope | out_of_scope | 厳密 | 対象外 | none／— | 0/0 |  |
-
+| ID                                | 区分           | 期待の種類                                   | 読解の種類       | 種類       | デモ精工の判定 | 入口（期待／読解）                             | 根拠文 | 備考       |
+| --------------------------------- | -------------- | -------------------------------------------- | ---------------- | ---------- | -------------- | ---------------------------------------------- | ------ | ---------- |
+| ransom-suginami                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-kyoto-hospital             | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 3/3    |            |
+| ransom-komai ★                    | ランサム       | ransomware                                   | ransomware       | 厳密       | 入口なし       | rdp／rdp                                       | 3/3    |            |
+| ransom-tomoe                      | ランサム       | ransomware                                   | ransomware       | 厳密       | 入口なし       | rdp／rdp                                       | 3/3    |            |
+| ransom-oiles                      | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 2/2    |            |
+| ransom-japangas ★                 | ランサム       | ransomware                                   | ransomware       | 厳密       | 入口なし       | rdp／rdp                                       | 4/4    |            |
+| ransom-ikaruga                    | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-ctc-subcontractor          | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vendor／credential                             | 4/4    |            |
+| ransom-belldata                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 4/4    |            |
+| ransom-tokiwa ★                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-senko                      | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 3/3    |            |
+| ransom-jikko                      | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | internet／—                                    | 2/2    |            |
+| ransom-uniden ★                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 4/4    |            |
+| ransom-npo                        | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-cbys                       | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-juntendo                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-tokai-itmedia ★            | ランサム       | ransomware                                   | data_breach      | **不一致** | 侵入される     | vendor／vendor                                 | 3/3    |            |
+| ransom-shizuoka-hospital          | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-tein                       | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-matsuyama ★                | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ransom-loss-adjuster              | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | network-device／network-device                 | 7/7    |            |
+| ransom-medica                     | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | credential／—                                  | 1/1    | 貼り付け   |
+| ransom-marutaka                   | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | vpn／vpn                                       | 6/6    |            |
+| ransom-rext ★                     | ランサム       | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| breach-nagasaki-manabie           | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | none／—                                        | 0/0    | 貼り付け   |
+| breach-tokio-agency               | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 1/1    |            |
+| breach-proself ★                  | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | vuln-exploit／web                              | 4/4    |            |
+| breach-lineyahoo-vendor           | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 侵入される     | vendor／vendor                                 | 2/2    |            |
+| breach-sophia                     | 情報漏えい     | data_breach                                  | account_takeover | **不一致** | 入口なし       | credential-abuse／—                            | 1/1    |            |
+| breach-keds ★                     | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | credential-abuse／credential                   | 2/2    | 貼り付け   |
+| breach-shopchannel                | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | credential-abuse／credential                   | 2/2    | 貼り付け   |
+| breach-nishitetsu                 | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | web-app-flaw／web                              | 2/2    | 貼り付け   |
+| breach-pia ★                      | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 2/2    |            |
+| breach-tege                       | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 1/1    |            |
+| breach-agc                        | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | vendor／—                                      | 1/1    |            |
+| breach-mitsubishi-mdm ★           | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | vuln-exploit／web                              | 2/2    | 貼り付け   |
+| breach-sasadango                  | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | web-app-flaw／web                              | 4/4    |            |
+| breach-tokushima-hosp             | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | none／—                                        | 1/1    | 貼り付け   |
+| breach-denso-sp ★                 | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 2/2    | 貼り付け   |
+| breach-form-2026                  | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 1/1    |            |
+| breach-fukuoka-edu                | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud-misconfig／—                             | 1/1    | 貼り付け   |
+| breach-campfire ★                 | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | credential-abuse／credential                   | 3/3    | 貼り付け   |
+| breach-tabiq                      | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 止まる         | cloud-misconfig／—                             | 1/1    | 貼り付け   |
+| breach-montbell                   | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | vuln-exploit／web                              | 3/3    |            |
+| breach-timescar ★                 | 情報漏えい     | data_breach                                  | data_breach      | 厳密       | 入口なし       | none／—                                        | 1/1    |            |
+| bec-ipa-2023                      | BEC・乗っ取り  | bec                                          | bec              | 厳密       | 侵入される     | （自由記述）／mail                             | 3/3    |            |
+| bec-3dmatrix                      | BEC・乗っ取り  | bec                                          | bec              | 厳密       | 侵入される     | 取引先を装うメール（支払口座の変更依頼）／mail | 3/3    |            |
+| bec-ipa-2024 ★                    | BEC・乗っ取り  | bec                                          | out_of_scope     | **不一致** | 対象外         | （自由記述）／—                                | 0/0    |            |
+| bec-survey-2024                   | BEC・乗っ取り  | bec                                          | out_of_scope     | **不一致** | 対象外         | （自由記述）／—                                | 0/0    |            |
+| bec-sanshin                       | BEC・乗っ取り  | bec                                          | bec              | 厳密       | 侵入される     | （自由記述）／—                                | 1/1    | 貼り付け   |
+| bec-fin-6oku ★                    | BEC・乗っ取り  | bec                                          | out_of_scope     | **不一致** | 対象外         | （自由記述）／—                                | 0/0    |            |
+| bec-npa-nise                      | BEC・乗っ取り  | bec                                          | out_of_scope     | **不一致** | 対象外         | （自由記述）／—                                | 0/0    |            |
+| bec-kyoto-boeki                   | BEC・乗っ取り  | bec                                          | bec              | 厳密       | 侵入される     | （自由記述）／—                                | 4/4    |            |
+| bec-oita ★                        | BEC・乗っ取り  | bec                                          | bec              | 厳密       | 侵入される     | （自由記述）／mail                             | 4/4    |            |
+| bec-odawara                       | BEC・乗っ取り  | bec（許容 account_takeover）                 | account_takeover | 許容       | 入口なし       | （自由記述）／—                                | 2/2    |            |
+| ato-nmr                           | BEC・乗っ取り  | account_takeover（許容 data_breach）         | account_takeover | 厳密       | 入口なし       | （自由記述）／mail                             | 4/4    |            |
+| ato-kawai                         | BEC・乗っ取り  | account_takeover                             | account_takeover | 厳密       | 入口なし       | （自由記述）／—                                | 1/1    |            |
+| ato-sakura ★                      | BEC・乗っ取り  | account_takeover（許容 data_breach）         | account_takeover | 厳密       | 入口なし       | （自由記述）／mail                             | 3/3    | 貼り付け   |
+| ato-jems                          | BEC・乗っ取り  | account_takeover                             | account_takeover | 厳密       | 入口なし       | （自由記述）／—                                | 2/2    |            |
+| ato-toho                          | BEC・乗っ取り  | account_takeover                             | account_takeover | 厳密       | 入口なし       | （自由記述）／—                                | 1/1    |            |
+| ato-proofpoint-rules ★            | BEC・乗っ取り  | account_takeover                             | out_of_scope     | **不一致** | 対象外         | （自由記述）／—                                | 0/0    |            |
+| ato-kodansha                      | BEC・乗っ取り  | account_takeover（許容 data_breach）         | data_breach      | 許容       | 侵入される     | （自由記述）／mail                             | 5/5    |            |
+| ato-m365-mfa                      | BEC・乗っ取り  | account_takeover（許容 bec）                 | bec              | 許容       | 侵入される     | （自由記述）／—                                | 2/2    |            |
+| ato-hotel ★                       | BEC・乗っ取り  | account_takeover（許容 data_breach）         | account_takeover | 厳密       | 入口なし       | （自由記述）／—                                | 3/3    |            |
+| supply-sekisui-yamaguchi          | 取引先・対象外 | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | contractor_system／vendor                      | 3/3    |            |
+| supply-murata-subsidiary ★        | 取引先・対象外 | data_breach（許容 ransomware）               | data_breach      | 厳密       | 侵入される     | subsidiary_remote／vpn                         | 3/3    |            |
+| supply-mlit-subcontractor         | 取引先・対象外 | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | contractor_system／vpn                         | 4/4    |            |
+| supply-fujikura-maintenance-vpn ★ | 取引先・対象外 | data_breach                                  | data_breach      | 厳密       | 侵入される     | maintenance_vpn／vpn                           | 3/3    |            |
+| supply-itoki-subcontractor        | 取引先・対象外 | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | contractor_system／—                           | 2/2    |            |
+| supply-askul-muji                 | 取引先・対象外 | ransomware                                   | ransomware       | 厳密       | 侵入される     | vendor_outage／—                               | 2/2    |            |
+| supply-emeditor-site              | 取引先・対象外 | data_breach（許容 out_of_scope）             | out_of_scope     | 許容       | 対象外         | software_distribution／web                     | 3/3    |            |
+| supply-notepadpp-update           | 取引先・対象外 | data_breach（許容 out_of_scope）             | out_of_scope     | 許容       | 対象外         | software_update／—                             | 3/3    |            |
+| supply-corona-cloud ★             | 取引先・対象外 | data_breach                                  | data_breach      | 厳密       | 入口なし       | cloud_vendor／—                                | 1/1    |            |
+| supply-nec-contractor             | 取引先・対象外 | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | contractor_account／vendor                     | 4/4    |            |
+| oos-sangyoeisei-ddos              | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 1/1    |            |
+| oos-ntt-insider ★                 | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| oos-kanagawa-misprint             | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| oos-toyota-usb ★                  | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| oos-jpcert-php                    | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| oos-jpcert-advisory               | 取引先・対象外 | out_of_scope（許容 data_breach）             | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| oos-ipa-sme-survey                | 取引先・対象外 | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| ir-nidec1                         | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-nidec2                         | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-yodoko1                        | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-yodoko2                        | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-daiwabo                        | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-askul-1020                     | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-askul-news                     | IR             | ransomware（許容 out_of_scope）              | ransomware       | 厳密       | 侵入される     | none／—                                        | 1/1    |            |
+| ir-xebio                          | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | vendor／—                                      | 3/3    |            |
+| ir-san-hd                         | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／—                                         | 2/2    |            |
+| ir-treasure                       | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | none／—                                        | 2/2    |            |
+| ir-zuken                          | IR             | ransomware（許容 out_of_scope）              | out_of_scope     | 許容       | 対象外         | none／—                                        | 1/1    |            |
+| ir-ibiden                         | IR             | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | web／—                                         | 1/1    |            |
+| ir-iseki1                         | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-iseki2                         | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 1/2    |            |
+| ir-sakata2                        | IR             | data_breach                                  | data_breach      | 厳密       | 侵入される     | none／network-device                           | 4/4    |            |
+| ir-sakata-final                   | IR             | data_breach                                  | data_breach      | 厳密       | 侵入される     | none／network-device                           | 1/1    |            |
+| ir-oug-final                      | IR             | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | web／—                                         | 1/1    |            |
+| ir-kadokawa-0627                  | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-kadokawa-0628                  | IR             | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-kadokawa-0702                  | IR             | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-kadokawa-0729                  | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-kadokawa-0911                  | IR             | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-panasonic-alrac                | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／—                                         | 2/2    |            |
+| ir-yac-garter                     | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-asahi-2                        | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-asahi-result                   | IR             | ransomware（許容 data_breach）               | ransomware       | 厳密       | 侵入される     | network-device／network-device                 | 4/4    |            |
+| ir-asahi-prevent                  | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | network-device／network-device                 | 7/7    |            |
+| ir-asahi-pii                      | IR             | data_breach（許容 ransomware）               | data_breach      | 厳密       | 侵入される     | none／network-device                           | 3/3    |            |
+| ir-nichirei-1                     | IR             | ransomware（許容 data_breach・out_of_scope） | data_breach      | 許容       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-nichirei-2                     | IR             | ransomware（許容 data_breach・out_of_scope） | ransomware       | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-nichirei-0716                  | IR             | ransomware（許容 data_breach・out_of_scope） | data_breach      | 許容       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-nichirei-7                     | IR             | data_breach（許容 ransomware）               | data_breach      | 厳密       | 侵入される     | none／—                                        | 2/2    |            |
+| ir-jrc-idcf-2                     | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | vendor／—                                      | 1/1    |            |
+| ir-jrc-ymir                       | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | vendor／—                                      | 2/2    |            |
+| ir-mitsui-park                    | IR             | account_takeover                             | data_breach      | **不一致** | 入口なし       | credential／—                                  | 2/2    |            |
+| ir-japanpost-pdf                  | IR             | account_takeover（許容 data_breach）         | data_breach      | 許容       | 入口なし       | credential／—                                  | 2/2    |            |
+| ir-japanpost-html                 | IR             | account_takeover（許容 data_breach）         | out_of_scope     | **不一致** | 対象外         | credential／—                                  | 0/0    |            |
+| ir-yamaichi-pdf                   | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 1/1    |            |
+| ir-yamaichi-html                  | IR             | ransomware                                   | out_of_scope     | **不一致** | 対象外         | none／—                                        | 0/0    |            |
+| ir-taikisha-us1                   | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 1/1    |            |
+| ir-taikisha-us2                   | IR             | ransomware                                   | ransomware       | 厳密       | 侵入される     | none／—                                        | 1/1    |            |
+| ir-taikisha-id                    | IR             | account_takeover                             | account_takeover | 厳密       | 入口なし       | mail／—                                        | 2/2    |            |
+| ir-taikisha-my                    | IR             | account_takeover                             | account_takeover | 厳密       | 入口なし       | mail／—                                        | 2/2    |            |
+| ir-futaba                         | IR             | out_of_scope（許容 bec）                     | out_of_scope     | 厳密       | 対象外         | mail／mail                                     | 1/1    |            |
+| ir-daj-faq                        | IR             | data_breach（許容 account_takeover）         | data_breach      | 厳密       | 侵入される     | credential／credential                         | 3/3    |            |
+| ir-kddi-lifenet                   | IR             | data_breach                                  | data_breach      | 厳密       | 侵入される     | vendor／web                                    | 1/1    |            |
+| ir-daiwa                          | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | vendor／—                                      | 1/1    |            |
+| ir-monogatari-1                   | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／—                                         | 1/1    |            |
+| ir-monogatari-2                   | IR             | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／—                                         | 0/0    |            |
+| ir-takeuchi                       | IR             | ransomware                                   | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-oug-1                          | IR             | out_of_scope                                 | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-oug-2                          | IR             | out_of_scope                                 | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-nec-vendor                     | IR             | ransomware（許容 data_breach）               | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-nomura-vendor                  | IR             | data_breach                                  | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-jrc-idcf-1                     | IR             | data_breach                                  | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-jal-cargo                      | IR             | out_of_scope                                 | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-jal-pay                        | IR             | out_of_scope                                 | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-sagawa-2                       | IR             | data_breach                                  | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| ir-sagawa-5                       | IR             | data_breach                                  | —                | 通せず     | —              | —                                              | —      | 取得できず |
+| php-valtec1                       | PHP2Shell      | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／web                                       | 3/3    |            |
+| php-valtec3                       | PHP2Shell      | data_breach                                  | data_breach      | 厳密       | 入口なし       | web／web                                       | 3/3    |            |
+| php-xserver                       | PHP2Shell      | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| php-sakura                        | PHP2Shell      | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| php-lineworks                     | PHP2Shell      | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |
+| php-osaka                         | PHP2Shell      | out_of_scope                                 | out_of_scope     | 厳密       | 対象外         | none／—                                        | 0/0    |            |

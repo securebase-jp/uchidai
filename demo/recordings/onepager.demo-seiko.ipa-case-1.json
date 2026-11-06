@@ -610,10 +610,7 @@
               "breachedLabelJa": "侵入される",
               "breachedDoneJa": "侵入されました",
               "quote": "攻撃者にVPN装置の脆弱性を悪用され、ランサムウェアに\n感染し、業務データが暗号化された",
-              "mitigations": [
-                "M1042",
-                "M1051"
-              ],
+              "mitigations": ["M1042", "M1051"],
               "ineffective": [
                 {
                   "mitigation": "M1032",
@@ -635,10 +632,7 @@
               "labelJa": "管理者権限を奪う",
               "breachedLabelJa": "奪われる",
               "breachedDoneJa": "奪われました",
-              "mitigations": [
-                "M1040",
-                "M1026"
-              ],
+              "mitigations": ["M1040", "M1026"],
               "ineffective": [],
               "state": "breached",
               "evidence": "vendor",
@@ -655,10 +649,7 @@
               "labelJa": "サーバへ広がる",
               "breachedLabelJa": "侵入される",
               "breachedDoneJa": "侵入されました",
-              "mitigations": [
-                "M1030",
-                "M1035"
-              ],
+              "mitigations": ["M1030", "M1035"],
               "ineffective": [],
               "state": "breached",
               "evidence": "registered",
@@ -676,9 +667,7 @@
               "breachedLabelJa": "暗号化される",
               "breachedDoneJa": "暗号化されました",
               "quote": "クラウドに保存したバック\nアップデータも暗号化され、\nデータ復旧困難となった",
-              "mitigations": [
-                "M1053"
-              ],
+              "mitigations": ["M1053"],
               "ineffective": [],
               "state": "breached",
               "evidence": "registered",
@@ -705,13 +694,7 @@
             }
           ],
           "reachedCore": true,
-          "reachedAssetIds": [
-            "vpn",
-            "admin",
-            "server",
-            "backup",
-            "core"
-          ]
+          "reachedAssetIds": ["vpn", "admin", "server", "backup", "core"]
         }
       ],
       "contradictions": [],
@@ -847,10 +830,7 @@
           "core": "onprem",
           "web": "provider"
         },
-        "remoteAccess": [
-          "vpn",
-          "vendor_remote"
-        ],
+        "remoteAccess": ["vpn", "vendor_remote"],
         "backup": "cloud_sync"
       },
       "employees": 120,
@@ -1205,9 +1185,7 @@
         {
           "id": "biz-order",
           "name": "受注・生産管理",
-          "assetIds": [
-            "core"
-          ],
+          "assetIds": ["core"],
           "manualDays": 2,
           "recoveryDays": 10,
           "recoveryDaysWithBackup": 2,
@@ -1216,9 +1194,7 @@
         {
           "id": "biz-design",
           "name": "設計",
-          "assetIds": [
-            "file-server"
-          ],
+          "assetIds": ["file-server"],
           "manualDays": 3,
           "recoveryDays": 10,
           "recoveryDaysWithBackup": 2,
@@ -1227,10 +1203,7 @@
         {
           "id": "biz-accounting",
           "name": "経理・支払",
-          "assetIds": [
-            "cloud-accounting",
-            "cloud-mail"
-          ],
+          "assetIds": ["cloud-accounting", "cloud-mail"],
           "manualDays": 5,
           "recoveryDays": 0,
           "affectsJa": "支払・請求"
@@ -1238,9 +1211,7 @@
         {
           "id": "biz-sharing",
           "name": "取引先とのデータ共有",
-          "assetIds": [
-            "cloud-storage"
-          ],
+          "assetIds": ["cloud-storage"],
           "manualDays": 0,
           "recoveryDays": 0,
           "affectsJa": "取引先との信頼"
