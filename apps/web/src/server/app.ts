@@ -30,6 +30,7 @@ import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
 import { isThinReading, loadArticle, thinBodyError } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
+import { hostGuard } from "./host-guard.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { patchProfile } from "./profile-patch.ts";
 import { remoteGuard } from "./remote-guard.ts";
@@ -63,6 +64,8 @@ export function corsOrigin(origin: string): string | null {
 export const app = new Hono();
 app.use("/api/*", cors({ origin: (o) => corsOrigin(o) }));
 app.use("/api/*", remoteGuard());
+// Host が手元の名前でなければ 421（DNS の付け替え対策。SEC-003）
+app.use("/api/*", hostGuard());
 // 他サイトのページからの要求を断る（SEC-002）。SSE は開きっぱなしの接続を他サイトから作れないよう GET でも見る（SEC-012）
 app.use(
   "/api/*",
