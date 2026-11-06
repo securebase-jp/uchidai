@@ -21,6 +21,10 @@ if (existsSync(distDir)) {
 
 serve({ fetch: app.fetch, port, hostname }, (info) => {
   console.log(`[uchidai api] http://${hostname}:${info.port}`);
+  if (process.env.UCHIDAI_ALLOW_REMOTE_API === "1")
+    console.log(
+      "[uchidai api] 警告：UCHIDAI_ALLOW_REMOTE_API=1 のため、認証なしで全 API が公開 URL から使えます（会社カルテを扱う API を含む）。デモ以外では設定しないでください",
+    );
   if (!process.env.ANTHROPIC_API_KEY)
     console.log(
       "[uchidai api] ANTHROPIC_API_KEY 未設定：記事の読解は使えません（記録済みの事例は使えます）",
