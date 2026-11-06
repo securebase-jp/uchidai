@@ -41,6 +41,17 @@ describe("readNotices（読解の確認の文）", () => {
     expect(n[0]).toMatchObject({ id: "incomplete", tone: "warn", pasteLink: true });
     expect(n[0]?.textJa).toBe("続きが取得できていない可能性があります。本文を貼って読めます");
   });
+  it("本文が短い（too_short）だけのときは、続きがあれば貼るよう案内する（#2）", () => {
+    const n = readNotices({ damageType: "ransomware", steps: [step] }, ["short"]);
+    expect(n).toHaveLength(1);
+    expect(n[0]).toMatchObject({ id: "short", tone: "warn", pasteLink: true });
+    expect(n[0]?.textJa).toBe("本文が短いので、続きがある場合は貼り付けてください");
+    expect(readFlagsOf({ incomplete: ["too_short"] })).toEqual(["short"]);
+    expect(readFlagsOf({ incomplete: ["too_short", "members_only"] })).toEqual([
+      "incomplete",
+      "short",
+    ]);
+  });
   it("article の incomplete / truncated を保存する印にする", () => {
     expect(readFlagsOf({})).toEqual([]);
     expect(readFlagsOf({ incomplete: [] })).toEqual([]);

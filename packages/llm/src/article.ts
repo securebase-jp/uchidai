@@ -153,8 +153,21 @@ export const TOO_SHORT_CHARS = 200;
 /** 同意文・著作権表示だけのページと見なすときの上限の文字数（これ未満で、同意の語があり、事故の語が無いとき consent_only） */
 const CONSENT_ONLY_MAX_CHARS = 400;
 const CONSENT_WORDS = /cookie|クッキー|同意|copyright|©|著作権|all rights reserved|プライバシー/i;
-/** 事故の公表らしい語。これがあれば、短くても同意文だけとは見なさない */
-const INCIDENT_WORDS = /不正アクセス|ランサム|サイバー攻撃|漏えい|漏洩|感染|被害|インシデント|侵入/;
+/**
+ * 本文が 200 字未満でも、事故の公表らしい語があり、この字数以上なら「短いが読める」とみなす下限（#2、TRIAL-F-001）。
+ * ScanNetSecurity の無料の範囲は 131〜199 字で事故の概要が書かれている。一方、同意画面・著作権表示だけのページは 55 字ほど、
+ * 読み込み後に表示されるページの殻も数十字なので、その倍近い 80 字を下限にした（80 字未満は、語があっても取り直しを案内する）
+ */
+export const MIN_READABLE_SHORT_CHARS = 80;
+/**
+ * 事故の公表らしい語。これがあれば、短くても同意文だけとは見なさず、80 字以上なら短いまま読む（#2）。
+ * 後半の語（不正ログイン・なりすまし・流出・マルウェア・ウイルス・フィッシング・暗号化・不正利用・設定不備・取り扱い不備・誤送信・誤公開・紛失）は
+ * #2 で足した。ScanNetSecurity の無料の範囲（冒頭の 130〜200 字）は「不正ログイン」「なりすまし注文」「資金流出」「設定不備」などで
+ * 書かれ、元の語（不正アクセス・ランサム…）が出ない記事が 13 件中 6 件あった。足した語は事故の公表に特有で、
+ * 同意・Cookie・著作権の文には出ない（「個人情報」「セキュリティ」のような、同意文にも出る語は入れていない）
+ */
+const INCIDENT_WORDS =
+  /不正アクセス|ランサム|サイバー攻撃|漏えい|漏洩|感染|被害|インシデント|侵入|不正ログイン|なりすまし|流出|マルウェア|ウイルス|フィッシング|暗号化|不正利用|設定不備|取り扱い不備|誤送信|誤公開|紛失/;
 
 export type FetchOptions = {
   fetch?: FetchLike;
@@ -845,6 +858,19 @@ export function detectThinBody(text: string): IncompleteReason[] {
   )
     reasons.push("consent_only");
   return reasons;
+}
+
+/**
+ * 本文が取れていないので、読まずに取り直しを案内すべきページか（#2）。
+ * 同意文・著作権表示だけ（consent_only）は常にそう。200 字未満（too_short）は、事故の公表らしい語があり
+ * MIN_READABLE_SHORT_CHARS 字以上なら、短いまま読む（読んだあとに「本文が短い」の注記を出す）
+ */
+export function isUnreadableThinBody(text: string): boolean {
+  const reasons = detectThinBody(text);
+  if (reasons.includes("consent_only")) return true;
+  if (!reasons.includes("too_short")) return false;
+  const plain = text.replace(/\s+/g, "");
+  return !(plain.length >= MIN_READABLE_SHORT_CHARS && INCIDENT_WORDS.test(text));
 }
 
 /** HTML の取り込み結果に、本文が取れていない印（too_short・consent_only）を足す */

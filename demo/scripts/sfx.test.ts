@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { wavDurationSeconds } from "./lib.ts";
 import {
   buildMixArgs,
@@ -25,6 +25,9 @@ import {
   SAMPLE_RATE,
   SOUND_NAMES,
 } from "./sfx-sounds.ts";
+
+// ffmpeg を何度も起動する試験は、遅い環境で vitest の既定の 5 秒を超える（#10）。このファイルは 60 秒まで待つ
+vi.setConfig({ testTimeout: 60_000 });
 
 const hasFfmpeg =
   spawnSync("ffmpeg", ["-version"]).status === 0 && spawnSync("ffprobe", ["-version"]).status === 0;

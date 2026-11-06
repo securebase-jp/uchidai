@@ -3,7 +3,13 @@
  * 取得の失敗（404、ログイン・有料の壁、タイムアウト、接続できない、読めない PDF など）は、
  * 500 ではなく 400 系の ClientError にして、日本語の案内（本文を貼って読むこともできます）を返す（TRIAL-012）。
  */
-import { type Article, ArticleFetchError, type FetchLike, fetchArticle } from "@uchidai/llm";
+import {
+  type Article,
+  ArticleFetchError,
+  type FetchLike,
+  fetchArticle,
+  isUnreadableThinBody,
+} from "@uchidai/llm";
 import type { z } from "zod";
 import type { ReadRequest } from "../shared/api.ts";
 import { ClientError } from "./errors.ts";
@@ -43,12 +49,16 @@ export function isThinReading(
   );
 }
 
-/** 本文が取れていない HTML か（本文が 200 字未満、または同意文・著作権表示だけ）。URL・HTML の入力だけが対象で、貼り付けの短い文は対象外 */
+/**
+ * 本文が取れていない HTML か（同意文・著作権表示だけ、または 200 字未満で事故の語が無い／80 字未満）。
+ * 200 字未満でも事故の公表らしい語がある 80 字以上は読む（#2）。URL・HTML の入力だけが対象で、貼り付けの短い文は対象外
+ */
 function isThinHtml(article: Article): boolean {
   return (
     article.kind === "html" &&
     (article.incomplete?.includes("too_short") === true ||
-      article.incomplete?.includes("consent_only") === true)
+      article.incomplete?.includes("consent_only") === true) &&
+    isUnreadableThinBody(article.text)
   );
 }
 
