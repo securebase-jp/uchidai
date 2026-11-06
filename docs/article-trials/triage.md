@@ -1,5 +1,7 @@
 # 実記事 100 件の試験：課題の整理と、直す順番
 
+> 注：この試験に使った記事の取得・集計の一時的なスクリプトは、公開していません。文中のコマンドは、当時の手順の記録です。期待ラベルの一覧（`eval/trials/articles/*.yaml`）は残しています。
+
 作成：2026-11-05。対象は、前回の 7 件の試験（`docs/real-article-trials.md`、TRIAL-001〜018）と、今回の 4 つの試験（`ransom.md`、`breach.md`、`bec-ato.md`、`supply-oos.md`。TRIAL-R / D / B / S）。合計 62 件の課題を、原因が同じものにまとめた。
 
 試験は、型紙 A・B（`account_takeover`、`data-breach-saas`）を入れる前の main で行った。最後の全件の再実行で、対処済みになったものを確かめ直す。

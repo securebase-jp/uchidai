@@ -44,7 +44,7 @@ describe("detectInstructions（プログラムの層）", () => {
 
 /**
  * 検知の再現率（見逃さないこと）と誤検知（普通の記事の文を拾わないこと）を固定する（TRIAL-B-010、017）。
- * 肯定の例は、前回の注入の試験（eval/trials/probe.ts injection、probe-injection.ts）で足した 3 通りの本文と、この fixture・テストで使った文。
+ * 肯定の例は、前回の注入の試験で足した 3 通りの本文と、この fixture・テストで使った文。
  * 検知しても結果は変わらない（画面に注意を出すだけ）が、見逃しは注意が出ないことなので、肯定の例が 1 つでも落ちたら失敗にする
  */
 describe("detectInstructions の再現率と誤検知", () => {

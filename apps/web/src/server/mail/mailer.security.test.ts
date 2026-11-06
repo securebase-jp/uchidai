@@ -1,5 +1,5 @@
 /**
- * セキュリティ診断（docs/security-review-2026-11-06.md）で確かめた、メールの組み立て。
+ * セキュリティ診断で確かめた、メールの組み立て。
  * nodemailer は streamTransport（送らずに文面を組むだけ）で動かす。外へ出る通信はしない。
  */
 import { createTransport } from "nodemailer";

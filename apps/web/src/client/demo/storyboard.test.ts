@@ -28,7 +28,7 @@ const profile = CompanyProfile.parse(
 const knowledge = loadKnowledge();
 
 describe("エンドカードの数字", () => {
-  it("demo/endcard-facts.json は直前の数え直しを促す印があり、Mythos の名は出さない", () => {
+  it("demo/endcard-facts.json は直前の数え直しを促す印があり、計画担当のモデル名は出さない", () => {
     expect(endcardFacts.verifyBeforeRecording).toBe(true);
     expect(JSON.stringify(endcardFacts)).not.toMatch(/Mythos/i);
     expect(endcardFacts.roles.map((r) => r.model)).toEqual(["Fable", "Sonnet"]);
@@ -201,7 +201,7 @@ describe("絵コンテと原稿の整合", () => {
   });
 });
 
-describe("磨き込み（docs/hackathon/demo-polish-plan.md の 0〜4・6）", () => {
+describe("動画の磨き込み（0〜4・6）", () => {
   const scene = (n: number) => {
     const s = storyboard.scenes.find((x) => x.n === n);
     if (!s) throw new Error(`場面 ${n} がありません`);

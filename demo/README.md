@@ -28,7 +28,7 @@ demo/
 
 ## 手順
 
-1. **原稿を確認する** `demo/narration.json`。読み上げ文（`textJa`）では ATT&CK を「国際的な攻撃手法の分類」と言い、英字は読み方（クロード、エーアイ、フェイブル、ソネット、ブイピーエヌ）で書く。字幕（`subtitleJa`）には正式表記（Claude、AI、Fable、Sonnet、VPN）を残す。モデルの役割分担に Mythos の名は出さない
+1. **原稿を確認する** `demo/narration.json`。読み上げ文（`textJa`）では ATT&CK を「国際的な攻撃手法の分類」と言い、英字は読み方（クロード、エーアイ、フェイブル、ソネット、ブイピーエヌ）で書く。字幕（`subtitleJa`）には正式表記（Claude、AI、Fable、Sonnet、VPN）を残す。モデルの役割分担に計画担当のモデル名は出さない
 2. **音声を作る**（任意）
 
    ```bash
