@@ -17,7 +17,7 @@ ATT&CK の手法・戦術・緩和策の日本語ラベル（`knowledge/labels.j
 
 ## IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」
 
-評価データ（`eval/cases/`）と記録（`eval/recordings/`）に含まれる根拠文は、以下からの短い抜粋である。本文全体は含めない。
+評価データ（`eval/cases/`）と記録（`eval/recordings/`）、テストの入力（`packages/llm/src/fixtures/`）に含まれる根拠文や記事の例は、以下からの短い抜粋である。本文全体は含めない。
 
 出典：IPA「中小企業のための実例で学ぶサイバーセキュリティリスク事例集」より抜粋
 https://www.ipa.go.jp/security/reports/sme/rcu1hd0000009k82-att/sme-jirei.pdf
@@ -55,6 +55,14 @@ https://www.cisa.gov/known-exploited-vulnerabilities-catalog
 
 - html-to-image（https://github.com/bubkoo/html-to-image 、MIT License）：紙面を画像にする
 - jsPDF（https://github.com/parallax/jsPDF 、MIT License）：画像を A4 の PDF にまとめる
+
+## Node.js（ポータブル ZIP）
+
+ポータブル ZIP には、nodejs.org の公式の配布物から取り出した Node.js の実行ファイルを同梱する。ライセンス文は、ZIP の `runtime/LICENSE-Node.js.txt` に入っている。Node.js は OpenJS Foundation と Node.js の貢献者のものである（https://nodejs.org/ ）。
+
+## 依存パッケージ
+
+ウチダイは、npm の多数の依存パッケージ（React、Vite、Hono、zod など）を使う。ポータブル ZIP と Docker イメージには、実行に要る依存パッケージが、それぞれのライセンス文（`LICENSE` など）とともに入っている。各パッケージは、それぞれのライセンスに従う。一覧は `pnpm licenses list --prod` で出せる。
 
 ## 音声（デモ動画）
 
