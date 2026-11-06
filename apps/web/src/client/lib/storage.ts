@@ -63,7 +63,7 @@ const SavedCase = z.object({
     sourceJa: z.string(),
     sourceUrl: z.string().optional(),
     recorded: z.looseObject({ caseId: z.string() }).optional(),
-    readFlags: z.array(z.enum(["incomplete", "truncated"])).optional(),
+    readFlags: z.array(z.enum(["incomplete", "short", "truncated"])).optional(),
     series: z
       .looseObject({
         parts: z.array(z.looseObject({ number: z.number(), label: z.string() })),
@@ -82,7 +82,7 @@ export type SavedCase = {
     sourceUrl?: string;
     recorded?: { caseId: string };
     /** 記事の取得時の印（本文が切れていそう、など）。担当者画面の「読解の確認」に出す */
-    readFlags?: ("incomplete" | "truncated")[];
+    readFlags?: ("incomplete" | "short" | "truncated")[];
     /** 同じ事故の複数の公表を 1 件として読んだとき（報の情報、各報の読解、差分の表） */
     series?: SeriesInfo;
   };

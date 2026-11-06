@@ -117,6 +117,24 @@ describe("本文がほとんど取れなかったページは 422 の案内（TR
     expect(err.status).toBe(422);
     expect(err.message).toMatch(/本文がほとんど取れませんでした（\d+ 字）/);
   });
+  it("131〜199 字の事故の公表は断らず、too_short の印つきで読む（ScanNetSecurity の無料の範囲の形。#2）", async () => {
+    const body =
+      "<p>製造業の会社は、同社のサーバが外部から不正アクセスを受け、ランサムウェアに感染したと発表した。業務データの一部が暗号化されたという。同社は被害の範囲を調べており、外部の専門家と原因の特定を進めている。取引先への影響は確認中としている。続報があれば追って公表する。</p>";
+    const a = await loadArticle(url("https://news.example/a"), { fetch: page(body), lookup });
+    const n = a.text.replace(/\s+/g, "").length;
+    expect(n).toBeGreaterThanOrEqual(131);
+    expect(n).toBeLessThan(200);
+    expect(a.incomplete).toContain("too_short");
+  });
+  it("事故の語があっても 80 字未満は、今までどおり断る", async () => {
+    const err = await failure(
+      loadArticle(url("https://news.example/a"), {
+        fetch: page("<p>当社サーバへの不正アクセスについて、ご報告します。</p>"),
+        lookup,
+      }),
+    );
+    expect(err.status).toBe(422);
+  });
   it("貼り付け（text）の短い文は対象外：そのまま通す", async () => {
     const a = await loadArticle({
       kind: "text",

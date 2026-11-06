@@ -10,6 +10,7 @@ import {
   extractPdfPages,
   fetchArticle,
   isPrivateIp,
+  isUnreadableThinBody,
   MAX_TEXT_CHARS,
 } from "./article.ts";
 import type { FetchLike } from "./proxy.ts";
@@ -330,6 +331,36 @@ describe("本文がほとんど取れていない HTML（TRIAL-I-002）", () => 
     expect(detectThinBody("当社サーバへの不正アクセスについて。クッキーの同意はこちら。")).toEqual([
       "too_short",
     ]);
+  });
+  it("isUnreadableThinBody：200 字未満でも事故の語がある 80 字以上は読める（#2）", () => {
+    const short = `当社のサーバが不正アクセスを受け、ランサムウェアに感染しました。${"業務データが暗号化され、被害の範囲を調べています。".repeat(4)}`;
+    const n = short.replace(/\s+/g, "").length;
+    expect(n).toBeGreaterThanOrEqual(80);
+    expect(n).toBeLessThan(200);
+    expect(isUnreadableThinBody(short)).toBe(false);
+    // 事故の語があっても 80 字未満は断る
+    expect(
+      isUnreadableThinBody("当社サーバへの不正アクセスについて。クッキーの同意はこちら。"),
+    ).toBe(true);
+    // 事故の語が無い短い本文・同意文だけ・著作権表示だけは断る
+    expect(
+      isUnreadableThinBody(
+        `本日のお知らせです。${"詳しくは担当までお問い合わせください。".repeat(6)}`,
+      ),
+    ).toBe(true);
+    expect(
+      isUnreadableThinBody("Copyright (C) EXAMPLE HOLDINGS Co., Ltd. All Rights Reserved."),
+    ).toBe(true);
+    const consent = `クッキーの使用に同意いただける場合は「同意」ボタンをクリックしてください。${"サイトの利用にあたっては、クッキーに関する設定をご確認ください。".repeat(6)}`;
+    expect(isUnreadableThinBody(consent)).toBe(true);
+    // 元の語（不正アクセス…）が出ない公表も読める：ScanNetSecurity の無料の範囲の形（#2）
+    expect(
+      isUnreadableThinBody(
+        "株式会社ケーズホールディングスは1月17日、同社通販サイトへの不正ログインとなりすまし注文の発生について発表した。これは1月12日に、第三者が不正にログインし、登録情報の配送先住所を書き換え、なりすまし注文の発生を確認したというもの。",
+      ),
+    ).toBe(false);
+    // 十分な長さ
+    expect(isUnreadableThinBody("不正アクセスがありました。".repeat(20))).toBe(false);
   });
   it("十分な長さの本文には何も付かない", async () => {
     const a = await fetchArticle(
