@@ -132,10 +132,7 @@ function describePath(verdict: Verdict, profile: CompanyProfile, knowledge: Know
     );
   // 第三者（委託先・取引先・提供元）で起きた事故：御社の設備が入口になったとは書かず、「御社が同じ立場なら」の見立てにする
   const third = verdict.thirdParty;
-  if (third)
-    lines.push(
-      `これは${third.labelJa}で起きた事故です。${third.leadNoteJa ?? "御社の設備が入口になったのではありません。"}`,
-    );
+  if (third) lines.push(thirdPartyLeadLine(verdict) as string);
   // 入口が記事から分からず仮に置いた候補のときは、その入口から入られたと断定しない
   const first = path.steps.find((s) => !s.precondition);
   const entryNode = first ? nodeLabel(first.nodeId, first.role, profile, knowledge) : "";
@@ -250,6 +247,16 @@ export function leakedDataLines(verdict: Verdict): string[] {
     (k) =>
       `記事で漏えいしたとされる情報に「${k.labelJa}」が含まれます。${third ? `${third.labelJa}に預けている情報に、同じ種類が含まれる場合：` : "御社が同じ種類の情報を預かっている場合："}${k.noteJa}`,
   );
+}
+
+/**
+ * 第三者（委託先・取引先・提供元）の事故の書き出しの一文。判定と固定データ（victims.yaml の leadNoteJa）から決まるので、
+ * Claude に書かせず、プログラムが言い換えの文の前に付ける。第三者の事故でなければ undefined
+ */
+export function thirdPartyLeadLine(verdict: Verdict): string | undefined {
+  const third = verdict.thirdParty;
+  if (!third) return undefined;
+  return `これは${third.labelJa}で起きた事故です。${third.leadNoteJa ?? "御社の設備が入口になったのではありません。"}`;
 }
 
 /** 言い換えの文のあとに、プログラムの文として付ける行（第三者の事故の確認事項、報告義務の注意） */

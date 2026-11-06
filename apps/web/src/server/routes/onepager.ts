@@ -15,6 +15,7 @@ import {
   loadKnowledge,
   type OnePager,
   onePagerExtraLines,
+  thirdPartyLeadLine,
 } from "@uchidai/engine";
 import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/llm";
 import { Hono } from "hono";
@@ -55,6 +56,12 @@ export type OnePagerTextSource = {
 const cache = new Map<string, { text: string[]; model: string }>();
 const WRITER_TIMEOUT_MS = 20_000;
 
+/** 言い換えの文の前に、プログラムが付ける書き出し（第三者の事故の「これは〇〇で起きた事故です。…」） */
+const leadLines = (verdict: Parameters<typeof writerInputFrom>[0]): string[] => {
+  const lead = thirdPartyLeadLine(verdict);
+  return lead ? [lead] : [];
+};
+
 async function rewrite(
   onePager: OnePager,
   verdict: Parameters<typeof writerInputFrom>[0],
@@ -65,7 +72,10 @@ async function rewrite(
   const hit = cache.get(key);
   if (hit)
     return {
-      onePager: { ...onePager, whatHappensJa: [...hit.text, ...onePagerExtraLines(verdict)] },
+      onePager: {
+        ...onePager,
+        whatHappensJa: [...leadLines(verdict), ...hit.text, ...onePagerExtraLines(verdict)],
+      },
       text: { source: "claude", model: hit.model },
     };
   // 1 分あたりの言い換えの回数（SEC-006）。使い回し（cache）に当たったときは数えない
@@ -92,7 +102,11 @@ async function rewrite(
     return {
       onePager: {
         ...applied,
-        whatHappensJa: [...applied.whatHappensJa, ...onePagerExtraLines(verdict)],
+        whatHappensJa: [
+          ...leadLines(verdict),
+          ...applied.whatHappensJa,
+          ...onePagerExtraLines(verdict),
+        ],
       },
       text: { source: "claude", model: result.model },
     };
