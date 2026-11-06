@@ -6,7 +6,7 @@ export function parseYenAmounts(text: string): number[] {
   const t = text.normalize("NFKC").replace(/,/g, "");
   const out: number[] = [];
   const re =
-    /(\d+(?:\.\d+)?)\s*億\s*(?:(\d+(?:\.\d+)?)\s*万)?\s*円|(\d+(?:\.\d+)?)\s*万\s*円|(\d+(?:\.\d+)?)\s*円/g;
+    /(?<!\d)(\d+(?:\.\d+)?)\s*億\s*(?:(\d+(?:\.\d+)?)\s*万\s*)?円|(?<!\d)(\d+(?:\.\d+)?)\s*万\s*円|(?<!\d)(\d+(?:\.\d+)?)\s*円/g;
   for (const m of t.matchAll(re)) {
     if (m[1] !== undefined) out.push(Math.round(Number(m[1]) * 1e8 + Number(m[2] ?? 0) * 1e4));
     else if (m[3] !== undefined) out.push(Math.round(Number(m[3]) * 1e4));
