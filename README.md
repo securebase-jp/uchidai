@@ -8,11 +8,7 @@
 
 MIT License の OSS です。
 
-## このプロジェクトの経緯
-
-ウチダイは、ハッカソン「Built with Claude: Japan 2026」（2026-11-02〜11-08）の期間中に、ゼロから作りました。ハッカソンが終わったあとも、OSS として公開と改善を続けます。
-
-[docs/hackathon/](docs/hackathon/) には、ハッカソン期間中の Claude Code での進め方の記録、デモ動画の脚本を置いています。現在の利用や開発には不要ですが、このプロジェクトがどう生まれたかの記録として、あえて残しています。内容は当時のもので、現在の実装とは異なる場合があります。
+<!-- デモ動画（YouTube）のリンクを、公開後にここへ置く -->
 
 ## 何ができるか
 
@@ -30,9 +26,19 @@ Claude がするのは「読む（記事・PDF）、言い換える（社長向�
 
 ## 動かし方
 
-Node も Docker も入っていない PC では、ポータブル ZIP が使えます。Releases から自分の環境の ZIP を取り、展開して「ウチダイを起動」をダブルクリックするだけです（手元の PC だけで動きます）。手順と、警告が出たときの対処は [docs/install-zip.md](docs/install-zip.md) にあります。
+使う環境に合わせて、次の 3 つから選べます。どれも、手元の PC の中だけで動きます。
 
-Node 22.18 以上と pnpm。
+### ポータブル ZIP（Node も Docker も不要）
+
+Releases から自分の環境の ZIP を取り、展開して「ウチダイを起動」をダブルクリックするだけです。手順と、警告が出たときの対処は [docs/install-zip.md](docs/install-zip.md) にあります。
+
+### Docker（公開イメージ）
+
+Docker が入っていれば、公開済みのイメージ（`ghcr.io/securebase-jp/uchidai`）を `docker compose up -d` で動かせます。手順は [docs/install.md](docs/install.md) です。http://localhost:8787 を開いてください。
+
+### ソースから（開発者向け）
+
+Node 22.18 以上と pnpm が要ります。
 
 ```bash
 pnpm install
@@ -40,16 +46,14 @@ cp .env.example .env   # ANTHROPIC_API_KEY を自分のキーで埋める（無�
 pnpm dev               # 画面 http://localhost:5173 と API（8787）
 ```
 
-Docker（単一イメージ。特定のホスティング事業者の機能に依存しない）：
+ソースからイメージを作るときは次のとおりです。
 
 ```bash
 docker build -t uchidai .
 docker run --rm -p 127.0.0.1:8787:8787 --env-file .env uchidai
 ```
 
-http://localhost:8787 を開く。`-p 127.0.0.1:8787:8787` で手元だけに公開する（会社カルテを扱う API が外から見えないように）。環境変数の一覧と細かい手順は [docs/usage.md](docs/usage.md)。
-
-Node も pnpm も入れずに使いたい（専門家のいない会社の担当者向け）ときは、公開済みのイメージを `docker compose up -d` で動かせます。手順は [docs/install.md](docs/install.md)。
+`-p 127.0.0.1:8787:8787` で手元だけに公開します（会社カルテを扱う API が外から見えないように）。環境変数の一覧と細かい手順は [docs/usage.md](docs/usage.md) にあります。
 
 ## 使い方（5 段）
 
@@ -112,6 +116,15 @@ AI攻撃者は、MITRE ATT&CK の手法の水準までしか扱いません。�
 
 例に使う会社（デモ精工株式会社、デモ物産株式会社、医療法人デモ会 デモクリニック）とそのデータは、すべて架空です。設定と事例ごとの結論は [examples/README.md](examples/README.md) にあります。実運用では、カルテの保存時の暗号化、アクセス権の限定、操作記録が前提になりますが、この MVP では未実装です。
 
+## 免責事項
+
+ウチダイの結論は、型紙と判定ルール表の範囲で、入力された情報にもとづいて機械的に出した目安です。次の点にご注意ください。
+
+- 実際のサイバー攻撃への備えや被害の有無を保証するものではありません。「止められます」と表示されても、実際に攻撃が防げることを意味しません
+- 金額、日数、法令上の期限は、固定のデータにもとづく概算です。実際の判断や届出の前に、専門家や所管の窓口（個人情報保護委員会、警察、IPA など）に確認してください
+- 記事の読み取りは Claude が行うため、誤りを含むことがあります。根拠として表示される文は、元の記事で確かめてください
+- 本ソフトウェアの利用により生じた損害について、開発者は責任を負いません（MIT License の「現状有姿・無保証」の条項に従います）。詳しくは [LICENSE](LICENSE) をご覧ください
+
 ## 評価
 
 ```bash
@@ -137,7 +150,15 @@ pnpm attack:import                          # ATT&CK の再取り込み
 
 ## デモ動画の作り方
 
-`?profile=demo-seiko&demo=1` でデモモード（架空の会社で 9 場面が自動で進む）が動きます。動画の原稿、字幕、音声（VOICEVOX）、結合（ffmpeg）の手順は [demo/README.md](demo/README.md) にあります。
+`?profile=demo-seiko&demo=1` でデモモード（架空の会社で 11 場面が自動で進む）が動きます。動画の原稿、字幕、音声（VOICEVOX）、結合（ffmpeg）の手順は [demo/README.md](demo/README.md) にあります。
+
+## このプロジェクトの経緯
+
+ウチダイは、ハッカソン「Built with Claude: Japan 2026」（2026-11-02〜11-08）の期間中に、ゼロから作りました。ハッカソンが終わったあとも、OSS として公開と改善を続けます。
+
+このリポジトリは、公開のために、作業用のメモや一時的なスクリプトを除いて整理したものです。コミットの数、日付、順序は開発中のままですが、整理の際にコミットの ID を付け直しています。
+
+[docs/hackathon/](docs/hackathon/) には、ハッカソン期間中の Claude Code での進め方の記録、デモ動画の脚本を置いています。現在の利用や開発には不要ですが、このプロジェクトがどう生まれたかの記録として、あえて残しています。内容は当時のもので、現在の実装とは異なる場合があります。
 
 ## 出典
 
@@ -152,6 +173,7 @@ pnpm attack:import                          # ATT&CK の再取り込み
 - Cert Spotter（SSLMate, Inc.）: https://sslmate.com/ct_search_api — 証明書の公開ログ（CT）の検索。crt.sh が空か失敗のときだけ使う予備。認証なし（個人・評価向けの枠）で、1 ドメイン 1 回の取得と 24 時間のキャッシュに限る。帰属表示の要求は規約にない（確認：[packages/recon/README.md](packages/recon/README.md)、[NOTICE](NOTICE)）
 - CISA Known Exploited Vulnerabilities (KEV) Catalog: https://www.cisa.gov/known-exploited-vulnerabilities-catalog — 悪用確認済み脆弱性の突き合わせ（CC0 1.0。JSON は手元のサーバが取得し `apps/web/.data/` に保存。リポジトリには含めない）。影響を受ける版の範囲はベンダーの公表資料（PSIRT）から `knowledge/kev/products.yaml` に URL と確認日つきで転記
 - 部品：html-to-image、jsPDF（いずれも MIT License。社長向けの一枚の PDF 書き出しに、ブラウザの中だけで使う。[NOTICE](NOTICE)）
+- アイコン：Lucide（ISC License。[NOTICE](NOTICE)）。ポータブル ZIP には Node.js（MIT 系のライセンス。ZIP の `runtime/LICENSE-Node.js.txt`）を同梱します
 - 書体：BIZ UDPGothic、BIZ UDPMincho、JetBrains Mono（いずれも SIL Open Font License 1.1。Fontsource 経由）。デモ動画の音声：VOICEVOX（四国めたん。クレジット「VOICEVOX:四国めたん」、規約は [demo/README.md](demo/README.md)）
 
 ## ライセンス
