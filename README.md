@@ -8,6 +8,8 @@
 
 MIT License の OSS です。
 
+> **すぐに使う**：[**最新版のポータブル ZIP をダウンロード**](https://github.com/securebase-jp/uchidai/releases/latest)（Windows・Mac・Linux。Node も Docker も要りません）。展開して「ウチダイを起動」を開くだけです。手順は [動かし方](#動かし方) にあります。
+
 <!-- デモ動画（YouTube）のリンクを、公開後にここへ置く -->
 
 ## 何ができるか
@@ -48,7 +50,22 @@ Claude がするのは「読む（記事・PDF）、言い換える（社長向�
 
 ### ポータブル ZIP（Node も Docker も不要）
 
-Releases から自分の環境の ZIP を取り、展開して「ウチダイを起動」をダブルクリックするだけです。手順と、警告が出たときの対処は [docs/install-zip.md](docs/install-zip.md) にあります。
+自分の環境の ZIP をダウンロードし、展開して「ウチダイを起動」を開くだけです。最新版は [Releases](https://github.com/securebase-jp/uchidai/releases/latest) にあります。
+
+<!-- リリースのたびに、この表のダウンロードの版（0.1.1）を新しい版に更新する -->
+
+| お使いの環境                   | ダウンロード（v0.1.1、約 70MB）                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Windows 10 / 11（64 ビット）   | [uchidai-0.1.1-win-x64.zip](https://github.com/securebase-jp/uchidai/releases/download/v0.1.1/uchidai-0.1.1-win-x64.zip)         |
+| Mac（Apple シリコン：M1 以降） | [uchidai-0.1.1-macos-arm64.zip](https://github.com/securebase-jp/uchidai/releases/download/v0.1.1/uchidai-0.1.1-macos-arm64.zip) |
+| Mac（Intel）                   | [uchidai-0.1.1-macos-x64.zip](https://github.com/securebase-jp/uchidai/releases/download/v0.1.1/uchidai-0.1.1-macos-x64.zip)     |
+| Linux（x64）                   | [uchidai-0.1.1-linux-x64.zip](https://github.com/securebase-jp/uchidai/releases/download/v0.1.1/uchidai-0.1.1-linux-x64.zip)     |
+
+1. ダウンロードした ZIP を**展開**します（Windows は右クリックの「すべて展開」）。
+2. 展開したフォルダの **ウチダイを起動**（Windows は `.bat`、Mac は `.command`、Linux は `./start.sh`）を開きます。
+3. 「準備ができました」と出たら、ブラウザで表示された `http://127.0.0.1:…` を開きます。
+
+署名のない配布物なので、Windows と Mac は最初に警告を出します。対処、ダウンロードした ZIP が公開されたものと同じか確かめる方法（`SHA256SUMS`）、データの保存先は、[docs/install-zip.md](docs/install-zip.md) にあります。Mac がどちらか分からないときは、アップルメニューの「このMacについて」の「チップ」を見てください（「Apple M…」なら Apple シリコン、「Intel」なら Intel です）。
 
 ### Docker（公開イメージ）
 
