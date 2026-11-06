@@ -3,8 +3,11 @@
  * app.request で手元の app にだけ要求する。外へ出る通信はしない（Claude のキーは外して記録の再生にする）。
  * 「通ってしまう」ことを記録する試験も含む（直すときに、ここを反転させる）。
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Hono } from "hono";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { app } from "./app.ts";
+import { hostGuard } from "./host-guard.ts";
+import { RateLimitError, RateWindow, resetClaudeLimits } from "./limits.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: テストでは応答の形を緩く読む
 type Loose = any;
@@ -98,10 +101,6 @@ describe("SEC-002（対応済み）：他サイトのページからの要求を
     const get = await app.request("/api/examples", { headers: { "sec-fetch-site": "cross-site" } });
     expect(get.status).toBe(200);
   });
-  it("Host ヘッダは見ていない（SEC-003 は公開後の課題）", async () => {
-    const res = await app.request("/api/examples", { headers: { host: "attacker.example:8787" } });
-    expect(res.status).toBe(200);
-  });
   it("送信箱を空にする DELETE はプリフライトが要るので、手元以外の Origin のプリフライトには許可を返さない", async () => {
     const res = await app.request("/api/requests", {
       method: "OPTIONS",
@@ -118,7 +117,7 @@ const peer = (address: string) => ({
 
 describe("SEC-004（対応済み）：転送ヘッダが無くても、接続元がループバックでなければ外から扱い", () => {
   it("接続元が取れないとき（app.request のテスト）は従来どおり手元扱い", async () => {
-    const res = await app.request("/api/requests", { headers: { host: "203.0.113.10:8787" } });
+    const res = await app.request("/api/requests");
     expect(res.status).toBe(200);
   });
   it("接続元が公開アドレスなら、転送ヘッダが無くても health 以外は 403", async () => {
@@ -144,6 +143,122 @@ describe("SEC-004（対応済み）：転送ヘッダが無くても、接続元
     );
     expect((await app.request("/api/demo/audio", { headers: h })).status).toBe(403);
     expect((await app.request("/api/health", { headers: h })).status).toBe(200);
+  });
+});
+
+describe("SEC-003（対応済み）：Host が手元の名前でなければ 421", () => {
+  it("localhost・127.0.0.1・[::1]（任意のポート）と Host 無しは通る", async () => {
+    for (const host of ["localhost", "localhost:5173", "127.0.0.1:8787", "[::1]:8787", "LOCALHOST"])
+      expect((await app.request("/api/examples", { headers: { host } })).status).toBe(200);
+    expect((await app.request("/api/examples")).status).toBe(200);
+  });
+  it("攻撃者のドメイン（DNS の付け替え）や LAN の名前は 421", async () => {
+    for (const host of ["attacker.example:8787", "192.168.1.5:8787", "uchidai.local"]) {
+      const res = await app.request("/api/examples", { headers: { host } });
+      expect(res.status).toBe(421);
+      expect((await loose(res)).error).toContain("UCHIDAI_ALLOWED_HOSTS");
+    }
+  });
+  it("公開 URL（転送ヘッダつき）は remote-guard が見るので、Host は見ない", async () => {
+    const res = await app.request("/api/health", {
+      headers: { host: "xxxx.trycloudflare.com", "cf-connecting-ip": "203.0.113.5" },
+    });
+    expect(res.status).toBe(200);
+  });
+  it("Docker（私設アドレスの接続元を手元扱い）でも、Host が攻撃者のドメインなら 421", async () => {
+    const guard = hostGuard({ remote: { trustPrivatePeer: true } });
+    const mini = new Hono().use("/api/*", guard).get("/api/x", (c) => c.text("ok"));
+    const env = {
+      incoming: { socket: { remoteAddress: "172.17.0.1", remotePort: 5, remoteFamily: "IPv4" } },
+    };
+    expect(
+      (await mini.request("/api/x", { headers: { host: "localhost:8787" } }, env)).status,
+    ).toBe(200);
+    expect(
+      (await mini.request("/api/x", { headers: { host: "evil.example:8787" } }, env)).status,
+    ).toBe(421);
+    // 手元扱いにしない設定なら、私設アドレスからの要求は remote-guard の範囲（Host は見ない）
+    const strict = new Hono()
+      .use("/api/*", hostGuard({ remote: {} }))
+      .get("/api/x", (c) => c.text("ok"));
+    expect(
+      (await strict.request("/api/x", { headers: { host: "evil.example:8787" } }, env)).status,
+    ).toBe(200);
+  });
+  it("UCHIDAI_ALLOWED_HOSTS で足した名前は通る（ホスト名だけ、またはポート付きの完全一致）", async () => {
+    const guard = hostGuard({ allowed: new Set(["uchidai.lan", "pc01:9000"]) });
+    const mini = new Hono().use("/api/*", guard).get("/api/x", (c) => c.text("ok"));
+    expect((await mini.request("/api/x", { headers: { host: "uchidai.lan:8787" } })).status).toBe(
+      200,
+    );
+    expect((await mini.request("/api/x", { headers: { host: "pc01:9000" } })).status).toBe(200);
+    expect((await mini.request("/api/x", { headers: { host: "pc01:9001" } })).status).toBe(421);
+  });
+});
+
+describe("SEC-006（対応済み）：Claude を呼ぶ API の 1 分あたりの回数", () => {
+  afterEach(() => resetClaudeLimits());
+  const withKey = async (work: () => Promise<void>) => {
+    process.env.ANTHROPIC_API_KEY = "test-key-not-used";
+    try {
+      await work();
+    } finally {
+      delete process.env.ANTHROPIC_API_KEY;
+    }
+  };
+  it("読解の上限を超えると 429 と Retry-After（Claude は呼ばれない）", async () => {
+    resetClaudeLimits({ read: new RateWindow(0) });
+    await withKey(async () => {
+      const res = await post(
+        "/api/case/read",
+        { input: { kind: "text", text: "x".repeat(100) } },
+        { "content-type": "application/json" },
+      );
+      expect(res.status).toBe(429);
+      expect(Number(res.headers.get("retry-after"))).toBeGreaterThan(0);
+      expect((await loose(res)).error).toContain("もう一度お試しください");
+    });
+  });
+  it("言い換え（/api/onepager）も上限を超えると 429。rewrite: false なら数えない", async () => {
+    resetClaudeLimits({ write: new RateWindow(0) });
+    const theCase = (await loose(app.request("/api/case/recorded/ipa-case-1"))).case;
+    const profile = (await loose(app.request("/api/examples/demo-seiko"))).profile;
+    await withKey(async () => {
+      const limited = await post(
+        "/api/onepager",
+        { case: theCase, profile, rewrite: true },
+        { "content-type": "application/json" },
+      );
+      expect(limited.status).toBe(429);
+      const template = await post(
+        "/api/onepager",
+        { case: theCase, profile, rewrite: false },
+        { "content-type": "application/json" },
+      );
+      expect(template.status).toBe(200);
+    });
+  });
+  it("記録の再生（キー無し、replay）は数えない", async () => {
+    resetClaudeLimits({ read: new RateWindow(0), write: new RateWindow(0) });
+    const profile = (await loose(app.request("/api/examples/demo-seiko"))).profile;
+    const replay = await post(
+      "/api/attacker/recon",
+      { profile, replay: true },
+      { "content-type": "application/json" },
+    );
+    expect(replay.status).toBe(200);
+    expect((await loose(replay)).recorded).toBe(true);
+    const recorded = await app.request("/api/case/recorded/ipa-case-1");
+    expect(recorded.status).toBe(200);
+  });
+  it("RateWindow：窓の中で max 回まで。古い分は外れる", () => {
+    let t = 0;
+    const w = new RateWindow(2, 60_000, () => t);
+    w.take();
+    w.take();
+    expect(() => w.take()).toThrow(RateLimitError);
+    t = 61_000;
+    expect(() => w.take()).not.toThrow();
   });
 });
 

@@ -20,6 +20,7 @@ import { applyWriterOutput, writeOnePagerText, writerInputFrom } from "@uchidai/
 import { Hono } from "hono";
 import { z } from "zod";
 import { Answers, MeasureIds } from "../../shared/api.ts";
+import { takeClaudeSlot } from "../limits.ts";
 import { patchProfile } from "../profile-patch.ts";
 
 export const OnePagerRequest = z.object({
@@ -61,6 +62,8 @@ async function rewrite(
       onePager: { ...onePager, whatHappensJa: [...hit.text, ...onePagerExtraLines(verdict)] },
       text: { source: "claude", model: hit.model },
     };
+  // 1 分あたりの言い換えの回数（SEC-006）。使い回し（cache）に当たったときは数えない
+  takeClaudeSlot("write");
   try {
     const result = await Promise.race([
       writeOnePagerText(input),

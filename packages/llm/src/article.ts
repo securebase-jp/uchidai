@@ -6,13 +6,14 @@
  * - http / https 以外、認証情報つき URL、localhost・内部用の名前、私設・ループバック・リンクローカル・
  *   メタデータ（169.254.169.254）などの IP に向く URL は拒否する（ホスト名は解決した先の IP でも確認する）
  * - リダイレクトは 1 回ごとに同じ検査をして辿る（最大 5 回）
- * - 受信は上限バイト数（既定 20MB）で打ち切り、全体にタイムアウト（既定 30 秒）をかける
+ * - 受信は上限バイト数（既定 20MB）で打ち切り、全体にタイムアウト（既定 30 秒）をかける。同時の取得は 3 件まで（超えた分は待つ）
  */
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { extractText, getDocumentProxy } from "unpdf";
+import { fetchSemaphore } from "./limits.ts";
 import { type FetchLike, resolveFetch } from "./proxy.ts";
 
 /** 取得に失敗したときの案内（どの失敗にも付ける。本文を貼れば、取得を介さずに読める） */
@@ -453,6 +454,14 @@ const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 export async function downloadBytes(
   url: string,
   opts: FetchOptions = {},
+): Promise<{ data: Uint8Array; contentType: string; finalUrl: string }> {
+  // 同時の取得を抑える（SEC-006）。枠が空くまで待ってから、タイムアウトを数え始める
+  return fetchSemaphore.run(() => downloadBytesNow(url, opts));
+}
+
+async function downloadBytesNow(
+  url: string,
+  opts: FetchOptions,
 ): Promise<{ data: Uint8Array; contentType: string; finalUrl: string }> {
   const doFetch = resolveFetch(opts.fetch);
   const max = opts.maxBytes ?? DEFAULT_MAX_BYTES;

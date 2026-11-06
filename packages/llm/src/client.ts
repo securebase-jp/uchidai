@@ -3,6 +3,7 @@
  * 出力は構造化出力（JSON スキーマ強制）で受け、呼び出し側が zod で検証する。
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { claudeSemaphore } from "./limits.ts";
 import { proxyFetch } from "./proxy.ts";
 
 export const DEFAULT_MODEL = "claude-sonnet-5-5";
@@ -68,13 +69,16 @@ export async function callStructured<T>(
     format: { type: "json_schema", schema: req.schema },
   };
   if (opts.effort) outputConfig.effort = opts.effort;
-  const res = await client.messages.create({
-    model,
-    max_tokens: opts.maxTokens ?? 16000,
-    system: req.system,
-    messages: [{ role: "user", content: req.user }],
-    output_config: outputConfig,
-  });
+  // 同時に走る Claude の呼び出しを抑える（SEC-006。上限を超えた分は待つ）
+  const res = await claudeSemaphore.run(() =>
+    client.messages.create({
+      model,
+      max_tokens: opts.maxTokens ?? 16000,
+      system: req.system,
+      messages: [{ role: "user", content: req.user }],
+      output_config: outputConfig,
+    }),
+  );
   if (res.stop_reason === "refusal") {
     throw new ReadError(
       "refusal",
