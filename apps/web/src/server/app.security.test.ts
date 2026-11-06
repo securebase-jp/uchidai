@@ -27,54 +27,112 @@ const answers = {
   backup: "same_network",
 };
 
-describe("SEC-001：他サイトからの要求（CSRF）を見分ける材料が無い", () => {
-  it("content-type が text/plain でも JSON として処理する（プリフライト無しの単純リクエストが通る）", async () => {
-    const res = await app.request("/api/profile/from-answers", {
-      method: "POST",
-      headers: { "content-type": "text/plain", origin: "https://evil.example" },
-      body: JSON.stringify({ answers }),
-    });
-    expect(res.status).toBe(200);
-    // CORS は応答を読ませないだけで、処理そのものは止めない
-    expect(res.headers.get("access-control-allow-origin")).toBeNull();
-    expect((await loose(res)).profile).toBeDefined();
+const post = (path: string, body: unknown, headers: Record<string, string>) =>
+  app.request(path, { method: "POST", headers, body: JSON.stringify(body) });
+
+describe("SEC-002（対応済み）：他サイトのページからの要求を断る", () => {
+  it("content-type が text/plain（プリフライト無しの単純リクエスト）は 415", async () => {
+    const res = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "text/plain", origin: "https://evil.example" },
+    );
+    expect(res.status).toBe(403); // Origin が手元でないので、content-type より先に 403
+    const noOrigin = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "text/plain" },
+    );
+    expect(noOrigin.status).toBe(415);
   });
-  it("Origin が手元以外でも、Sec-Fetch-Site が cross-site でも断らない", async () => {
-    const res = await app.request("/api/profile/from-answers", {
-      method: "POST",
-      headers: {
+  it("Sec-Fetch-Site が cross-site、または Origin が手元以外なら 403", async () => {
+    const cross = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "application/json", "sec-fetch-site": "cross-site" },
+    );
+    expect(cross.status).toBe(403);
+    const origin = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "application/json", origin: "https://evil.example" },
+    );
+    expect(origin.status).toBe(403);
+    const nullOrigin = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "application/json", origin: "null" },
+    );
+    expect(nullOrigin.status).toBe(403);
+  });
+  it("画面（同じ生成元）、アドレス欄や curl（Sec-Fetch-Site が none か無し）は通る", async () => {
+    const same = await post(
+      "/api/profile/from-answers",
+      { answers },
+      {
         "content-type": "application/json",
-        origin: "https://evil.example",
-        "sec-fetch-site": "cross-site",
-        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "same-origin",
+        origin: "http://localhost:5173",
       },
-      body: JSON.stringify({ answers }),
-    });
-    expect(res.status).toBe(200);
+    );
+    expect(same.status).toBe(200);
+    const none = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "application/json", "sec-fetch-site": "none" },
+    );
+    expect(none.status).toBe(200);
+    const curl = await post(
+      "/api/profile/from-answers",
+      { answers },
+      { "content-type": "application/json" },
+    );
+    expect(curl.status).toBe(200);
+    expect((await loose(curl)).profile).toBeDefined();
   });
-  it("Host ヘッダが手元以外でも断らない（DNS の付け替えで応答まで読まれる前提条件）", async () => {
+  it("SSE（GET /api/requests/events）も他サイトからは 403（SEC-012）。普通の GET は見ない", async () => {
+    const sse = await app.request("/api/requests/events", {
+      headers: { "sec-fetch-site": "cross-site" },
+    });
+    expect(sse.status).toBe(403);
+    const get = await app.request("/api/examples", { headers: { "sec-fetch-site": "cross-site" } });
+    expect(get.status).toBe(200);
+  });
+  it("Host ヘッダは見ていない（SEC-003 は公開後の課題）", async () => {
     const res = await app.request("/api/examples", { headers: { host: "attacker.example:8787" } });
     expect(res.status).toBe(200);
-    expect((await loose(res)).items.length).toBeGreaterThan(0);
   });
   it("送信箱を空にする DELETE はプリフライトが要るので、手元以外の Origin のプリフライトには許可を返さない", async () => {
     const res = await app.request("/api/requests", {
       method: "OPTIONS",
-      headers: {
-        origin: "https://evil.example",
-        "access-control-request-method": "DELETE",
-      },
+      headers: { origin: "https://evil.example", "access-control-request-method": "DELETE" },
     });
     expect(res.headers.get("access-control-allow-origin")).toBeNull();
   });
 });
 
-describe("SEC-002：remote-guard は転送ヘッダが無ければ外からの要求でも通す（fail-open）", () => {
-  it("転送ヘッダを付けない要求は、どこから来ても手元扱い", async () => {
-    // Node の socket の相手アドレスは見ていない。転送ヘッダを足さない中継（単純な nginx、ssh のポート転送、
-    // API_HOST=0.0.0.0 で直接公開）では、送信箱や判定の API がそのまま使える
+/** Node のサーバが渡す接続元の情報を模す（app.request の第 3 引数 env） */
+const peer = (address: string) => ({
+  incoming: { socket: { remoteAddress: address, remotePort: 50000, remoteFamily: "IPv4" } },
+});
+
+describe("SEC-004（対応済み）：転送ヘッダが無くても、接続元がループバックでなければ外から扱い", () => {
+  it("接続元が取れないとき（app.request のテスト）は従来どおり手元扱い", async () => {
     const res = await app.request("/api/requests", { headers: { host: "203.0.113.10:8787" } });
     expect(res.status).toBe(200);
+  });
+  it("接続元が公開アドレスなら、転送ヘッダが無くても health 以外は 403", async () => {
+    expect((await app.request("/api/requests", {}, peer("203.0.113.5"))).status).toBe(403);
+    expect((await app.request("/api/examples", {}, peer("203.0.113.5"))).status).toBe(403);
+    expect((await app.request("/api/health", {}, peer("203.0.113.5"))).status).toBe(200);
+    expect((await app.request("/api/sources", {}, peer("203.0.113.5"))).status).toBe(200);
+  });
+  it("接続元がループバックなら手元扱い（ZIP の起動処理は 127.0.0.1 に固定）", async () => {
+    for (const a of ["127.0.0.1", "::1", "::ffff:127.0.0.1"])
+      expect((await app.request("/api/requests", {}, peer(a))).status).toBe(200);
+  });
+  it("私設アドレスの接続元（Docker のブリッジ）は、UCHIDAI_TRUST_PRIVATE_PEER=1 が無い限り外から扱い", async () => {
+    expect((await app.request("/api/requests", {}, peer("172.17.0.1"))).status).toBe(403);
   });
   it("転送ヘッダが付けば、health と sources 以外は 403", async () => {
     const h = { "x-forwarded-for": "203.0.113.5" };
