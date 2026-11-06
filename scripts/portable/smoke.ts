@@ -48,15 +48,15 @@ export function minimalEnv(
   return { ...env, ...extra };
 }
 
-function launcherFile(dir: string): string {
-  const names = readdirSync(dir);
-  const wanted = isWin
-    ? names.find((n) => n.endsWith(".bat"))
+/** 起動のファイルの名前（build-zip.ts の PLATFORM_TEXT と同じ）。展開したフォルダの中の名前は使わず、固定の名前だけを実行する */
+function launcherName(dir: string): string {
+  const name = isWin
+    ? "ウチダイを起動.bat"
     : process.platform === "darwin"
-      ? names.find((n) => n.endsWith(".command"))
-      : names.find((n) => n === "start.sh");
-  if (!wanted) throw new Error(`起動のファイルが見つかりません（${dir}）`);
-  return join(dir, wanted);
+      ? "ウチダイを起動.command"
+      : "start.sh";
+  if (!existsSync(join(dir, name))) throw new Error(`起動のファイルが見つかりません（${dir}）`);
+  return name;
 }
 
 async function getText(url: string, init?: RequestInit): Promise<{ status: number; body: string }> {
@@ -77,14 +77,7 @@ async function main(): Promise<number> {
   const portArg = process.argv.indexOf("--port");
   const port = Number(portArg >= 0 ? process.argv[portArg + 1] : 18787);
   const dataDir = mkdtempSync(join(tmpdir(), "uchidai-smoke-data-"));
-  const launcher = launcherFile(dir);
-  // Windows では cmd.exe に経路を渡すので、コマンドとして解釈される記号を含む経路は使わない
-  if (isWin && /[&|<>^%"!]/.test(launcher)) {
-    console.error(
-      'フォルダの経路に & | < > ^ % " ! を含められません。別の場所に展開してください。',
-    );
-    return 2;
-  }
+  const launcher = launcherName(dir);
 
   const env = minimalEnv(process.env, {
     UCHIDAI_NO_BROWSER: "1",
@@ -94,7 +87,7 @@ async function main(): Promise<number> {
   let output = "";
   const child = isWin
     ? spawn("cmd.exe", ["/d", "/c", launcher], { cwd: dir, env, windowsHide: true })
-    : spawn(launcher, [], { cwd: dir, env, detached: true });
+    : spawn(`./${launcher}`, [], { cwd: dir, env, detached: true });
   child.stdout?.on("data", (d: Buffer) => {
     output += d.toString("utf8");
   });

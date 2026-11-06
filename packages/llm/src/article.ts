@@ -807,27 +807,59 @@ export function stripBoilerplate(text: string): { text: string; memberWall: bool
  * 「…（1ページ目 / 全1ページ）：Security NEXT」「…（2ページ目」→ 「…」
  */
 export function cleanTitle(title: string): string {
-  const s = replaceInTail(
-    title,
-    /\s*[（(]\s*\d+\s*ページ目[^）)]*[）)]?\s*(?:[：:｜|]\s*[^：:｜|]{1,30})?\s*$/,
-  );
-  return replaceInTail(s, /\s*[（(]\s*全\s*\d+\s*ページ\s*[）)]\s*$/).trim();
+  return removeTotalPages(removePageMark(title)).trim();
 }
 
 /** 題の末尾だけを調べる幅。媒体が付ける「（1ページ目 / 全1ページ）：媒体名」はこれより十分に短い */
 const TITLE_TAIL_CHARS = 400;
 
+/** 「（2ページ目」の始まり */
+const PAGE_MARK = /[（(]\s*\d+\s*ページ目/g;
+/** 「（全3ページ）」で題が終わる */
+const TOTAL_PAGES = /[（(]\s*全\s*\d+\s*ページ\s*[）)]\s*$/;
+const TITLE_SEPARATOR = /[：:｜|]/;
+const CLOSE_PAREN = /[）)]/;
+
 /**
- * 末尾に固定された正規表現（$ で終わる）を、題の最後の TITLE_TAIL_CHARS 字だけに当てて消す。
- * 題は信頼できないページに由来して長さの上限が無く、全体に当てると空白の多い題で時間がかかりすぎるため
+ * 題は信頼できないページに由来して長さの上限が無いので、末尾の TITLE_TAIL_CHARS 字だけを調べる。
+ * 正規表現ひとつで書くと、空白の多い題で試す組み合わせが増えて遅くなるため、
+ * 始まりの印だけを正規表現で探し、そのあとの判定は文字を順に見て決める
  */
-function replaceInTail(text: string, re: RegExp): string {
+function removePageMark(text: string): string {
   const cut = Math.max(0, text.length - TITLE_TAIL_CHARS);
   const tail = text.slice(cut);
-  const rest = tail.replace(re, "");
-  if (rest === tail) return text;
-  const head = text.slice(0, cut);
-  return rest === "" ? head.trimEnd() : head + rest;
+  for (const m of tail.matchAll(PAGE_MARK)) {
+    if (pageMarkRestIsTrailer(tail.slice(m.index + m[0].length)))
+      return text.slice(0, cut + m.index).trimEnd();
+  }
+  return text;
+}
+
+function removeTotalPages(text: string): string {
+  const cut = Math.max(0, text.length - TITLE_TAIL_CHARS);
+  const m = TOTAL_PAGES.exec(text.slice(cut));
+  return m ? text.slice(0, cut + m.index).trimEnd() : text;
+}
+
+/**
+ * 「ページ目」のあとが、題の末尾として消してよい形か：
+ * 閉じかっこが無い／閉じかっこのあとが空白か「区切り＋媒体名」／最後の区切り以降が媒体名
+ */
+function pageMarkRestIsTrailer(rest: string): boolean {
+  const close = rest.search(CLOSE_PAREN);
+  if (close < 0) return true;
+  const afterClose = rest.slice(close + 1).trimStart();
+  if (afterClose === "") return true;
+  if (TITLE_SEPARATOR.test(afterClose.charAt(0)) && isMediaName(afterClose.slice(1))) return true;
+  let sep = -1;
+  for (let i = rest.length - 1; i >= 0 && sep < 0; i--)
+    if (TITLE_SEPARATOR.test(rest.charAt(i))) sep = i;
+  return sep >= 0 && sep < close && isMediaName(rest.slice(sep + 1));
+}
+
+/** 媒体名：区切りを含まず、空白を除いて 30 字まで（空白だけでもよい。空は不可） */
+function isMediaName(text: string): boolean {
+  return text !== "" && !TITLE_SEPARATOR.test(text) && text.trim().length <= 30;
 }
 
 /** 文の終わりの記号（これで終わっていれば、見出しではなく文とみなす） */

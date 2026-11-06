@@ -5,8 +5,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { cleanTitle } from "./article.ts";
-import { BANNED_PATTERNS, checkLine } from "./attacker-safety.ts";
+import { BANNED_PATTERNS, checkLine, SCHEME_PATTERN } from "./attacker-safety.ts";
 import { ESTIMATE_RE } from "./onepager-writer.ts";
+import { wrapArticle } from "./prompts.ts";
 import { REPLY_EXAMPLE_RE } from "./writer.ts";
 
 function rng(seed: number): () => number {
@@ -189,5 +190,74 @@ describe("cleanTitle（題の末尾のページ番号と媒体名）", () => {
       `x${" ：".repeat(n / 2)}`,
     ])
       fast(s.slice(0, 8), () => cleanTitle(s));
+  });
+});
+
+describe("URL のスキームの検出（SCHEME_PATTERN）", () => {
+  const LEGACY_SCHEME = /\b[a-z][a-z0-9+.-]*:\/\//i;
+  it("書き直す前の正規表現と、同じ一致を返す", () => {
+    const alphabet = ["a", "Z", "1", "_", "+", ".", "-", ":", "/", "/", " ", "ポ", "h", "t"];
+    for (const s of randomStrings(6, alphabet, 30000, 14))
+      expect(SCHEME_PATTERN.exec(s)?.[0], JSON.stringify(s)).toBe(LEGACY_SCHEME.exec(s)?.[0]);
+  });
+  it("決まった形", () => {
+    expect(SCHEME_PATTERN.exec("見て https://a.example/x")?.[0]).toBe("https://");
+    expect(SCHEME_PATTERN.exec("x.ab://")?.[0]).toBe("x.ab://");
+    expect(SCHEME_PATTERN.exec(".ab://")?.[0]).toBe("ab://");
+    expect(SCHEME_PATTERN.exec("_ab://")).toBeNull();
+    expect(SCHEME_PATTERN.exec("1ab://")).toBeNull();
+    expect(SCHEME_PATTERN.exec("http:/x")).toBeNull();
+  });
+  it("checkLine は URL を断る", () => {
+    expect(checkLine("ftp://x を見る").ok).toBe(false);
+  });
+  it("病的な入力でも遅くならない", () => {
+    const n = 50_000;
+    for (const s of [
+      "a.".repeat(n / 2),
+      "a+".repeat(n / 2),
+      "-".repeat(n),
+      "a:/".repeat(n / 3),
+      `${"a".repeat(n)}:/`,
+      "a://".repeat(n / 4),
+    ])
+      fast(s.slice(0, 8), () => checkLine(s));
+  });
+});
+
+describe("wrapArticle の < の置き換え", () => {
+  it("空白や < が数万字続いても遅くならない", () => {
+    const n = 50_000;
+    for (const s of [
+      " ".repeat(n),
+      `<${" ".repeat(n)}`,
+      "<".repeat(n),
+      "< ".repeat(n / 2),
+      `</${" ".repeat(n)}x`,
+      "</ ".repeat(n / 3),
+    ])
+      fast(s.slice(0, 8), () => wrapArticle(s));
+  });
+  it("article のタグの直前の < は、前と同じものだけが置き換わる", () => {
+    const LEGACY = /<(?=\s*\/?\s*article\b)/gi;
+    const alphabet = ["<", "/", " ", "\n", "\u3000", "article", "ARTICLE", "x", ">"];
+    for (const s of randomStrings(7, alphabet, 20000, 10))
+      expect(s.replace(/<(?=\s*(?:\/\s*)?article\b)/gi, "&lt;"), JSON.stringify(s)).toBe(
+        s.replace(LEGACY, "&lt;"),
+      );
+  });
+});
+
+describe("cleanTitle（媒体名が長いとき）", () => {
+  it("書き直す前と同じ結果になる（区切りの後ろが 30 字前後）", () => {
+    const alphabet = ["（", ")", "1", "ページ目", "：", "|", "a", "a", "a", " "];
+    for (const s of randomStrings(8, alphabet, 20000, 60))
+      expect(cleanTitle(s), JSON.stringify(s)).toBe(legacyCleanTitle(s));
+  });
+  it("媒体名が 30 字までなら消え、31 字なら残る", () => {
+    expect(cleanTitle(`題（1ページ目）：${"あ".repeat(30)}`)).toBe("題");
+    expect(cleanTitle(`題（1ページ目）：${"あ".repeat(31)}`)).toBe(
+      `題（1ページ目）：${"あ".repeat(31)}`,
+    );
   });
 });
