@@ -43,7 +43,13 @@ export const OnePagerRequest = z.object({
     .max(5)
     .optional(),
 });
-export type OnePagerTextSource = { source: "claude" | "template"; model?: string; noteJa?: string };
+export type OnePagerTextSource = {
+  source: "claude" | "template";
+  model?: string;
+  noteJa?: string;
+  /** Claude の文を検証で捨てたときの、どの検証で落ちたかの分類（WriterRejectionKind） */
+  rejectedKind?: string;
+};
 
 /** 言い換えの結果は同じ入力なら使い回す（サーバの寿命の間だけ） */
 const cache = new Map<string, { text: string[]; model: string }>();
@@ -77,6 +83,7 @@ async function rewrite(
         text: {
           source: "template",
           noteJa: `Claude の文を検証で捨てました：${result.rejectedReason}`,
+          ...(result.rejectedKind ? { rejectedKind: result.rejectedKind } : {}),
         },
       };
     cache.set(key, { text: result.value.whatHappensJa, model: result.model });

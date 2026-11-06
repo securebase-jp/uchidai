@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import {
   allowedNumbers,
   checkWriterOutput,
+  checkWriterOutputDetailed,
   formatYenInText,
   type OnePagerWriterInput,
   OnePagerWriterOutput,
@@ -214,5 +215,31 @@ describe("writerInputFrom は各段階の source を渡す", () => {
       source: "stated",
     });
     expect(JSON.stringify(input2)).not.toContain("VPN装置");
+  });
+});
+
+describe("検証で捨てた理由の分類（checkWriterOutputDetailed）", () => {
+  it("通る出力には理由が付かない", () => {
+    const out = {
+      whatHappensJa: [
+        "外から社内につなぐ装置から侵入され、生産管理のデータが暗号化されます。",
+        "御社の場合は、受注・生産管理が 10 日止まると見込まれます。",
+      ],
+    };
+    expect(checkWriterOutputDetailed(out, input)).toBeUndefined();
+  });
+  it("落ちた検証ごとに分類が付き、文は checkWriterOutput と同じ", () => {
+    const est = "御社の場合は、受注・生産管理が 10 日止まると見込まれます。";
+    const cases: [string[], string][] = [
+      [["T1190 で侵入されます。", est], "id_in_text"],
+      [["5 日以内に報告が必要です。", est], "number_not_in_input"],
+      [["暗号化が確認されています。"], "estimate_sentence_missing"],
+      [["持ち出しの有無は不明です。", est], "unknown_word"],
+    ];
+    for (const [lines, kind] of cases) {
+      const out = { whatHappensJa: lines };
+      expect(checkWriterOutputDetailed(out, input)?.kind, lines.join("")).toBe(kind);
+      expect(checkWriterOutputDetailed(out, input)?.reason).toBe(checkWriterOutput(out, input));
+    }
   });
 });
