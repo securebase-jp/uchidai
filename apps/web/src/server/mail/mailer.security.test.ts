@@ -41,16 +41,24 @@ describe("SMTP（nodemailer 10）のヘッダ注入（問題なかったもの�
   });
 });
 
-describe("SEC-007：宛先（to）の形を検証していない", () => {
-  it("複数の宛先やアドレスでない文字列も受け付ける", () => {
-    const base = {
-      profile: { companyName: "テスト", assets: [{ id: "a", role: "r", label: "l" }] },
-      assetId: "a",
-      mitigation: "M1032",
-    };
-    expect(CreateRequest.safeParse({ ...base, to: "a@example.com, b@example.com" }).success).toBe(
-      true,
-    );
-    expect(CreateRequest.safeParse({ ...base, to: "not an address" }).success).toBe(true);
+describe("SEC-007（対応済み）：宛先（to）は 1 件のメールアドレスの形だけ", () => {
+  const base = {
+    profile: { companyName: "テスト", assets: [{ id: "a", role: "r", label: "l" }] },
+    assetId: "a",
+    mitigation: "M1032",
+  };
+  it("複数の宛先、空白や改行、アドレスでない文字列は拒む", () => {
+    for (const to of [
+      "a@example.com, b@example.com",
+      "a@example.com;b@example.com",
+      "a@example.com b@example.com",
+      "a@example.com\nBcc: b@example.com",
+      "not an address",
+    ])
+      expect(CreateRequest.safeParse({ ...base, to }).success).toBe(false);
+  });
+  it("1 件のアドレスは通る。省略もできる", () => {
+    expect(CreateRequest.safeParse({ ...base, to: "vendor@example.com" }).success).toBe(true);
+    expect(CreateRequest.safeParse(base).success).toBe(true);
   });
 });
