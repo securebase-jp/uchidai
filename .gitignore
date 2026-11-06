@@ -35,3 +35,6 @@ apps/web/.data/
 
 # ポータブル ZIP のビルドの出力
 dist-zip/
+
+# 評価の実行結果（pnpm eval が書き出す。要約は eval/RESULTS.md）
+eval/results/*.json
