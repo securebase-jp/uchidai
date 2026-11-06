@@ -94,10 +94,12 @@ jobs:
       TARGET: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v5
-      # 起動の確認を動かす道具だけが使う Node。ZIP の中のウチダイは、PATH から node を外した状態で、同梱の Node だけで動かす
+      # 起動の確認を動かす道具だけが使う Node。ZIP の中のウチダイは、PATH から node を外した状態で、同梱の Node だけで動かす。
+      # この job は pnpm を入れないので、setup-node が packageManager を見て pnpm のキャッシュを自動で有効にするのを切る
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          package-manager-cache: false
       - uses: actions/download-artifact@v4
         with:
           name: portable-zips
