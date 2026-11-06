@@ -4,6 +4,21 @@
 
 確かめた方法：コードの読解、単体テスト（`apps/web/src/server/*.security.test.ts`、`apps/web/src/server/mail/mailer.security.test.ts`。外へ出る通信はせず、`fetch` と名前解決を差し替えています）、手元の開発サーバ（内蔵ブラウザから `http://localhost:5183` に対してだけ）、`pnpm audit`、`gitleaks`。外部のホストへ攻撃的な通信はしていません。「確かめたこと」と「コードを読んだ限りの推定」は分けて書きます。
 
+## 対応の状況（2026-11-06 追記）
+
+診断のあと、凍結前に同じ枝で次の 4 件（と SEC-012）を直しました。各節に「対応済み」とコミットを書いています。
+
+| ID                           | 対応                                                                                               | コミット  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- | --------- |
+| SEC-001（高）                | 公開するのは本番サーバ（8787）だけに文書を書き換え。保険として Vite の `server.fs` を狭めた        | `60becbb` |
+| SEC-002（中）・SEC-012（低） | 他サイトのページからの要求を `Sec-Fetch-Site`・`Origin`・`content-type` で断る middleware を足した | `6ddb302` |
+| SEC-004（中）                | remote-guard が接続元のアドレスも見る。Docker は `UCHIDAI_TRUST_PRIVATE_PEER=1` を既定で設定       | `aaa4364` |
+| SEC-007（中）                | 宛先 `to` を 1 件のメールアドレスの形だけにした。SMTP の自動送信は文書に明記（挙動は変えない）     | `efb4b47` |
+
+**公開後の課題（未対応）**：SEC-003（中。Host ヘッダの検査）、SEC-005（中。記事取得の名前解決と接続の窓、検査の fail-open）、SEC-006（中。Claude を呼ぶ API の回数・同時実行の上限）、SEC-008（低。IPv6 の端の表記）、SEC-009（低。解析ライブラリへの大きな入力）、SEC-010（低。CI の権限とアクションの固定）、SEC-011（低・推定。Docker の読み取り専用と recon のキャッシュ）、SEC-013〜016（情報）。SEC-002 の修正により、SEC-003・005・006 の「悪意あるページから誘発される」経路は閉じましたが、手元の利用者自身や DNS の付け替えによる経路は残ります。
+
+修正の前後で、`eval/trials/demo-snapshot.ts` の出力は同一、`pnpm eval` は 98%／92%（基準どおり）、`pnpm typecheck`・`pnpm lint`・`pnpm test` は通っています。開発サーバで、カルテ画面・担当者画面（確認依頼の作成と送信箱）・デモ（`?demo=1&profile=demo-seiko`）の API の呼び出しがすべて 200 のままであることを内蔵ブラウザで確かめました。
+
 ## 結論
 
 - 設計の芯（API キーはサーバだけ、Claude の出力は zod で検証、記事は指示文と分けて渡す、外部確認は DNS と証明書の公開ログだけ、ファイル名に入る ID は英数字に限定）は、コードと試験で確かめた範囲で守られています。依存関係に既知の脆弱性は無く、履歴に秘密情報はありません。
@@ -32,6 +47,7 @@
 - 原因：公開の単位を「API」と考えて守りを API に置いたが、文書が勧める公開の単位は「開発サーバ全体」だった。
 - 直し方の案：上の表のとおり。本番サーバ（`apps/web/src/server/index.ts` が `dist/` を配信）には `/@fs/` が無いので、公開はそちらだけにする。
 - 規模：小。
+- **対応済み（`60becbb`）**：`docs/usage.md` の手順を `pnpm build` → `pnpm --filter ./apps/web start` → `cloudflared tunnel --url http://127.0.0.1:8787` に書き換え、開発サーバを公開してはいけない理由を書いた。`docs/install.md` にも注意を足した。`apps/web/vite.config.ts` の `server.fs` を `strict: true`、`allow` は `apps/web`・`packages`・`node_modules`・`demo`、`deny` に `**/.data/**`・`**/.cache/**` を足した（既定の `.env` などは残す）。確認：`/@fs/<リポジトリ>/README.md`・`package.json`・`eval/RESULTS.md` が 403、依頼を作ったあとの `/@fs/<リポジトリ>/apps/web/.data/requests.json` が 403、画面が要るフォント（`node_modules`）と `demo/` は 200。
 
 ### SEC-002（中）他サイトのページから、ローカルの API を状態を変える形で叩ける（CSRF）
 
@@ -42,6 +58,7 @@
 - 原因：同一生成元の確認を CORS（応答側）にだけ頼っている。
 - 直し方の案：`/api/*` の GET 以外で、(1) `Sec-Fetch-Site` が `same-origin` か `none` 以外なら 403、(2) `Origin` があれば `corsOrigin()` に通らないものは 403、(3) `content-type` が `application/json` でなければ 415。既存の Vite プロキシと本番配信は同一生成元なので影響しません。
 - 規模：小（middleware 1 つと試験）。
+- **対応済み（`6ddb302`）**：`apps/web/src/server/same-origin.ts` を足し、`/api/*` の GET・HEAD・OPTIONS 以外で `Sec-Fetch-Site` が `same-origin`／`none`／無し 以外なら 403、`Origin` が `corsOrigin()` を通らなければ 403（`null` も）、POST・PUT・PATCH で `content-type` が `application/json` でなければ 415。SSE の GET にも `Sec-Fetch-Site` の確認を掛けた（SEC-012）。`app.security.test.ts` の期待値を反転し、同じ生成元・`none`・ヘッダ無し（curl）が通ることも試験した。画面・Vite のプロキシ・本番の同一生成元の配信・ポータブル ZIP・Docker は同じ生成元の要求なので影響しない。
 
 ### SEC-003（中）Host ヘッダを見ていない（DNS の付け替えで、応答まで読まれる）
 
@@ -62,6 +79,7 @@
 - 原因：接続元のアドレスを見ていない（Hono の `getConnInfo` で取れる）。
 - 直し方の案：`@hono/node-server/conninfo` の `getConnInfo(c).remote.address` がループバック（127.0.0.0/8、::1、::ffff:127.0.0.0/8）でないときも「外から」とみなす。Docker は `API_HOST=0.0.0.0` で待ち受けるので、コンテナの内側ではブリッジのアドレスから来ます。`UCHIDAI_TRUST_LAN=1` のような明示の緩和か、Docker 向けに `docker compose` の `network_mode` の説明を足す必要があります。
 - 規模：小〜中（判定の変更と、Docker の動作確認）。
+- **対応済み（`aaa4364`）**：`remote-guard.ts` が `getConnInfo` で接続元を見て、ループバック（127.0.0.0/8、::1、::ffff:127.x）でなければ「外から」とみなす。接続元が取れないとき（`app.request` のテスト）は従来の判定。Docker 向けに `UCHIDAI_TRUST_PRIVATE_PEER=1`（公開アドレスでない接続元は手元扱い）を `Dockerfile` の既定に入れた（外へ出さないのはホスト側の `-p 127.0.0.1:` で守る。PM の案のとおり）。ZIP の起動処理は 127.0.0.1 に固定しているので矛盾しない。確認：イメージを build して `docker run -p 127.0.0.1:<port>:8787` で `/api/health`・`/api/examples`・`/api/requests` が 200、転送ヘッダつきは 403、`UCHIDAI_TRUST_PRIVATE_PEER=0` では `/api/examples` が 403（接続元がブリッジの私設アドレスであることの裏づけ）。
 
 ### SEC-005（中）記事取得で、検査時の名前解決と接続時の名前解決が別（DNS の付け替えの窓）。検査の解決が失敗すると通す
 
@@ -90,6 +108,7 @@
 - 確かめ方（確認済み、`mailer.security.test.ts`）：`to: "a@example.com, b@example.com"` と `to: "not an address"` が `CreateRequest` を通る。ヘッダ注入は nodemailer 10.3.1 が CR LF を畳むので別ヘッダ行にはならない（`streamTransport` で組んだ生のメッセージを確認）。
 - 直し方の案：`to` を `z.string().email()` にし、`,` と `;` を拒む。SMTP の自動送信は、依頼の作成と送信を分け、画面の「送る」で明示的に行う（送信箱に積むだけの既定と同じ流れにする）。
 - 規模：小。
+- **対応済み（`efb4b47`）**：`CreateRequest.to` を `z.string().email()` にし（複数宛先・`;`・空白・改行・アドレスでない文字列は 400）、カルテのベンダーのメールも送る直前に同じ形か確かめる。SMTP の自動送信は変えず、`docs/install.md` と `docs/usage.md` に「設定すると依頼を作った時点で送られる」と書いた。`mailer.security.test.ts` の期待値を反転した。
 
 ### SEC-008（低）IPv6 の端の表記：NAT64 はサーバ側の検査だけが通し、IPv4 互換アドレスは両方が通す
 
@@ -133,6 +152,7 @@
 - 何が起きるか：`GET /api/requests/events` は `no-cors` の GET で他サイトから開けます（応答は読めませんが接続は保てます）。32 本を開いたままにすると、利用者の画面の同期が 503 になります。
 - 直し方の案：SEC-002 の同一生成元の確認を GET の SSE にも掛ける。
 - 規模：小。
+- **対応済み（`6ddb302`）**：SEC-002 の middleware が `GET /api/requests/events` にも `Sec-Fetch-Site` の確認を掛ける。
 
 ### SEC-013（情報）`UCHIDAI_ALLOW_REMOTE_API=1` は全面開放
 
@@ -204,4 +224,4 @@
 
 ## 試験の実行
 
-`pnpm typecheck`、`pnpm lint`、`pnpm test` を、この報告書と 3 つの `*.security.test.ts` を加えた状態で通しています（結果はコミットの本文に書きます）。「通ってしまう」ことを記録した試験（SEC-002、SEC-004、SEC-005、SEC-008）は、直したときに期待値を反転させてください。
+`pnpm typecheck`、`pnpm lint`、`pnpm test` を、この報告書と 3 つの `*.security.test.ts` を加えた状態で通しています。SEC-002・SEC-004・SEC-007 の試験は、修正後の振る舞い（403・415・拒否）に反転済みです。「通ってしまう」ことを記録したまま残している試験は SEC-003（Host）、SEC-005（名前解決の窓と fail-open）、SEC-008（IPv6 の端の表記）で、直したときに期待値を反転させてください。
