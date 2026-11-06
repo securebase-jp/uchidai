@@ -3,17 +3,11 @@
  * 取得の失敗（404、ログイン・有料の壁、タイムアウト、接続できない、読めない PDF など）は、
  * 500 ではなく 400 系の ClientError にして、日本語の案内（本文を貼って読むこともできます）を返す（TRIAL-012）。
  */
-import {
-  type Article,
-  ArticleFetchError,
-  type FetchLike,
-  fetchArticle,
-  resolveFetch,
-} from "@uchidai/llm";
+import { type Article, ArticleFetchError, type FetchLike, fetchArticle } from "@uchidai/llm";
 import type { z } from "zod";
 import type { ReadRequest } from "../shared/api.ts";
 import { ClientError } from "./errors.ts";
-import { assertPublicUrl, guardedFetch, type Lookup } from "./safe-url.ts";
+import { assertPublicUrl, guardedFetch, type Lookup, pinningFetch } from "./safe-url.ts";
 
 type ReadInput = Exclude<z.infer<typeof ReadRequest>["input"], { kind: "urls" }>;
 
@@ -68,7 +62,8 @@ export async function loadArticle(
       const article = await fetchArticle(
         { kind: "url", url: input.url, ...(input.pages ? { pages: input.pages } : {}) },
         {
-          fetch: guardedFetch(opts.fetch ?? resolveFetch(), opts.lookup),
+          // 検査で解決したアドレスに接続を固定する fetch（プロキシがあるときは固定しない。SEC-005）
+          fetch: guardedFetch(opts.fetch ?? pinningFetch().fetch, opts.lookup),
           ...(opts.lookup ? { lookup: opts.lookup } : {}),
         },
       );

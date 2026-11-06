@@ -280,7 +280,9 @@ export function isPrivateIpv6(ip: string): boolean {
   // ::ffff:a.b.c.d（IPv4 射影）、64:ff9b::/96（NAT64）は埋め込まれた IPv4 で判定
   const mapped = b.slice(0, 10).every((x) => x === 0) && b[10] === 0xff && b[11] === 0xff;
   const nat64 = b[0] === 0 && b[1] === 0x64 && b[2] === 0xff && b[3] === 0x9b;
-  if (mapped || nat64) return isPrivateIpv4(`${b[12]}.${b[13]}.${b[14]}.${b[15]}`);
+  // ::a.b.c.d（IPv4 互換。廃止された表記）も埋め込まれた IPv4 で判定する（SEC-008）
+  const compat = b.slice(0, 12).every((x) => x === 0);
+  if (mapped || nat64 || compat) return isPrivateIpv4(`${b[12]}.${b[13]}.${b[14]}.${b[15]}`);
   return false;
 }
 

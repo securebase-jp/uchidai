@@ -66,7 +66,7 @@ describe("assertPublicUrl（名前解決つき）", () => {
       ClientError,
     );
   });
-  it("公開アドレスなら通し、解決できないときは止めない（取得側が失敗する）", async () => {
+  it("公開アドレスなら通し、解決できないときは止める（SEC-005。取得側に委ねない）", async () => {
     await expect(
       assertPublicUrl("https://news.example/", async () => ["93.184.216.34"]),
     ).resolves.toBeInstanceOf(URL);
@@ -74,7 +74,7 @@ describe("assertPublicUrl（名前解決つき）", () => {
       assertPublicUrl("https://none.example/", async () => {
         throw new Error("ENOTFOUND");
       }),
-    ).resolves.toBeInstanceOf(URL);
+    ).rejects.toBeInstanceOf(ClientError);
   });
 });
 

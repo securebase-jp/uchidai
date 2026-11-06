@@ -6,7 +6,14 @@
 import { assertAllowedUrl, isPrivateIp } from "@uchidai/llm";
 import { describe, expect, it } from "vitest";
 import { ClientError } from "./errors.ts";
-import { assertPublicUrl, checkPublicUrl, guardedFetch, isBlockedAddress } from "./safe-url.ts";
+import {
+  assertPublicUrl,
+  checkPublicUrl,
+  guardedFetch,
+  isBlockedAddress,
+  pinnedLookup,
+  pinningFetch,
+} from "./safe-url.ts";
 
 const publicLookup = async () => ["93.184.216.34"];
 
@@ -49,17 +56,22 @@ describe("checkPublicUrl：形だけで断れるもの", () => {
     expect(checkPublicUrl(url)).toBeDefined();
   });
 
-  it("NAT64（64:ff9b::/96）に埋め込んだ 127.0.0.1 は、サーバ側の検査では通る（llm 側の検査で止まる）", () => {
-    // SEC-006：safe-url.ts は NAT64 を見ない。article.ts の isPrivateIpv6 は見る。二重の検査の片方だけが止める
-    expect(checkPublicUrl("http://[64:ff9b::7f00:1]/")).toBeUndefined();
+  it("NAT64（64:ff9b::/96）と IPv4 互換（::/96）に埋めた 127.0.0.1 は、どちらの検査も断る（SEC-008 対応済み）", () => {
+    expect(checkPublicUrl("http://[64:ff9b::7f00:1]/")).toBeDefined();
+    expect(checkPublicUrl("http://[::7f00:1]/")).toBeDefined();
     expect(isPrivateIp("64:ff9b::7f00:1")).toBe(true);
-  });
-
-  it("IPv4 互換アドレス（::7f00:1。廃止された表記）は、どちらの検査も通す", () => {
-    // SEC-006：OS はこの形をループバックとして扱わないのが普通だが、記録しておく
-    expect(checkPublicUrl("http://[::7f00:1]/")).toBeUndefined();
-    expect(isPrivateIp("::7f00:1")).toBe(false);
-    expect(isBlockedAddress("::7f00:1")).toBe(false);
+    expect(isPrivateIp("::7f00:1")).toBe(true);
+    expect(isBlockedAddress("::7f00:1")).toBe(true);
+    // サーバ側の判定は llm 側に寄せたので、同じ答えになる
+    for (const ip of [
+      "10.0.0.1",
+      "169.254.169.254",
+      "fe80::1",
+      "2001:db8::1",
+      "93.184.216.34",
+      "2606:4700::1",
+    ])
+      expect(isBlockedAddress(ip)).toBe(isPrivateIp(ip));
   });
 });
 
@@ -81,15 +93,14 @@ describe("assertPublicUrl：名前解決の結果で断る", () => {
       assertPublicUrl("http://evil.example/", async () => ["93.184.216.34", "127.0.0.1"]),
     ).rejects.toBeInstanceOf(ClientError);
   });
-  it("名前解決が失敗したときは通す（fail-open。取得側が自分で解決する）", async () => {
-    // SEC-005：検査の解決と取得の解決は別。検査が失敗した・空だったときに取得側の解決が内部に向くと止められない
+  it("名前解決が失敗した・空のときは断る（SEC-005 対応済み。fail-open にしない）", async () => {
     await expect(
       assertPublicUrl("http://flaky.example/", async () => {
         throw new Error("EAI_AGAIN");
       }),
-    ).resolves.toBeInstanceOf(URL);
-    await expect(assertPublicUrl("http://empty.example/", async () => [])).resolves.toBeInstanceOf(
-      URL,
+    ).rejects.toBeInstanceOf(ClientError);
+    await expect(assertPublicUrl("http://empty.example/", async () => [])).rejects.toBeInstanceOf(
+      ClientError,
     );
   });
   it("llm 側の assertAllowedUrl は、解決が失敗・空なら断る", async () => {
@@ -106,10 +117,8 @@ describe("assertPublicUrl：名前解決の結果で断る", () => {
   });
 });
 
-describe("guardedFetch：解決した IP を取得に固定しない（DNS の付け替えの窓）", () => {
-  it("検査で解決した結果は取得側に渡されず、取得側はホスト名のまま受け取る", async () => {
-    // SEC-005：検査（lookup）と取得（fetch 内部の名前解決）が別々に名前を引く。
-    // TTL の短いレコードを 1 回目は公開 IP、2 回目は 127.0.0.1 に向ければ、検査を通ったあとの取得が内部に向く
+describe("guardedFetch：検査で解決した IP を接続に固定する（SEC-005 対応済み）", () => {
+  it("取得の名前解決（pinnedLookup）は、検査で解決したアドレスだけを返す。検査していないホストは拒む", async () => {
     const seen: string[] = [];
     const base = async (input: string | URL | Request) => {
       seen.push(String(input));
@@ -122,9 +131,40 @@ describe("guardedFetch：解決した IP を取得に固定しない（DNS の�
     };
     const res = await guardedFetch(base, flipping)("http://rebind.example/");
     expect(res.status).toBe(200);
-    // 取得はホスト名で行われる（IP に固定されていない）。検査は 1 回しか引かれない
     expect(seen).toEqual(["http://rebind.example/"]);
     expect(calls).toBe(1);
+    // 取得側の名前解決は、検査の結果（1 回目の公開 IP）を返し、2 回目の解決（127.0.0.1）は起きない
+    const single = await new Promise<unknown[]>((resolve) =>
+      pinnedLookup("rebind.example", { all: false }, (...args) => resolve(args)),
+    );
+    expect(single).toEqual([null, "93.184.216.34", 4]);
+    const all = await new Promise<unknown[]>((resolve) =>
+      pinnedLookup("REBIND.example.", { all: true }, (...args) => resolve(args)),
+    );
+    expect(all).toEqual([null, [{ address: "93.184.216.34", family: 4 }]]);
+    const unknown = await new Promise<unknown[]>((resolve) =>
+      pinnedLookup("never-checked.example", { all: false }, (...args) => resolve(args)),
+    );
+    expect((unknown[0] as NodeJS.ErrnoException).code).toBe("ENOTFOUND");
+  });
+  it("プロキシが無ければ接続先を固定した fetch、プロキシがあれば従来の fetch（固定しない）", () => {
+    const saved = {
+      HTTPS_PROXY: process.env.HTTPS_PROXY,
+      HTTP_PROXY: process.env.HTTP_PROXY,
+      https_proxy: process.env.https_proxy,
+      http_proxy: process.env.http_proxy,
+    };
+    for (const k of Object.keys(saved)) delete process.env[k];
+    try {
+      expect(pinningFetch().pinned).toBe(true);
+      process.env.HTTPS_PROXY = "http://proxy.example:8080";
+      expect(pinningFetch().pinned).toBe(false);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
   });
 
   it("転送先が file:・data: など http(s) 以外なら断る", async () => {
