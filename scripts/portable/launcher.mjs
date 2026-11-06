@@ -106,7 +106,7 @@ async function main() {
   // 2. 手元だけ、保存先はユーザー領域
   if (env.API_HOST && env.API_HOST !== HOST) {
     console.log(
-      `API_HOST は 127.0.0.1 に固定しています（手元以外へ公開しません）。${env.API_HOST} の指定は使いません。`,
+      "API_HOST は 127.0.0.1 に固定しています（手元以外へ公開しません）。API_HOST の指定は使いません。",
     );
   }
   env.API_HOST = HOST;

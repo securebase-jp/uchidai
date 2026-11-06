@@ -78,6 +78,13 @@ async function main(): Promise<number> {
   const port = Number(portArg >= 0 ? process.argv[portArg + 1] : 18787);
   const dataDir = mkdtempSync(join(tmpdir(), "uchidai-smoke-data-"));
   const launcher = launcherFile(dir);
+  // Windows では cmd.exe に経路を渡すので、コマンドとして解釈される記号を含む経路は使わない
+  if (isWin && /[&|<>^%"!]/.test(launcher)) {
+    console.error(
+      'フォルダの経路に & | < > ^ % " ! を含められません。別の場所に展開してください。',
+    );
+    return 2;
+  }
 
   const env = minimalEnv(process.env, {
     UCHIDAI_NO_BROWSER: "1",
