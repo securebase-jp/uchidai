@@ -13,9 +13,12 @@ COPY . .
 RUN --mount=type=cache,id=uchidai-pnpm,target=/pnpm/store if [ -n "$HTTPS_PROXY" ]; then export npm_config_https_proxy="$HTTPS_PROXY" npm_config_proxy="${HTTP_PROXY:-$HTTPS_PROXY}"; fi && export npm_config_store_dir=/pnpm/store npm_config_network_concurrency=4 npm_config_fetch_retries=8 npm_config_fetch_timeout=120000 && pnpm install --frozen-lockfile --ignore-scripts && pnpm build
 
 FROM node:22-slim
+# コンテナの中では 0.0.0.0 で待ち受け、ホストからの接続はブリッジの私設アドレスから来る。公開アドレスでない接続元を手元扱いにする
+# （外へ公開しないのは、ホスト側の `-p 127.0.0.1:8787:8787` で守る。docs/install.md）
 ENV NODE_ENV=production \
     API_HOST=0.0.0.0 \
-    API_PORT=8787
+    API_PORT=8787 \
+    UCHIDAI_TRUST_PRIVATE_PEER=1
 WORKDIR /app
 # 本番に要るものだけを入れる（テスト、評価の結果、デモの素材、ドキュメントは入れない）。
 # 実行時に読むのは knowledge/（判定の知識）、examples/（例のカルテ）、eval/recordings/（記録済みの読解と AI攻撃者）、各パッケージの src/

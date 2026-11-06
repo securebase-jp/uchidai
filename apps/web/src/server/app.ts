@@ -40,6 +40,7 @@ import { kevRoutes } from "./routes/kev.ts";
 import { onepagerRoutes } from "./routes/onepager.ts";
 import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
+import { sameOriginGuard } from "./same-origin.ts";
 import { readSeries } from "./series-read.ts";
 import { SeriesFetchError } from "./series-source.ts";
 
@@ -62,6 +63,11 @@ export function corsOrigin(origin: string): string | null {
 export const app = new Hono();
 app.use("/api/*", cors({ origin: (o) => corsOrigin(o) }));
 app.use("/api/*", remoteGuard());
+// 他サイトのページからの要求を断る（SEC-002）。SSE は開きっぱなしの接続を他サイトから作れないよう GET でも見る（SEC-012）
+app.use(
+  "/api/*",
+  sameOriginGuard({ allowOrigin: corsOrigin, guardedGetPaths: ["/api/requests/events"] }),
+);
 app.use("/api/*", async (c, next) => {
   const max = c.req.path === "/api/case/read" ? READ_BODY_LIMIT : DEFAULT_BODY_LIMIT;
   return bodyLimit({

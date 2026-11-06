@@ -14,6 +14,7 @@ import { loadKnowledge } from "@uchidai/engine";
 import { type WriterOptions, writeMeasureRequest, writeVendorRequest } from "@uchidai/llm";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
+import { z } from "zod";
 import {
   CreateRequest,
   MeasureDraftRequest,
@@ -142,6 +143,9 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
       { ...(deps.writer ?? {}), ...(body.writer ? { writer: body.writer } : {}) },
     );
     const to = body.to ?? body.profile.vendor?.email;
+    // カルテのベンダーのメールも、送る直前に 1 件のアドレスの形か確かめる（SEC-007）
+    if (to !== undefined && !z.string().email().max(200).safeParse(to).success)
+      return c.json({ error: "宛先は 1 件のメールアドレスの形で入力してください" }, 400);
     const sent = await mailer.send({ to, subject: mail.subject, text: mail.text });
     const { ruleId: _rule, ...background } = bg;
     const item: StoredRequest = {

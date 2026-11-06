@@ -89,7 +89,8 @@ export const CreateRequest = z.object({
   profile: ProfileExcerpt,
   assetId: z.string().max(100),
   mitigation: z.string().regex(/^(M\d{4}|UD-\d{2})$/),
-  to: z.string().max(200).optional(),
+  /** 宛先。1 件のメールアドレスの形だけ（複数宛先や改行は受け付けない。SEC-007） */
+  to: z.string().max(200).email("宛先は 1 件のメールアドレスの形で入力してください").optional(),
   /** 回答の希望期限（省略時は 7 日後） */
   deadline: z.string().max(40).optional(),
   /** 依頼文の書き手を固定する（既定：キーがあれば Claude、無ければテンプレート） */
