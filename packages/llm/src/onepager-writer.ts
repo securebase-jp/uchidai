@@ -167,7 +167,16 @@ export const WRITER_RULES_JA = `あなたは、中小企業の社長に向けて
 - result が breached なら、止まる業務と復旧までの日数、取引先への影響が出る日、売上への影響、個人情報の報告が必要になるかを、入力にある分だけ書く。無いものは書かない
 - stopped が空（止まる業務が無い）ときは、止まる業務のことも復旧までの日数も書かない。downtimeDays が 0 でも「0日」「0 日」とは書かない。止まらなかったことと、個人情報の報告など入力にあることだけを書く
 - 一文は 70 字以内。2〜6 文（多くても 8 文まで）。敬体（です・ます）。煽らず、断定は入力の範囲内で
-- 出力は JSON スキーマどおり。文章はすべて日本語`;
+- 出力は JSON スキーマどおり。文章はすべて日本語
+
+## 書き終えたら見直すこと（この点で出力が捨てられやすい。書き方の例）
+- 御社の金額（moneyLossJpy）の文には、必ず「御社の想定では」を入れる。「御社が同じ立場なら」「御社の場合は」だけでは足りない。記事の被害額（reportedLossJpy）とは同じ文に並べず、別の文にする
+  - 例：「記事の事例では約〇〇円の被害が出ています。」「御社の想定では、送金による損失は約〇〇円です。」（〇〇は入力の値）
+- thirdPartyJa があるときの「これは〇〇で起きた事故です。」の〇〇は、thirdPartyJa の文字列を括弧書きも含めて一字一句そのまま写す。括弧の中を省いたり、言い換えたりしない
+- certainty が claimed の段階があるときは、その文に必ず「主張」の語を入れる（例：「攻撃者は〜と主張しています」）。事実性に触れるときは「事実かどうかは確認されていません」の形に固定し、「事実とは確認されていません」「確認が取れていません」とは書かない
+- 最初の段階が candidate のときは、先頭近くの文に「入口はまだ分かっていません」をそのまま入れる
+- stated で certainty の印が無い段階が一つも無いときは、「確認されています」「確認されました」を文のどこにも使わない（推定の段階は「〜と考えられます」と書く）
+- 止まる業務・日数・金額が入力にあるときは、「御社の場合は、〜と見込まれます」の形の文を必ず一つ入れる（記事の事実の文とは別の文にする）`;
 
 /** state が unknown の段階の言い回し（固定）。攻撃が起きたかどうかではなく、止める対策の確認の話 */
 export const UNKNOWN_CONTROL_PHRASE = "この段階を止める対策が確認できていません";
@@ -235,27 +244,72 @@ export function allowedNumbers(input: OnePagerWriterInput): Set<string> {
   return out;
 }
 
+/**
+ * 検証で捨てた理由の分類。直す優先度を決めるために、どの検証で落ちたかを記録に残す（文は検証の中身。条件は変えない）。
+ * - 数字・ID：id_in_text、number_not_in_input、zero_days、internal_wording
+ * - 試算と事実の分け方：money_*、reported_loss_missing、estimate_sentence_missing、confirm_in_estimate、confirm_without_stated
+ * - 確度の言い回し：denial_wording、unknown_word、no_trace_*、exposed_only_*、claimed_missing、published_missing、hedge_missing、
+ *   candidate_phrase_missing、unknown_control_missing、scope_phrase_missing、report_negation、averted_missing
+ * - 第三者の事故：third_party_*
+ */
+export const WriterRejectionKind = z.enum([
+  "id_in_text",
+  "internal_wording",
+  "zero_days",
+  "number_not_in_input",
+  "money_not_estimate",
+  "money_as_revenue",
+  "reported_loss_missing",
+  "averted_missing",
+  "estimate_sentence_missing",
+  "third_party_lead_missing",
+  "third_party_note_missing",
+  "third_party_subject",
+  "denial_wording",
+  "unknown_word",
+  "report_negation",
+  "scope_phrase_missing",
+  "no_trace_phrase_missing",
+  "no_trace_assurance",
+  "exposed_only_phrase_missing",
+  "claimed_missing",
+  "published_missing",
+  "confirm_without_stated",
+  "confirm_in_estimate",
+  "hedge_missing",
+  "candidate_phrase_missing",
+  "unknown_control_missing",
+]);
+export type WriterRejectionKind = z.infer<typeof WriterRejectionKind>;
+export type WriterRejection = { kind: WriterRejectionKind; reason: string };
+function reject(kind: WriterRejectionKind, reason: string): WriterRejection {
+  return { kind, reason };
+}
+
 /** 出力に ID や入力にない数字が混じっていないか。問題があれば理由を返す */
-export function checkWriterOutput(
+export function checkWriterOutputDetailed(
   output: OnePagerWriterOutput,
   input: OnePagerWriterInput,
-): string | undefined {
+): WriterRejection | undefined {
   const allowed = allowedNumbers(input);
-  const sourceProblem = checkSourceWording(output, input);
+  const sourceProblem = checkSourceWordingDetailed(output, input);
   if (sourceProblem) return sourceProblem;
   for (const line of output.whatHappensJa) {
-    if (ID_PATTERN.test(line)) return `ID が含まれています：${line}`;
+    if (ID_PATTERN.test(line)) return reject("id_in_text", `ID が含まれています：${line}`);
     if (INTERNAL_WORDING.test(line))
-      return `入力の説明の語が文に出ています（「確認されています」だけにしてください）：${line}`;
+      return reject(
+        "internal_wording",
+        `入力の説明の語が文に出ています（「確認されています」だけにしてください）：${line}`,
+      );
     const normalized = line.replace(/[０-９]/g, (c) =>
       String.fromCharCode(c.charCodeAt(0) - 0xfee0),
     );
     if (input.stopped.length === 0 && ZERO_DAYS.test(normalized))
-      return `止まる業務が無いのに「0日」と書かれています：${line}`;
+      return reject("zero_days", `止まる業務が無いのに「0日」と書かれています：${line}`);
     for (const m of normalized.matchAll(/\d[\d,]*(?:\.\d+)?/g)) {
       const num = m[0];
       if (!allowed.has(num) && !allowed.has(num.replace(/,/g, "")))
-        return `入力にない数値が含まれています：${num}（${line}）`;
+        return reject("number_not_in_input", `入力にない数値が含まれています：${num}（${line}）`);
     }
   }
   // 止まる業務・金額（御社に当てはめた試算）は、記事の事実と別の文で「御社の場合は〜と見込まれます」と書く
@@ -266,9 +320,15 @@ export function checkWriterOutput(
     );
     if (moneyLine !== undefined) {
       if (!moneyLine.includes("想定"))
-        return `御社の金額は「想定では」と書いてください（記事の事実と区別するため）：${moneyLine}`;
+        return reject(
+          "money_not_estimate",
+          `御社の金額は「想定では」と書いてください（記事の事実と区別するため）：${moneyLine}`,
+        );
       if (moneyLine.includes("売上"))
-        return `送金額は売上への影響ではなく、直接の損失です：${moneyLine}`;
+        return reject(
+          "money_as_revenue",
+          `送金額は売上への影響ではなく、直接の損失です：${moneyLine}`,
+        );
     }
   }
   if (
@@ -277,9 +337,15 @@ export function checkWriterOutput(
       (l) => l.includes("記事の事例では") && yenAppearsIn(input.reportedLossJpy as number, l),
     )
   )
-    return "記事が書く被害額は「記事の事例では約〇〇円」と書いてください";
+    return reject(
+      "reported_loss_missing",
+      "記事が書く被害額は「記事の事例では約〇〇円」と書いてください",
+    );
   if (input.avertedInArticle && !output.whatHappensJa.some((l) => l.includes("防げ")))
-    return "記事の会社が被害を防げた事例なら、「記事の会社は被害を防げた事例です」と書いてください";
+    return reject(
+      "averted_missing",
+      "記事の会社が被害を防げた事例なら、「記事の会社は被害を防げた事例です」と書いてください",
+    );
   const hasEstimate =
     input.stopped.length > 0 ||
     input.revenueImpactJpy !== undefined ||
@@ -290,7 +356,10 @@ export function checkWriterOutput(
       (input.thirdPartyJa !== undefined && l.includes("御社が同じ立場"))) &&
       l.includes("見込まれ"));
   if (hasEstimate && !output.whatHappensJa.some(isEstimateLine))
-    return `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`;
+    return reject(
+      "estimate_sentence_missing",
+      `止まる業務や金額は、「${ESTIMATE_PHRASE}〜と見込まれます」と記事の事実と分けて書いてください`,
+    );
   // 第三者の事故：「これは〇〇で起きた事故です」と書き、確認の言い方は「記事の〇〇では」で始める（御社の設備の事実にしない）
   if (input.thirdPartyJa !== undefined) {
     if (
@@ -298,21 +367,30 @@ export function checkWriterOutput(
         (l) => l.includes("で起きた") && l.includes(input.thirdPartyJa as string),
       )
     )
-      return `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`;
+      return reject(
+        "third_party_lead_missing",
+        `第三者の事故なのに、「これは${input.thirdPartyJa}で起きた事故です」と書かれていません`,
+      );
     if (
       input.thirdPartyNoteJa !== undefined &&
       !output.whatHappensJa.some((l) =>
         l.includes(input.thirdPartyNoteJa?.replace(/。$/, "") ?? ""),
       )
     )
-      return `第三者の事故の注意の文が書かれていません：${input.thirdPartyNoteJa}`;
+      return reject(
+        "third_party_note_missing",
+        `第三者の事故の注意の文が書かれていません：${input.thirdPartyNoteJa}`,
+      );
     // 確認の言い方を使う最初の文は、主語を記事の第三者にする（御社の設備の事実にしない）。続く文は、その主語を引き継ぐ
     const confirmAt = output.whatHappensJa.findIndex((l) => CONFIRM_RE.test(l));
     if (
       confirmAt >= 0 &&
       !output.whatHappensJa.slice(0, confirmAt + 1).some((l) => l.includes("記事の"))
     )
-      return `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${output.whatHappensJa[confirmAt]}`;
+      return reject(
+        "third_party_subject",
+        `第三者の事故の事実は「記事の${input.thirdPartyJa}では〜」と書いてください：${output.whatHappensJa[confirmAt]}`,
+      );
   }
   return undefined;
 }
@@ -325,10 +403,10 @@ export function checkWriterOutput(
  * - 入口が候補（candidate）なら「入口はまだ分かっていません」が必要
  * - state が unknown の段階があるなら、固定の言い回しが必要
  */
-export function checkSourceWording(
+export function checkSourceWordingDetailed(
   output: OnePagerWriterOutput,
   input: OnePagerWriterInput,
-): string | undefined {
+): WriterRejection | undefined {
   const hasStated = input.stages.some((s) => s.source === "stated");
   for (const line of output.whatHappensJa) {
     const rest = line
@@ -339,38 +417,66 @@ export function checkSourceWording(
       .replaceAll(EXPOSED_ONLY_PHRASE, "")
       .replace(CLAIMED_PHRASE_RE, "");
     if (DENIAL.test(rest))
-      return `「確認が取れていません」のような言い方は、「${UNKNOWN_CONTROL_PHRASE}」以外では使えません：${line}`;
+      return reject(
+        "denial_wording",
+        `「確認が取れていません」のような言い方は、「${UNKNOWN_CONTROL_PHRASE}」以外では使えません：${line}`,
+      );
     if (hasStated && UNKNOWN_WORD.test(rest))
-      return `記事に書かれた段階があるのに「不明」と書かれています：${line}`;
+      return reject(
+        "unknown_word",
+        `記事に書かれた段階があるのに「不明」と書かれています：${line}`,
+      );
   }
   const all = output.whatHappensJa.join("");
   const negation = output.whatHappensJa.find((l) => REPORT_NEGATION.test(l));
-  if (negation) return `個人情報の報告が「必要ない」とは書けません：${negation}`;
+  if (negation)
+    return reject("report_negation", `個人情報の報告が「必要ない」とは書けません：${negation}`);
   if ((input.result === "blocked" || input.result === "mitigated") && !all.includes("この経路では"))
-    return "止まる結論は「この経路では」と範囲を限って書いてください";
+    return reject(
+      "scope_phrase_missing",
+      "止まる結論は「この経路では」と範囲を限って書いてください",
+    );
   const uncertain = (c: StepCertainty) => input.stages.some((s) => s.certainty === c);
   if (uncertain("no_trace")) {
     if (!all.includes(NO_TRACE_PHRASE))
-      return `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`;
+      return reject(
+        "no_trace_phrase_missing",
+        `痕跡がない段階があるのに「${NO_TRACE_PHRASE}」と書かれていません`,
+      );
     const assured = output.whatHappensJa.find((l) =>
       NO_TRACE_ASSURANCE.test(l.replaceAll(NO_TRACE_PHRASE, "")),
     );
     if (assured)
-      return `痕跡がない段階を「なかった」「問題ない」と読める言い方で書けません（「${NO_TRACE_PHRASE}」と書いてください）：${assured}`;
+      return reject(
+        "no_trace_assurance",
+        `痕跡がない段階を「なかった」「問題ない」と読める言い方で書けません（「${NO_TRACE_PHRASE}」と書いてください）：${assured}`,
+      );
   }
   if (uncertain("exposed_only") && !all.includes(EXPOSED_ONLY_PHRASE))
-    return `閲覧できる状態だけの段階があるのに「${EXPOSED_ONLY_PHRASE}」と書かれていません`;
+    return reject(
+      "exposed_only_phrase_missing",
+      `閲覧できる状態だけの段階があるのに「${EXPOSED_ONLY_PHRASE}」と書かれていません`,
+    );
   if (uncertain("claimed") && !all.includes("主張"))
-    return "攻撃者の主張の段階があるのに「主張」と書かれていません";
+    return reject("claimed_missing", "攻撃者の主張の段階があるのに「主張」と書かれていません");
   if (input.stages.some((s) => s.published) && !all.includes("公開"))
-    return "情報がすでに公開された段階があるのに「公開されています」と書かれていません";
+    return reject(
+      "published_missing",
+      "情報がすでに公開された段階があるのに「公開されています」と書かれていません",
+    );
   // 「確認されています」を使えるのは、記事が出来事として書いた段階（stated で確度の印が無い）があるときだけ
   const hasConfirmed = input.stages.some((s) => s.source === "stated" && !s.certainty);
   if (!hasConfirmed && CONFIRM_RE.test(all))
-    return "記事で確認された出来事が無いのに「確認されています」と書かれています";
+    return reject(
+      "confirm_without_stated",
+      "記事で確認された出来事が無いのに「確認されています」と書かれています",
+    );
   for (const line of output.whatHappensJa) {
     if (CONFIRM_RE.test(line) && ESTIMATE_RE.test(line))
-      return `御社に当てはめた試算の文に「確認されています」が使われています：${line}`;
+      return reject(
+        "confirm_in_estimate",
+        `御社に当てはめた試算の文に「確認されています」が使われています：${line}`,
+      );
   }
   // 推定を示す語が要るのは、推定の段階（確度の印が無い）と、可能性（possible）の段階だけ。
   // 痕跡なし・主張・閲覧できる状態だけの段階は、それぞれ固定の言い回しで書く
@@ -380,20 +486,47 @@ export function checkSourceWording(
     ) &&
     !HEDGE.test(all)
   )
-    return "推定の段階を断定しています（「〜と考えられます」などの言い方がありません）";
+    return reject(
+      "hedge_missing",
+      "推定の段階を断定しています（「〜と考えられます」などの言い方がありません）",
+    );
   if (input.stages[0]?.source === "candidate" && !all.includes(CANDIDATE_ENTRY_PHRASE))
-    return `入口が候補なのに「${CANDIDATE_ENTRY_PHRASE}」と書かれていません`;
+    return reject(
+      "candidate_phrase_missing",
+      `入口が候補なのに「${CANDIDATE_ENTRY_PHRASE}」と書かれていません`,
+    );
   if (
     input.stages.some((s) => s.state === "unknown") &&
     !/止める対策(が|も)確認できていません/.test(all)
   )
-    return `対策が未確認の段階があるのに「${UNKNOWN_CONTROL_PHRASE}」と書かれていません`;
+    return reject(
+      "unknown_control_missing",
+      `対策が未確認の段階があるのに「${UNKNOWN_CONTROL_PHRASE}」と書かれていません`,
+    );
   return undefined;
+}
+
+/** 出力に ID や入力にない数字などが混じっていないか。問題があれば理由を返す */
+export function checkWriterOutput(
+  output: OnePagerWriterOutput,
+  input: OnePagerWriterInput,
+): string | undefined {
+  return checkWriterOutputDetailed(output, input)?.reason;
+}
+
+/** 段階の確認状況に合わない言い方の検証（理由だけ返す） */
+export function checkSourceWording(
+  output: OnePagerWriterOutput,
+  input: OnePagerWriterInput,
+): string | undefined {
+  return checkSourceWordingDetailed(output, input)?.reason;
 }
 
 export type WriteResult = StructuredResult<OnePagerWriterOutput> & {
   /** 検証で捨てた理由。undefined なら採用できる */
   rejectedReason?: string;
+  /** 検証で捨てた理由の分類（どの検証で落ちたか） */
+  rejectedKind?: WriterRejectionKind;
 };
 
 /** Claude に言い換えを頼む。検証に落ちた場合も結果は返す（rejectedReason つき） */
@@ -411,8 +544,8 @@ export async function writeOnePagerText(
       parse: (v) => OnePagerWriterOutput.parse(v),
     },
   );
-  const rejectedReason = checkWriterOutput(r.value, input);
-  return rejectedReason ? { ...r, rejectedReason } : r;
+  const rejected = checkWriterOutputDetailed(r.value, input);
+  return rejected ? { ...r, rejectedReason: rejected.reason, rejectedKind: rejected.kind } : r;
 }
 
 /**

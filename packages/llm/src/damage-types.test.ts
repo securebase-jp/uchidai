@@ -58,3 +58,11 @@ describe("被害の種類（damage-types.yaml）", () => {
     ).not.toThrow();
   });
 });
+
+describe("読解の指示：委託先のランサム（TRIAL-F-002）", () => {
+  it("委託先の事故でも暗号化・身代金要求があれば ransomware、と指示文にある", () => {
+    const rules = buildRulesJa();
+    expect(rules).toMatch(/委託先.*暗号化・身代金要求・業務停止なら ransomware/);
+    expect(rules).toMatch(/漏えいが記事の主題でも.*ransomware/);
+  });
+});
