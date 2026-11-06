@@ -17,7 +17,7 @@ damageTypes:
   - id: ransomware
     labelJa: 業務停止（ランサムウェア）
     shortJa: 暗号化・業務停止
-    readingHintJa: ランサムウェアによる暗号化・業務停止。データの持ち出しやリークサイトでの公開（二重恐喝）を伴っていても ransomware
+    readingHintJa: ランサムウェアによる暗号化・業務停止。データの持ち出しやリークサイトでの公開（二重恐喝）を伴っていても ransomware。委託先・取引先・提供元で起きた事故でも、攻撃の中身が暗号化・身代金要求・業務停止なら ransomware（被害を受けた側は victim の項目で選ぶ）。個人情報や顧客データの漏えいが記事の主題でも、暗号化や身代金要求（脅迫文）が書かれているなら ransomware で、持ち出しは段階（収集・持ち出し）で表す。例：「保守委託先のサーバが暗号化され、預かっていた個人情報が漏えいした」は ransomware（victim は vendor）
     day0:
       kind: business_stop
       labelJa: 侵入され、社内のシステムが暗号化される
@@ -45,7 +45,7 @@ damageTypes:
   - id: data_breach
     labelJa: 情報漏えい
     shortJa: 情報漏えい
-    readingHintJa: 外部の攻撃者による不正アクセス（脆弱性の悪用、認証情報の悪用、Web サイトの改ざん）やクラウドの公開設定の誤りで、顧客・従業員などの情報が外部に出たもの
+    readingHintJa: 外部の攻撃者による不正アクセス（脆弱性の悪用、認証情報の悪用、Web サイトの改ざん）やクラウドの公開設定の誤りで、顧客・従業員などの情報が外部に出たもの。ただし暗号化や身代金要求が書かれているものは、情報が漏れていても ransomware
     day0:
       kind: legal
       labelJa: 個人情報の流出が発覚する
