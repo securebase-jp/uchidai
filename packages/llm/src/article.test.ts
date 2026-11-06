@@ -21,6 +21,9 @@ describe("tidyText", () => {
   it("行ごとの空白を整え、空行の連続を 1 行にする", () => {
     expect(tidyText("  a \t b \r\n\r\n\r\n\r\nc  ")).toBe("a b\n\nc");
   });
+  it("改行しない空白（U+00A0）は普通の空白にそろえる", () => {
+    expect(tidyText("a\u00a0\u00a0b\u00a0")).toBe("a b");
+  });
 });
 
 describe("parsePageRange", () => {

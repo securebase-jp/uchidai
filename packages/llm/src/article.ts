@@ -605,7 +605,7 @@ export function decodeHtml(data: Uint8Array, contentType: string): string {
 export function tidyText(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
-    .replace(/ /g, " ")
+    .replace(/\u00a0/g, " ")
     .split("\n")
     .map((l) => l.replace(/[ \t\f\v]+/g, " ").trim())
     .join("\n")
