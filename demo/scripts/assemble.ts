@@ -3,7 +3,7 @@
  *   node demo/scripts/assemble.ts --video demo/capture/screen.mov [--out demo/out/uchidai-demo.mp4]
  *        [--title demo/assets/title.png] [--title-seconds 3] [--font "BIZ UDPGothic"] [--no-subtitles] [--soft-subtitles] [--no-audio]
  *        [--no-sfx] [--sfx-gain -14] [--sfx demo/sfx.json] [--sfx-dir demo/audio/sfx]
- *        [--timeline demo/out/timeline.json] [--work-dir demo/out] [--fps 60] [--dry-run]
+ *        [--timeline demo/out/timeline.json] [--work-dir demo/out] [--fps 60] [--width 1920 --height 1080] [--crf 18] [--preset medium] [--maxrate 40M] [--dry-run]
  * 手順：
  *   1. build-subtitles.ts で demo/out/narration.srt と timeline.json を作る（音声があれば長さを反映）
  *   2. 場面ごとの音声を場面の長さにそろえて 1 本の WAV にする（無い場面は無音）
@@ -47,6 +47,12 @@ const title = arg("title") ? resolve(arg("title") ?? "") : undefined;
 const titleSeconds = Number(arg("title-seconds", "3"));
 const font = arg("font", "BIZ UDPGothic") ?? "BIZ UDPGothic";
 const fps = Number(arg("fps", "60"));
+// 出力の大きさと画質。YouTube は 4K（3840×2160）で上げると、1080p の再生でも高いビットレートの VP9 で配る
+const outW = Number(arg("width", "1920"));
+const outH = Number(arg("height", "1080"));
+const crf = arg("crf", "18") ?? "18";
+const preset = arg("preset", "medium") ?? "medium";
+const maxrate = arg("maxrate"); // 例：40M（指定すると、最大のビットレートを抑える）
 const dry = flag("dry-run");
 const withSubs = !flag("no-subtitles");
 const withAudio = !flag("no-audio");
@@ -230,13 +236,13 @@ const subFilter = burnSubs
   ? `,subtitles=${basename(srt)}:force_style='FontName=${font},FontSize=20,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=0,MarginV=36'`
   : "";
 filters.push(
-  `[${vIndex}:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p${subFilter}[main]`,
+  `[${vIndex}:v]scale=${outW}:${outH}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p${subFilter}[main]`,
 );
 let vOut = "[main]";
 let aOut = audioWav ? `${aIndex}:a` : "";
 if (title) {
   filters.push(
-    `[0:v]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p[tv]`,
+    `[0:v]scale=${outW}:${outH}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${outW}:${outH}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${fps},format=yuv420p[tv]`,
   );
   filters.push("[tv][main]concat=n=2:v=1:a=0[vcat]");
   vOut = "[vcat]";
@@ -255,9 +261,10 @@ const args = [
   "-c:v",
   "libx264",
   "-preset",
-  "medium",
+  preset,
   "-crf",
-  "18",
+  crf,
+  ...(maxrate ? ["-maxrate", maxrate, "-bufsize", `${Number.parseInt(maxrate, 10) * 2}M`] : []),
   "-r",
   String(fps),
   "-pix_fmt",
