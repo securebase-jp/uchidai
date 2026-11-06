@@ -58,6 +58,19 @@ import { dataDir } from "../data-dir.ts";
 import { ClientError } from "../errors.ts";
 
 export const defaultTokenFile = join(dataDir, "recon-tokens.json");
+/**
+ * トークンの有効期間（7 日。SEC-014）。期限が切れたトークンは所有確認に使えず、次の発行で作り直す。
+ * 以前の版の記録も createdAt を持つ（無い記録は読み込みで捨てる）ので、同じ規則で期限を見る。
+ * 7 日より前に発行したトークンは安全側に倒して失効扱いにする（DNS に残っていても、発行し直して TXT を置き直してもらう）
+ */
+export const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+export function tokenExpiresAt(createdAt: string): string {
+  return new Date(Date.parse(createdAt) + TOKEN_MAX_AGE_MS).toISOString();
+}
+export function isTokenExpired(createdAt: string, now: Date): boolean {
+  const age = now.getTime() - Date.parse(createdAt);
+  return Number.isNaN(age) || age > TOKEN_MAX_AGE_MS;
+}
 
 type StoredToken = { domain: string; token: string; createdAt: string };
 const StoredTokens = z.object({
@@ -219,7 +232,7 @@ export function reconRoutes(deps: ReconDeps = {}): Hono {
         token: fixture().verificationToken ?? "",
         createdAt: fixture().recordedAt,
       };
-    } else if (existing && !body.renew) {
+    } else if (existing && !body.renew && !isTokenExpired(existing.createdAt, now())) {
       stored = existing;
     } else {
       stored = { domain, token: generateVerificationToken(), createdAt: now().toISOString() };
@@ -231,6 +244,7 @@ export function reconRoutes(deps: ReconDeps = {}): Hono {
       fixture: isFixture(domain),
       token: stored.token,
       createdAt: stored.createdAt,
+      ...(isFixture(domain) ? {} : { expiresAt: tokenExpiresAt(stored.createdAt) }),
       record: recordView(domain, stored.token),
       instructionsJa: isFixture(domain)
         ? [
@@ -246,11 +260,19 @@ export function reconRoutes(deps: ReconDeps = {}): Hono {
     const body = DomainRequest.parse(await c.req.json());
     const domain = domainOf(body.domain);
     const fx = isFixture(domain);
-    const token = fx ? (fixture().verificationToken ?? "") : store.getToken(domain)?.token;
+    const stored = fx ? undefined : store.getToken(domain);
+    const token = fx ? (fixture().verificationToken ?? "") : stored?.token;
     if (!token) {
       throw new ClientError(
         400,
         "このドメインのトークンがまだ発行されていません。先に手順 1 でトークンを発行してください",
+      );
+    }
+    if (stored && isTokenExpired(stored.createdAt, now())) {
+      store.clearVerified(domain);
+      throw new ClientError(
+        400,
+        "このドメインのトークンは期限（7 日）が切れています。手順 1 でトークンを発行し直し、新しい値を TXT レコードに設定してください",
       );
     }
     const resolver = fx ? fixtureSources(fixture()).resolver : live().resolver;
@@ -350,7 +372,18 @@ export function reconRoutes(deps: ReconDeps = {}): Hono {
     const view: StatusView = {
       domain,
       fixture: fx,
-      token: token ? { createdAt: token.createdAt, record: recordView(domain, token.token) } : null,
+      token: token
+        ? {
+            createdAt: token.createdAt,
+            ...(fx
+              ? {}
+              : {
+                  expiresAt: tokenExpiresAt(token.createdAt),
+                  expired: isTokenExpired(token.createdAt, now()),
+                }),
+            record: recordView(domain, token.token),
+          }
+        : null,
       verified: verified
         ? { verifiedAt: verified.verifiedAt, expiresAt: expiresAt(verified.verifiedAt) }
         : null,

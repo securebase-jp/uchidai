@@ -94,6 +94,27 @@ describe("POST /api/recon/token", () => {
     const renewed = await loose(post("/api/recon/token", { domain: "example.jp", renew: true }));
     expect(renewed.token).not.toBe(first.token);
   });
+  it("トークンは 7 日で期限が切れ、発行し直す（SEC-014）。期限切れのトークンでは所有確認できない", async () => {
+    let clock = new Date("2026-11-01T00:00:00Z");
+    const { api, post, dns } = build({ now: () => clock });
+    const first = await loose(post("/api/recon/token", { domain: "example.jp" }));
+    expect(first.expiresAt).toBe("2026-11-08T00:00:00.000Z");
+    clock = new Date("2026-11-07T23:59:00Z");
+    expect((await loose(post("/api/recon/token", { domain: "example.jp" }))).token).toBe(
+      first.token,
+    );
+    clock = new Date("2026-11-08T00:00:01Z");
+    dns.txt["example.jp"] = [`${VERIFY_PREFIX}${first.token}`];
+    const verify = await post("/api/recon/verify", { domain: "example.jp" });
+    expect(verify.status).toBe(400);
+    expect((await loose(verify)).error).toContain("期限");
+    expect(dns.calls).toEqual([]);
+    const status = await loose(api.request("/api/recon/status?domain=example.jp"));
+    expect(status.token.expired).toBe(true);
+    const reissued = await loose(post("/api/recon/token", { domain: "example.jp" }));
+    expect(reissued.token).not.toBe(first.token);
+    expect(reissued.expiresAt).toBe("2026-11-15T00:00:01.000Z");
+  });
   it("不正なドメインは 400 と日本語の理由", async () => {
     const { post } = build();
     for (const domain of ["203.0.113.10", "foo.localhost", "a", "日本語.jp", "x".repeat(300)]) {

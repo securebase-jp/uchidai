@@ -27,6 +27,8 @@ export type TokenView = {
   fixture: boolean;
   token: string;
   createdAt: string;
+  /** 期限（7 日。架空のドメインには無い） */
+  expiresAt?: string;
   /** DNS に追加する TXT レコード */
   record: { name: string; type: "TXT"; value: string };
   instructionsJa: string[];
@@ -61,7 +63,12 @@ export type RunView = {
 export type StatusView = {
   domain: string;
   fixture: boolean;
-  token: { createdAt: string; record: { name: string; type: "TXT"; value: string } } | null;
+  token: {
+    createdAt: string;
+    expiresAt?: string;
+    expired?: boolean;
+    record: { name: string; type: "TXT"; value: string };
+  } | null;
   verified: { verifiedAt: string; expiresAt: string } | null;
   lastRun: { checkedAt: string; findings: number; ctUnavailable: boolean } | null;
 };
