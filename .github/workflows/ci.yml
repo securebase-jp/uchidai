@@ -1,5 +1,9 @@
 name: CI
 
+# 既定のトークンは読み取りだけ（SEC-010）
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -43,5 +47,7 @@ jobs:
         # 取得が一時的に失敗する（gzip でない応答が返る）ことがあったので、HTTP エラーを失敗として扱い、再試行してから展開する
         run: |
           curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          # 公式の gitleaks_8.30.1_checksums.txt の値（差し替えられた配布物を使わない。SEC-010）
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
           tar xzf gitleaks.tar.gz gitleaks
           ./gitleaks git . --no-banner --redact
