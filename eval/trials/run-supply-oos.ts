@@ -48,11 +48,20 @@ type Usage = {
 };
 let usage: Usage = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 const origFetch = globalThis.fetch;
+/** Anthropic の API への呼び出しか（URL の文字列に含まれるかでなく、ホスト名で判定する） */
+function isAnthropicApi(url: string): boolean {
+  try {
+    return new URL(url).hostname === "api.anthropic.com";
+  } catch {
+    return false;
+  }
+}
+
 globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
   const res = await origFetch(...args);
   const t = args[0];
   const u = typeof t === "string" ? t : t instanceof URL ? t.href : t.url;
-  if (u.includes("api.anthropic.com")) {
+  if (isAnthropicApi(u)) {
     try {
       const j = (await res.clone().json()) as { usage?: Record<string, number> };
       if (j.usage) {

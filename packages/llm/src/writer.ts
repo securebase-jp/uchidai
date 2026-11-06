@@ -264,6 +264,8 @@ export function measureRequestData(input: MeasureRequestInput): Record<string, u
   };
 }
 
+/** 返信の例に具体的な番号を入れている（回答を誘導する）表現。空白の量指定子が重ならないように書く */
+export const REPLY_EXAMPLE_RE = /例[:：]\s*(?:[「『(（]\s*)?\d/;
 const KNOWN_PLACEHOLDERS = new Set<string>(Object.values(PLACEHOLDERS));
 
 function escapeRegExp(s: string): string {
@@ -294,7 +296,7 @@ export function validateVendorDraft(
       return `選択肢「${c.number}. ${c.label}」が番号つきで入っていない`;
   if (!draft.body.includes("返信")) return "返信での回答方法がない";
   if (!draft.body.includes("お名前")) return "ご回答者のお名前を書いてもらう案内がない";
-  if (/例[:：]\s*[「『(（]?\s*\d/.test(draft.body))
+  if (REPLY_EXAMPLE_RE.test(draft.body))
     return "返信の例に具体的な番号を入れている（回答を誘導する）";
   if (/https?:\/\/|@[\w.-]+\.[a-z]{2,}/i.test(all)) return "URL やメールアドレスを作り出している";
   return undefined;
@@ -309,7 +311,7 @@ export function validateMeasureDraft(
     if (!all.includes(p)) return `プレースホルダ ${p} がない`;
   if (!all.includes(input.mitigationId)) return "緩和策 ID がない";
   if (!all.includes(input.measureLabel)) return "対策名がない";
-  if (/例[:：]\s*[「『(（]?\s*\d/.test(draft.body))
+  if (REPLY_EXAMPLE_RE.test(draft.body))
     return "返信の例に具体的な番号を入れている（回答を誘導する）";
   if (/https?:\/\/|@[\w.-]+\.[a-z]{2,}/i.test(all)) return "URL やメールアドレスを作り出している";
   return undefined;

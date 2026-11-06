@@ -55,11 +55,20 @@ const title = entry.title.replace(
 // Claude API の使用量だけを数える（応答の usage を足す。ヘッダやキーは見ない）
 const usage = { calls: 0, input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
 const origFetch = globalThis.fetch;
+/** Anthropic の API への呼び出しか（URL の文字列に含まれるかでなく、ホスト名で判定する） */
+function isAnthropicApi(url: string): boolean {
+  try {
+    return new URL(url).hostname === "api.anthropic.com";
+  } catch {
+    return false;
+  }
+}
+
 globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
   const res = await origFetch(...args);
   const target = args[0];
   const u = typeof target === "string" ? target : target instanceof URL ? target.href : target.url;
-  if (u.includes("api.anthropic.com")) {
+  if (isAnthropicApi(u)) {
     try {
       const j = (await res.clone().json()) as {
         usage?: {

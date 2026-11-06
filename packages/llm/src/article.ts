@@ -605,7 +605,7 @@ export function decodeHtml(data: Uint8Array, contentType: string): string {
 export function tidyText(text: string): string {
   return text
     .replace(/\r\n?/g, "\n")
-    .replace(/ /g, " ")
+    .replace(/\u00a0/g, " ")
     .split("\n")
     .map((l) => l.replace(/[ \t\f\v]+/g, " ").trim())
     .join("\n")
@@ -807,10 +807,27 @@ export function stripBoilerplate(text: string): { text: string; memberWall: bool
  * 「…（1ページ目 / 全1ページ）：Security NEXT」「…（2ページ目」→ 「…」
  */
 export function cleanTitle(title: string): string {
-  return title
-    .replace(/\s*[（(]\s*\d+\s*ページ目[^）)]*[）)]?\s*(?:[：:｜|]\s*[^：:｜|]{1,30})?\s*$/, "")
-    .replace(/\s*[（(]\s*全\s*\d+\s*ページ\s*[）)]\s*$/, "")
-    .trim();
+  const s = replaceInTail(
+    title,
+    /\s*[（(]\s*\d+\s*ページ目[^）)]*[）)]?\s*(?:[：:｜|]\s*[^：:｜|]{1,30})?\s*$/,
+  );
+  return replaceInTail(s, /\s*[（(]\s*全\s*\d+\s*ページ\s*[）)]\s*$/).trim();
+}
+
+/** 題の末尾だけを調べる幅。媒体が付ける「（1ページ目 / 全1ページ）：媒体名」はこれより十分に短い */
+const TITLE_TAIL_CHARS = 400;
+
+/**
+ * 末尾に固定された正規表現（$ で終わる）を、題の最後の TITLE_TAIL_CHARS 字だけに当てて消す。
+ * 題は信頼できないページに由来して長さの上限が無く、全体に当てると空白の多い題で時間がかかりすぎるため
+ */
+function replaceInTail(text: string, re: RegExp): string {
+  const cut = Math.max(0, text.length - TITLE_TAIL_CHARS);
+  const tail = text.slice(cut);
+  const rest = tail.replace(re, "");
+  if (rest === tail) return text;
+  const head = text.slice(0, cut);
+  return rest === "" ? head.trimEnd() : head + rest;
 }
 
 /** 文の終わりの記号（これで終わっていれば、見出しではなく文とみなす） */

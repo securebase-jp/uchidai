@@ -263,11 +263,11 @@ export const BANNED_PATTERNS: readonly RegExp[] = [
   /::1\b|\blocalhost\b/i,
   // URL、スキーム、メールアドレス
   /\b[a-z][a-z0-9+.-]*:\/\//i,
-  /[\w.+-]+@[\w-]+\.[\w.-]+/,
+  /(?<![\w.+-])[\w.+-]+@[\w-]+\.[\w.-]+/,
   // ホスト名らしき語（よくある TLD・内部用の名前）
   /\b[a-z0-9-]+\.(com|jp|net|org|io|dev|app|cloud|info|biz|xyz|onion|local|localdomain|internal|intranet|corp|lan|home|test|example|invalid|co\.jp|ne\.jp|or\.jp|go\.jp|ac\.jp|lg\.jp)\b/i,
   // ポート番号（「ポート 3389」「3389/tcp」「:445」）
-  /(ポート|port)\s*(番号)?\s*[:：]?\s*\d{2,5}\b/i,
+  /(?:ポート|port)\s*(?:番号\s*)?(?:[:：]\s*)?\d{2,5}\b/i,
   /\b\d{2,5}\s*(番ポート|\/\s*(tcp|udp))/i,
   /:\d{2,5}\b(?!\d)/,
   // コマンドの引数・パス・UNC・環境変数・レジストリ
