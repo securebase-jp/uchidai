@@ -40,7 +40,7 @@ import {
   ReplyRequest,
 } from "../../shared/requests.ts";
 import { dataDir } from "../data-dir.ts";
-import { ClientError, publicMessage, zodErrorBody } from "../errors.ts";
+import { ClientError, logError, publicMessage, zodErrorBody } from "../errors.ts";
 import { RateLimitError, takeClaudeSlot, takeMailSlot } from "../limits.ts";
 import { type Mailer, mailerFromEnv, mailtoUrl } from "../mail/mailer.ts";
 import { backgroundFor, questionFor } from "../requests/questions.ts";
@@ -141,7 +141,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     if (err instanceof z.ZodError) return c.json(zodErrorBody(err), 400);
     if (err instanceof SyntaxError)
       return c.json({ error: "入力の形式が正しくありません（JSON として読めません）" }, 400);
-    console.error(`[requests] ${c.req.method} ${c.req.path}:`, err);
+    logError(`[requests] ${c.req.method} ${c.req.path}:`, err);
     return c.json({ error: publicMessage(err) }, 500);
   });
 

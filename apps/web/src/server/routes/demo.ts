@@ -2,6 +2,10 @@
  * デモモードの音声：demo/audio/<n>.wav（git 管理外）を配り、長さの一覧を返す。
  * GET /api/demo/audio → {available: {"1": 12.3, ...}}（durations.json があれば秒数、無ければ true）
  * GET /api/demo/audio/:n → audio/wav
+ *
+ * 本番（NODE_ENV=production。ZIP と Docker の起動）では無効（404）にする（SEC-016）。
+ * 開発（pnpm dev）とデモ動画の収録は NODE_ENV が production でないので、そのまま動く。
+ * 本番の形のサーバで収録するときだけ UCHIDAI_DEMO_AUDIO=1 で有効にできる
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -13,6 +17,12 @@ const SceneNumber = z.coerce.number().int().min(1).max(50);
 const audioDir = () => join(repoRoot, "demo", "audio");
 
 export const demoRoutes = new Hono();
+
+demoRoutes.use("/api/demo/*", async (c, next) => {
+  if (process.env.NODE_ENV === "production" && process.env.UCHIDAI_DEMO_AUDIO !== "1")
+    return c.json({ error: "見つかりません" }, 404);
+  await next();
+});
 
 demoRoutes.get("/api/demo/audio", (c) => {
   const dir = audioDir();
