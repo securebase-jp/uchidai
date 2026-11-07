@@ -17,6 +17,9 @@ services:
       # 任意。ファイルが無くても起動する（API キーが無ければ、記事の読解と言い換えだけが使えない）
       - path: .env
         required: false
+    # 失敗したときのログ（docker compose logs）に記事の URL が出るのを避けたいときは、次の行の # を外す（パスとクエリが伏せられ、ホスト名だけが残る）
+    # environment:
+    #   UCHIDAI_LOG_REDACT_URLS: "1"
     volumes:
       # 確認依頼と所有確認のトークン、KEV のキャッシュ。作り直しても残る
       - uchidai-data:/app/apps/web/.data

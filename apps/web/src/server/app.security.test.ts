@@ -4,7 +4,7 @@
  * 「通ってしまう」ことを記録する試験も含む（直すときに、ここを反転させる）。
  */
 import { Hono } from "hono";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { app } from "./app.ts";
 import { hostGuard } from "./host-guard.ts";
 import { RateLimitError, RateWindow, resetClaudeLimits } from "./limits.ts";
@@ -305,6 +305,15 @@ describe("ファイル名に入る ID の検査（問題なかったもの）", 
     expect((await app.request("/api/demo/audio/0")).status).toBe(400);
     expect((await app.request("/api/demo/audio/51")).status).toBe(400);
     expect([200, 404]).toContain((await app.request("/api/demo/audio/1")).status);
+  });
+  it("デモ音声は本番（NODE_ENV=production）では 404、UCHIDAI_DEMO_AUDIO=1 なら使える（SEC-016）", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect((await app.request("/api/demo/audio")).status).toBe(404);
+    expect((await app.request("/api/demo/audio/1")).status).toBe(404);
+    vi.stubEnv("UCHIDAI_DEMO_AUDIO", "1");
+    expect((await app.request("/api/demo/audio")).status).toBe(200);
+    vi.unstubAllEnvs();
+    expect((await app.request("/api/demo/audio")).status).toBe(200);
   });
 });
 

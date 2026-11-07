@@ -20,6 +20,7 @@ ENV NODE_ENV=production \
     API_PORT=8787 \
     UCHIDAI_TRUST_PRIVATE_PEER=1 \
     UCHIDAI_DATA_DIR=/app/apps/web/.data
+# UCHIDAI_LOG_REDACT_URLS=1 を実行時に渡すと、失敗のログに出る記事の URL のパスとクエリが伏せられる（既定は伏せない。docs/install.md）
 # UCHIDAI_DATA_DIR：外部確認のキャッシュ（recon-cache）も書き込めるボリュームの下に置く（read_only のコンテナで書けるように。SEC-011）
 WORKDIR /app
 # 本番に要るものだけを入れる（テスト、評価の結果、デモの素材、ドキュメントは入れない）。

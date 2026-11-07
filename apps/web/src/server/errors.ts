@@ -48,3 +48,31 @@ export function zodErrorBody(err: { issues: { path: PropertyKey[]; message: stri
   const shown = where.slice(0, 3).join("、") + (where.length > 3 ? " ほか" : "");
   return { error: `入力の形式が正しくありません（項目：${shown}）`, details };
 }
+
+/** ログに出す URL：ホスト名だけ残し、ユーザー情報・パス・クエリ・フラグメントを伏せる（SEC-015） */
+const URL_LIKE = /\b([a-z][a-z0-9+.-]*):\/\/([^\s/?#'"<>)\]]*)([^\s'"<>)\]]*)/gi;
+
+export function redactUrls(text: string): string {
+  return text.replace(URL_LIKE, (_m, scheme: string, authority: string, rest: string) => {
+    const host = authority.includes("@")
+      ? authority.slice(authority.lastIndexOf("@") + 1)
+      : authority;
+    return `${scheme}://${host}${rest ? "/[省略]" : ""}`;
+  });
+}
+
+function errorText(err: unknown, depth = 0): string {
+  if (!(err instanceof Error)) return typeof err === "string" ? err : String(err);
+  const own = err.stack ?? `${err.name}: ${err.message}`;
+  if (depth >= 3 || err.cause === undefined) return own;
+  return `${own}\nCaused by: ${errorText(err.cause, depth + 1)}`;
+}
+
+/**
+ * 500 などの例外を標準エラーに出す。既定は例外をそのまま出す（原因の調査に記事の URL が要るため）。
+ * UCHIDAI_LOG_REDACT_URLS=1 のときは、文にして URL のパスとクエリを伏せてから出す
+ */
+export function logError(label: string, err: unknown): void {
+  if (process.env.UCHIDAI_LOG_REDACT_URLS === "1") console.error(label, redactUrls(errorText(err)));
+  else console.error(label, err);
+}

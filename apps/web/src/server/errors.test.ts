@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { publicMessage } from "./errors.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { logError, publicMessage, redactUrls } from "./errors.ts";
 
 describe("publicMessage", () => {
   it("Error 以外や空は一般的な文言", () => {
@@ -27,5 +27,38 @@ describe("publicMessage", () => {
     expect(
       publicMessage(new Error("取得に失敗しました: 404 Not Found (https://x.example/a)")),
     ).toBe("取得に失敗しました: 404 Not Found (https://x.example/a)");
+  });
+});
+
+describe("ログの URL の伏せ（SEC-015）", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+  it("ホスト名だけ残し、パス・クエリ・ユーザー情報を伏せる", () => {
+    expect(
+      redactUrls("取得に失敗: https://user:pw@news.example.jp/a/b?id=7#x と http://h.example"),
+    ).toBe("取得に失敗: https://news.example.jp/[省略] と http://h.example");
+  });
+  it("既定は例外をそのまま出す", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const e = new Error("fetch https://news.example.jp/a?b=1 failed");
+    logError("[api]", e);
+    expect(spy).toHaveBeenCalledWith("[api]", e);
+  });
+  it("UCHIDAI_LOG_REDACT_URLS=1 なら、cause も含めて URL を伏せた文で出す", () => {
+    vi.stubEnv("UCHIDAI_LOG_REDACT_URLS", "1");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logError(
+      "[api]",
+      new Error("fetch https://news.example.jp/a?b=1 failed", {
+        cause: new Error("GET https://cdn.example.jp/x/y 502"),
+      }),
+    );
+    const out = String(spy.mock.calls[0]?.[1]);
+    expect(out).toContain("https://news.example.jp/[省略]");
+    expect(out).toContain("https://cdn.example.jp/[省略]");
+    expect(out).not.toContain("b=1");
+    expect(out).not.toContain("/x/y");
   });
 });

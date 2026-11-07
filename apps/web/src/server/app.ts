@@ -29,7 +29,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
 import { isThinReading, loadArticle, thinBodyError } from "./article-source.ts";
-import { ClientError, publicMessage, zodErrorBody } from "./errors.ts";
+import { ClientError, logError, publicMessage, zodErrorBody } from "./errors.ts";
 import { hostGuard } from "./host-guard.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { RateLimitError, takeClaudeSlot } from "./limits.ts";
@@ -90,7 +90,7 @@ app.onError((err, c) => {
   if (err instanceof z.ZodError) return c.json(zodErrorBody(err), 400);
   if (err instanceof SyntaxError)
     return c.json({ error: "入力の形式が正しくありません（JSON として読めません）" }, 400);
-  console.error(`[api] ${c.req.method} ${c.req.path}:`, err);
+  logError(`[api] ${c.req.method} ${c.req.path}:`, err);
   return c.json({ error: publicMessage(err) }, 500);
 });
 
