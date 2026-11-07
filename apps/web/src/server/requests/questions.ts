@@ -470,6 +470,27 @@ const defs: QuestionDef[] = [
     ],
   },
   {
+    mitigation: "UD-10",
+    textJa:
+      "クラウドサービスと連携する API キーや連携用アカウントは、必要な操作と範囲だけの権限にし、使わなくなったものを定期的に失効させていますか",
+    hintJa: "システム同士をつなぐための鍵やアカウントのことです。人が使うログインとは別です",
+    choices: [
+      { id: "present", labelJa: "権限を絞り、定期的に棚卸ししている", status: "present" },
+      { id: "absent", labelJa: "絞っていない、または棚卸しをしていない", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
+    mitigation: "UD-11",
+    textJa:
+      "API キーをソースコードや設定ファイルに直接書かず、保管場所を決めて管理し、定期的に更新し、誤って公開されていないか確かめていますか",
+    choices: [
+      { id: "present", labelJa: "管理し、更新と確認もしている", status: "present" },
+      { id: "absent", labelJa: "していない（コードや設定ファイルに書いている）", status: "absent" },
+      UNKNOWN,
+    ],
+  },
+  {
     mitigation: "UD-05",
     textJa:
       "社長や取引先を名乗る人から SNS やチャットで連絡があり、グループの作成や招待を頼まれたとき、応じない決まりはありますか",

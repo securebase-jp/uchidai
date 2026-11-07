@@ -101,6 +101,12 @@ measures:
   - measureId: web-service-reuse-notice
     basis: internal
     noteJa: 会員への案内（メール、画面の表示）は社内作業で、外部費用は見込まない。漏えい済みパスワードの拒否の設定を開発会社に頼む場合は見積もりが別に要る
+  - measureId: service-account-key-hygiene
+    basis: quote
+    noteJa: 鍵の保管（秘密情報の管理サービス）、自動更新、流出の検知は、使う仕組みと連携システムの数で費用が変わる。IPA 事例集の明細に単価はない
+  - measureId: service-account-least-privilege
+    basis: internal
+    noteJa: 各クラウドサービスの管理画面で権限を見直し、使わないキーを失効する社内作業。外部費用は見込まない。連携システムの改修が要る場合は見積もりが別に要る
   - measureId: storage-sharing-review
     basis: internal
     noteJa: 設定画面で公開共有を禁止し、定期的に棚卸しする社内作業。外部費用は見込まない

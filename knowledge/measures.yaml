@@ -207,6 +207,22 @@ measures:
         mitigation: UD-09
         status: present
     requestToJa: 会員サイトの運営担当者（案内）と開発・運用会社（拒否の設定）
+  - id: service-account-key-hygiene
+    labelJa: API キーをコードや設定ファイルに書かず、定期的に更新し、流出を検知する
+    mitigation: UD-11
+    patches:
+      - role: cloud.saas
+        mitigation: UD-11
+        status: present
+    requestToJa: 情シス担当者と、連携システムの開発・運用会社
+  - id: service-account-least-privilege
+    labelJa: API キー・連携用アカウントの権限を絞り、使わないものを失効する
+    mitigation: UD-10
+    patches:
+      - role: cloud.saas
+        mitigation: UD-10
+        status: present
+    requestToJa: 情シス担当者と、連携システムの開発・運用会社
   - id: storage-sharing-review
     labelJa: クラウドストレージの公開共有を禁止し、棚卸しする
     mitigation: M1022
