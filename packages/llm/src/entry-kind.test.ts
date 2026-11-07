@@ -106,3 +106,50 @@ describe("verifyCase は入口の種類を、入口の段階で入口が分か�
     expect(c.steps[0]?.entryKind).toBeUndefined();
   });
 });
+
+describe("なりすましログイン（リスト型攻撃）が事故の起点のとき（Issue #7）", () => {
+  const login =
+    "外部で漏えいした ID・パスワードのリストを用いて、会員になりすました不正ログインが判明しております。";
+  const loginStep = (o: Record<string, unknown>) =>
+    step({
+      tactic: "TA0001",
+      techniques: ["T1110.004", "T1078"],
+      entryKind: "credential",
+      quote: login,
+      summaryJa: "会員になりすまして不正ログインされた",
+      ...o,
+    });
+
+  it("指示文は、記載された不正ログインを入口の段階に置くこと、対象外にする場合を示す", () => {
+    const text = buildRulesJa();
+    expect(text).toContain("なりすましログインが事故の起点");
+    expect(text).toContain("入口（TA0001）の段階に置く");
+    expect(text).toContain("入口が別に書かれている事故");
+    expect(text).toContain("「可能性」「調査中」とだけ書かれているもの");
+  });
+  it("入口（TA0001）に置かれ、根拠文が本文にあれば、credential は記載（stated）のまま残る", () => {
+    const { case: c } = verifyCase(rawCase([loginStep({})]), login, attack);
+    expect(c.steps[0]).toMatchObject({
+      tactic: "TA0001",
+      source: "stated",
+      entryKind: "credential",
+    });
+  });
+  it("読み替えはしない：認証情報アクセス（TA0006）の段階に置かれたら、入口は作らず種類も付かない", () => {
+    const { case: c } = verifyCase(
+      rawCase([loginStep({ tactic: "TA0006", entryKind: null })]),
+      login,
+      attack,
+    );
+    expect(c.steps.some((s) => s.tactic === "TA0001")).toBe(false);
+    expect(c.steps.every((s) => s.entryKind === undefined)).toBe(true);
+  });
+  it("本文にない根拠文の不正ログインは「記載」にならない（記載と読めるのは、根拠文が本文にあるときだけ）", () => {
+    const { case: c } = verifyCase(
+      rawCase([loginStep({})]),
+      "ランサムウェアにより、サーバのデータが暗号化された。",
+      attack,
+    );
+    expect(c.steps[0]?.source).not.toBe("stated");
+  });
+});
