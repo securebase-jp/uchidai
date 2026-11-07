@@ -151,6 +151,8 @@ export function renderEvaluableTechniques(rules: Rule[], templates: Template[]):
     const out = new Set<string>();
     for (const t of templates)
       for (const s of t.stages) {
+        // 取引先・提供元の停止の入口は攻撃者の経路ではない（AI 攻撃者の手法の表に混ぜない）
+        if (s.fromPartner) continue;
         const tech = s.byRole[role];
         if (tech) out.add(tech);
         if (role in s.byRole) for (const a of s.accepts) out.add(a);

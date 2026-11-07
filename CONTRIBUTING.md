@@ -64,6 +64,8 @@ examples/demo-seiko.json                    架空の会社のカルテ（検証
 
 型紙は「この型の攻撃はどんな段階で進むか」を役割の枠に対して書く。会社ごとの具体名は書かない。
 
+> 入口が攻撃者でなく取引先・提供元の停止である型紙（`partner-outage`）は、入口の段階に `fromPartner: true` を付ける。入口になるのは、カルテで外部に置き、止まる業務が頼っている資産だけ。この型の被害（`partner_outage`）は、`damage-types.yaml` の `reportsPersonalData: false` で個人情報の報告の期限を出さない。
+
 ```yaml
 id: ransomware # 一意。ファイル名と合わせる
 damageType: ransomware # damage-types.yaml の id（ここに無い種類は knowledge:check が止める）

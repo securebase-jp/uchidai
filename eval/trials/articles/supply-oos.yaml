@@ -83,7 +83,7 @@ articles:
     title: 無印良品、ネットストアを停止　アスクルのランサム被害が影響　再開未定
     publishedAt: "2025-10-20"
     kind: ransomware
-    alsoOk: []
+    alsoOk: [partner_outage]
     entry: vendor_outage
     industry: 小売（EC）
     size: 大企業
