@@ -233,3 +233,32 @@ articles:
     size: 中小企業全般
     heldOut: false
     expectNote: アンケート調査の速報で、個別の被害の事例ではない。「不正アクセス」「取引先経由の侵入」の語が出るため、事例として読んでしまわないか。
+
+  # ===== Issue #8：取引先・提供元の停止の公表（2026-11-07 取得。公式の公表ページ。本文は入れない） =====
+  # 取得は fetch-batch.ts（SSRF の検査つき）で 1 URL につき 1 回の GET。取得できなかった公表（良品計画・ロフトの公式お知らせ）は、
+  # 429／503／名前が引けない、で本文が無いため一覧に入れない。
+  - id: sendai-online-shinsei
+    url: https://www.city.sendai.jp/rikatsuyou/documents/logo.html
+    media: 仙台市（公式）
+    title: せんだいオンライン申請サービスのシステム障害発生について
+    publishedAt: "2026-11-04"
+    kind: partner_outage
+    alsoOk: []
+    entry: provider_outage
+    industry: 自治体
+    size: 政令指定都市
+    heldOut: false
+    expectNote: 提供元（株式会社トラストバンク）のシステム障害で、市のオンライン申請が止まった。攻撃ではない（内部の不具合）。自社（市）は侵入されていない。対象外にしないか。
+
+  - id: askul-jpx-disclosure
+    url: https://www2.jpx.co.jp/disc/26780/140120251020575852.pdf
+    media: アスクル（適時開示）
+    title: ランサムウェア感染によるシステム障害発生について
+    publishedAt: "2025-10-20"
+    kind: ransomware
+    alsoOk: []
+    entry: none
+    industry: 通販・物流
+    size: 大企業
+    heldOut: false
+    expectNote: 停止させられた側の公表（ランサムウェアの被害を受けた当事者）。partner_outage（他社の停止の波及）と取り違えず ransomware と読むか、の境目の確認用。
