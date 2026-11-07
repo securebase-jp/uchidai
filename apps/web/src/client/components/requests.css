@@ -180,3 +180,112 @@ button.st-link:focus-visible {
   outline-offset: 2px;
   background: color-mix(in srgb, var(--amber) 12%, transparent);
 }
+
+/* まとめて確認（最大 10 問を 1 通に） */
+.batch-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 8px 0 4px;
+}
+.batch-check {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--steel);
+}
+.batch-preview {
+  border: 2px solid var(--steel);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: var(--panel-2);
+}
+.batch-preview h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.batch-preview .subj {
+  font-weight: 700;
+  margin-top: 8px;
+}
+.batch-preview pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 6px 0 0;
+  max-height: 320px;
+  overflow: auto;
+}
+.batch-to {
+  border-radius: 10px;
+  padding: 8px 10px;
+  border: 2px solid var(--edge);
+}
+.batch-to.ok {
+  border-color: var(--steel);
+}
+.batch-to.ng {
+  border-color: var(--red, #c0392b);
+}
+.batch-to label {
+  display: grid;
+  gap: 4px;
+}
+.batch-to-label {
+  font-weight: 700;
+  font-size: 14px;
+}
+.batch-to input {
+  font-size: 16px;
+  font-weight: 700;
+  width: 100%;
+  max-width: 28em;
+}
+.batch-mail .batch-dest {
+  font-weight: 700;
+  color: var(--ink);
+}
+.batch-qs {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.batch-q {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+}
+.batch-q-head {
+  flex: 1;
+  min-width: 200px;
+}
+.batch-q .answered {
+  flex-basis: 100%;
+}
+.copy-fallback {
+  flex-basis: 100%;
+}
+.copy-fallback textarea {
+  width: 100%;
+  font-size: 13px;
+  line-height: 1.5;
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 8px;
+}
+.reply-form fieldset .muted {
+  margin: 0 0 4px;
+}

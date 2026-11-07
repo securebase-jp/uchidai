@@ -2,8 +2,12 @@
 import type { AnswerInput } from "../../shared/api.ts";
 import type {
   AnswerEvent,
+  BatchPreviewView,
+  BatchReplyRequest,
+  BatchView,
   MeasureDraftView,
   ReplyRequest,
+  RequestList,
   RequestView,
   RetractEvent,
 } from "../../shared/requests.ts";
@@ -32,8 +36,10 @@ export function excerpt(p: CompanyProfile) {
   };
 }
 
+export type BatchItems = { assetId: string; mitigation: string }[];
+
 export const requestsApi = {
-  list: () => call<{ items: RequestView[] }>("/api/requests"),
+  list: () => call<RequestList>("/api/requests"),
   /** 送信箱を空にする */
   /** profileId を渡すと、そのカルテの依頼だけを消す */
   clear: (profileId?: string) =>
@@ -57,6 +63,40 @@ export const requestsApi = {
   retract: (requestId: string) =>
     call<{ ok: true; retracted: RetractEvent }>(
       `/api/requests/${encodeURIComponent(requestId)}/reply`,
+      { method: "DELETE" },
+    ),
+  /** まとめて確認：プレビュー（保存も送信もしない） */
+  batchPreview: (profile: CompanyProfile, items: BatchItems, to?: string) =>
+    post<BatchPreviewView>("/api/requests/batch/preview", {
+      profile: excerpt(profile),
+      items,
+      ...(to ? { to } : {}),
+    }),
+  /** まとめて確認：プレビューで見せた本文（expectText）と期限のまま作る */
+  batchCreate: (
+    profile: CompanyProfile,
+    items: BatchItems,
+    preview: BatchPreviewView,
+    to: string,
+  ) =>
+    post<{ batch: BatchView; items: RequestView[] }>("/api/requests/batch", {
+      profile: excerpt(profile),
+      items,
+      to,
+      deadline: preview.deadline,
+      expectText: preview.text,
+    }),
+  /** まとめ依頼の返信：入力した質問の分を原子的に反映する */
+  batchReply: (batchId: string, body: BatchReplyRequest) =>
+    post<{
+      ok: true;
+      results: { requestId: string; answer: AnswerInput; choiceLabelJa: string }[];
+      items?: RequestView[];
+    }>(`/api/requests/batch/${encodeURIComponent(batchId)}/reply`, body),
+  /** まとめ依頼を消す（回答済みの質問は取り消され、判定から外れる） */
+  batchDelete: (batchId: string) =>
+    call<{ ok: true; retracted: RetractEvent[] }>(
+      `/api/requests/batch/${encodeURIComponent(batchId)}`,
       { method: "DELETE" },
     ),
   measureDraft: (profile: CompanyProfile, measureId: string) =>

@@ -4,36 +4,18 @@
  * 入力すると判定に反映され、誰が（ベンダー側）・いつ受け取り・誰が入力したかが残る。間違えたら「回答を取り消す」。
  */
 import { type FormEvent, useState } from "react";
-import type { ReplyRequest, RequestView } from "../../shared/requests.ts";
+import type {
+  BatchReplyRequest,
+  BatchView,
+  ReplyRequest,
+  RequestView,
+} from "../../shared/requests.ts";
+import { childrenOf } from "../lib/batchSelect.ts";
+import { STATUS_WORD, toLocalInput, VIA_LABEL, when } from "../lib/outbox-format.ts";
 import { staffName } from "../lib/profile.ts";
+import { BatchItem } from "./BatchOutbox.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import "./requests.css";
-
-const VIA_LABEL: Record<RequestView["sentVia"], string> = {
-  outbox: "送信箱（未送信）",
-  mailto: "メールソフトで送る",
-  smtp: "SMTP で送信済み",
-};
-
-const STATUS_WORD = { present: "「ある」", absent: "「ない」", unknown: "「不明」" } as const;
-
-function when(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime())
-    ? iso
-    : d.toLocaleString("ja-JP", {
-        month: "numeric",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-}
-
-/** <input type="datetime-local"> の値（手元の時刻）にする */
-function toLocalInput(d: Date): string {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-}
 
 /** 返信の入力欄。番号はメール本文の番号と同じ（質問表の並び順で 1 から） */
 function ReplyForm({
@@ -228,32 +210,58 @@ export function OutboxItem({
 
 export function OutboxPanel({
   items,
+  batches = [],
   onReply,
   onRetract,
+  onReplyBatch,
+  onDeleteBatch,
   onClear,
 }: {
+  /** 1 項目 1 依頼と、まとめ依頼の質問（parentId あり）。質問は親の中に並べる */
   items: RequestView[];
+  batches?: BatchView[];
   onReply(requestId: string, body: ReplyRequest): Promise<string | undefined>;
   onRetract(requestId: string): Promise<string | undefined>;
+  onReplyBatch?(batchId: string, body: BatchReplyRequest): Promise<string | undefined>;
+  onDeleteBatch?(batchId: string): Promise<string | undefined>;
   /** 送信箱を空にする（録画前などに使う） */
   onClear?: () => void;
 }) {
+  const singles = items.filter((it) => !it.parentId);
+  const shownBatches = onReplyBatch && onDeleteBatch ? batches : [];
+  // 新しい順に、1 項目 1 依頼とまとめ依頼を混ぜて並べる
+  const rows = [
+    ...singles.map((it) => ({ at: it.createdAt, it })),
+    ...shownBatches.map((b) => ({ at: b.createdAt, b })),
+  ].sort((x, y) => (x.at < y.at ? 1 : -1));
+  const count = singles.length + shownBatches.length;
   return (
     <div className="outbox">
       <h2 style={{ marginBottom: 0 }}>送信箱</h2>
-      {onClear && items.length > 0 && (
+      {onClear && count > 0 && (
         <button type="button" className="btn ghost sm" style={{ marginTop: 6 }} onClick={onClear}>
-          送信箱を空にする（{items.length} 件）
+          送信箱を空にする（{count} 件）
         </button>
       )}
-      {items.length === 0 ? (
+      {count === 0 ? (
         <p className="muted" style={{ marginTop: 6 }}>
           まだ依頼はありません。上の「ベンダーに確認する」で作ると、ここに依頼のメール文ができます。
         </p>
       ) : (
-        items.map((it) => (
-          <OutboxItem key={it.id} item={it} onReply={onReply} onRetract={onRetract} />
-        ))
+        rows.map((row) =>
+          "b" in row && onReplyBatch && onDeleteBatch ? (
+            <BatchItem
+              key={row.b.id}
+              batch={row.b}
+              questions={childrenOf(row.b, items)}
+              onReplyBatch={onReplyBatch}
+              onRetract={onRetract}
+              onDeleteBatch={onDeleteBatch}
+            />
+          ) : "it" in row ? (
+            <OutboxItem key={row.it.id} item={row.it} onReply={onReply} onRetract={onRetract} />
+          ) : null,
+        )
       )}
     </div>
   );
