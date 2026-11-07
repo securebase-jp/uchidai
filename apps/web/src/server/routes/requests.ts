@@ -28,6 +28,7 @@ import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import {
+  BatchPreviewBody,
   type BatchPreviewView,
   BatchReplyRequest,
   BatchRequestBody,
@@ -188,7 +189,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
       if (!q) return c.json({ error: `緩和策 ${body.mitigation} の質問はまだありません` }, 404);
       const bg = backgroundFor(body.mitigation, asset.role, k);
       const roleLabel = k.roles.find((x) => x.id === asset.role)?.labelJa ?? asset.role;
-      const deadline = body.deadline ?? defaultDeadline(now());
+      const deadline = sanitizeName(body.deadline ?? defaultDeadline(now()));
       if (usesClaude(body.writer)) takeClaudeSlot("write"); // SEC-006。テンプレートの書き手は数えない
       const mail = await writeVendorRequest(
         {
@@ -257,7 +258,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   });
 
   /** まとめ依頼の入力を検証して、文面と質問を組み立てる（プレビューと作成で同じ処理。保存も送信もしない） */
-  function prepareBatch(body: BatchRequestBody) {
+  function prepareBatch(body: BatchPreviewBody) {
     const profile = cleanProfile(body.profile);
     const k = loadKnowledge();
     // (assetId, mitigation) の重複を除く
@@ -280,7 +281,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
     const to = body.to ?? profile.vendor?.email;
     if (to !== undefined && !ToAddress.safeParse(to).success)
       throw new ClientError(400, "宛先は 1 件のメールアドレスの形で入力してください");
-    const deadline = body.deadline ?? defaultDeadline(now());
+    const deadline = sanitizeName(body.deadline ?? defaultDeadline(now()));
     const mail = writeBatchRequest({
       companyLabel: profile.companyName,
       vendorLabel: profile.vendor?.name,
@@ -295,7 +296,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
   }
 
   r.post("/batch/preview", async (c) => {
-    const body = BatchRequestBody.parse(await c.req.json());
+    const body = BatchPreviewBody.parse(await c.req.json());
     const p = prepareBatch(body);
     const view: BatchPreviewView = {
       ...(p.to ? { to: p.to } : {}),
@@ -443,7 +444,7 @@ export function requestRoutes(deps: RequestDeps = depsFromEnv()): Hono {
         techniqueId: bg.techniqueId,
         techniqueLabel: bg.techniqueLabelJa,
         costJa: measure.costSourceJa,
-        deadline: body.deadline ?? defaultDeadline(now(), 30),
+        deadline: sanitizeName(body.deadline ?? defaultDeadline(now(), 30)),
       },
       { ...(deps.writer ?? {}), ...(body.writer ? { writer: body.writer } : {}) },
     );

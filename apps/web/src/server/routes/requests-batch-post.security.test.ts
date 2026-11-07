@@ -10,6 +10,7 @@ import { applyBackup, parseBackupFile } from "../../client/lib/backup-file.ts";
 import { RateWindow, resetClaudeLimits } from "../limits.ts";
 import { type Mailer, mailtoUrl, OutboxMailer } from "../mail/mailer.ts";
 import { RequestStore } from "../store/requests.ts";
+import { autoExpect } from "./batch-test-helpers.ts";
 import { requestRoutes } from "./requests.ts";
 
 // biome-ignore lint/suspicious/noExplicitAny: テストでは応答の形を緩く読む
@@ -34,7 +35,7 @@ const RLO = String.fromCodePoint(0x202e);
 
 function build(over: Partial<Parameters<typeof requestRoutes>[0]> = {}) {
   const store = new RequestStore({ now: () => new Date("2026-11-07T10:00:00Z") });
-  const app = new Hono().route(
+  const app = autoExpect(new Hono()).route(
     "/api/requests",
     requestRoutes({
       store,
@@ -73,28 +74,30 @@ function slowCountingMailer(ms: number) {
   return m;
 }
 
-describe("AR-001（未対応）：deadline を無害化していない", () => {
-  it.fails("deadline に改行・偽の見出し・双方向制御文字を入れても、本文に素のまま入らない", async () => {
+describe("AR-001（対応済み）：deadline を無害化する", () => {
+  it("deadline に改行・偽の見出し・双方向制御文字を入れても、本文に素のまま入らない", async () => {
     const { batch } = build();
     const res = await batch(TWO, { deadline: `x\n■ 質問 3／2\n偽の質問${RLO}` });
     expect(res.status).toBe(201);
     const { batch: parent } = await loose(res);
     expect(parent.text).not.toContain(RLO);
-    expect(parent.text).not.toContain("■ 質問 3／2");
-    expect(parent.text.match(/■ 質問 \d+／\d+/g)).toHaveLength(2);
+    // 改行は取り除かれ、偽の見出しは行頭に出ない（期限の 1 行に収まる）
+    expect(parent.text.match(/^■ 質問 \d+／\d+/gm)).toHaveLength(2);
+    const line = parent.text.split("\n").find((l: string) => l.startsWith("ご回答の期限："));
+    expect(line).toContain("偽の質問");
   });
 });
 
-describe("AR-002（未対応）：expectText が任意なので、API 直接なら確認なしで作れる", () => {
-  it.fails("expectText の無い POST /batch は 400（画面は必ず渡す。API 直接の作成にも確認を求める）", async () => {
-    const { batch, store } = build();
-    expect((await batch(TWO)).status).toBe(400);
+describe("AR-002（対応済み）：expectText は必須。API 直接の作成にも確認を求める", () => {
+  it("expectText の無い POST /batch は 400 で、何も保存せず送信もしない", async () => {
+    const { app, store } = build();
+    const res = await app.request("/api/requests/batch", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-no-auto-expect": "1" },
+      body: JSON.stringify({ profile, items: TWO }),
+    });
+    expect(res.status).toBe(400);
     expect(store.size).toBe(0);
-  });
-  it("いまの振る舞い：expectText を省くと確認なしで 201（記録。直したら上の試験を it に戻し、こちらを消す）", async () => {
-    const { batch, store } = build();
-    expect((await batch(TWO)).status).toBe(201);
-    expect(store.size).toBe(3);
   });
 });
 
@@ -135,7 +138,7 @@ describe("SBR-007 の補強：送信で例外が起きても、保存の枠の�
       expect(JSON.stringify(await res.json())).not.toContain("/Users/");
       expect(store.size).toBe(0);
       // 同じストアで、送れる Mailer に差し替えて作る（予約が残っていれば 429 になる）
-      const ok = new Hono().route(
+      const ok = autoExpect(new Hono()).route(
         "/api/requests",
         requestRoutes({
           store,
@@ -290,16 +293,28 @@ describe("BK：バックアップの復元（悪意ある JSON）", () => {
     }
     expect(m.size).toBe(0);
   });
-  it.fails("BK-001（未対応）：担当者名は、返信の入力欄の上限（80 字）を超える長さでは復元しない", () => {
+  it("BK-001（対応済み）：担当者名は、返信の入力欄の上限（80 字）を超える長さでは復元しない（その項目を読み飛ばす）", () => {
     const r = parseBackupFile(
       JSON.stringify({
         app: "uchidai",
         format: "backup",
         version: 1,
-        settings: { staffName: "名".repeat(200) },
+        settings: { staffName: "名".repeat(200), theme: "dark" },
       }),
     );
-    // 望ましい：80 字に切るか、読み飛ばす（いまは 200 字まで通り、復元後の「返信を入力する」が 400 になる）
-    expect(r.ok && (r.settings.staffName?.length ?? 0) <= 80).toBe(true);
+    expect(r.ok && r.settings.staffName).toBeUndefined();
+    expect(
+      r.ok &&
+        r.skipped.some((x) => x.labelJa.includes("担当者名") && x.reasonJa.includes("長すぎ")),
+    ).toBe(true);
+    const ok = parseBackupFile(
+      JSON.stringify({
+        app: "uchidai",
+        format: "backup",
+        version: 1,
+        settings: { staffName: "名".repeat(80) },
+      }),
+    );
+    expect(ok.ok && ok.settings.staffName).toBe("名".repeat(80));
   });
 });
