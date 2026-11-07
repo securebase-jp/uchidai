@@ -212,3 +212,138 @@
 | BR-008  | 直した   | ファイル 0600、新しく作る親ディレクトリ 0700（Windows では無視）。既にある親ディレクトリの権限は変えない                                |
 
 案から変えた点：保存の上限は、保存の直前の見直しに加えて、`await` の前に「予約」を取り、上限を超える要求ではメールを送らないようにした。一覧 `GET /api/requests` は、まとめ依頼の子を `items`（`parentId` つき）、親を `batches` で返す。
+
+## 実装後の診断（2026-11-07）
+
+対象：手元の `main`（先頭 `cbe39f9`。まとめて確認の実装は `18cb9b7`・`bb8bd16`・`dda8b75`・`cc0fb16`、統合は `91571b8`）。コードは変えていません。この節と、試験 `apps/web/src/server/routes/requests-batch-post.security.test.ts` だけを足しました。
+
+確かめた方法：差分の読解（`git diff 6f6f49e..main`）と、既存の試験 `requests-batch.security.test.ts`（10 件通過・SBR 16 件）・`requests-batch.flow.test.ts`・`BatchOutbox.test.tsx`・`batchSelect.test.ts` が**本当に要件を検証しているか**の読解、それから `app.request` による壊す入力の試験（新しい試験ファイルに残したもの 12 件と、残さなかった探りの試験）。実際に生成されるまとめメール（デモ精工の 2 問と 10 問）を読みました。外へ出る通信はしていません。`.env` は読んでいません。
+
+### 結論
+
+- 設計の診断で挙げた要件 SBR-001〜016 と問題 BR-001〜008 は、SBR-010 の `.eml` 書き出し（未実装。「本文をコピー」で代替）を除き、**コードと試験の両方で満たされている**ことを確かめました。試験は実装に合わせて期待値を緩めたものではなく、同時実行の試験も `await` を挟む Mailer で本当の競合を作っています。
+- 新しく見つけた問題は **7 件（低 2、情報 5）**、バックアップ・復元は **1 件（低）**です。「高」「中」はありません。
+- v0.1.2 の前に直すことを勧めるのは、**AR-001**（`deadline` を無害化していない）、**AR-002**（`expectText` が任意）、**BK-001**（担当者名が 80 字を超えて復元される）の 3 件で、いずれも数行です。残りは記録として残せば足ります。
+- 既存の「1 項目 1 依頼」の挙動に、安全面の後退はありません。変わったのは、名前の無害化、SMTP の通数の上限、子の id への単独の返信を 409 にする、の 3 点で、いずれも締める方向です。既存試験の `500→400` の変更は、経路だけを単独で動かす試験の期待値の修正で、アプリ全体では前から 400 でした（後述）。
+
+### SBR・BR ごとの検証結果
+
+「試験」は、要件を検証していると判断した既存または新しい試験です。「確かめ方」は、試験に加えて読んだ場所や、探りの試験です。
+
+| ID      | 判定           | 試験                                                                                 | 確かめ方・補足                                                                                                                                                                                                                   |
+| ------- | -------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SBR-001 | 満たす         | `SBR-001/002/003` の節                                                               | `routes/requests.ts:334-375` で `common`（`profileId`・`to`・`companyLabel`・送信の結果）を親と子の両方に展開。資産が無ければ `prepareBatch` が 404 を投げ、予約の前なので何も残らない                                           |
+| SBR-002 | 満たす         | 同上                                                                                 | `ToAddress`（zod `email()`）を `prepareBatch` で検査。`to` もカルテのメールも無ければ `:320` で 400。プレビューは宛先なしを許す（画面が入力欄を出す）が、作成は許さない                                                          |
+| SBR-003 | 満たす         | 同上、新試験「同時の要求でも、送るのは通った要求の 1 通だけ」                        | `:332` で `send` は 1 回。新試験で、上限を超えた同時の要求は 429 になり `send` が呼ばれないことを確認（既存の同時実行の試験は `OutboxMailer` 相当で送信の回数を見ていなかったので補強）                                          |
+| SBR-004 | 満たす         | `SBR-004/005` の節（`persist` の spy で保存 0 回、SSE 0 件）                         | `store/requests.ts:438-479`：全件 `buildReply` で検証（何も変えない）→ 全件 `set` → `persist` 1 回 → イベント。`persist` が例外なら元に戻す。同期処理なので検証と適用の間に割り込みは入らない                                    |
+| SBR-005 | 満たす         | 同上                                                                                 | `:460` で回答済みの子を含めば `AlreadyAnsweredError`（409）。`POST /:id/reply` に子の id は `:463` で 409                                                                                                                        |
+| SBR-006 | 満たす         | `SBR-006` の節、新試験「子の取り消しと親の削除を同時に送っても…」                    | `deleteBatch` は回答済みの子だけ `retract` を流し、子を全部消す。`clear` は `dropOrphans` で孤児を掃く。同時の取り消しと削除は、どちらも同期なので順に処理され、`retract` は 1 件、残り 0 件                                     |
+| SBR-007 | 満たす         | `SBR-007` の節（`slowMailer` で本当の競合）、新試験                                  | 予約 `reserve()`（`:122-132`）は同期で、`await` の前に取り `finally` で戻す。探りの試験で、`send` が例外を投げても予約が戻り、次の要求が 201 になることを確認。`addBatch` の見直しは予約が正しければ発動しない backstop          |
+| SBR-008 | 満たす         | `SBR-008/009/011` の節（番号 i の id で返信すると i 番目の文言が回答になる）         | 本文・`question.choices`・`choiceMap` はどれも `e.q.choices` から同じ順で作る（`:291, 356, 363`）。画面の入力欄は `c.question.choices` の添字＋1（`BatchOutbox.tsx:70-78`）                                                      |
+| SBR-009 | 満たす         | 同上                                                                                 | 実際の文面を読んだ：例は「例：（質問の番号）：（選択肢の番号）　（お名前）」で数字が無い。「■ 質問 k／N」は順に 1 回ずつ。`REPLY_EXAMPLE_RE` に当たらない                                                                        |
+| SBR-010 | 一部満たす     | `SBR-010` の節、`BatchOutbox.test.tsx`「本文をコピーを主に」                         | `.eml` は未実装（実装側の判断。コピーで足りる）。`mailto:` は符号化の約束を守る。10 問で 1 万字超のまま                                                                                                                          |
+| SBR-011 | 満たす         | 同上（`T` で始まる ID、`MITRE`、`判定の材料`、`materialsJa`、緩和策 ID が無い）      | 2 問と 10 問の文面を読んだ。載るのは資産名・質問文・選択肢・期限だけ。件名は「N 点のご確認について（会社名）」                                                                                                                   |
+| SBR-012 | 満たす         | `SBR-012` の節、`BR-006` の節、新試験「通数の窓の数え方」                            | `limits.ts` の `mail` 窓。`takeMailSlot` は `send` の直前（`:214, 331`）。プレビューは数えず、送れなかった送信も数える（安全側。AR-003）                                                                                         |
+| SBR-013 | 満たす         | `SBR-013` の節、`BR-004` の節                                                        | `sanitizeName`（`writer.ts:82-86`）を `cleanProfile`（`:99-106`）と `fillNames` の両方で通す。ただし `deadline` には通していない（AR-001）                                                                                       |
+| SBR-014 | 満たす         | `SBR-014/BR-005/BR-007` の節                                                         | `load()` で親子の整合と `answerMatches`。探りの試験で、親の `childIds` に単独の依頼や自分の id を入れても、`childIds` は実際の子から作り直されることを確認                                                                       |
+| SBR-015 | 満たす         | `SBR-015` の節、新試験（`send` の例外に絶対パス）                                    | 経路の `onError` が `publicMessage` でパスを伏せる。zod は項目名だけ                                                                                                                                                             |
+| SBR-016 | 満たす（補足） | `SBR-016` の節、`requests-batch.flow.test.ts`（`fetch` を `app.request` に差し替え） | 画面は `preview.text` を `expectText` に、`preview.deadline` を `deadline` に渡す（`requestsApi.ts:75-88`）。`singleFlight` と `disabled` で二重押しを止める。**`expectText` が任意**なので API 直接なら確認を飛ばせる（AR-002） |
+| BR-001  | 直った         | `BR-001（対応済み）` の節（`maxRequests: 1` で 3 本同時 → 201・429・429）            | 予約で `await` の前に押さえる                                                                                                                                                                                                    |
+| BR-002  | 直った         | `BR-002（対応済み）` の節                                                            | `PLACEHOLDER_RE` の 1 回の置換（`writer.ts:88`）。名前の `{{ }}` は全角                                                                                                                                                          |
+| BR-003  | 対応した       | `BR-003` の節、`BatchOutbox.test.tsx`                                                | 「本文をコピー」が主で、`mailto:` は補助。`InfoButton` で切れることを案内                                                                                                                                                        |
+| BR-004  | 直った         | `BR-004（対応済み）` の節                                                            | 1 項目 1 依頼にも `cleanProfile`                                                                                                                                                                                                 |
+| BR-005  | 直った         | `BR-005（対応済み）` の節                                                            | `answerMatches` で `evidence: "vendor"`・資産・緩和策・`status` を検査                                                                                                                                                           |
+| BR-006  | 直った         | `BR-006（対応済み）` の節                                                            | SMTP のときだけ数える                                                                                                                                                                                                            |
+| BR-007  | 直った         | `SBR-014/BR-005/BR-007` の節                                                         | `sameChoices` で長さ・並び・重複を検査                                                                                                                                                                                           |
+| BR-008  | 直った         | `BR-008` の節（`statSync` で 0600／0700）                                            | 既にある親ディレクトリの権限は変えない（文書どおり）                                                                                                                                                                             |
+
+### 案から変えた点の評価
+
+- **保存の枠の予約と `addBatch` の見直し**：予約は同期で、`store.size + reserved + n > max` を見てから `reserved` を増やし、`finally` で戻します。例外（`send` が投げる、`takeMailSlot` の 429）でも戻ることを探りの試験で確かめました。上限を超える要求はメールを送る前に 429 になるので、案より安全です。
+- **`GET /api/requests` が `items` と `batches` を返す形**：子は `parentId` つきで `items` に残るので、古い画面（`batches` を知らない）でも子が単独の依頼に見えるだけで壊れません。`batches` には本文と宛先が入りますが、`items` と同じ情報です。
+- **プレビューの宛先なしの許可**：作成は宛先が無ければ 400 で、画面は `looksLikeEmail` が通るまで「積む」を押せません。プレビューは保存も送信もしないので、宛先なしを許しても攻撃面は増えません。
+- **`expectText` による文面の一致**：本文だけを比べ、宛先と件名は比べません。宛先はプレビューで利用者が直すものなので妥当で、件名は件数と会社名からしか作られないので本文が同じなら同じです。ただし省略できるので、API を直接叩く経路では確認を飛ばせます（AR-002）。
+- **`requestRoutes` の `onError` と、既存試験の `500→400`**：`app.ts:87-96` は前から zod の例外を 400 にしていたので、アプリ全体の挙動は変わっていません。変わったのは `requestRoutes` を素の `Hono` に載せて単独で動かす試験（`requests.test.ts:91-94`）で、以前は経路に `onError` が無く 500 だったものが 400 になった、という期待値の修正です。後退ではなく、経路単独でも内部情報を出さない方向です。`HTTPException` は経路の `onError` では扱いませんが、`bodyLimit` などの `HTTPException` を投げる middleware はアプリ側に掛かるので、`app.onError` が受けます。
+
+### 新しく見つけた問題（AR）
+
+#### AR-001（低）`deadline` を無害化していない
+
+- 該当：`apps/web/src/server/routes/requests.ts:283`（`body.deadline ?? defaultDeadline(now())`）、`packages/llm/src/writer.ts:224`（`ご回答の期限：${i.deadline}`）。1 項目 1 依頼（`:191`）と対策依頼文も同じ
+- 何が起きるか：`deadline` は 40 字までの任意の文字列で、`sanitizeName` を通りません。`"x\n■ 質問 3／2\n偽の質問" + U+202E` を渡すと、本文の末尾に偽の質問の見出しと双方向制御文字が素のまま入りました（確認済み。`requests-batch-post.security.test.ts` の `it.fails`）。
+- 悪用の条件：API を直接叩く必要があります。画面は `deadline` をサーバのプレビューの値からそのまま返すだけで、利用者が入力する欄はありません。他サイトからは SEC-002 で止まります。
+- 直し方の案：`prepareBatch` と `POST /` で `deadline` に `sanitizeName` を通し、改行も取り除く（または `/^[0-9０-９年月日\s()（）〜-]+$/` のような形に限る）。
+- 規模：小（2 行）。
+
+#### AR-002（低）`expectText` が任意なので、API 直接なら「見た文面と送る文面の一致」を飛ばせる
+
+- 該当：`apps/web/src/shared/requests.ts:179`（`expectText: ... .optional()`）、`routes/requests.ts:323`
+- 何が起きるか：`expectText` を省いた `POST /batch` は 201 で積まれ、送られます（確認済み）。画面は必ず渡しますが、SBR-016 の守りがサーバ側では任意になっています。
+- 直し方の案：`POST /batch` では `expectText` を必須にする（`z.string().max(60_000)`）。試験の `batch()` の補助関数はプレビューを先に取る形に直す。
+- 規模：小。
+
+#### AR-003（情報）送れなかった SMTP 送信も通数に数える。窓は 60 秒のスライド
+
+- 該当：`routes/requests.ts:214, 331`（`takeMailSlot` は `send` の前）
+- 失敗した送信も 1 通と数えるので、SMTP が落ちているときは 10 回で 429 になります。安全側の振る舞いで、問題ではありません。プレビューは数えません（確認済み）。
+
+#### AR-004（情報）作成の最中に「送信箱を空にする」を押すと、作成中の依頼はそのあと積まれる
+
+- 該当：`routes/requests.ts:328-385`（`send` の `await` の間に `DELETE /` が入る）
+- `cleared: 0` が返ったあとに 201 で 3 件積まれます（確認済み）。利用者の操作の順序の問題で、害はありません。
+
+#### AR-005（情報）保存ファイルに同じ id の親が 2 つあれば、後のものが勝つ
+
+- 該当：`store/requests.ts:184-188`
+- 本文を書き換えた複製を後ろに置くと、その本文で読み込まれます。`childIds` は実際の子から作り直されるので親子は壊れません。ファイルを書き換えられる人（同じ PC の別の利用者。0600 で読めなくした）だけが条件なので、情報扱いです。
+
+#### AR-006（情報）親の削除で、回答済みの子の数だけ `retract` が流れる
+
+- 該当：`store/requests.ts:502-525`、`client/hooks/useRequests.tsx:122-126`
+- 10 問すべて回答済みの親を消すと `retract` が 10 件流れ（確認済み）、別のタブは件数ぶん `refresh()`（`GET /`）を呼びます。上限は 10 なので可用性の問題にはなりません。
+
+#### AR-007（情報）500 の応答に、Mailer が投げた例外の文が出る
+
+- 該当：`routes/requests.ts:143-144`（`publicMessage`）
+- `send` が `Error("/Users/.../secret: boom")` を投げると、応答は `[パス] boom` のようにパスを伏せた文になります（確認済み）。`SmtpMailer` は例外を捕まえて `sendError` にするので、実際にこの経路に来るのは差し替えの Mailer だけです。
+
+### 文面とプライバシー
+
+- 2 問と 10 問の実際の文面を読みました。質問ごとに「■ 質問 k／N」「対象：資産名」「質問文」「番号つきの選択肢」だけで、手法 ID・緩和策 ID・判定の材料・MITRE の語はありません。返信の例は「例：（質問の番号）：（選択肢の番号）　（お名前）」で、具体的な番号はありません。
+- カルテ由来の文字列は `cleanProfile` と `fillNames` の二重で `sanitizeName` を通ります（制御文字・双方向制御・`{{ }}`）。長さは `ProfileExcerpt` の上限（会社名 80、資産名 120、ベンダー名 80）です。`deadline` だけが例外（AR-001）。
+- 「本文をコピー」は `navigator.clipboard.writeText(text)` で、入るのは本文の文字列だけです（`batchSelect.ts:61-74`）。コピーできないときの代替は `<textarea readOnly value={text}>` で、HTML として解釈される経路はありません。画面の本文は `<pre>{text}</pre>` で React が文字列として描きます。`dangerouslySetInnerHTML` と `innerHTML` は `apps/web/src/client` に無いことを `grep` で確かめました。
+- `mailto:` は `encodeURIComponent`（宛先）と `URLSearchParams`（件名・本文）で、改行と `&` が素のまま入らないことを既存の試験が固定しています。
+
+### 画面
+
+- 選択の状態は `selected`（キーの配列）を毎回 `pending`（未確認の行）と `openFor`（依頼済みでない）で濾した `live` にしてから使うので、サーバの状態が変わっても（別のタブで依頼が作られても）選択が「依頼済みの行」を含みません（`RequestPanel.tsx`）。まとめ依頼を作ると子が `items` に入り、その行は「依頼済み」の札に変わります。
+- 二重送信：`createBatch` は `singleFlight` で実行中の 2 回目を `undefined` にし、「積む」ボタンは `busy` で無効。返信は `busy` で無効。`requests-batch.flow.test.ts` が 2 回押して親が 1 件であることを確かめています。
+- プレビューと送る文面：`preview.text` を `expectText`、`preview.deadline` を `deadline` に渡し、サーバが違えば 409。宛先は `previewTo` の値がそのまま `to` になります。
+- エラー表示：サーバの `error` の文（`ApiError`）か固定の日本語で、スタックやパスは出ません（SBR-015）。
+- デモモード：`batchUi = !isDemoMode()` で、チェックボックス・まとめのボタン・`batches` を出しません（`RequestPanel.tsx`）。`OutboxPanel` はハンドラが無ければまとめ依頼を出しません（`BatchOutbox.test.tsx` が確認）。
+
+### 回帰（1 項目 1 依頼）
+
+- `POST /api/requests`：変わったのは、名前の無害化（`cleanProfile`）、SMTP のときの `takeMailSlot`、予約による上限の見直しの 3 点で、いずれも締める方向です。応答の形は同じ。`requests.test.ts` は通っています。
+- `POST /:id/reply`：子の id を渡したときだけ 409 を足した。他は同じ。
+- `DELETE /:id/reply`：子の id でも使える（質問ごとの取り消し）。単独の依頼は同じ。
+- `DELETE /`：親子を一緒に消し、孤児を掃く。`profileId` が空文字のときは 0 件（全部は消さない）ことを既存の試験が確認。
+- `GET /`：`batches` が増えた。`items` は同じ（子が増える）。
+
+### バックアップ・復元（BK）
+
+`parseBackupFile` と `applyBackup`（`client/lib/backup-file.ts`）を、メモリ上の `Storage` で試しました（`requests-batch-post.security.test.ts` の「BK」の節）。
+
+- 問題なかったもの：`__proto__` と `constructor` を最上位・`settings`・`profile`・`attrs` に置いても、`JSON.parse` は自分のプロパティとして作り、zod（`looseObject`／`record`）と `isObject` が捨てるので、プロトタイプは汚れず、復元後の `attrs` は空。配列・`null`・30 段の入れ子・2MB 超・型違いだけの設定は拒み、`Storage` に何も書きません。書き込みに失敗したら控えから戻す（既存試験）。
+- **BK-001（低）担当者名が 80 字を超えて復元される**：`backup-file.ts:195-198` は `staffName` を 200 字まで通しますが、返信の入力の `enteredBy` はサーバで 80 字まで（`shared/requests.ts:141, 212`）、入力欄の `maxLength={80}` は最初から入っている長い値を切りません。復元した長い名前が入ったまま「この回答で判定を更新する」を押すと 400 になり、名前を手で短くするまで返信を入れられません。直し方：`parseBackupFile` で 80 字を超えたら切る（または読み飛ばす）。規模：1 行。`it.fails` で残しています。
+
+### 試験の実行
+
+`pnpm typecheck`、`pnpm lint`（`lint:fix` のあと）、`pnpm test` を通しています。新しい試験は 9 件通過、3 件が `it.fails`（AR-001、AR-002、BK-001。直したら `it` に戻す）。
+
+### 診断の範囲外・確認できなかったこと
+
+- `mailto:` の長さの上限は、引き続きメールソフトで実測していません。画面は「本文をコピー」を主にし、切れることを案内しています。
+- SMTP の実送信、ブラウザでの画面操作（内蔵ブラウザは使っていません。画面の確認は `renderToStaticMarkup` の試験と読解）、`.env` の値。
+- `requests.json` が数十 MB のときの読み込み時間（`JSON.parse` と `childIds.indexOf` による並べ替え）は測っていません。上限 1,000 件なら問題にならない見込みです（推定）。
+- Windows でのファイル権限（`mode` は無視される。文書どおり）。
