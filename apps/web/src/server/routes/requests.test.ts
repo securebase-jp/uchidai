@@ -91,7 +91,7 @@ describe("POST /api/requests", () => {
     ).toBe(404);
     expect(
       (await post("/api/requests", { profile, assetId: "admin", mitigation: "X" })).status,
-    ).toBe(500);
+    ).toBe(400);
   });
 });
 

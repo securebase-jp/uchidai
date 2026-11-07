@@ -29,7 +29,7 @@ import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { Answers, MAX_PDF_BASE64_CHARS, MeasureIds, ReadRequest } from "../shared/api.ts";
 import { isThinReading, loadArticle, thinBodyError } from "./article-source.ts";
-import { ClientError, publicMessage } from "./errors.ts";
+import { ClientError, publicMessage, zodErrorBody } from "./errors.ts";
 import { hostGuard } from "./host-guard.ts";
 import { loadQuestions } from "./knowledge-view.ts";
 import { RateLimitError, takeClaudeSlot } from "./limits.ts";
@@ -87,13 +87,7 @@ app.onError((err, c) => {
   if (err instanceof RateLimitError)
     return c.json({ error: err.message }, 429, { "retry-after": String(err.retryAfterSec) });
   if (err instanceof ClientError) return c.json({ error: err.message }, err.status);
-  if (err instanceof z.ZodError) {
-    const details = err.issues.slice(0, 20).map((i) => ({ path: i.path, message: i.message }));
-    // 画面が原因を案内できるよう、どの項目で落ちたか（zod の path）を日本語の文に含める
-    const where = [...new Set(err.issues.map((i) => i.path.map(String).join(".") || "(全体)"))];
-    const shown = where.slice(0, 3).join("、") + (where.length > 3 ? " ほか" : "");
-    return c.json({ error: `入力の形式が正しくありません（項目：${shown}）`, details }, 400);
-  }
+  if (err instanceof z.ZodError) return c.json(zodErrorBody(err), 400);
   if (err instanceof SyntaxError)
     return c.json({ error: "入力の形式が正しくありません（JSON として読めません）" }, 400);
   console.error(`[api] ${c.req.method} ${c.req.path}:`, err);

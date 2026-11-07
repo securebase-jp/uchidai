@@ -2,13 +2,14 @@
  * Claude を呼ぶ API の、1 分あたりの回数の上限（SEC-006）。プロセス全体で数える（認証が無く手元だけで使う前提）。
  * - read：記事の読解（/api/case/read。urls の複数の読解も 1 回と数える）。既定 10 回／分（UCHIDAI_READ_PER_MINUTE）
  * - write：言い換え・依頼文・AI攻撃者・知見なし比較。既定 20 回／分（UCHIDAI_WRITE_PER_MINUTE）
- * 数えるのは、実際に Claude を呼ぶ直前だけ。記録の再生（キー無し、replay、記録済みの事例）は数えない。
+ * - mail：SMTP でメールを送る直前（まとめ依頼を含む確認依頼）。既定 10 通／分（UCHIDAI_MAIL_PER_MINUTE）。送信箱に積むだけのときは数えない
+ * 数えるのは、実際に Claude を呼ぶ（またはメールを送る）直前だけ。記録の再生（キー無し、replay、記録済みの事例）は数えない。
  * 超えたら 429 と Retry-After（秒）。同時実行の上限は @uchidai/llm の limits.ts（待つだけで断らない）
  */
 import { positiveIntFromEnv } from "@uchidai/llm";
 import { ClientError } from "./errors.ts";
 
-export type LimitKind = "read" | "write";
+export type LimitKind = "read" | "write" | "mail";
 
 export class RateLimitError extends ClientError {
   readonly retryAfterSec: number;
@@ -55,11 +56,13 @@ export class RateWindow {
 
 export const DEFAULT_READ_PER_MINUTE = 10;
 export const DEFAULT_WRITE_PER_MINUTE = 20;
+export const DEFAULT_MAIL_PER_MINUTE = 10;
 
 export function windowsFromEnv(): Record<LimitKind, RateWindow> {
   return {
     read: new RateWindow(positiveIntFromEnv("UCHIDAI_READ_PER_MINUTE", DEFAULT_READ_PER_MINUTE)),
     write: new RateWindow(positiveIntFromEnv("UCHIDAI_WRITE_PER_MINUTE", DEFAULT_WRITE_PER_MINUTE)),
+    mail: new RateWindow(positiveIntFromEnv("UCHIDAI_MAIL_PER_MINUTE", DEFAULT_MAIL_PER_MINUTE)),
   };
 }
 
@@ -68,6 +71,11 @@ let windows = windowsFromEnv();
 /** Claude を呼ぶ直前に 1 回分を取る。上限を超えていれば RateLimitError（429） */
 export function takeClaudeSlot(kind: LimitKind): void {
   windows[kind].take();
+}
+
+/** SMTP でメールを送る直前に 1 通分を取る。上限を超えていれば RateLimitError（429） */
+export function takeMailSlot(): void {
+  windows.mail.take();
 }
 
 /** テスト用：窓を作り直す */

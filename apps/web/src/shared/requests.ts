@@ -44,6 +44,8 @@ export type RequestView = {
   sentVia: MailVia;
   sentAt?: string;
   sendError?: string;
+  /** まとめ依頼の子（質問 1 問）なら、親（BatchView）の id。subject・text・mailtoUrl は親の文面を使うので空 */
+  parentId?: string;
   /** 依頼文を書いたのが Claude かテンプレートか */
   writer: "claude" | "template";
   /** 返信してきたベンダー側の回答者（返信に書かれていた名前）。AnswerInput.answeredBy と同じ */
@@ -56,6 +58,34 @@ export type RequestView = {
   enteredAt?: string;
   answer?: { choice: string; choiceLabelJa: string; input: AnswerInput };
 };
+
+/**
+ * まとめ依頼の親（1 通のメール）。質問は子の依頼（RequestView。parentId が親を指す）として別に持つ。
+ * 親と子は同じ profileId・to・companyLabel を持つ。文面はテンプレートだけ（Claude は呼ばない）
+ */
+export type BatchView = {
+  id: string;
+  kind: "batch";
+  profileId?: string;
+  companyLabel: string;
+  to?: string;
+  subject: string;
+  text: string;
+  mailtoUrl: string;
+  createdAt: string;
+  sentVia: MailVia;
+  sentAt?: string;
+  sendError?: string;
+  writer: "template";
+  /** 質問の順（メール本文の「■ 質問 k／N」と同じ） */
+  childIds: string[];
+};
+
+/** GET /api/requests：1 項目 1 依頼と、まとめ依頼の子は items、まとめ依頼の親は batches */
+export type RequestList = { items: RequestView[]; batches: BatchView[] };
+
+/** まとめ依頼の最大の質問数 */
+export const MAX_BATCH_ITEMS = 10;
 
 /** SSE の answer イベント（返信の入力） */
 export type AnswerEvent = {
@@ -85,6 +115,7 @@ export const ProfileExcerpt = z.object({
     )
     .max(100),
 });
+export type ProfileExcerpt = z.infer<typeof ProfileExcerpt>;
 export const CreateRequest = z.object({
   profile: ProfileExcerpt,
   assetId: z.string().max(100),
@@ -127,3 +158,57 @@ export type MeasureDraftView = {
   mailtoUrl: string;
   writer: "claude" | "template";
 };
+
+/** まとめ依頼の 1 項目 */
+export const BatchItemInput = z.object({
+  assetId: z.string().max(100),
+  mitigation: z.string().regex(/^(M\d{4}|UD-\d{2})$/),
+});
+export type BatchItemInput = z.infer<typeof BatchItemInput>;
+
+/**
+ * POST /api/requests/batch/preview と POST /api/requests/batch：同じ要求。
+ * items は (assetId, mitigation) の重複を除いて 1〜10 件。宛先は 1 件のメールアドレスの形だけ
+ */
+export const BatchRequestBody = z.object({
+  profile: ProfileExcerpt,
+  items: z.array(BatchItemInput).min(1).max(100),
+  to: z.string().max(200).email("宛先は 1 件のメールアドレスの形で入力してください").optional(),
+  deadline: z.string().max(40).optional(),
+  /** プレビューで見せた本文。作るときに、いまの本文と違えば 409（見た文面と送る文面を同じにする） */
+  expectText: z.string().max(60_000).optional(),
+});
+export type BatchRequestBody = z.infer<typeof BatchRequestBody>;
+
+export type BatchPreviewView = {
+  to?: string;
+  subject: string;
+  text: string;
+  mailtoUrl: string;
+  /** 本文に入れた期限。作るときにそのまま返すと、同じ文面になる */
+  deadline: string;
+  items: {
+    assetId: string;
+    assetLabel: string;
+    mitigation: string;
+    mitigationLabelJa: string;
+    questionJa: string;
+  }[];
+};
+
+/** POST /api/requests/batch/:id/reply：入力した質問の分だけ送る（回答者名と受領日時は 1 回） */
+export const BatchReplyRequest = z.object({
+  answers: z
+    .array(
+      z.object({
+        requestId: z.string().min(1).max(100),
+        choice: z.string().min(1).max(40),
+      }),
+    )
+    .min(1)
+    .max(MAX_BATCH_ITEMS),
+  repliedBy: z.string().trim().min(1).max(80),
+  receivedAt: z.string().max(40),
+  enteredBy: z.string().trim().max(80).optional(),
+});
+export type BatchReplyRequest = z.infer<typeof BatchReplyRequest>;
