@@ -104,3 +104,21 @@ describe("questionForRole（「自分で答える」の質問を資産の役割�
     expect(q.choices.map((c) => c.labelJa)).toEqual(["あり", "なし", "分からない"]);
   });
 });
+
+describe("visibleAssets（同じ緩和策の記録が複数あるとき）", () => {
+  const dup = {
+    ...asset("vpn", []),
+    controls: [
+      { mitigation: "M1042", status: "unknown", evidence: "none" },
+      { mitigation: "M1042", status: "absent", evidence: "external" },
+      { mitigation: "M1032", status: "unknown", evidence: "none" },
+    ],
+  } as unknown as Asset;
+  it("経路の項目が無くても、1 緩和策 1 行にし、確定した記録を残す（行の key が重複しない）", () => {
+    const out = visibleAssets([dup], [], "all", () => true);
+    expect(out[0]?.controls.map((c) => `${c.mitigation}:${c.status}:${c.evidence}`)).toEqual([
+      "M1042:absent:external",
+      "M1032:unknown:none",
+    ]);
+  });
+});

@@ -4,6 +4,7 @@
  *   入口に近い段階ほど先（入口で止まれば後ろの段階は問われない）。判定そのものはしない
  * - templateHeading：型紙を 1 本に絞れたときはその名前、入口不明で複数の型紙を展開したときは経路ごとの型紙を全部出す
  */
+import { resolvedControls } from "./controls.ts";
 import type { AttackPath, CompanyProfile, Graph, Verdict } from "./types.ts";
 
 export type PendingItem = {
@@ -54,7 +55,7 @@ export function rankPending(
   const asked = askedOnPath(verdict, graph);
   const items: PendingItem[] = [];
   for (const a of profile.assets) {
-    for (const c of a.controls) {
+    for (const c of resolvedControls(a.controls)) {
       if (c.status !== "unknown") continue;
       const hit = asked.get(`${a.id}:${c.mitigation}`);
       items.push({

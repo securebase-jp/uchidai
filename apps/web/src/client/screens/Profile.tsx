@@ -17,6 +17,7 @@ import { BusinessTable, CompanyForm, PersonalDataTable } from "../components/Pro
 import { ProgressRing } from "../components/ProgressRing.tsx";
 import { useApp } from "../hooks/useApp.tsx";
 import { AFFECTS_EXAMPLES } from "../lib/choices.ts";
+import { resolvedControls } from "../lib/controls.ts";
 import { type PendingItem, rankPending } from "../lib/pending.ts";
 import {
   applyStaffAnswer,
@@ -101,7 +102,7 @@ export function Profile() {
   };
   const staleCount = profile
     ? profile.assets.reduce(
-        (n, a) => n + a.controls.filter((c) => isStale(c.answeredAt, now)).length,
+        (n, a) => n + resolvedControls(a.controls).filter((c) => isStale(c.answeredAt, now)).length,
         0,
       )
     : 0;

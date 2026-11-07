@@ -5,6 +5,7 @@
  * どれも元のカルテを変えず、新しいカルテを返す。判定そのものは必ず API（engine）に頼む。
  */
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
+import { resolvedControls } from "./controls.ts";
 import type { CompanyProfile, EvidenceKind } from "./types.ts";
 
 type Asset = CompanyProfile["assets"][number];
@@ -161,7 +162,7 @@ export function effectiveControl(
 /** 未確認の緩和策の数 */
 export function pendingCount(profile: CompanyProfile): number {
   return profile.assets.reduce(
-    (n, a) => n + a.controls.filter((c) => c.status === "unknown").length,
+    (n, a) => n + resolvedControls(a.controls).filter((c) => c.status === "unknown").length,
     0,
   );
 }
@@ -182,7 +183,7 @@ export type Progress = {
 export function controlProgress(profile: CompanyProfile, outbox: AnswerInput[]): Progress {
   const out: Progress = { total: 0, unknown: 0, external: 0, vendor: 0, registered: 0, other: 0 };
   for (const a of profile.assets) {
-    for (const c of a.controls) {
+    for (const c of resolvedControls(a.controls)) {
       const e = effectiveControl(
         c,
         outbox.find((x) => x.assetId === a.id && x.mitigation === c.mitigation),

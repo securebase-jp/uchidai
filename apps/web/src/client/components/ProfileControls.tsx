@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import type { AnswerInput, ControlChoice, ControlQuestion } from "../../shared/api.ts";
 import { useRequests } from "../hooks/useRequests.tsx";
+import { resolvedControls } from "../lib/controls.ts";
 import { hostStatusLines } from "../lib/hostStatus.ts";
 import type { KevMatch } from "../lib/kevApi.ts";
 import {
@@ -104,7 +105,11 @@ export function visibleAssets(
   filter: ControlFilter,
   isPending: (assetId: string, c: Control) => boolean,
 ): Asset[] {
-  const ordered = orderByPath(assets, onPath);
+  // 同じ緩和策の記録が複数あっても、一覧は 1 緩和策 1 行（判定と同じ選び方で 1 記録に畳む）
+  const ordered = orderByPath(
+    assets.map((a) => ({ ...a, controls: resolvedControls(a.controls) })),
+    onPath,
+  );
   if (filter === "all") return ordered;
   const asked = new Set(onPath.map((x) => `${x.assetId}:${x.mitigation}`));
   return ordered
