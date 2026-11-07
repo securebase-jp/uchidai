@@ -114,7 +114,11 @@ describe("loadSeries", () => {
     const e = err as SeriesFetchError;
     expect(e.status).toBe(400);
     expect(e.failures).toEqual([
-      { url: "https://example.test/none", message: "記事が見つかりませんでした（404）。" },
+      {
+        url: "https://example.test/none",
+        message: "記事が見つかりませんでした（404）。",
+        reason: "other",
+      },
     ]);
     expect(e.message).toContain("https://example.test/none");
   });
@@ -127,6 +131,63 @@ describe("loadSeries", () => {
     await expect(
       loadSeries(["https://example.test/none"], "skip", { loadArticle: loader }),
     ).rejects.toThrow(/どの公表も取得できませんでした/);
+  });
+});
+
+describe("loadSeries（取得できなかった公表の理由と、貼り付けでの差し替え。Issue #6）", () => {
+  const reasonLoader = (async (input: { kind: string; url?: string; text?: string }) => {
+    if (input.kind === "text")
+      return { kind: "text", text: input.text, sourceUrl: undefined } as unknown as Article;
+    if (input.url?.endsWith("/403"))
+      throw new ClientError(400, "サイトが自動での取得を断りました（403）。", "forbidden");
+    if (input.url?.endsWith("/empty")) throw new ClientError(400, "本文が空です。", "empty");
+    return loader?.(input as never) as unknown as Article;
+  }) as unknown as Parameters<typeof loadSeries>[2] extends { loadArticle?: infer F } | undefined
+    ? F
+    : never;
+
+  it("skip：読めた分は読み、失敗した URL と理由（reason）を返す", async () => {
+    const s = await loadSeries(
+      ["https://example.test/r1", "https://example.test/403", "https://example.test/empty"],
+      "skip",
+      { loadArticle: reasonLoader },
+    );
+    expect(s.parts.map((p) => p.url)).toEqual(["https://example.test/r1"]);
+    expect(s.failures.map((f) => [f.url, f.reason])).toEqual([
+      ["https://example.test/403", "forbidden"],
+      ["https://example.test/empty", "empty"],
+    ]);
+  });
+  it("fail：SeriesFetchError の failures にも reason が載る", async () => {
+    const err = (await loadSeries(["https://example.test/r1", "https://example.test/403"], "fail", {
+      loadArticle: reasonLoader,
+    }).catch((e: unknown) => e)) as SeriesFetchError;
+    expect(err.failures[0]?.reason).toBe("forbidden");
+  });
+  it("貼られた本文がある URL は取得に行かず、その本文を一つの報として読む", async () => {
+    const fetched: string[] = [];
+    const spy = (async (input: {
+      kind: string;
+      url?: string;
+      text?: string;
+      sourceUrl?: string;
+    }) => {
+      if (input.kind === "url") fetched.push(input.url as string);
+      if (input.kind === "text")
+        return { kind: "text", text: input.text, sourceUrl: input.sourceUrl } as unknown as Article;
+      return reasonLoader?.(input as never) as unknown as Article;
+    }) as unknown as typeof reasonLoader;
+    const pasted = "2025年11月5日 貼り付けた本文。VPN装置から侵入されたことが確認されました。";
+    const s = await loadSeries(
+      ["https://example.test/r1", "https://example.test/403"],
+      "fail",
+      { loadArticle: spy },
+      [{ url: "https://example.test/403", text: pasted }],
+    );
+    expect(fetched).toEqual(["https://example.test/r1"]); // 403 の URL へは取得に行かない
+    expect(s.failures).toEqual([]);
+    expect(s.parts).toHaveLength(2);
+    expect(s.text).toContain("貼り付けた本文");
   });
 });
 

@@ -9,7 +9,7 @@
 
 import type { Case } from "@uchidai/engine";
 import { type Article, normalizeText } from "@uchidai/llm";
-import type { SeriesFailure, SeriesPartInfo } from "../shared/api.ts";
+import type { FetchFailReason, SeriesFailure, SeriesPartInfo } from "../shared/api.ts";
 import { loadArticle } from "./article-source.ts";
 import { ClientError, publicMessage } from "./errors.ts";
 
@@ -97,30 +97,44 @@ export class SeriesFetchError extends ClientError {
 
 export type SeriesDeps = { loadArticle?: typeof loadArticle };
 
+/** 利用者が貼った本文（取得に失敗した公表の代わり）。URL ごと */
+export type SeriesPaste = { url: string; text: string };
+
 /** 失敗の理由を、利用者に見せてよい文にする（ClientError はそのまま、それ以外は一般的な文） */
 function failureMessage(e: unknown): string {
   return e instanceof ClientError ? e.message : publicMessage(e, "取得できませんでした");
+}
+function failureReason(e: unknown): FetchFailReason {
+  return e instanceof ClientError ? (e.reason ?? "other") : "other";
 }
 
 export async function loadSeries(
   urls: string[],
   onError: "fail" | "skip",
   deps: SeriesDeps = {},
+  pastes: readonly SeriesPaste[] = [],
 ): Promise<LoadedSeries> {
   const load = deps.loadArticle ?? loadArticle;
   // 同じ URL を二度渡されても一度だけ読む
   const unique = [...new Set(urls)];
+  const pasted = new Map(pastes.map((p) => [p.url, p.text]));
   const results = await Promise.all(
     unique.map(async (url) => {
       try {
-        return { url, article: await load({ kind: "url", url }) } as const;
+        // 貼られた本文がある URL は、取得に行かずその本文を使う（外部アクセスは増えない）
+        const text = pasted.get(url);
+        const article =
+          text !== undefined
+            ? await load({ kind: "text", text, sourceUrl: url })
+            : await load({ kind: "url", url });
+        return { url, article } as const;
       } catch (e) {
-        return { url, error: failureMessage(e) } as const;
+        return { url, error: failureMessage(e), reason: failureReason(e) } as const;
       }
     }),
   );
   const failures: SeriesFailure[] = results.flatMap((r) =>
-    "error" in r ? [{ url: r.url, message: r.error }] : [],
+    "error" in r ? [{ url: r.url, message: r.error, reason: r.reason ?? "other" }] : [],
   );
   if (failures.length > 0 && (onError === "fail" || failures.length === unique.length)) {
     const head =

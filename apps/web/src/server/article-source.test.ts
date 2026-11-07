@@ -77,6 +77,48 @@ describe("loadArticle（取得の失敗は 400 系の案内）", () => {
     expect(bad.message).toContain("PDF");
   });
 
+  it.each([
+    [403, "forbidden"],
+    [404, "not_found"],
+    [500, "other"],
+  ] as const)(
+    "HTTP %i の失敗には、案内を出し分ける理由 %s が付く（Issue #6）",
+    async (status, reason) => {
+      const fetch = async () => new Response("x", { status });
+      const err = await failure(loadArticle(url("https://news.example/a"), { fetch, lookup }));
+      expect(err.reason).toBe(reason);
+    },
+  );
+
+  it("本文が空は empty、PDF でない・開けないは bad_pdf、本文が短いは thin（Issue #6）", async () => {
+    const empty = async () =>
+      new Response("<html><body></body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    expect(
+      (await failure(loadArticle(url("https://news.example/a"), { fetch: empty, lookup }))).reason,
+    ).toBe("empty");
+    const notPdf = async () =>
+      new Response("<html><body>PDF ではない</body></html>", {
+        status: 200,
+        headers: { "content-type": "application/pdf" },
+      });
+    expect(
+      (await failure(loadArticle(url("https://news.example/a.pdf"), { fetch: notPdf, lookup })))
+        .reason,
+    ).toBe("bad_pdf");
+    const thin = async () =>
+      new Response("<html><body><p>© 2025 Example Corp. All rights reserved.</p></body></html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      });
+    const e = await failure(loadArticle(url("https://news.example/a"), { fetch: thin, lookup }));
+    expect(e.status).toBe(422);
+    expect(e.reason).toBe("thin");
+    expect(e.message).toContain("PDF の版があればその URL");
+  });
+
   it("取得に成功した記事は、題と本文の定型文を除いて返す", async () => {
     const page = `<html><head><title>VPN 経由でランサム被害 - 製造業（1ページ目 / 全1ページ）：Security NEXT</title></head><body><div class="main"><p>Security NEXTでは、最新の情報セキュリティに関するニュースを日刊でお届けしています。</p><p>産業機械を設計する会社は、VPN機器の脆弱性を突かれてランサムウェアに感染したことを明らかにした。サーバのデータが暗号化された。同社は警察に相談し、外部の専門家とともに被害の範囲と侵入の経路を調べている。調査の結果は、分かり次第あらためて公表するとしている。顧客への影響はいまのところ確認されていないという。同社は、サーバの隔離と全従業員のパスワードの変更を済ませ、取引先には個別に事情を説明している。再発を防ぐため、VPN機器の入れ替えと多要素認証の導入も進める方針だ。</p><p>（Security NEXT - 2025/02/18 ）</p></div></body></html>`;
     const fetch = async () =>

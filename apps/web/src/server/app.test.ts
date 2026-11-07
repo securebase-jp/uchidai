@@ -255,6 +255,31 @@ describe("POST /api/case/read", () => {
       else process.env.ANTHROPIC_API_KEY = saved;
     }
   });
+  it("urls の pastes（取得に失敗した公表の代わりに貼った本文）：短い本文は 400、形が合えばキーの確認まで進む", async () => {
+    const saved = process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_API_KEY;
+    try {
+      const urls = ["https://example.test/a", "https://example.test/b"];
+      const short = await json("/api/case/read", {
+        input: { kind: "urls", urls, pastes: [{ url: urls[1], text: "短い" }] },
+      });
+      expect(short.status).toBe(400);
+      const ok = await json("/api/case/read", {
+        input: { kind: "urls", urls, pastes: [{ url: urls[1], text: "あ".repeat(60) }] },
+      });
+      expect(ok.status).toBe(503);
+      const tooMany = await json("/api/case/read", {
+        input: {
+          kind: "urls",
+          urls,
+          pastes: Array.from({ length: 6 }, () => ({ url: urls[1], text: "あ".repeat(60) })),
+        },
+      });
+      expect(tooMany.status).toBe(400);
+    } finally {
+      if (saved !== undefined) process.env.ANTHROPIC_API_KEY = saved;
+    }
+  });
   it("本文が長すぎれば 400、JSON でなければ 400", async () => {
     const res = await json("/api/case/read", {
       input: { kind: "text", text: "x".repeat(300_001) },

@@ -14,6 +14,20 @@ export const MAX_PDF_BASE64_CHARS = 7_000_000;
 /** 同じ事故の複数の公表として一度に読める URL の数 */
 export const MAX_SERIES_URLS = 5;
 
+/**
+ * 記事を取得できなかった理由（画面が案内の一文を出し分ける。判定には使わない）
+ * forbidden＝自動取得を断られた／not_found＝見つからない／empty＝本文が空／thin＝本文が短い／bad_pdf＝PDF でない・開けない
+ */
+export const FetchFailReason = z.enum([
+  "forbidden",
+  "not_found",
+  "empty",
+  "thin",
+  "bad_pdf",
+  "other",
+]);
+export type FetchFailReason = z.infer<typeof FetchFailReason>;
+
 export const CaseInput = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("url"),
@@ -28,6 +42,19 @@ export const CaseInput = z.discriminatedUnion("kind", [
     kind: z.literal("urls"),
     urls: z.array(z.string().url().max(2048)).min(1).max(MAX_SERIES_URLS),
     onError: z.enum(["fail", "skip"]).default("fail"),
+    /**
+     * 取得できなかった公表の代わりに、利用者が貼った本文（URL ごと）。ある URL は取得に行かず、この本文を使う。
+     * 新しい外部アクセスは増えない
+     */
+    pastes: z
+      .array(
+        z.object({
+          url: z.string().url().max(2048),
+          text: z.string().min(40, "記事の本文が短すぎます").max(MAX_ARTICLE_CHARS),
+        }),
+      )
+      .max(MAX_SERIES_URLS)
+      .optional(),
   }),
   z.object({
     kind: z.literal("text"),
@@ -127,7 +154,7 @@ export type SeriesPartInfo = {
   incomplete?: string[];
   truncated?: boolean;
 };
-export type SeriesFailure = { url: string; message: string };
+export type SeriesFailure = { url: string; message: string; reason?: FetchFailReason };
 
 /** POST /api/case/read（kind: "urls"）の応答の series。2 件以上を読めたときだけ付く */
 export type SeriesInfo = {

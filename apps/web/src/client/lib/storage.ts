@@ -4,7 +4,7 @@
  * engine の zod スキーマはブラウザに持ち込まない（engine は fs を読む）ので、画面が触る項目だけをここで見る。
  */
 import { z } from "zod";
-import type { SeriesInfo } from "../../shared/api.ts";
+import type { SeriesFailure, SeriesInfo } from "../../shared/api.ts";
 import type { Case, CompanyProfile } from "./types.ts";
 
 const KEY = "uchidai.profile.v1";
@@ -72,6 +72,7 @@ const SavedCase = z.object({
         quoteSources: z.array(z.unknown()),
       })
       .optional(),
+    fetchFailures: z.array(z.looseObject({ url: z.string(), message: z.string() })).optional(),
   }),
 });
 export type SavedCase = {
@@ -85,6 +86,8 @@ export type SavedCase = {
     readFlags?: ("incomplete" | "short" | "truncated")[];
     /** 同じ事故の複数の公表を 1 件として読んだとき（報の情報、各報の読解、差分の表） */
     series?: SeriesInfo;
+    /** 取得に失敗した公表（読めた分だけで読んだとき） */
+    fetchFailures?: SeriesFailure[];
   };
 };
 

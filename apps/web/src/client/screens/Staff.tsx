@@ -9,6 +9,7 @@ import { ComparisonPanel } from "../components/ComparisonPanel.tsx";
 import { Controls } from "../components/Controls.tsx";
 import { Diagram } from "../components/Diagram.tsx";
 import { EvidencePanel } from "../components/EvidencePanel.tsx";
+import { FetchFailuresPanel } from "../components/FetchFailuresPanel.tsx";
 import { IndustrySwitch } from "../components/IndustrySwitch.tsx";
 import { InfoButton } from "../components/InfoButton.tsx";
 import { MeasurePanel } from "../components/MeasurePanel.tsx";
@@ -324,6 +325,7 @@ export function Staff({ settings }: { settings: Settings }) {
               )}
             </p>
           ))}
+          <FetchFailuresPanel />
         </div>
         <Meters
           clock={clock}

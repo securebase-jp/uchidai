@@ -11,7 +11,7 @@ import {
   isUnreadableThinBody,
 } from "@uchidai/llm";
 import type { z } from "zod";
-import type { ReadRequest } from "../shared/api.ts";
+import type { FetchFailReason, ReadRequest } from "../shared/api.ts";
 import { ClientError } from "./errors.ts";
 import { assertPublicUrl, guardedFetch, type Lookup, pinningFetch } from "./safe-url.ts";
 
@@ -22,7 +22,23 @@ export function toClientError(e: unknown): unknown {
   if (!(e instanceof ArticleFetchError)) return e;
   // 転送先の検査（内部のアドレスなど）で止めたときは、その理由をそのまま見せる
   if (e.cause instanceof ClientError) return e.cause;
-  return new ClientError(400, e.message);
+  return new ClientError(400, e.message, failReasonOf(e.kind));
+}
+
+/** 取得の失敗の種類を、画面が案内を出し分ける理由にする */
+export function failReasonOf(kind: ArticleFetchError["kind"]): FetchFailReason {
+  switch (kind) {
+    case "forbidden":
+      return "forbidden";
+    case "not_found":
+      return "not_found";
+    case "empty":
+      return "empty";
+    case "bad_pdf":
+      return "bad_pdf";
+    default:
+      return "other";
+  }
 }
 
 /** 読解が「対象外・段階なし」だったとき、本文がこれより短ければ、本文が取れていないとみなす文字数 */
@@ -36,6 +52,7 @@ export function thinBodyError(chars: number): ClientError {
   return new ClientError(
     422,
     `本文がほとんど取れませんでした（${chars} 字）。ページが読み込み後に表示される作りか、同意の画面かもしれません。PDF の版があればその URL、または本文を貼ってください`,
+    "thin",
   );
 }
 
