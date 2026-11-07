@@ -45,3 +45,8 @@ kinds:
     roles: [entry.web]
     pinsAsset: true
     readingHintJa: 公開 Web サイト・Web アプリケーション・EC サイトの脆弱性や管理画面からの侵入
+  - id: service-account
+    labelJa: 連携用アカウント・API キー
+    roles: [cloud.saas]
+    pinsAsset: true
+    readingHintJa: クラウドサービスの API キー・アクセストークン・連携用（サービス）アカウントが流出・窃取され、それで正規にアクセスされた侵入。顧客・会員が使うログインへの不正ログインや、社員の ID・パスワードの使い回しは含めない

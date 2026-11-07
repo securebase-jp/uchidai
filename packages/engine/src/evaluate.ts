@@ -48,6 +48,11 @@ export const COVERAGE_GAP_HEADLINE = "カルテの範囲では、この攻撃の
 export const COVERAGE_GAP_NOTE =
   "カルテに、この入口になる資産がありません。登録が足りない可能性があります。クラウドの共有設定などを確認してください。";
 
+/** 入口が書かれておらず、当てはまりが同数の型紙の入口に共通のものが無いとき：どの入口とも言わない */
+export const UNKNOWN_ENTRY_HEADLINE = "入口はまだ分かっていません";
+export const UNKNOWN_ENTRY_NOTE =
+  "記事に入口が書かれておらず、考えられる攻撃の型ごとに入口が違うため、特定の入口を仮に置くことはしていません。入口が分かる続報を待ってください。";
+
 /** 記事の入口の種類に当たる資産がカルテに登録されていないとき：「入口は無い」とは言わない */
 export const entryKindGapHeadline = (kind: Pick<EntryKindDef, "labelJa">): string =>
   `記事の入口（${kind.labelJa}）に当たる資産が、カルテに登録されていません`;
@@ -826,12 +831,28 @@ function evaluateCore(
   const paths: AttackPath[] = [];
   let hasEntry = false;
   let missingEntryKind: EntryKindDef | undefined;
+  const perTemplate: AttackPath[][] = [];
   for (const m of selected) {
     const r = pathsForTemplate(m, theCase, profile, graph, knowledge, contradictions);
-    paths.push(...r.paths);
+    perTemplate.push(r.paths);
     hasEntry ||= r.hasEntry;
     missingEntryKind ??= r.missingEntryKind;
   }
+  // 手法が持ち出しだけなどで当てはまりが同数の型紙が並ぶとき、入口の候補は、入口のある全部の型紙で共通に言える入口だけにする。
+  // 型紙ごとに入口が違えば（VPN・RDP と公開ホームページなど）、どの入口とも言えないので、「分かっていません」と答える（TRIAL-I-004・I-008）
+  const entryRoleOf = (p: AttackPath) => graph.nodes.find((n) => n.id === p.steps[0]?.nodeId)?.role;
+  const withEntry = perTemplate.filter((ps) => ps.length > 0);
+  if (withEntry.length > 1) {
+    const common = withEntry
+      .map((ps) => new Set(ps.map(entryRoleOf)))
+      .reduce((a, b) => new Set([...a].filter((role) => b.has(role))));
+    perTemplate.forEach((ps, i) => {
+      perTemplate[i] = ps.filter((p) => common.has(entryRoleOf(p)));
+    });
+    if (perTemplate.every((ps) => ps.length === 0))
+      return empty("pending", UNKNOWN_ENTRY_HEADLINE, UNKNOWN_ENTRY_NOTE);
+  }
+  paths.push(...perTemplate.flat());
   if (!hasEntry && missingEntryKind) {
     // 記事の入口の種類に当たる資産がカルテに無い。「入口は無い」と断定せず、登録の不足として答える
     // （第三者の事故では、記事の入口は第三者の設備なので、登録の不足とは書かず、第三者の事故の見出しで答える）

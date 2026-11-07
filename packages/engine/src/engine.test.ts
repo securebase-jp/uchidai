@@ -8,6 +8,7 @@ import {
   evaluate,
   matchCaseSteps,
   rankTemplates,
+  selectTemplates,
   UNMAPPED_HEADLINE,
 } from "./evaluate.ts";
 import { buildGraph, isDefaultFrameProfile, profileFromAnswers } from "./graph.ts";
@@ -469,26 +470,26 @@ describe("型紙の選択（被害の型ごとに複数）", () => {
     expect(r[0]?.techniqueMatches).toBe(r[1]?.techniqueMatches);
     expect(r[0]?.template.priority).toBeGreaterThan(r[1]?.template.priority ?? 0);
   });
-  it("入口が不明で当てはまりが同じ型紙が複数なら、型紙ごとの入口候補を全部出し、経路 ID に型紙 ID が入る", () => {
-    const v = evaluate(
-      {
-        title: "x",
-        damageType: "data_breach",
-        clarity: "unknown",
-        suspiciousInstructions: [],
-        steps: [
-          { tactic: "TA0001", techniques: [], source: "unknown" },
-          { tactic: "TA0010", techniques: [], source: "stated" },
-        ],
-      },
-      demo,
-      { knowledge },
-    );
-    const templates = new Set(v.paths.map((p) => p.templateId));
-    expect(templates).toEqual(new Set(["data_breach", "data-breach-intrusion"]));
-    expect(v.paths.every((p) => p.id.startsWith(`${p.templateId}:`))).toBe(true);
+  it("入口が不明で当てはまりが同じ型紙が複数なら、入口のある型紙に共通の入口だけを候補にする。共通が無ければ入口は分かっていないと答える", () => {
+    const unknownEntry: Case = {
+      title: "x",
+      damageType: "data_breach",
+      clarity: "unknown",
+      suspiciousInstructions: [],
+      steps: [
+        { tactic: "TA0001", techniques: [], source: "unknown" },
+        { tactic: "TA0010", techniques: [], source: "stated" },
+      ],
+    };
+    // 当てはまりが同数の型紙は複数並ぶ（社内への侵入、ファイル置き場など）が、入口の役割は型紙ごとに違う
+    const tied = selectTemplates(unknownEntry, knowledge).map((m) => m.template.id);
+    expect(tied).toEqual(expect.arrayContaining(["data_breach", "data-breach-intrusion"]));
+    const v = evaluate(unknownEntry, demo, { knowledge });
+    // VPN・リモートデスクトップなどを、記事の入口のように仮に置かない
+    expect(v.paths).toEqual([]);
+    expect(v.result).toBe("pending");
+    expect(v.headlineJa).toBe("入口はまだ分かっていません");
     expect(v.templateId).toBeUndefined();
-    expect(v.result).toBe("breached");
   });
   it("どの型紙にも対応づけられなければ従来どおり対象外", () => {
     const v = evaluate(
