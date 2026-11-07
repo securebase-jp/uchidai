@@ -79,7 +79,7 @@ describe("続報の差分の表示", () => {
     expect(shared).toContain("前の報から変わったこと");
     expect(shared).toContain("op-has-changes");
     for (const line of data.changes?.summaryJa ?? [])
-      expect(shared).toContain(line.replace(/「/g, "「"));
+      expect(shared).toContain(line);
   });
 
   it("差分の無いリンクから開いた一枚は、差分の節を出さない（従来のリンクと同じ）", async () => {
