@@ -36,3 +36,15 @@ export function publicMessage(err: unknown, fallback = "サーバ側でエラー
   if (m.length > MAX_MESSAGE) m = `${m.slice(0, MAX_MESSAGE - 1)}…`;
   return m;
 }
+
+/** zod の検証エラーを 400 の応答の形にする（項目名だけを出す。入力の値やスタックは出さない） */
+export function zodErrorBody(err: { issues: { path: PropertyKey[]; message: string }[] }): {
+  error: string;
+  details: { path: PropertyKey[]; message: string }[];
+} {
+  const details = err.issues.slice(0, 20).map((i) => ({ path: i.path, message: i.message }));
+  // 画面が原因を案内できるよう、どの項目で落ちたか（zod の path）を日本語の文に含める
+  const where = [...new Set(err.issues.map((i) => i.path.map(String).join(".") || "(全体)"))];
+  const shown = where.slice(0, 3).join("、") + (where.length > 3 ? " ほか" : "");
+  return { error: `入力の形式が正しくありません（項目：${shown}）`, details };
+}

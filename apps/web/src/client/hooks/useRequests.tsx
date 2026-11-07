@@ -5,6 +5,8 @@
  * SSE は別のタブの画面を合わせるためのもの（同じタブの入力は自分で反映し、届いた通知は二重に適用しない）。
  * 画面を開き直しても回答が消えないよう、起動時に回答済みの依頼を同じカルテのぶんだけ適用する。
  * デモモード（?demo=1）では前回の実演の回答を再適用しない（毎回同じ映像にする）。
+ * まとめて確認：親（batches）と質問ごとの子（items の parentId）。返信は質問ごとに判定へ反映し、取り消しは子ごと（retract）と親ごと（deleteBatch）。
+ * 作る操作は実行中の二重押しを受け付けない（singleFlight）。
  */
 import {
   createContext,
@@ -16,14 +18,26 @@ import {
   useRef,
   useState,
 } from "react";
-import type { AnswerEvent, ReplyRequest, RequestView } from "../../shared/requests.ts";
+import type {
+  AnswerEvent,
+  BatchPreviewView,
+  BatchReplyRequest,
+  BatchView,
+  ReplyRequest,
+  RequestView,
+} from "../../shared/requests.ts";
 import { isDemoMode } from "../demo/params.ts";
-import { requestsApi } from "../lib/requestsApi.ts";
+import { singleFlight } from "../lib/batchSelect.ts";
+import { type BatchItems, requestsApi } from "../lib/requestsApi.ts";
 import { useApp } from "./useApp.tsx";
 
 export type RequestsState = {
-  /** いまのカルテの依頼（新しい順） */
+  /** いまのカルテの依頼（新しい順。まとめ依頼の質問（parentId あり）も含む） */
   items: RequestView[];
+  /** いまのカルテのまとめ依頼（新しい順） */
+  batches: BatchView[];
+  /** まとめ依頼を作っている最中 */
+  batchBusy: boolean;
   busyKey: string | undefined;
   error: string | undefined;
   /** 直近に届いた回答（画面で知らせる） */
@@ -34,6 +48,21 @@ export type RequestsState = {
   /** 入力した回答を取り消し、判定を元に戻す。失敗したら理由の文を返す */
   retract(requestId: string): Promise<string | undefined>;
   refresh(): Promise<void>;
+  /** まとめて確認のプレビュー（保存も送信もしない）。失敗したら理由の文を返す */
+  previewBatch(
+    items: BatchItems,
+    to?: string,
+  ): Promise<{ preview: BatchPreviewView } | { error: string }>;
+  /** プレビューで見せた文面のまま、まとめ依頼を作る。実行中の二重押しは undefined。失敗は理由の文 */
+  createBatch(
+    items: BatchItems,
+    preview: BatchPreviewView,
+    to: string,
+  ): Promise<{ batch: BatchView } | { error: string } | undefined>;
+  /** まとめ依頼の返信を入力し、質問ごとに判定へ反映する（全件成功か全件失敗）。失敗は理由の文 */
+  replyBatch(batchId: string, body: BatchReplyRequest): Promise<string | undefined>;
+  /** まとめ依頼を消す（回答済みの質問は判定から外れる）。失敗は理由の文 */
+  deleteBatch(batchId: string): Promise<string | undefined>;
 };
 
 const Ctx = createContext<RequestsState | undefined>(undefined);
@@ -42,6 +71,8 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
   const app = useApp();
   const { profile, addAnswer, removeAnswer } = app;
   const [items, setItems] = useState<RequestView[]>([]);
+  const [batches, setBatches] = useState<BatchView[]>([]);
+  const [batchBusy, setBatchBusy] = useState(false);
   const [busyKey, setBusyKey] = useState<string>();
   const [error, setError] = useState<string>();
   const [lastAnswer, setLastAnswer] = useState<AnswerEvent>();
@@ -53,8 +84,9 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const { items: xs } = await requestsApi.list();
+      const { items: xs, batches: bs } = await requestsApi.list();
       setItems(xs);
+      setBatches(bs ?? []);
       setError(undefined);
     } catch (e) {
       setError(e instanceof Error ? e.message : "送信箱を読めません");
@@ -169,15 +201,122 @@ export function RequestsProvider({ children }: { children: ReactNode }) {
     [profile],
   );
 
+  const previewBatch = useCallback(
+    async (xs: BatchItems, to?: string) => {
+      if (!profile) return { error: "カルテがありません" };
+      try {
+        return { preview: await requestsApi.batchPreview(profile, xs, to) };
+      } catch (e) {
+        return { error: e instanceof Error ? e.message : "プレビューを作れませんでした" };
+      }
+    },
+    [profile],
+  );
+
+  // 二重に押されても、実行中は 1 回だけ（同じ選択の親が 2 件にならない）
+  const createBatch = useMemo(
+    () =>
+      singleFlight(async (xs: BatchItems, preview: BatchPreviewView, to: string) => {
+        if (!profile) return { error: "カルテがありません" };
+        setBatchBusy(true);
+        try {
+          const r = await requestsApi.batchCreate(profile, xs, preview, to);
+          setBatches((bs) => [r.batch, ...bs]);
+          setItems((is) => [...r.items, ...is]);
+          setError(undefined);
+          return { batch: r.batch };
+        } catch (e) {
+          return { error: e instanceof Error ? e.message : "まとめ依頼を作れませんでした" };
+        } finally {
+          setBatchBusy(false);
+        }
+      }),
+    [profile],
+  );
+
+  const replyBatch = useCallback(
+    async (batchId: string, body: BatchReplyRequest) => {
+      try {
+        const r = await requestsApi.batchReply(batchId, body);
+        // 質問ごとに、同じカルテのものだけ判定へ反映する（SSE の通知が先に来ていたら二重にしない）
+        for (const res of r.results) {
+          const it = items.find((x) => x.id === res.requestId);
+          if (it?.profileId === profileId && !applied.current.has(res.requestId)) {
+            applied.current.add(res.requestId);
+            addAnswer(res.answer);
+          }
+        }
+        const updated = r.items;
+        if (updated) setItems((xs) => xs.map((x) => updated.find((u) => u.id === x.id) ?? x));
+        await refresh();
+        return undefined;
+      } catch (e) {
+        return e instanceof Error ? e.message : "回答を入力できませんでした";
+      }
+    },
+    [items, profileId, addAnswer, refresh],
+  );
+
+  const deleteBatch = useCallback(
+    async (batchId: string) => {
+      try {
+        const { retracted } = await requestsApi.batchDelete(batchId);
+        for (const ev of retracted) {
+          if (ev.profileId === profileId && applied.current.delete(ev.requestId))
+            removeAnswer(ev.assetId, ev.mitigation);
+        }
+        await refresh();
+        return undefined;
+      } catch (e) {
+        return e instanceof Error ? e.message : "まとめ依頼を消せませんでした";
+      }
+    },
+    [profileId, removeAnswer, refresh],
+  );
+
   // 画面に出すのは、いまのカルテの依頼だけ（別の会社の依頼を「依頼済み」と見せない）。
   // 保存形式が古く profileId の無い依頼は、どのカルテにも出す
   const visible = useMemo(
     () => items.filter((it) => !it.profileId || it.profileId === profileId),
     [items, profileId],
   );
+  const visibleBatches = useMemo(
+    () => batches.filter((b) => !b.profileId || b.profileId === profileId),
+    [batches, profileId],
+  );
   const value = useMemo<RequestsState>(
-    () => ({ items: visible, busyKey, error, lastAnswer, create, reply, retract, refresh }),
-    [visible, busyKey, error, lastAnswer, create, reply, retract, refresh],
+    () => ({
+      items: visible,
+      batches: visibleBatches,
+      batchBusy,
+      busyKey,
+      error,
+      lastAnswer,
+      create,
+      reply,
+      retract,
+      refresh,
+      previewBatch,
+      createBatch,
+      replyBatch,
+      deleteBatch,
+    }),
+    [
+      visible,
+      visibleBatches,
+      batchBusy,
+      busyKey,
+      error,
+      lastAnswer,
+      create,
+      reply,
+      retract,
+      refresh,
+      previewBatch,
+      createBatch,
+      replyBatch,
+      deleteBatch,
+    ],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

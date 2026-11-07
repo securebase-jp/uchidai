@@ -74,19 +74,31 @@ const DEFAULT_VENDOR = "保守ご担当者";
 const DEFAULT_STAFF = "情報システム担当";
 
 /**
- * プレースホルダを実名に置き換える。
+ * カルテ由来の文字列（会社名、資産名、ベンダー名、担当者名）を、件名・本文に入れられる形にする（SBR-013、BR-002、BR-004）。
+ * - 制御文字（U+0000〜U+001F、U+007F、U+2028、U+2029）と双方向制御（U+202A〜U+202E、U+2066〜U+2069）を取り除く
+ * - {{ と }} は全角に置き換える（差し込んだ名前が、別のプレースホルダとして読まれないように）
+ */
+// biome-ignore lint/suspicious/noControlCharactersInRegex: 制御文字を取り除くのが目的
+const UNSAFE_CHARS = /[\u0000-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g;
+export function sanitizeName(s: string): string {
+  return s.replace(UNSAFE_CHARS, "").replaceAll("{{", "｛｛").replaceAll("}}", "｝｝");
+}
+
+const PLACEHOLDER_RE = /\{\{(company|vendor|asset|staff)\}\}/g;
+
+/**
+ * プレースホルダを実名に置き換える。差し込む名前は無害化し、1 回の置換で同時に入れる（名前の中の文字列が連鎖して置換されない）。
  * 「{{asset}}（社員PC）」のように、置き換えた名前を括弧で言い直した形（社員PC（社員PC））は、名前 1 つにまとめる
  */
 export function fillNames(text: string, names: Names): string {
-  const filled = [
-    [PLACEHOLDERS.company, names.companyLabel],
-    [PLACEHOLDERS.vendor, names.vendorLabel ?? DEFAULT_VENDOR],
-    [PLACEHOLDERS.asset, names.assetLabel],
-    [PLACEHOLDERS.staff, names.staffLabel ?? DEFAULT_STAFF],
-  ] as const;
-  let out = text;
-  for (const [placeholder, name] of filled) out = out.replaceAll(placeholder, name);
-  for (const [, name] of filled) {
+  const map = {
+    company: sanitizeName(names.companyLabel),
+    vendor: sanitizeName(names.vendorLabel ?? DEFAULT_VENDOR),
+    asset: sanitizeName(names.assetLabel),
+    staff: sanitizeName(names.staffLabel ?? DEFAULT_STAFF),
+  } as const;
+  let out = text.replace(PLACEHOLDER_RE, (_m, key: keyof typeof map) => map[key]);
+  for (const name of Object.values(map)) {
     if (name) out = out.replaceAll(`${name}（${name}）`, name);
   }
   return out;
@@ -161,6 +173,57 @@ export function measureRequestTemplate(i: MeasureRequestInput): { subject: strin
     `希望期限：${i.deadline}`,
     "",
     "ご不明な点があればお知らせください。よろしくお願いいたします。",
+    "",
+    "{{company}}　{{staff}}",
+  ].join("\n");
+  return { subject, body };
+}
+
+/** まとめ依頼の 1 問（資産名は無害化して本文に入れる） */
+export type BatchQuestionInput = {
+  assetLabel: string;
+  question: string;
+  choices: string[];
+};
+
+export type BatchRequestInput = {
+  companyLabel: string;
+  vendorLabel?: string | undefined;
+  staffLabel?: string | undefined;
+  questions: BatchQuestionInput[];
+  deadline: string;
+};
+
+/**
+ * 複数の項目を 1 通で聞くメール文（テンプレートのみ。Claude は呼ばない）。
+ * 質問ごとに「■ 質問 k／N」の見出しを付け、選択肢の番号は質問ごとに 1 から振り直す（numberedChoices。質問表の並び順）。
+ * 攻撃の手法 ID と判定の材料は載せない（誤送信しても「弱点の地図」にならないように。SBR-011）。
+ * 返信の書き方の例には具体的な番号を入れない（回答を誘導しない。SBR-009）
+ */
+export function batchRequestTemplate(i: BatchRequestInput): { subject: string; body: string } {
+  const n = i.questions.length;
+  const subject = `【ご確認のお願い】${n} 点のご確認について（{{company}}）`;
+  const blocks = i.questions.flatMap((q, k) => [
+    `■ 質問 ${k + 1}／${n}`,
+    `対象：${sanitizeName(q.assetLabel)}`,
+    q.question,
+    ...numberedChoices(q.choices).map((c) => `${c.number}. ${c.label}`),
+    "",
+  ]);
+  const body = [
+    "{{vendor}} 様",
+    "",
+    "いつもお世話になっております。{{company}} の{{staff}}です。",
+    `報道されたサイバー攻撃が当社でも起こり得るかを確認しており、次の ${n} 点だけ教えてください。`,
+    "",
+    ...blocks,
+    "■ ご回答の方法（このメールへの返信で）",
+    "このメールに返信し、質問ごとに当てはまる番号と、ご回答者のお名前をお書きください。",
+    "例：（質問の番号）：（選択肢の番号）　（お名前）",
+    "",
+    `ご回答の期限：${i.deadline}`,
+    "",
+    "お手数をおかけしますが、よろしくお願いいたします。",
     "",
     "{{company}}　{{staff}}",
   ].join("\n");
@@ -372,4 +435,15 @@ export async function writeMeasureRequest(
       fallbackReasonJa: e instanceof Error ? e.message : String(e),
     });
   }
+}
+
+/** まとめ依頼のメール文（テンプレートのみ）。名前は無害化して差し込む */
+export function writeBatchRequest(input: BatchRequestInput): WrittenMail {
+  const names: Names = {
+    companyLabel: input.companyLabel,
+    vendorLabel: input.vendorLabel,
+    assetLabel: "",
+    staffLabel: input.staffLabel,
+  };
+  return finish(batchRequestTemplate(input), names, { writer: "template" });
 }
