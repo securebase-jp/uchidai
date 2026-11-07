@@ -79,6 +79,7 @@ export const SharedOnePager = z.object({
   fictional: z.boolean(),
   caseTitle: title("事例名"),
   result: VerdictResult,
+  resultWordJa: title("結論の語").optional(),
   headlineJa: title("見出し"),
   whatHappensJa: list(sentence("「何が起きるか」の文"), "「何が起きるか」の文"),
   stopped: list(SharedStopped, "止まる業務"),

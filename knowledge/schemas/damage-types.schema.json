@@ -65,6 +65,30 @@
           "reportsPersonalData": {
             "default": true,
             "type": "boolean"
+          },
+          "noEntry": {
+            "type": "object",
+            "properties": {
+              "headlineJa": {
+                "type": "string"
+              },
+              "shortJa": {
+                "type": "string"
+              },
+              "noteJa": {
+                "type": "string"
+              },
+              "timelineJa": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "headlineJa",
+              "shortJa",
+              "noteJa",
+              "timelineJa"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [

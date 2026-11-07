@@ -232,6 +232,22 @@ export const DamageTypeDef = z.object({
    * 取引先・提供元の停止のように、情報が外に出ない種類は false（報告義務の有無・期限を出さない）
    */
   reportsPersonalData: z.boolean().default(true),
+  /**
+   * 入口が無い（result: no_entry）ときの言い回し。省略は既定の「この攻撃の入口は御社にはありません」。
+   * 取引先・提供元の停止のように、攻撃者が御社に入る事故でない種類は、「入口」の言い方が合わないので、種類ごとに置く
+   */
+  noEntry: z
+    .object({
+      /** 見出し */
+      headlineJa: z.string(),
+      /** 結論の短い呼び名（バッジ、一枚の結論の語） */
+      shortJa: z.string(),
+      /** 画面の説明と、一枚の「何が起きるか」に出す文 */
+      noteJa: z.string(),
+      /** 時間軸が空のときの注記 */
+      timelineJa: z.string(),
+    })
+    .optional(),
 });
 export const DamageTypesFile = z.object({ damageTypes: z.array(DamageTypeDef).min(1) });
 export type DamageTypeDef = z.infer<typeof DamageTypeDef>;

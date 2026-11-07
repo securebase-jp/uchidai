@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { evaluate, rankTemplates, selectTemplates } from "./evaluate.ts";
 import { type Knowledge, loadKnowledge, loadProfile, repoRoot } from "./knowledge.ts";
+import { buildOnePager } from "./onepager.ts";
 import type { Case, CompanyProfile } from "./types.ts";
 
 // 配送を委託した先のランサムウェア被害で、自社のネットストアが止まった（無印良品の読み方：自社は侵入されていない）
@@ -61,6 +62,31 @@ describe("判定", () => {
     expect(v.result).toBe("no_entry");
     expect(v.impact.stopped).toEqual([]);
     expect(v.timeline).toEqual([]);
+  });
+  it("入口なしの見出しは「攻撃の入口」と言わず、侵入されていないことと止まる業務が無いことを書く", () => {
+    const v = evaluate(outage, seiko, { knowledge: k });
+    expect(v.headlineJa).not.toMatch(/入口/);
+    expect(v.headlineJa).toContain("侵入されていません");
+    expect(v.noEntry?.shortJa).toBe("止まる業務なし");
+    expect(v.noEntry?.timelineJa).not.toMatch(/入口/);
+    const op = buildOnePager(v, seiko, k, { caseTitle: outage.title });
+    expect(op.headlineJa).toBe(v.headlineJa);
+    expect(op.resultWordJa).toBe("止まる業務なし");
+    expect(op.whatHappensJa.join("")).not.toMatch(/入口/);
+    expect(op.whatHappensJa.join("")).toContain("取引先・提供元の停止");
+  });
+  it("他の被害の型の入口なしは、従来の見出しのまま（言い換えは取引先・提供元の停止だけ）", () => {
+    const rw: Case = {
+      ...outage,
+      damageType: "account_takeover",
+      steps: [{ tactic: "TA0001", techniques: ["T1078"], source: "stated" }],
+    };
+    const v = evaluate(rw, seiko, { knowledge: k });
+    if (v.result === "no_entry") {
+      expect(v.headlineJa).not.toContain("侵入されていません");
+      expect(v.noEntry).toBeUndefined();
+    }
+    for (const d of k.damageTypes) if (d.id !== "partner_outage") expect(d.noEntry).toBeUndefined();
   });
   it("情報が外に出る事故ではないので、個人情報の報告・本人通知の期限は出ない", () => {
     const v = evaluate(outage, bussan, { knowledge: k });

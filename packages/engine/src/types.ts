@@ -452,6 +452,14 @@ export const Verdict = z.object({
    * その案内（result は pending）。登録が足りない可能性があることと、確認してほしいことを書く
    */
   coverageGapJa: z.string().optional(),
+  /** 結論が no_entry で、被害の種類（damage-types.yaml の noEntry）が「入口」の言い方を変えているときの文言 */
+  noEntry: z
+    .object({
+      shortJa: z.string(),
+      noteJa: z.string(),
+      timelineJa: z.string(),
+    })
+    .optional(),
   paths: z.array(AttackPath),
   contradictions: z.array(Contradiction),
   timeline: z.array(TimelineEvent),

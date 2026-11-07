@@ -783,11 +783,27 @@ function evaluateCore(
   // 型紙を 1 本に絞れたときだけ Verdict に載せる（複数を展開したときは各経路の templateId を見る）
   const single = selected.length === 1 ? selected[0]?.template : undefined;
   const templateFields = single ? { templateId: single.id, templateLabelJa: single.labelJa } : {};
-  const empty = (result: VerdictResult, headlineJa?: string, coverageGapJa?: string): Verdict => ({
+  // 被害の種類が「入口」の言い方を変えているとき（取引先・提供元の停止など）。入口なしの文言だけに使う
+  const noEntry = knowledge.damageTypes.find((d) => d.id === theCase.damageType)?.noEntry;
+  const empty = (
+    result: VerdictResult,
+    headlineJa?: string,
+    coverageGapJa?: string,
+    noEntryWords?: NonNullable<Verdict["noEntry"]> & { headlineJa?: string },
+  ): Verdict => ({
     result,
     headlineJa: headlineJa ?? HEADLINES[result],
     ...templateFields,
     ...(coverageGapJa ? { coverageGapJa } : {}),
+    ...(noEntryWords
+      ? {
+          noEntry: {
+            shortJa: noEntryWords.shortJa,
+            noteJa: noEntryWords.noteJa,
+            timelineJa: noEntryWords.timelineJa,
+          },
+        }
+      : {}),
     paths: [],
     contradictions,
     timeline: [],
@@ -877,7 +893,7 @@ function evaluateCore(
     // 「御社に入口は無い」と断定すると誤って安心させる。詳細に作り込んだカルテでの「入口なし」は変えない
     if (isDefaultFrameProfile(profile, knowledge.patterns, knowledge.sites))
       return empty("pending", COVERAGE_GAP_HEADLINE, COVERAGE_GAP_NOTE);
-    return empty("no_entry");
+    return empty("no_entry", noEntry?.headlineJa, undefined, noEntry);
   }
 
   const result = decideResult(paths);

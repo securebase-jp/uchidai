@@ -166,7 +166,7 @@ export function IndustrySwitch() {
               >
                 <h3>{r.labelJa}</h3>
                 <p className={`result fx-${tone === "ink" ? "ink" : tone}`}>
-                  {RESULT_SHORT[v.result]}
+                  {v.noEntry?.shortJa ?? RESULT_SHORT[v.result]}
                 </p>
                 <p className="small">
                   止まる業務：

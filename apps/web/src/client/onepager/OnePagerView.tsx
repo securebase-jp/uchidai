@@ -209,7 +209,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                 <p className="op-headline">{op.headlineJa}</p>
                 <p className="op-sub">
                   報道と同じ攻撃が、いまの会社の構成に来たら：
-                  <b className="op-word">{RESULT_WORD[op.result]}</b>
+                  <b className="op-word">{op.resultWordJa ?? RESULT_WORD[op.result]}</b>
                 </p>
               </section>
 
