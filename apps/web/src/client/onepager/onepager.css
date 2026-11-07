@@ -292,9 +292,27 @@
   display: block;
 }
 :is(:root.printing, :root.print-preview, .op-capture) .op-changed {
-  font-size: 9pt;
+  /* 1 枚目の余裕は小さい（最小で約 20px）ので、数行に収める：小さめの字、1 文を最大 2 行まで。全文は画面と共有リンクに出る */
+  font-size: 8.5pt;
+  line-height: 1.4;
   margin-top: 1.5mm;
+  padding-top: 0;
+  padding-bottom: 0;
   break-inside: avoid;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-changed b {
+  font-size: 8pt;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-changed span {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+/* 続報の差分を足す一枚は、経路図の高さの上限を下げて、差分の行ぶんを空ける（差分は最大 約 22mm） */
+:is(:root.printing, :root.print-preview, .op-capture) .op-has-changes .op-figure svg.diagram {
+  max-height: 68mm;
 }
 
 .op-biz {
