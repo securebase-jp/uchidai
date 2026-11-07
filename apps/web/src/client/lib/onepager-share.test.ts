@@ -79,6 +79,86 @@ describe("共有リンク（圧縮 → base64url → 展開 → zod）", () => {
     expect(back.ok && back.payload.appliedJa).toEqual([]);
   });
 
+  it("続報の差分（changes）があれば文だけを載せ、往復しても同じ。無ければ 1 バイトも変わらない（TRIAL-I-012）", async () => {
+    const data = await onePagerResponse();
+    const now = new Date("2026-11-03T09:00:00+09:00");
+    const before = await encodeShare(sharePayloadFrom(data, now));
+    // reports の無い一枚：changesJa のキー自体が無く、リンクは従来と同じ
+    expect("changesJa" in sharePayloadFrom(data, now)).toBe(false);
+    expect(await encodeShare(sharePayloadFrom(data, now))).toBe(before);
+    // 差分が空配列でも同じ
+    expect(
+      await encodeShare(
+        sharePayloadFrom({ ...data, changes: { summaryJa: [], transitions: [] } }, now),
+      ),
+    ).toBe(before);
+
+    const summaryJa = [
+      "第2報で、入口が「分かっていません」から「VPN 装置（記載）」に変わっています。",
+      "第3報で、漏えいした情報に「機微な情報」が加わっています。",
+    ];
+    const withChanges: OnePagerResponse = {
+      ...data,
+      changes: {
+        summaryJa,
+        // 各報の比べ方（transitions）は載せない：リンクに入るのは一枚に出す文だけ
+        transitions: [
+          { fromLabel: "第1報", toLabel: "第2報", changesJa: ["記事の本文には無い印"] },
+        ],
+      },
+    };
+    const payload = sharePayloadFrom(withChanges, now);
+    expect(payload.changesJa).toEqual(summaryJa);
+    const d = await encodeShare(payload);
+    expect(d.length).toBeLessThan(8000);
+    const back = await decodeShare(d);
+    expect(back.ok && back.payload.changesJa).toEqual(summaryJa);
+    expect(back.ok && back.payload).toEqual(payload);
+    // 差分を足しても、各報の読解や遷移の中身は URL に入らない
+    const json = JSON.stringify(payload);
+    expect(json).not.toContain("記事の本文には無い印");
+    expect(Object.keys(JSON.parse(json))).not.toEqual(
+      expect.arrayContaining(["reports", "transitions", "changes"]),
+    );
+    expect(json).not.toContain('"transitions"');
+    expect(json).not.toContain('"reports"');
+  });
+
+  it("changesJa は 2 文まで、長い文は検証の上限に収める。3 文や長すぎる文の手書きリンクは断る", async () => {
+    const data = await onePagerResponse();
+    const long = "あ".repeat(LIMITS.sentence + 500);
+    const payload = sharePayloadFrom({
+      ...data,
+      changes: { summaryJa: ["一つ目。", long, "三つ目。"], transitions: [] },
+    });
+    expect(payload.changesJa).toHaveLength(2);
+    expect(payload.changesJa?.[1]).toHaveLength(LIMITS.sentence);
+    expect((await decodeShare(await encodeShare(payload))).ok).toBe(true);
+    const encodeRaw = async (value: unknown) => {
+      const bytes = new TextEncoder().encode(JSON.stringify(value));
+      const piped = new Blob([bytes as BlobPart])
+        .stream()
+        .pipeThrough(new CompressionStream("deflate"));
+      return toBase64Url(new Uint8Array(await new Response(piped).arrayBuffer()));
+    };
+    const three = await decodeShare(await encodeRaw({ ...payload, changesJa: ["a", "b", "c"] }));
+    expect(!three.ok && three.reasonJa).toContain("changesJa");
+    const tooLong = await decodeShare(await encodeRaw({ ...payload, changesJa: [long] }));
+    expect(!tooLong.ok && tooLong.reasonJa).toContain("長すぎます");
+  });
+
+  it("changesJa の無い従来のリンクも開ける（版は 1 のまま）", async () => {
+    const data = await onePagerResponse();
+    const { changesJa: _omit, ...legacy } = { ...sharePayloadFrom(data), changesJa: undefined };
+    const piped = new Blob([new TextEncoder().encode(JSON.stringify(legacy)) as BlobPart])
+      .stream()
+      .pipeThrough(new CompressionStream("deflate"));
+    const d = toBase64Url(new Uint8Array(await new Response(piped).arrayBuffer()));
+    const back = await decodeShare(d);
+    expect(back.ok).toBe(true);
+    expect(SHARE_VERSION).toBe(1);
+  });
+
   it("壊れたリンクは落ちずに日本語の理由を返す", async () => {
     const bad = (r: Awaited<ReturnType<typeof decodeShare>>) => (r.ok ? "" : r.reasonJa);
     expect(bad(await decodeShare(""))).toContain("壊れています");

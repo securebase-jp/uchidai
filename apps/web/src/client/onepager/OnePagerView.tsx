@@ -92,6 +92,7 @@ export function viewDataFromShare(p: SharePayload): OnePagerViewData {
     generatedAt: Number.isNaN(t) ? new Date() : new Date(t),
     fromShare: true,
     ...(p.entryUnknown ? { entryUnknown: true } : {}),
+    ...(p.changesJa && p.changesJa.length > 0 ? { changesJa: p.changesJa } : {}),
   };
 }
 
@@ -122,6 +123,8 @@ export function OnePagerView({ data, measureLabel }: Props) {
   // 経路図の無い一枚（共有リンク）は 1 枚目が短いので改ページを固定せず、節の途中で切れない範囲で続けて流す
   const hasMoney = op.revenueImpactJpy !== undefined || op.moneyLossJpy !== undefined;
   const pageBreak = (first: boolean) => (diagram && first ? " op-pb" : "");
+  // 前の報から変わったこと（続報があるときだけ）。印刷では 1 枚目に数行足すので、経路図を少し小さくして 2 ページに収める
+  const hasChanges = (data.changesJa?.length ?? 0) > 0;
 
   return (
     <table className="op-sheet" role="presentation">
@@ -141,7 +144,10 @@ export function OnePagerView({ data, measureLabel }: Props) {
       <tbody>
         <tr>
           <td>
-            <article className={`op-paper tone-${tone}`} lang="ja">
+            <article
+              className={`op-paper tone-${tone}${hasChanges ? " op-has-changes" : ""}`}
+              lang="ja"
+            >
               <header className="op-head">
                 <div className="op-kicker">
                   <span className="op-mono">社長向けの一枚</span>
@@ -186,7 +192,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                     <li key={line}>{line}</li>
                   ))}
                 </ol>
-                {data.changesJa && data.changesJa.length > 0 && (
+                {hasChanges && data.changesJa && (
                   <p className="op-changed">
                     <b>前の報から変わったこと</b>
                     {data.changesJa.map((line) => (

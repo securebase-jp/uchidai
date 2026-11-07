@@ -22,6 +22,8 @@ export const SHARE_VERSION = 1;
 export const MAX_SHARE_CHARS = 64 * 1024;
 /** 展開後の JSON の上限（バイト）。これを超えたら展開を途中で止める */
 export const MAX_INFLATED_BYTES = 1024 * 1024;
+/** 共有リンクに載せる「前の報から変わったこと」の文の数の上限（compareSeries の要約は最大 2 文） */
+export const MAX_CHANGES_LINES = 2;
 /** 文字列と配列の上限（見出し、文、配列の件数） */
 export const LIMITS = { title: 300, sentence: 2_000, items: 50 } as const;
 
@@ -113,6 +115,11 @@ export const SharePayload = z.object({
   generatedAt: title("作成日時"),
   /** 記事に入口が書かれておらず、型紙の入口候補で判定した一枚（省略時は false。古いリンクも開ける） */
   entryUnknown: z.boolean().optional(),
+  /**
+   * 同じ事故の複数の報を読んだ一枚：「前の報から変わったこと」の文（1〜2 文。プログラムが決定的に比べた固定の文）。
+   * 載せるのは文だけ。記事の本文、URL、各報の読解は入れない。省略時は無し（古いリンクも開ける）
+   */
+  changesJa: z.array(sentence("前の報から変わったこと")).max(MAX_CHANGES_LINES).optional(),
 });
 export type SharePayload = z.infer<typeof SharePayload>;
 
@@ -122,6 +129,10 @@ export function sharePayloadFrom(
   now: Date = new Date(),
   opts: { entryUnknown?: boolean } = {},
 ): SharePayload {
+  // 変わったことは文だけを載せる（各報の読解や記事の本文は載せない）。長さは検証の上限に収める
+  const changes = (data.changes?.summaryJa ?? [])
+    .slice(0, MAX_CHANGES_LINES)
+    .map((line) => line.slice(0, LIMITS.sentence));
   return {
     v: SHARE_VERSION,
     onePager: toSharedOnePager(data.onePager),
@@ -134,6 +145,7 @@ export function sharePayloadFrom(
     attackVersion: data.verdict.attackVersion,
     generatedAt: now.toISOString(),
     ...(opts.entryUnknown ? { entryUnknown: true } : {}),
+    ...(changes.length > 0 ? { changesJa: changes } : {}),
   };
 }
 
