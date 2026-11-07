@@ -1,7 +1,7 @@
 /**
  * v0.1.4 前のセキュリティ診断（docs/security-review-v0.1.4-2026-11-07.md）で足した試験（判定の知識まわり）。
  * - 確かめて問題なかったことは it で固定する
- * - 見つけた問題（DL-001）は、望ましい振る舞いを it.fails で書く（現状は失敗する。直したら it に戻す）
+ * - 見つけた問題（DL-001）は直したので it で固定する
  * Claude は呼ばない。入力はすべて架空（デモのカルテ）
  */
 import { join } from "node:path";
@@ -30,7 +30,7 @@ const breach: Case = {
 };
 
 describe("DL-001（低）取引先への通知の期限が、一枚では「契約で定められた期限」の 0 日目として出る", () => {
-  it("現状：時間軸の詳細には「要確認」があるが、社長向けの一枚の期限には詳細が載らない", () => {
+  it("時間軸の詳細にも「要確認」がある（一枚の期限は、詳細ではなく見出しで示す）", () => {
     const v = evaluate(breach, seiko, { knowledge: k });
     const e = v.timeline.find((x) => x.deadlineId === "partner-notice-breach");
     expect(e?.day).toBe(0);
@@ -38,13 +38,22 @@ describe("DL-001（低）取引先への通知の期限が、一枚では「契�
     const op = buildOnePager(v, seiko, k, { caseTitle: breach.title });
     const d = op.deadlines.find((x) => x.deadlineId === "partner-notice-breach");
     expect(d?.day).toBe(0);
-    expect(d?.labelJa).toBe("取引先への通知（契約で定められた期限）");
+    expect(d?.labelJa).toContain("取引先への通知（契約で定められた期限）");
   });
-  it.fails("一枚の期限の見出しに、日数が目安（契約の確認を始める日）であることが出る", () => {
+  it("DL-001：一枚の期限の見出しに「要確認」が出て、出典は会社カルテではなく契約書（要確認）になる", () => {
     const v = evaluate(breach, seiko, { knowledge: k });
     const op = buildOnePager(v, seiko, k, { caseTitle: breach.title });
     const d = op.deadlines.find((x) => x.deadlineId === "partner-notice-breach");
-    expect(d?.labelJa).toMatch(/目安|要確認/);
+    expect(d?.labelJa).toBe("取引先への通知（契約で定められた期限）（要確認）");
+    expect(d?.sourceJa).toBe("契約書（要確認）");
+  });
+  it("DL-001：確定している期限（警察、送金の組み戻し）の見出しと出典は変わらない", () => {
+    const v = evaluate(breach, seiko, { knowledge: k });
+    const op = buildOnePager(v, seiko, k, { caseTitle: breach.title });
+    const police = op.deadlines.find((x) => x.deadlineId === "police");
+    expect(police?.labelJa).toMatch(/（目安）$/);
+    expect(police?.labelJa).not.toContain("要確認");
+    expect(police?.sourceJa).not.toContain("契約書");
   });
 });
 

@@ -1,16 +1,17 @@
 /**
  * v0.1.4 前のセキュリティ診断（docs/security-review-v0.1.4-2026-11-07.md）で足した試験（サーバ側）。
  * - 確かめて問題なかったことは it で固定する
- * - 見つけた問題（PS-001、LG-001、LG-002、SR-001）は、望ましい振る舞いを it.fails で書く（現状は失敗する。直したら it に戻す）
+ * - 見つけた問題のうち、直したもの（PS-001、LG-001、LG-002、SR-001）は it。直していないもの（WR-001）は it.fails で固定する
  * app.request と差し替えた loadArticle／readCase だけを使い、外へ出る通信はしない。Claude は呼ばない
  */
 import { type readCase, wrapArticle } from "@uchidai/llm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CaseInput, MAX_ARTICLE_CHARS } from "../shared/api.ts";
+import { CaseInput, isHttpProtocol, MAX_ARTICLE_CHARS } from "../shared/api.ts";
 import { app } from "./app.ts";
 import { loadArticle } from "./article-source.ts";
 import { ClientError, logError, redactUrls } from "./errors.ts";
 import { resetClaudeLimits } from "./limits.ts";
+import { checkPublicUrl } from "./safe-url.ts";
 import { readSeries } from "./series-read.ts";
 import { loadSeries } from "./series-source.ts";
 
@@ -95,12 +96,35 @@ describe("PS（Issue #6）貼り付けの扱い：確かめて問題なかった
 
 describe("PS-001（低）貼り付けの URL と sourceUrl は、http(s) 以外のスキームも通る", () => {
   const bad = "javascript:alert(document.domain)";
-  it("現状：貼り付けの URL は検査されず、そのまま報の URL として応答に載る（取得には行かない）", async () => {
+  it("貼り付けの URL の検査を通らなくても、loadSeries 自体は取得に行かない（入口の検査は下の 2 本）", async () => {
     const { load } = spyLoader();
     const r = await loadSeries([bad], "fail", { loadArticle: load }, [{ url: bad, text: BODY }]);
     expect(r.parts[0]?.url).toBe(bad);
   });
-  it.fails("貼り付けの URL は http(s) だけを受ける", () => {
+  it("PS-001：http と https は通り、javascript:・file:・data:・ftp: は断る（urls と url も）", () => {
+    for (const u of ["http://a.example/x", "https://a.example/x?y=1"]) {
+      expect(CaseInput.safeParse({ kind: "url", url: u }).success).toBe(true);
+      expect(CaseInput.safeParse({ kind: "text", text: BODY, sourceUrl: u }).success).toBe(true);
+    }
+    for (const u of [
+      "javascript:alert(1)",
+      "file:///etc/passwd",
+      "data:text/html,x",
+      "ftp://a.example/x",
+    ]) {
+      expect(CaseInput.safeParse({ kind: "url", url: u }).success).toBe(false);
+      expect(CaseInput.safeParse({ kind: "urls", urls: [u] }).success).toBe(false);
+      expect(CaseInput.safeParse({ kind: "pdf", dataBase64: "AAAA", sourceUrl: u }).success).toBe(
+        false,
+      );
+    }
+  });
+  it("PS-001：取得経路の判定（checkPublicUrl）と同じスキームの判定を共有している", () => {
+    expect(isHttpProtocol("https:")).toBe(true);
+    expect(isHttpProtocol("javascript:")).toBe(false);
+    expect(checkPublicUrl("javascript:alert(1)")).toMatch(/http か https/);
+  });
+  it("貼り付けの URL は http(s) だけを受ける", () => {
     const r = CaseInput.safeParse({
       kind: "urls",
       urls: [bad],
@@ -108,7 +132,7 @@ describe("PS-001（低）貼り付けの URL と sourceUrl は、http(s) 以外�
     });
     expect(r.success).toBe(false);
   });
-  it.fails("本文・PDF の sourceUrl も http(s) だけを受ける", () => {
+  it("本文・PDF の sourceUrl も http(s) だけを受ける", () => {
     expect(CaseInput.safeParse({ kind: "text", text: BODY, sourceUrl: bad }).success).toBe(false);
   });
 });
@@ -160,7 +184,7 @@ describe("SR-001（情報・既存）系列の各報の読解の失敗が、整�
     if (text.includes("【第1報")) return { value: ok, raw: ok, model: "fake" };
     throw new Error("読解に失敗: /Users/someone/work/key.json ANTHROPIC_API_KEY=abc123xyz");
   }) as unknown as typeof readCase;
-  it.fails("readErrors の message に、サーバのパスや環境変数の値を出さない（publicMessage を通す）", async () => {
+  it("SR-001 readErrors の message に、サーバのパスや環境変数の値を出さない（publicMessage を通す）", async () => {
     const { load } = spyLoader();
     const { series } = await readSeries(
       [URL_A, URL_B],
@@ -200,13 +224,48 @@ describe("LG（Issue #1）ログの URL の伏せ", () => {
       spy.mockRestore();
     }
   });
-  it.fails("LG-001（低）URL のパスに ) があっても、そのあとのクエリ（トークン）まで伏せる", () => {
+  it("LG-001（低）URL のパスに ) があっても、そのあとのクエリ（トークン）まで伏せる", () => {
     expect(redactUrls("fail https://h.example/wiki/A_(b)?token=SECRET")).not.toContain("SECRET");
   });
-  it.fails("LG-001（低）IPv6 のアドレスの URL も、パスとクエリを伏せる", () => {
+  it("LG-001（低）IPv6 のアドレスの URL も、パスとクエリを伏せる", () => {
     expect(redactUrls("fail http://[2001:db8::1]:8080/p?token=SECRET")).not.toContain("SECRET");
   });
-  it.fails("LG-002（情報）長い「a.a.a…」の文を、100 ms 以内に処理する（いまは長さの 2 乗で伸びる）", () => {
+  it("LG-001（低）診断書の表の入力（引用符、IPv6、スキームなし、//）をすべて伏せる。文は変えない", () => {
+    const cases = [
+      `x https://h.example/a'b?token=SECRET y`,
+      `x https://h.example/a"?token=SECRET y`,
+      `x http://[2001:db8::1]:8080/p?token=SECRET y`,
+      `x www.example.com/secret?token=SECRET y`,
+      `x //cdn.example/x?k=SECRET y`,
+      `x (see https://h.example/wiki/A_(b)?token=SECRET) y`,
+      `x https://u:pw@[::1]/p?token=SECRET y`,
+    ];
+    for (const c of cases) expect(redactUrls(c), c).not.toMatch(/SECRET|pw@/);
+    expect(redactUrls("x http://[2001:db8::1]:8080/p?token=SECRET y")).toBe(
+      "x http://[2001:db8::1]:8080/[省略] y",
+    );
+    expect(redactUrls("(see https://h.example/a?t=S).")).toBe("(see https://h.example/[省略]).");
+    // URL らしくない文・パス・ホストだけの URL は変えない
+    for (const t of [
+      "ただの文です。 // コメント",
+      "at /usr//lib/x.js:10:5",
+      "a/b//c.d と www だけ",
+      "https://h.example",
+      "see https://h.example.",
+      "version 1.2.3, www.example.com です",
+      "src/a.ts:12 Error: boom",
+    ])
+      expect(redactUrls(t), t).toBe(t);
+  });
+  it("LG-002（情報）スキームの名前に上限があり、www.・// も含めて長い入力で伸び方が線形", () => {
+    for (const unit of ["a.", "www.", "//a.", "a://[", "a:/"]) {
+      const s = unit.repeat(40_000);
+      const t0 = performance.now();
+      redactUrls(s);
+      expect(performance.now() - t0, unit).toBeLessThan(500);
+    }
+  });
+  it("LG-002（情報）長い「a.a.a…」の文を、100 ms 以内に処理する（いまは長さの 2 乗で伸びる）", () => {
     const s = "a.".repeat(30_000);
     const t0 = performance.now();
     redactUrls(s);

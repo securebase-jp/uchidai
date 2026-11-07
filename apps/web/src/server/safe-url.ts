@@ -13,6 +13,7 @@
 import { lookup as dnsLookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { isPrivateIp, lookupFetch, proxyFetch } from "@uchidai/llm";
+import { isHttpProtocol } from "../shared/api.ts";
 import { ClientError } from "./errors.ts";
 
 export type Lookup = (hostname: string) => Promise<string[]>;
@@ -51,8 +52,7 @@ export function checkPublicUrl(raw: string): string | undefined {
   } catch {
     return "URL の形式が正しくありません";
   }
-  if (u.protocol !== "http:" && u.protocol !== "https:")
-    return "記事の URL は http か https だけ受け付けます";
+  if (!isHttpProtocol(u.protocol)) return "記事の URL は http か https だけ受け付けます";
   if (u.username || u.password) return "ユーザー名やパスワードを含む URL は受け付けません";
   const host = u.hostname.toLowerCase().replace(/\.$/, "");
   if (!host) return "URL にホスト名がありません";

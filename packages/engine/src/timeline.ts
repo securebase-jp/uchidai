@@ -17,6 +17,8 @@ export type TimelineOptions = {
   leakedKinds?: string[];
 };
 
+/** 契約の通知条項が出典の期限（日数は契約ごとに異なり、カルテには登録されていない） */
+const UNVERIFIED_CONTRACT_SOURCE = "契約書（要確認）";
 const PROFILE_SOURCE = "会社カルテ（手作業で回せる日数、復旧にかかる日数）";
 
 function sourceName(deadlines: DeadlinesFile, id: string): string | undefined {
@@ -179,7 +181,18 @@ export function buildTimeline(
       }
       case "damage_type": {
         if (!damageType || !d.damageTypes?.includes(damageType) || d.days === undefined) break;
-        push({ ...base, day: d.days, labelJa: d.labelJa, detailJa: d.basisJa });
+        // 確認できていない期限（unverified）は、一枚が読む labelJa に「（要確認）」を付ける。
+        // 出典が会社カルテのときは、カルテに登録された値ではないので「契約書（要確認）」とする（DL-001）
+        const unverified = d.status === "unverified";
+        push({
+          ...base,
+          ...(unverified && d.sourceId === "profile"
+            ? { sourceJa: UNVERIFIED_CONTRACT_SOURCE }
+            : {}),
+          day: d.days,
+          labelJa: unverified ? `${d.labelJa}（要確認）` : d.labelJa,
+          detailJa: d.basisJa,
+        });
         break;
       }
       case "police":
