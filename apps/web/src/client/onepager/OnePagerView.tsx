@@ -4,6 +4,7 @@
  * 共有リンク（内容を URL に載せた形）から開いたときは、経路図（構成グラフが要る）だけ無い一枚になる。
  */
 
+import { useEffect, useRef } from "react";
 import { SourceRef } from "../components/SourceRef.tsx";
 import type { OnePagerResponse } from "../lib/api.ts";
 import { RESULT_TONE, yen } from "../lib/labels.ts";
@@ -19,7 +20,9 @@ import type {
   Verdict,
 } from "../lib/types.ts";
 import { DeadlineAxis } from "./DeadlineAxis.tsx";
+import { cutPoints, type FitList } from "./fit.ts";
 import { StaticDiagram } from "./StaticDiagram.tsx";
+import { fitSheet } from "./sheet-layout.ts";
 import { sourceNumbers, sourceTitle } from "./source-numbers.ts";
 import "./onepager.css";
 
@@ -108,8 +111,43 @@ type Props = {
   measureLabel?: (mitigation: string) => string;
 };
 
+/**
+ * 印刷・PDF で項目を切るときの「ほか N 件」。切る位置ごとに 1 つ置き、どれを出すかは詰め方の段（fit.ts、onepager.css）が決める。
+ * 画面では出さない（全部の項目が見える）
+ */
+function MoreItems({ list, total }: { list: FitList; total: number }) {
+  return (
+    <>
+      {cutPoints(list, total).map((keep) => (
+        <li key={keep} className="op-more" data-keep={keep}>
+          ほか {total - keep} 件
+        </li>
+      ))}
+    </>
+  );
+}
+
 export function OnePagerView({ data, measureLabel }: Props) {
   const { onePager: op, diagram, generatedAt } = data;
+  // 2 ページに収まる詰め方の段を、描いたあとに測って紙へ付ける（印刷・PDF の規則だけが読む。画面の見た目は変わらない）
+  const sheetRef = useRef<HTMLTableElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 一枚の内容（data）が変わったときに測り直す
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    let alive = true;
+    void (async () => {
+      try {
+        await document.fonts.ready;
+        if (alive) await fitSheet(sheet);
+      } catch {
+        // 測れなくても、段 0（従来の印刷）のまま
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [data]);
   const tone = RESULT_TONE[op.result];
   const maxDays = Math.max(1, ...op.stopped.map((s) => s.days));
   const deadlines = [...op.deadlines].sort((a, b) => a.day - b.day);
@@ -127,7 +165,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
   const hasChanges = (data.changesJa?.length ?? 0) > 0;
 
   return (
-    <table className="op-sheet" role="presentation">
+    <table className="op-sheet" role="presentation" ref={sheetRef}>
       <thead>
         <tr>
           <td>
@@ -191,6 +229,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                   {op.whatHappensJa.map((line) => (
                     <li key={line}>{line}</li>
                   ))}
+                  <MoreItems list="lines" total={op.whatHappensJa.length} />
                 </ol>
                 {hasChanges && data.changesJa && (
                   <p className="op-changed">
@@ -231,6 +270,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                         </p>
                       </li>
                     ))}
+                    <MoreItems list="stopped" total={op.stopped.length} />
                   </ul>
                 )}
                 {op.partnerImpactJa && <p className="op-note">{op.partnerImpactJa}</p>}
@@ -291,6 +331,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                           </li>
                         );
                       })}
+                      <MoreItems list="deadlines" total={deadlines.length} />
                     </ol>
                   </>
                 )}
@@ -336,6 +377,7 @@ export function OnePagerView({ data, measureLabel }: Props) {
                         {m.requestToJa && <p className="op-card-to">依頼先：{m.requestToJa}</p>}
                       </li>
                     ))}
+                    <MoreItems list="measures" total={op.measures.length} />
                   </ul>
                 )}
               </section>
