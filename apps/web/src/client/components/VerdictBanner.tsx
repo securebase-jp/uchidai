@@ -195,7 +195,8 @@ export function summary(v: Verdict, plain: boolean, graph?: Graph): string {
   if (v.result === "blocked") parts.push("データは流れ続け、現場は動き続けます");
   if (v.coverageGapJa) parts.push(v.coverageGapJa);
   else if (v.result === "pending") parts.push("未確認の項目を確認すると結論が決まります");
-  if (v.result === "no_entry" && !v.coverageGapJa)
+  if (v.result === "no_entry" && v.noEntry) parts.push(v.noEntry.noteJa.replace(/。$/, ""));
+  else if (v.result === "no_entry" && !v.coverageGapJa)
     parts.push("この事例の入口になる構成が御社にありません");
   return parts.join("。");
 }

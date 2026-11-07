@@ -58,6 +58,8 @@ export const OnePager = z.object({
   fictional: z.boolean(),
   caseTitle: z.string(),
   result: VerdictResult,
+  /** 結論の語を言い換えるとき（入口なしを、被害の種類に合う言い方にする。省略は結論ごとの既定） */
+  resultWordJa: z.string().optional(),
   headlineJa: z.string(),
   /** 何が起きるか（専門用語・ID なしの文） */
   whatHappensJa: z.array(z.string()),
@@ -198,6 +200,7 @@ export const NO_TRACE_SENTENCE = "痕跡は確認されていませんが、な�
 function emptyPathLines(verdict: Verdict): string[] {
   if (verdict.guidanceJa) return verdict.guidanceJa;
   if (verdict.coverageGapJa) return [verdict.coverageGapJa];
+  if (verdict.result === "no_entry" && verdict.noEntry) return [verdict.noEntry.noteJa];
   if (verdict.result === "no_entry")
     return ["この攻撃が入る入口は、登録されたカルテにありません。"];
   if (verdict.result === "out_of_scope")
@@ -485,6 +488,9 @@ export function buildOnePager(
     fictional: profile.fictional,
     caseTitle: options.caseTitle ?? "",
     result: verdict.result,
+    ...(verdict.result === "no_entry" && verdict.noEntry
+      ? { resultWordJa: verdict.noEntry.shortJa }
+      : {}),
     headlineJa: verdict.headlineJa,
     whatHappensJa: whatHappens.map(stripIds),
     stopped,

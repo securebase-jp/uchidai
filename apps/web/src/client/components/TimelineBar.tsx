@@ -89,7 +89,8 @@ export function TimelineBar({ view, verdict, profile, day, concluded, reduced }:
               : verdict.coverageGapJa
                 ? "カルテに入口になる資産が無く、業務への影響と期限は計算していません"
                 : verdict.result === "no_entry"
-                  ? "この攻撃の入口が無いため、業務への影響と期限は発生しません"
+                  ? (verdict.noEntry?.timelineJa ??
+                    "この攻撃の入口が無いため、業務への影響と期限は発生しません")
                   : "この経路では業務への影響と期限は発生しません"}
           </span>
         )}
