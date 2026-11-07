@@ -768,6 +768,182 @@
   display: none;
 }
 
+/*
+ * 2 ページに収める詰め方の段（印刷・PDF だけ。画面は何も隠さない）。fit.ts が測って、紙（.op-paper）の
+ * data-fit-a（1 枚目）と data-fit-b（2 枚目）に 1〜3 を付ける。無ければ段 0（従来のまま）。
+ * 段が上がるほど、見せる項目の上限が下がり（残りは「ほか N 件」）、経路図が小さくなる。上限の数は fit.ts の KEEP と同じ（試験で照合）。
+ * 判定・数字は変えない。隠すのは項目の表示だけで、画面とカルテには全部残る
+ */
+.op-paper li.op-more {
+  display: none;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper .op-more {
+  list-style: none;
+  font-size: 8.5pt;
+  line-height: 1.4;
+  color: #5a6275;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-lines > .op-more {
+  margin: 1mm 0;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-cards > .op-more {
+  grid-column: 1 / -1;
+}
+
+/* 1 枚目 a：何が起きるか（6 → 4 → 3 件）、止まる業務（段 2 から 3 件）、経路図 */
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="1"]
+  .op-lines
+  > li:nth-child(n + 7):not(.op-more),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="2"]
+  .op-lines
+  > li:nth-child(n + 5):not(.op-more),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="3"]
+  .op-lines
+  > li:nth-child(n + 4):not(.op-more),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="2"]
+  .op-biz
+  > li:nth-child(n + 4):not(.op-more),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="3"]
+  .op-biz
+  > li:nth-child(n + 4):not(.op-more) {
+  display: none;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="1"]
+  .op-lines
+  > .op-more[data-keep="6"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="2"]
+  .op-lines
+  > .op-more[data-keep="4"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="3"]
+  .op-lines
+  > .op-more[data-keep="3"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="2"]
+  .op-biz
+  > .op-more[data-keep="3"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="3"]
+  .op-biz
+  > .op-more[data-keep="3"] {
+  display: list-item;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="2"]
+  .op-figure
+  svg.diagram {
+  max-height: 72mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-a="3"]
+  .op-figure
+  svg.diagram {
+  max-height: 60mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper.op-has-changes[data-fit-a="2"]
+  .op-figure
+  svg.diagram {
+  max-height: 66mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper.op-has-changes[data-fit-a="3"]
+  .op-figure
+  svg.diagram {
+  max-height: 60mm;
+}
+
+/* 段 3：何が起きるかの字を小さくし、結論の見出しも一回り小さくする */
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-lines {
+  font-size: 8.5pt;
+  line-height: 1.4;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-lines li {
+  margin: 0.6mm 0;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-headline {
+  font-size: 16pt;
+}
+
+/* 段 2 から止まる業務を詰める：字を小さく、行間と棒の余白を減らす */
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="2"] .op-biz,
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-biz {
+  gap: 1.2mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="2"] .op-biz-name,
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-biz-name {
+  font-size: 10pt;
+  line-height: 1.3;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="2"] .op-biz-days b,
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-biz-days b {
+  font-size: 13pt;
+  line-height: 1.2;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="2"] .op-bar,
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-bar {
+  margin: 2px 0;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="2"] .op-biz-note,
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-a="3"] .op-biz-note {
+  font-size: 8pt;
+  line-height: 1.3;
+}
+
+/* 2 枚目 b：対策（6 → 4 件。効くところの行は段 1 から省く）、期限（段 3 で 4 件） */
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="1"]
+  .op-cards
+  > .op-card:nth-child(n + 7),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="2"]
+  .op-cards
+  > .op-card:nth-child(n + 5),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="3"]
+  .op-cards
+  > .op-card:nth-child(n + 5),
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="3"]
+  .op-spine
+  > li:nth-child(n + 5):not(.op-more) {
+  display: none;
+}
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="1"]
+  .op-cards
+  > .op-more[data-keep="6"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="2"]
+  .op-cards
+  > .op-more[data-keep="4"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="3"]
+  .op-cards
+  > .op-more[data-keep="4"],
+:is(:root.printing, :root.print-preview, .op-capture)
+  .op-paper[data-fit-b="3"]
+  .op-spine
+  > .op-more[data-keep="4"] {
+  display: list-item;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-b] .op-card-stage {
+  display: none;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-b] .op-cards {
+  gap: 2mm 3mm;
+}
+:is(:root.printing, :root.print-preview, .op-capture) .op-paper[data-fit-b] .op-card {
+  padding: 1.5mm 3mm;
+}
+
 /* 画面で確かめる：黒い画面の上に A4 の白い紙（余白 15mm を含む）を置く。2 枚目の始まりに破線 */
 :root.print-preview .onepager {
   gap: 10px;

@@ -8,20 +8,26 @@
  * 重いライブラリ（html-to-image、jsPDF）はボタンを押したときだけ読み込む。
  */
 import type { Options } from "html-to-image/lib/types";
-import { packPages, parseUnicodeRange, rangeCoversAny } from "./pdf-layout.ts";
+import { parseUnicodeRange, rangeCoversAny } from "./pdf-layout.ts";
+import {
+  captureHost,
+  el,
+  fitSheet,
+  MARGIN,
+  measurePages,
+  PAGE_H,
+  PAGE_W,
+  PdfExportError,
+  paperWith,
+} from "./sheet-layout.ts";
 
-/** A4 を 96dpi の px で（210mm × 297mm） */
-const PAGE_W = 794;
-const PAGE_H = 1123;
-/** 余白 15mm（印刷の @page と同じ） */
-const MARGIN = Math.round((15 * 96) / 25.4);
 /** 画像化の倍率。2 倍で約 192dpi（紙面 150dpi 以上） */
 const PIXEL_RATIO = 2;
 /** JPEG の品質。PNG に比べて jsPDF が速く（PNG は取り込みに 5 秒ほどかかった）、文字の縁も読める */
 const JPEG_QUALITY = 0.95;
 const FONT_FAMILIES = new Set(["BIZ UDPGothic", "BIZ UDPMincho", "JetBrains Mono"]);
 
-export class PdfExportError extends Error {}
+export { PdfExportError };
 
 const fontDataCache = new Map<string, Promise<string>>();
 
@@ -96,24 +102,6 @@ async function buildFontEmbedCss(text: string): Promise<string> {
   return (await Promise.all(jobs)).join("\n");
 }
 
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className: string,
-  style: Partial<CSSStyleDeclaration> = {},
-): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  e.className = className;
-  Object.assign(e.style, style);
-  return e;
-}
-
-/** 紙（.op-paper）の外枠だけを複製し、指定した節だけを入れる */
-function paperWith(paper: HTMLElement, children: Element[]): HTMLElement {
-  const copy = paper.cloneNode(false) as HTMLElement;
-  for (const c of children) copy.append(c.cloneNode(true));
-  return copy;
-}
-
 /** 経路図（インライン SVG）の見た目は CSS のクラスで決まっているが、画像化した文書にはそのクラスが届かない。計算後の値を style に写す */
 const SVG_PROPS = [
   "fill",
@@ -159,44 +147,10 @@ type Built = { host: HTMLElement; pages: HTMLElement[] };
 
 /** 画面の外に A4 のページを組む。節の高さは、実際に並べて測る */
 async function buildPages(sheet: HTMLElement): Promise<Built> {
-  const paper = sheet.querySelector<HTMLElement>(".op-paper");
-  const headRun = sheet.querySelector<HTMLElement>(".op-run-head");
-  const footRun = sheet.querySelector<HTMLElement>(".op-run-foot");
-  if (!paper || !headRun || !footRun) throw new PdfExportError("一枚の紙が見つかりません");
-
-  // 画面の外に置く（visibility や display を変えると、画像化で消えてしまう）
-  const host = el("div", "op-capture", {
-    position: "fixed",
-    left: "-10000px",
-    top: "0",
-    width: `${PAGE_W}px`,
-    pointerEvents: "none",
-  });
-  host.setAttribute("aria-hidden", "true");
-  document.body.append(host);
-
-  const inner = PAGE_W - 2 * MARGIN;
-  const measure = el("div", "", { width: `${inner}px` });
-  const sections = Array.from(paper.children);
-  measure.append(headRun.cloneNode(true), paperWith(paper, sections), footRun.cloneNode(true));
-  host.append(measure);
-  await document.fonts.ready;
-  const [mHead, mPaper, mFoot] = Array.from(measure.children) as HTMLElement[];
-  if (!mHead || !mPaper || !mFoot) throw new PdfExportError("ページを組めませんでした");
-  const rects = Array.from(mPaper.children).map((c) => c.getBoundingClientRect());
-  // 節の間の隙間も節に含める（次の節の上端までを、その節の高さとする）
-  const heights = rects.map((r, i) => (rects[i + 1]?.top ?? r.bottom) - r.top);
-  const running = mHead.getBoundingClientRect().height + mFoot.getBoundingClientRect().height;
-  const available = PAGE_H - 2 * MARGIN - running;
-  host.removeChild(measure);
-
-  const groups = packPages(
-    sections.map((s, i) => ({
-      height: heights[i] ?? 0,
-      breakBefore: s.classList.contains("op-pb"),
-    })),
-    available,
-  );
+  // 2 ページに収まる詰め方の段を決めてから組む（段は紙の属性で、複製したページにも写る）
+  await fitSheet(sheet);
+  const host = captureHost();
+  const { paper, headRun, footRun, sections, groups } = await measurePages(host, sheet);
 
   const pages = groups.map((idx, n) => {
     const page = el("div", "op-capture-page", {
