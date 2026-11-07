@@ -2,13 +2,18 @@
  * API のエラー応答。利用者に見せる文言だけを返し、スタック・内部パス・環境変数・キーの断片は出さない。
  */
 
+import type { FetchFailReason } from "../shared/api.ts";
+
 /** 入力の問題（400 系）。message はそのまま画面に出してよい日本語 */
 export class ClientError extends Error {
   readonly status: 400 | 403 | 404 | 413 | 422 | 429 | 503;
-  constructor(status: ClientError["status"], message: string) {
+  /** 記事を取得できなかった理由（画面が案内を出し分ける） */
+  readonly reason: FetchFailReason | undefined;
+  constructor(status: ClientError["status"], message: string, reason?: FetchFailReason) {
     super(message);
     this.name = "ClientError";
     this.status = status;
+    this.reason = reason;
   }
 }
 

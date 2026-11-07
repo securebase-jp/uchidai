@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { AnswerInput, SeriesInfo } from "../../shared/api.ts";
+import type { AnswerInput, SeriesFailure, SeriesInfo } from "../../shared/api.ts";
 import {
   ApiError,
   api,
@@ -39,6 +39,8 @@ export type CaseMeta = {
   readFlags?: ReadFlag[];
   /** 同じ事故の複数の公表を 1 件として読んだとき：報の情報、各報の読解、差分の表（担当者画面と一枚に使う） */
   series?: SeriesInfo;
+  /** 取得に失敗した公表（読めた分だけで読んだとき）。URL ごとに本文を貼って差し替えられるよう、担当者画面に一覧で残す */
+  fetchFailures?: SeriesFailure[];
 };
 
 export type AppState = {

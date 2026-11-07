@@ -44,7 +44,7 @@ import { reconRoutes } from "./routes/recon.ts";
 import { requestRoutes } from "./routes/requests.ts";
 import { sameOriginGuard } from "./same-origin.ts";
 import { readSeries } from "./series-read.ts";
-import { SeriesFetchError } from "./series-source.ts";
+import { SeriesFetchError, type SeriesPaste } from "./series-source.ts";
 
 const SafeId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 
@@ -86,7 +86,11 @@ app.onError((err, c) => {
     return c.json({ error: err.message, failures: err.failures }, err.status);
   if (err instanceof RateLimitError)
     return c.json({ error: err.message }, 429, { "retry-after": String(err.retryAfterSec) });
-  if (err instanceof ClientError) return c.json({ error: err.message }, err.status);
+  if (err instanceof ClientError)
+    return c.json(
+      { error: err.message, ...(err.reason ? { reason: err.reason } : {}) },
+      err.status,
+    );
   if (err instanceof z.ZodError) return c.json(zodErrorBody(err), 400);
   if (err instanceof SyntaxError)
     return c.json({ error: "入力の形式が正しくありません（JSON として読めません）" }, 400);
@@ -245,8 +249,12 @@ app.get("/api/case/recorded/:caseId", (c) => {
 });
 
 /** 同じ事故の複数の公表を 1 件として読んだ応答（単一の記事の応答と同じ形に、series を足す） */
-async function readSeriesResponse(urls: string[], onError: "fail" | "skip") {
-  const { merged, loaded, series } = await readSeries(urls, onError);
+async function readSeriesResponse(
+  urls: string[],
+  onError: "fail" | "skip",
+  pastes: SeriesPaste[] = [],
+) {
+  const { merged, loaded, series } = await readSeries(urls, onError, {}, pastes);
   const first = loaded.parts[0];
   const incomplete = [...new Set(loaded.parts.flatMap((p) => p.incomplete ?? []))];
   return {
@@ -279,7 +287,8 @@ app.post("/api/case/read", async (c) => {
   }
   // 1 分あたりの読解の回数（SEC-006）。urls の複数の読解も 1 回と数える
   takeClaudeSlot("read");
-  if (input.kind === "urls") return c.json(await readSeriesResponse(input.urls, input.onError));
+  if (input.kind === "urls")
+    return c.json(await readSeriesResponse(input.urls, input.onError, input.pastes));
   const article = await loadArticle(input);
   const k = loadKnowledge();
   const knowledge: ReadKnowledge = { labels: k.labels, templates: k.templates };

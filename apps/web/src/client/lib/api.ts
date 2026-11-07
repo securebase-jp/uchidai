@@ -3,6 +3,7 @@ import type {
   AnswerInput,
   CaseInput,
   ControlQuestion,
+  FetchFailReason,
   Question,
   SeriesFailure,
   SeriesInfo,
@@ -98,14 +99,40 @@ export type OnePagerResponse = {
   };
 };
 
+/** POST /api/case/read の応答 */
+export type ReadResponse = {
+  case: Case;
+  report: unknown;
+  article: {
+    title?: string;
+    sourceUrl?: string;
+    /** 本文が途中で切れていそうな理由（会員向けの案内、末尾が見出し、など） */
+    incomplete?: string[];
+    truncated?: boolean;
+  };
+  model: string;
+  /** kind: "urls" で 2 件以上を読めたときだけ：報の情報、各報の読解、差分の表 */
+  series?: SeriesInfo;
+  /** kind: "urls" で 1 件だけ残った（skip）とき：取得に失敗した公表 */
+  failures?: SeriesFailure[];
+};
+
 export class ApiError extends Error {
   readonly status: number;
   /** 複数の公表を読んで取得に失敗したとき：どの URL がなぜ失敗したか */
   readonly failures: SeriesFailure[] | undefined;
-  constructor(status: number, message: string, failures?: SeriesFailure[]) {
+  /** 記事を取得できなかった理由（案内の出し分けに使う） */
+  readonly reason: FetchFailReason | undefined;
+  constructor(
+    status: number,
+    message: string,
+    failures?: SeriesFailure[],
+    reason?: FetchFailReason,
+  ) {
     super(message);
     this.status = status;
     this.failures = failures;
+    this.reason = reason;
   }
 }
 
@@ -117,9 +144,15 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const body = (await res.json().catch(() => ({}))) as {
     error?: string;
     failures?: SeriesFailure[];
+    reason?: FetchFailReason;
   };
   if (!res.ok)
-    throw new ApiError(res.status, body.error ?? `API エラー（${res.status}）`, body.failures);
+    throw new ApiError(
+      res.status,
+      body.error ?? `API エラー（${res.status}）`,
+      body.failures,
+      body.reason,
+    );
   return body as T;
 }
 const post = <T>(path: string, body: unknown) =>
@@ -135,23 +168,7 @@ export const api = {
     call<{ items: { caseId: string; title: string; damageType: string }[] }>("/api/case/recorded"),
   recorded: (id: string) =>
     call<{ case: Case; meta: RecordedCaseMeta }>(`/api/case/recorded/${id}`),
-  read: (input: CaseInput) =>
-    post<{
-      case: Case;
-      report: unknown;
-      article: {
-        title?: string;
-        sourceUrl?: string;
-        /** 本文が途中で切れていそうな理由（会員向けの案内、末尾が見出し、など） */
-        incomplete?: string[];
-        truncated?: boolean;
-      };
-      model: string;
-      /** kind: "urls" で 2 件以上を読めたときだけ：報の情報、各報の読解、差分の表 */
-      series?: SeriesInfo;
-      /** kind: "urls" で 1 件だけ残った（skip）とき：取得に失敗した公表 */
-      failures?: SeriesFailure[];
-    }>("/api/case/read", { input }),
+  read: (input: CaseInput) => post<ReadResponse>("/api/case/read", { input }),
   /** profileId を渡すと同じ会社のカルテとして作り直す（無ければ新しい会社として新しい ID が付く） */
   fromAnswers: (answers: ProfileAnswers, companyName?: string, profileId?: string) =>
     post<{ profile: CompanyProfile; graph: Graph }>("/api/profile/from-answers", {

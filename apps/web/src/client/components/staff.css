@@ -886,3 +886,12 @@ table.series-table td.changed {
 .coll-body {
   margin-top: 8px;
 }
+
+/* 取得に失敗した公表の一覧（担当者画面、記事の入力） */
+.fetch-failures-panel {
+  margin-top: 8px;
+  max-width: 640px;
+}
+.fetch-failures .series-failures li + li {
+  margin-top: 8px;
+}

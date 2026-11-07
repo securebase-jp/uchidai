@@ -619,7 +619,7 @@ function finishText(article: Article): Article {
   if (!text)
     throw new ArticleFetchError(
       "empty",
-      "記事の本文を取り出せませんでした（本文が空です）。本文のある URL か、本文を貼り付けてください",
+      "記事の本文を取り出せませんでした（本文が空です）。PDF の版があればその URL、または本文を貼り付けてください",
     );
   if (text.length > MAX_TEXT_CHARS)
     return { ...article, text: text.slice(0, MAX_TEXT_CHARS), truncated: true };

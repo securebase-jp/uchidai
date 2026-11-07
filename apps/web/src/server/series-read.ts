@@ -29,6 +29,7 @@ import {
   type SeriesDeps,
   type SeriesFailure,
   type SeriesPart,
+  type SeriesPaste,
 } from "./series-source.ts";
 
 export type SeriesReadDeps = SeriesDeps & { readCase?: typeof readCase };
@@ -69,9 +70,10 @@ export async function readSeries(
   urls: string[],
   onError: "fail" | "skip",
   deps: SeriesReadDeps = {},
+  pastes: readonly SeriesPaste[] = [],
 ) {
   const k = loadKnowledge();
-  const loaded = await loadSeries(urls, onError, deps);
+  const loaded = await loadSeries(urls, onError, deps, pastes);
   const first = loaded.parts[0];
   if (!first) throw new Error("公表が 1 件も読み込まれませんでした");
   const meta: { url?: string; title?: string } = { url: first.url };

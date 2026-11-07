@@ -3,14 +3,16 @@
  * はじめにの段 4 と、上部バーの「記事を貼る…」の吹き出しの両方がこの部品を使う。
  * 読み込みに成功したら事例にして（setCase、担当者が選んだ事例）、担当者画面へ移る
  */
-import { useState } from "react";
-import { MAX_SERIES_URLS, type SeriesFailure } from "../../shared/api.ts";
+import { useEffect, useRef, useState } from "react";
+import { type FetchFailReason, MAX_SERIES_URLS, type SeriesFailure } from "../../shared/api.ts";
 import { useApp } from "../hooks/useApp.tsx";
 import { useReadAvailable } from "../hooks/useReadAvailable.ts";
 import { ApiError, api } from "../lib/api.ts";
 import { DAMAGE_LABEL } from "../lib/company-choices.ts";
+import { fetchFailureGuide, pastesFor } from "../lib/fetch-failure.ts";
 import { readUnavailable } from "../lib/read-available.ts";
-import { readFlagsOf } from "../lib/read-notices.ts";
+import { caseMetaFromRead } from "../lib/read-result.ts";
+import { FetchFailures } from "./FetchFailures.tsx";
 import { InfoButton } from "./InfoButton.tsx";
 
 /** PDF の上限（API の base64 上限 28,000,000 文字に収まる大きさ） */
@@ -50,11 +52,20 @@ export function ArticleInput({ recorded, onDone }: Props) {
   const [text, setText] = useState("");
   const [pdfName, setPdfName] = useState<string>();
   const [reading, setReading] = useState<"url" | "text" | "pdf">();
+  // 取得に失敗した公表の代わりに貼った本文（URL ごと）
+  const [pastes, setPastes] = useState<Record<string, string>>({});
+  // 本文の欄へ移したら、そこへフォーカスを移す（取得に失敗して「本文を貼って読む」を押したとき）
+  const textBox = useRef<HTMLTextAreaElement>(null);
+  const [focusText, setFocusText] = useState(false);
+  // 本文として読むとき、出所として付ける URL（取得に失敗した URL。入力済みの URL は残す）
+  const [textSource, setTextSource] = useState<string>();
   const [readError, setReadError] = useState<{
     message: string;
     keyMissing: boolean;
     /** 記事を取得できなかった（URL・PDF）。本文を貼って読む入口を添える */
     canPaste: boolean;
+    /** 取得できなかった理由（案内の一文を出し分ける） */
+    reason?: FetchFailReason;
     /** 複数の公表を読んで取得に失敗したもの（どの URL がなぜか） */
     failures?: SeriesFailure[];
   }>();
@@ -66,6 +77,14 @@ export function ArticleInput({ recorded, onDone }: Props) {
   const busy = reading !== undefined;
   const panelId = "article-tab-panel";
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 欄が現れたとき（tab、focusText が変わったとき）だけ移す
+  useEffect(() => {
+    if (focusText && tab === "text") {
+      textBox.current?.focus();
+      setFocusText(false);
+    }
+  }, [focusText, tab]);
+
   async function read(kind: "url" | "text" | "pdf", pdf?: File, onError: "fail" | "skip" = "fail") {
     setReading(kind);
     setReadError(undefined);
@@ -73,22 +92,20 @@ export function ArticleInput({ recorded, onDone }: Props) {
       const input =
         kind === "url"
           ? filledUrls.length > 1
-            ? ({ kind: "urls", urls: filledUrls, onError } as const)
+            ? ({
+                kind: "urls",
+                urls: filledUrls,
+                onError,
+                ...(pastesFor(pastes, filledUrls).length > 0
+                  ? { pastes: pastesFor(pastes, filledUrls) }
+                  : {}),
+              } as const)
             : ({ kind: "url", url: filledUrls[0] ?? "" } as const)
           : kind === "text"
-            ? ({ kind: "text", text } as const)
+            ? ({ kind: "text", text, ...(textSource ? { sourceUrl: textSource } : {}) } as const)
             : ({ kind: "pdf", dataBase64: toBase64(await (pdf as File).arrayBuffer()) } as const);
       const r = await api.read(input);
-      const readFlags = readFlagsOf(r.article);
-      app.setCase(r.case, {
-        label: r.case.title,
-        sourceJa: r.series
-          ? `Claude が ${r.series.parts.length} 件の公表を${r.series.order === "date" ? "日付順に" : "指定した順に"}読解（${r.model}）`
-          : `Claude が記事を読解（${r.model}）`,
-        ...(r.article.sourceUrl ? { sourceUrl: r.article.sourceUrl } : {}),
-        ...(readFlags.length > 0 ? { readFlags } : {}),
-        ...(r.series ? { series: r.series } : {}),
-      });
+      app.setCase(r.case, caseMetaFromRead(r));
       location.hash = "/staff";
       onDone?.();
     } catch (e) {
@@ -99,6 +116,7 @@ export function ArticleInput({ recorded, onDone }: Props) {
         keyMissing,
         // 取得できなかった記事（404、ログインや有料の壁、タイムアウトなど）は 400 で返る。本文を貼れば取得を介さずに読める
         canPaste: kind !== "text" && e instanceof ApiError && e.status === 400,
+        ...(e instanceof ApiError && e.reason ? { reason: e.reason } : {}),
         ...(e instanceof ApiError && e.failures ? { failures: e.failures } : {}),
       });
       if (keyMissing) readUnavailable.save();
@@ -213,6 +231,7 @@ export function ArticleInput({ recorded, onDone }: Props) {
           <div className="stack">
             <textarea
               className="in"
+              ref={textBox}
               placeholder="記事の本文を貼り付け（40 文字以上）"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -279,13 +298,27 @@ export function ArticleInput({ recorded, onDone }: Props) {
             <p className="err small">{readError.message}</p>
             {readError.failures && readError.failures.length > 0 && (
               <>
-                <ul className="small series-failures">
-                  {readError.failures.map((f) => (
-                    <li key={f.url}>
-                      <code>{f.url}</code>　{f.message}
-                    </li>
-                  ))}
-                </ul>
+                <FetchFailures
+                  failures={readError.failures}
+                  pastes={pastes}
+                  onPaste={(url, t) => setPastes({ ...pastes, [url]: t })}
+                  disabled={busy}
+                />
+                {pastesFor(
+                  pastes,
+                  readError.failures.map((f) => f.url),
+                ).length > 0 && (
+                  <p className="small row" style={{ marginTop: 6 }}>
+                    <button
+                      type="button"
+                      className="btn sm primary"
+                      disabled={busy}
+                      onClick={() => void read("url", undefined, "skip")}
+                    >
+                      貼った本文も入れて読む
+                    </button>
+                  </p>
+                )}
                 {readError.failures.length < filledUrls.length && (
                   <p className="small row" style={{ marginTop: 6 }}>
                     <button
@@ -300,19 +333,30 @@ export function ArticleInput({ recorded, onDone }: Props) {
                 )}
               </>
             )}
-            {readError.canPaste && (
-              <p className="small row" style={{ marginTop: 6 }}>
-                <button
-                  type="button"
-                  className="btn sm"
-                  onClick={() => {
-                    setPicked("text");
-                    setReadError(undefined);
-                  }}
-                >
-                  本文を貼って読む
-                </button>
-              </p>
+            {readError.canPaste && !readError.failures && (
+              <div className="small" style={{ marginTop: 6 }}>
+                <p className="muted">{fetchFailureGuide(readError.reason).textJa}</p>
+                <div className="row" style={{ marginTop: 6 }}>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    onClick={() => {
+                      // 入力済みの URL は残し、本文の欄へ切り替えてフォーカスする。URL が 1 件なら出所として付ける
+                      setTextSource(filledUrls.length === 1 ? filledUrls[0] : undefined);
+                      setPicked("text");
+                      setFocusText(true);
+                      setReadError(undefined);
+                    }}
+                  >
+                    本文を貼って読む
+                  </button>
+                  <InfoButton title="取得できなかったとき">
+                    {fetchFailureGuide(readError.reason).detailJa.map((t) => (
+                      <p key={t}>{t}</p>
+                    ))}
+                  </InfoButton>
+                </div>
+              </div>
             )}
             {readError.keyMissing && (
               <p className="small row" style={{ marginTop: 6 }}>
