@@ -10,6 +10,10 @@
 import { type HintStore, parseHints, personalHints } from "./choice-hints.ts";
 import { kevHints, parseKevHints } from "./kevHints.ts";
 import { staffName } from "./profile.ts";
+
+/** 担当者名の上限。返信の入力の enteredBy（サーバで 80 字まで）と同じ。超える名前は復元しない（BK-001） */
+const MAX_STAFF_NAME = 80;
+
 import { jsonDepth, MAX_DEPTH, MAX_FILE_CHARS, parseProfileFile } from "./profile-file.ts";
 import { parseReconHints, reconHints } from "./reconHints.ts";
 import { parseSavedCase, storage } from "./storage.ts";
@@ -193,7 +197,7 @@ export function parseBackupFile(text: string): ParsedBackup {
     }
   }
   if (s.staffName !== undefined) {
-    if (typeof s.staffName === "string" && s.staffName.length <= 200)
+    if (typeof s.staffName === "string" && s.staffName.length <= MAX_STAFF_NAME)
       take("staffName", s.staffName);
     else skip("staffName", "文字列ではないか、長すぎます");
   }

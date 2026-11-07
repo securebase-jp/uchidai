@@ -175,10 +175,13 @@ export const BatchRequestBody = z.object({
   items: z.array(BatchItemInput).min(1).max(100),
   to: z.string().max(200).email("宛先は 1 件のメールアドレスの形で入力してください").optional(),
   deadline: z.string().max(40).optional(),
-  /** プレビューで見せた本文。作るときに、いまの本文と違えば 409（見た文面と送る文面を同じにする） */
-  expectText: z.string().max(60_000).optional(),
+  /** プレビューで見せた本文（必須）。作るときに、いまの本文と違えば 409（見た文面と送る文面を同じにする。API を直接叩く場合も確認を省けない） */
+  expectText: z.string().max(60_000),
 });
 export type BatchRequestBody = z.infer<typeof BatchRequestBody>;
+/** プレビューは本文を作る側なので、expectText は要らない */
+export const BatchPreviewBody = BatchRequestBody.omit({ expectText: true });
+export type BatchPreviewBody = z.infer<typeof BatchPreviewBody>;
 
 export type BatchPreviewView = {
   to?: string;
