@@ -23,6 +23,7 @@ import {
 } from "@uchidai/llm";
 import type { SeriesInfo } from "../shared/api.ts";
 import { isThinReading, thinBodyError } from "./article-source.ts";
+import { publicMessage } from "./errors.ts";
 import {
   loadSeries,
   quoteSources,
@@ -94,7 +95,7 @@ export async function readSeries(
             (r) => ({ ok: true as const, case: r.verified.case }),
             (e: unknown) => ({
               ok: false as const,
-              message: e instanceof Error ? e.message : "読解に失敗しました",
+              message: publicMessage(e, "読解に失敗しました"),
             }),
           ),
         )),

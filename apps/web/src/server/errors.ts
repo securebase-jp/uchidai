@@ -54,16 +54,51 @@ export function zodErrorBody(err: { issues: { path: PropertyKey[]; message: stri
   return { error: `入力の形式が正しくありません（項目：${shown}）`, details };
 }
 
-/** ログに出す URL：ホスト名だけ残し、ユーザー情報・パス・クエリ・フラグメントを伏せる（SEC-015） */
-const URL_LIKE = /\b([a-z][a-z0-9+.-]*):\/\/([^\s/?#'"<>)\]]*)([^\s'"<>)\]]*)/gi;
+/**
+ * ログに出す URL：ホスト名だけ残し、ユーザー情報・パス・クエリ・フラグメントを伏せる（SEC-015、LG-001）。
+ * 3 つの形を、それぞれ 1 回の走査で伏せる（どの形も開始位置からの走査に上限があり、長い入力でも長さに比例する。LG-002）
+ *   1. スキームつき（https://…。IPv6 の [..] のホストも）
+ *   2. スキームなしの // で始まるもの（//cdn.example/x）
+ *   3. スキームなしの www. で始まるもの（www.example.com/x）
+ * パスの ) や引用符で止めず、空白と <> まで伏せる。URL のあとにつく句読点・閉じ括弧・引用符だけは残す
+ */
+const IPV6_HOST = String.raw`\[[^\]\s/]{0,64}\](?::\d{1,5})?`;
+const URL_SCHEME_LIKE = new RegExp(
+  String.raw`\b([a-z][a-z0-9+.-]{0,30}):\/\/(${IPV6_HOST}|[^\s/?#'"<>)]*)([^\s<>]*)`,
+  "gi",
+);
+const URL_SLASH_LIKE = new RegExp(
+  String.raw`(?<![\w:/.@-])\/\/(?:[^\s/?#@<>'"]{0,100}@)?(${IPV6_HOST}|[\w-]{1,63}(?:\.[\w-]{1,63}){1,10}(?::\d{1,5})?)([^\s<>]*)`,
+  "gi",
+);
+const URL_WWW_LIKE =
+  /(?<![\w:/.@-])(www\.[\w-]{1,63}(?:\.[\w-]{1,63}){0,10}(?::\d{1,5})?)([/?#][^\s<>]*)/gi;
+/** URL のあとにつく文の記号。ここは伏せずに残す（URL の一部とは見なさない） */
+const AFTER_URL = new Set([..."()]}'\".,;:!?、。」』）"]);
+
+/** ホストのあとに続く部分を「/[省略]」にする。末尾の記号だけは残す */
+function redactRest(rest: string): string {
+  let end = rest.length;
+  while (end > 0 && AFTER_URL.has(rest[end - 1] as string)) end--;
+  return (end > 0 ? "/[省略]" : "") + rest.slice(end);
+}
+
+function hostOf(authority: string): string {
+  return authority.includes("@") ? authority.slice(authority.lastIndexOf("@") + 1) : authority;
+}
 
 export function redactUrls(text: string): string {
-  return text.replace(URL_LIKE, (_m, scheme: string, authority: string, rest: string) => {
-    const host = authority.includes("@")
-      ? authority.slice(authority.lastIndexOf("@") + 1)
-      : authority;
-    return `${scheme}://${host}${rest ? "/[省略]" : ""}`;
-  });
+  return text
+    .replace(
+      URL_SCHEME_LIKE,
+      (_m, scheme: string, authority: string, rest: string) =>
+        `${scheme}://${hostOf(authority)}${redactRest(rest)}`,
+    )
+    .replace(
+      URL_SLASH_LIKE,
+      (_m, authority: string, rest: string) => `//${authority}${redactRest(rest)}`,
+    )
+    .replace(URL_WWW_LIKE, (_m, host: string, rest: string) => `${host}${redactRest(rest)}`);
 }
 
 function errorText(err: unknown, depth = 0): string {

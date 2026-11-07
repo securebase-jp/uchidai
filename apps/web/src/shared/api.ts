@@ -28,10 +28,31 @@ export const FetchFailReason = z.enum([
 ]);
 export type FetchFailReason = z.infer<typeof FetchFailReason>;
 
+/** 記事の URL として受けてよいスキーム（http と https だけ）。取得経路の確認（safe-url.ts）も同じ判定を使う（PS-001） */
+export function isHttpProtocol(protocol: string): boolean {
+  return protocol === "http:" || protocol === "https:";
+}
+
+/** http(s) の URL だけ（javascript:・file:・data: などは入力の時点で断る） */
+const HttpUrl = z
+  .string()
+  .max(2048)
+  .url()
+  .refine(
+    (v) => {
+      try {
+        return isHttpProtocol(new URL(v).protocol);
+      } catch {
+        return false;
+      }
+    },
+    { message: "URL は http か https だけ受け付けます" },
+  );
+
 export const CaseInput = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("url"),
-    url: z.string().url().max(2048),
+    url: HttpUrl,
     pages: z.string().max(64).optional(),
   }),
   /**
@@ -40,7 +61,7 @@ export const CaseInput = z.discriminatedUnion("kind", [
    */
   z.object({
     kind: z.literal("urls"),
-    urls: z.array(z.string().url().max(2048)).min(1).max(MAX_SERIES_URLS),
+    urls: z.array(HttpUrl).min(1).max(MAX_SERIES_URLS),
     onError: z.enum(["fail", "skip"]).default("fail"),
     /**
      * 取得できなかった公表の代わりに、利用者が貼った本文（URL ごと）。ある URL は取得に行かず、この本文を使う。
@@ -49,7 +70,7 @@ export const CaseInput = z.discriminatedUnion("kind", [
     pastes: z
       .array(
         z.object({
-          url: z.string().url().max(2048),
+          url: HttpUrl,
           text: z.string().min(40, "記事の本文が短すぎます").max(MAX_ARTICLE_CHARS),
         }),
       )
@@ -60,13 +81,13 @@ export const CaseInput = z.discriminatedUnion("kind", [
     kind: z.literal("text"),
     text: z.string().min(40, "記事の本文が短すぎます").max(MAX_ARTICLE_CHARS),
     title: z.string().max(300).optional(),
-    sourceUrl: z.string().url().max(2048).optional(),
+    sourceUrl: HttpUrl.optional(),
   }),
   z.object({
     kind: z.literal("pdf"),
     dataBase64: z.string().min(1).max(MAX_PDF_BASE64_CHARS),
     pages: z.string().max(64).optional(),
-    sourceUrl: z.string().url().max(2048).optional(),
+    sourceUrl: HttpUrl.optional(),
   }),
 ]);
 export type CaseInput = z.infer<typeof CaseInput>;
