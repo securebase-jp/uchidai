@@ -60,6 +60,10 @@
             "default": false,
             "type": "boolean"
           },
+          "fromPartner": {
+            "default": false,
+            "type": "boolean"
+          },
           "precondition": {
             "default": false,
             "type": "boolean"
@@ -136,6 +140,7 @@
           "labelJa",
           "tactics",
           "entry",
+          "fromPartner",
           "precondition",
           "human",
           "optional",

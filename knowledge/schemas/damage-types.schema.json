@@ -61,6 +61,10 @@
           "stopsOperations": {
             "default": true,
             "type": "boolean"
+          },
+          "reportsPersonalData": {
+            "default": true,
+            "type": "boolean"
           }
         },
         "required": [
@@ -70,7 +74,8 @@
           "readingHintJa",
           "day0",
           "reachesMoney",
-          "stopsOperations"
+          "stopsOperations",
+          "reportsPersonalData"
         ],
         "additionalProperties": false
       }

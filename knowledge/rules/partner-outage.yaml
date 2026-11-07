@@ -1,0 +1,49 @@
+# 判定ルール表：取引先・提供元の停止（型紙 partner-outage）
+# 取引先・提供元で起きたことは、御社の対策では防げない。停止の影響（止まる業務、手作業で回せる日数、復旧日数）は、
+# 会社カルテの業務の項目から計算する。型紙の段階 partner-down・own-stop に限るルールなので、他の型紙の判定には当たらない
+rules:
+  - id: partner_outage.core
+    role: core
+    techniques: []
+    stages: [partner-down, own-stop]
+    materialsJa: カルテ：中核システムを提供元に任せているか（外部に置いた資産）
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 提供元で起きた停止は、御社の対策では防げない
+  - id: partner_outage.accounting
+    role: cloud.accounting
+    techniques: []
+    stages: [partner-down, own-stop]
+    materialsJa: カルテ：会計クラウドの利用
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 提供元で起きた停止は、御社の対策では防げない
+  - id: partner_outage.saas
+    role: cloud.saas
+    techniques: []
+    stages: [partner-down, own-stop]
+    materialsJa: カルテ：クラウドサービスの利用
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 提供元で起きた停止は、御社の対策では防げない
+  - id: partner_outage.mail
+    role: cloud.mail
+    techniques: []
+    stages: [partner-down, own-stop]
+    materialsJa: カルテ：クラウドメールの利用
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 提供元で起きた停止は、御社の対策では防げない
+  - id: partner_outage.storage
+    role: cloud.storage
+    techniques: []
+    stages: [partner-down, own-stop]
+    materialsJa: カルテ：クラウドストレージの利用
+    mitigations: []
+    outcomes:
+      - state: breached
+        reasonJa: 提供元で起きた停止は、御社の対策では防げない

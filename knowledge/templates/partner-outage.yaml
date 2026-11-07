@@ -1,0 +1,42 @@
+# 型紙：取引先・提供元の停止（もらい事故）
+# 御社のシステムが侵されたのではなく、取引先・委託先・クラウドの提供元が止まった（ランサムウェア、障害など）ために、
+# 御社の業務が止まる。入口は攻撃者ではなく「取引先・提供元」で、会社カルテでは外部（side: external）に置いた資産
+# （提供元に任せた中核システム、会計クラウド、クラウドのメール・ストレージ・サービス）が当たる。
+# 業務がその資産に依存するか（businesses.assetIds）、手作業で回せる日数（manualDays）は、カルテの既存の項目で決まる。
+# 取引先側の段階は ATT&CK の影響（TA0040）に結びつける。障害のように攻撃でない停止、および「自社の業務が止まる」段階は
+# ATT&CK の手法に当たらないので、手法を持たない段階（byRole: null）にする
+id: partner-outage
+damageType: partner_outage
+labelJa: 取引先・提供元の停止（もらい事故）
+descriptionJa: 取引先・提供元が止まり、そのサービスに頼る御社の業務が止まる
+stages:
+  - id: partner-down
+    labelJa: 取引先・提供元のサービスが止まる
+    breachedJa: 止まる
+    breachedDoneJa: 止まりました
+    sentenceJa: "取引先・提供元の{node}が止まる"
+    tactics: [TA0040]
+    entry: true
+    # 入口は攻撃者ではなく取引先・提供元。カルテで外部に置いた資産だけが当たる
+    fromPartner: true
+    byRole:
+      core: null
+      cloud.accounting: null
+      cloud.saas: null
+      cloud.mail: null
+      cloud.storage: null
+    # 暗号化（T1486）、データの破壊（T1485）、サービスの停止（T1489）、ネットワークへのサービス妨害（T1498）、システムへのサービス妨害（T1499）
+    accepts: [T1486, T1485, T1489, T1498, T1499]
+  - id: own-stop
+    labelJa: 頼っている御社の業務が止まる
+    breachedJa: 止まる
+    breachedDoneJa: 止まりました
+    sentenceJa: "{node}に頼る御社の業務が止まる"
+    tactics: [TA0040]
+    byRole:
+      core: null
+      cloud.accounting: null
+      cloud.saas: null
+      cloud.mail: null
+      cloud.storage: null
+    terminal: true

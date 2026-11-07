@@ -6,7 +6,7 @@ sources:
     nameJa: 個人情報保護委員会「個人情報の保護に関する法律についてのガイドライン（通則編）」（令和8年6月一部改正）3-5 個人データの漏えい等の報告等
     url: https://www.ppc.go.jp/personalinfo/legal/guidelines_tsusoku/
     checkedAt: "2026-11-02"
-    noteJa: 3-5-3 個人情報保護委員会への報告（法第26条第1項関係）、3-5-3-3 速報（規則第8条第1項関係）、3-5-3-4 確報（規則第8条第2項関係）、3-5-4 本人への通知（法第26条第2項関係）を確認
+    noteJa: 3-5-3 個人情報保護委員会への報告（法第26条第1項関係）、3-5-3-3 速報（規則第8条第1項関係）、3-5-3-4 確報（規則第8条第2項関係）、3-5-3-5 委託先から委託元への通知（法第26条第1項ただし書、規則第9条関係）、3-5-4 本人への通知（法第26条第2項関係）を確認
   - id: ppc-leak
     nameJa: 個人情報保護委員会「漏えい等の対応とお役立ち資料」
     url: https://www.ppc.go.jp/personalinfo/legal/leakAction/
@@ -92,6 +92,16 @@ deadlines:
     sourceId: profile
     status: unverified
     noteJa: 要確認：契約の通知条項。表示上は、取引先に影響が出る前（手作業で回せる最終日）に置く
+  - id: partner-notice-breach
+    kind: partner
+    labelJa: 取引先への通知（契約で定められた期限）
+    days: 0
+    appliesTo: damage_type
+    damageTypes: [data_breach]
+    basisJa: 取引先から預かった情報や、取引先に関わる情報が漏えいした場合は、取引先との契約（基本契約・秘密保持契約・個人データの取扱いの委託契約の事故通知条項）で定められた期限までに通知する。日数は契約ごとに異なり、法令にはない（要確認）
+    sourceId: profile
+    status: unverified
+    noteJa: 要確認：契約の通知条項（日数は断定しない。発覚当日に置いたのは契約の確認を始める目安）。個人データの取扱いの委託を受けている場合は、法令でも、委託元への通知（法第26条第1項ただし書、規則第9条。事態を知った後速やかに。目安は概ね3～5日以内）が報告義務の免除の条件になるため、契約とあわせて確認すること（出典：ppc-guidelines 3-5-3-5）
   - id: police
     kind: police
     labelJa: 警察（サイバー犯罪相談窓口）への相談

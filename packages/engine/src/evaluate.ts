@@ -462,6 +462,13 @@ function fitEntries(
   return [];
 }
 
+/** 止まる業務（復旧に日数がかかる業務）が、その資産に頼っているか */
+function dependedByStoppingBusiness(node: GraphNode, profile: CompanyProfile): boolean {
+  return profile.businesses.some(
+    (b) => b.recoveryDays > 0 && node.assetId !== undefined && b.assetIds.includes(node.assetId),
+  );
+}
+
 /** 一本の型紙を構成グラフに当てて経路を作る。入口が無ければ空 */
 function pathsForTemplate(
   { template, matched }: TemplateMatch,
@@ -484,7 +491,10 @@ function pathsForTemplate(
     .filter(
       (n) =>
         n.role in entryStage.byRole &&
-        adjacent(graph, ATTACKER_NODE_ID, n.id) &&
+        (entryStage.fromPartner
+          ? // 取引先・提供元の停止：外部に置いた資産のうち、止まる業務（recoveryDays > 0）が頼っているもの（カルテの業務の assetIds）
+            n.side === "external" && dependedByStoppingBusiness(n, profile)
+          : adjacent(graph, ATTACKER_NODE_ID, n.id)) &&
         !isDecommissioned(n, profile),
     )
     .sort((a, b) => entryOrder(a.role, knowledge) - entryOrder(b.role, knowledge));

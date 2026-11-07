@@ -161,6 +161,11 @@ export const TemplateStage = z.object({
   sentenceJa: z.string().optional(),
   tactics: z.array(TacticId),
   entry: z.boolean().default(false),
+  /**
+   * 入口が攻撃者ではなく取引先・提供元の停止である段階（取引先・提供元の停止の型紙）。
+   * 入口になるのは、byRole の役割のうち、カルテで外部（side: external）に置き、止まる業務（recoveryDays > 0）が頼っている（businesses.assetIds）資産。攻撃者とのつながりは要らない
+   */
+  fromPartner: z.boolean().default(false),
   precondition: z.boolean().default(false),
   human: z.boolean().default(false),
   optional: z.boolean().default(false),
@@ -222,6 +227,11 @@ export const DamageTypeDef = z.object({
    * 宣言が無い種類は従来どおり止まる（true）。省略時の true は、新しい種類を足したときの安全側
    */
   stopsOperations: z.boolean().default(true),
+  /**
+   * 経路が届いた資産の個人データについて、個人情報保護委員会への報告・本人通知を見込む種類か（省略は true）。
+   * 取引先・提供元の停止のように、情報が外に出ない種類は false（報告義務の有無・期限を出さない）
+   */
+  reportsPersonalData: z.boolean().default(true),
 });
 export const DamageTypesFile = z.object({ damageTypes: z.array(DamageTypeDef).min(1) });
 export type DamageTypeDef = z.infer<typeof DamageTypeDef>;
@@ -841,10 +851,12 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   const ruleIds = rules.map((r) => r.id);
   for (const id of ruleIds.filter((id, i) => ruleIds.indexOf(id) !== i))
     problems.push(`rules: ${id} が重複`);
-  const hasRule = (role: string, tech: string | null) =>
+  // stages を持つルールは、その段階の確認にだけ数える（他の型紙の同じ役割の段階の穴を隠さない）
+  const hasRule = (role: string, tech: string | null, stageId?: string) =>
     rules.some(
       (r) =>
         r.role === role &&
+        (!r.stages || (stageId !== undefined && r.stages.includes(stageId))) &&
         (r.techniques.length === 0 ||
           (tech !== null &&
             (r.techniques.includes(tech) ||
@@ -854,7 +866,7 @@ export function checkKnowledge(profilePaths: string[]): string[] {
   for (const t of templates)
     for (const s of t.stages)
       for (const [role, tech] of Object.entries(s.byRole))
-        if (!hasRule(role, tech))
+        if (!hasRule(role, tech, s.id))
           problems.push(
             `rules: 型紙 ${t.id} の段階 ${s.id}（${role} × ${tech ?? "手法なし"}）に判定ルールがない`,
           );

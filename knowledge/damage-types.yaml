@@ -12,6 +12,8 @@
 # stopsOperations：経路が資産に届いたとき、依存する業務が止まる種類か。省略すると true（止まる）。
 #   false にすると、止まる業務・復旧日数・売上影響を出さない（取引先への影響日もそこから出るので出ない）。
 #   個人情報の報告・通知などの期限、送金額の目安は、そのまま出す。false の種類の day0 は business_stop にしない
+# reportsPersonalData：経路が届いた資産の個人データについて、報告義務・期限（個人情報保護委員会、本人通知）を見込む種類か。省略すると true。
+#   情報が外に出ない種類（取引先・提供元の停止）は false にする
 # 型紙に紐づかない経路（AI 攻撃者の経路）は種類が決まらないので、先頭の種類の day0 を使う
 damageTypes:
   - id: ransomware
@@ -50,3 +52,13 @@ damageTypes:
       kind: legal
       labelJa: 個人情報の流出が発覚する
     stopsOperations: false
+  - id: partner_outage
+    labelJa: 取引先・提供元の停止（もらい事故）
+    shortJa: 取引先・提供元の停止による業務停止
+    readingHintJa: 記事の会社自身のシステムは侵入されておらず、取引先・委託先・クラウドやシステムの提供元が被害（ランサムウェア、サービスの停止、障害）を受けたために、記事の会社の業務やサービス（ネットストア、出荷、受付など）が止まったもの。記事の会社が「取引先の被害の影響で停止した」と書いているときの分類。取引先自身の被害の中身（何が暗号化されたか）を主に書いた記事、記事の会社のシステムも暗号化されたものは ransomware。取引先に預けた情報が漏れたものは data_breach
+    day0:
+      kind: business_stop
+      labelJa: 取引先・提供元が止まり、自社の業務も止まる
+      sourceJa: 判定した経路（取引先・提供元の停止）
+    stopsOperations: true
+    reportsPersonalData: false

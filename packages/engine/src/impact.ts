@@ -125,7 +125,11 @@ export function computeImpact(
   const partnerDays = stopped.map((s) => s.partnerDay).filter((d): d is number => d !== undefined);
   const partnerImpactDay = partnerDays.length > 0 ? Math.min(...partnerDays) : undefined;
 
-  const personalDataReached = profile.personalData.filter((p) => reached.has(p.assetId));
+  const reportsPersonalData =
+    damageTypeDefs.find((d) => d.id === damageType)?.reportsPersonalData ?? true;
+  const personalDataReached = reportsPersonalData
+    ? profile.personalData.filter((p) => reached.has(p.assetId))
+    : [];
   const reasons = reportReasons(personalDataReached, deadlines);
 
   const moneyReached =
