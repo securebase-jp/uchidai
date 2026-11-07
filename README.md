@@ -8,7 +8,7 @@
 
 > **すぐに使う**：[**最新版のポータブル ZIP をダウンロード**](https://github.com/securebase-jp/uchidai/releases/latest)（Windows・Mac・Linux。Node も Docker も要りません）。展開して「ウチダイを起動」を開くだけです。手順は [動かし方](#動かし方) にあります。
 
-<!-- デモ動画（YouTube）のリンクを、公開後にここへ置く -->
+> **デモ動画（3 分）**：[YouTube で見る](https://youtu.be/fH2g5TAhO7E)
 
 ## 何ができるか
 
